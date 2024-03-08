@@ -221,7 +221,7 @@ connection.onCompletion(
 				data: 1
 			},
 			{
-				label: 'JavaScript',
+				label: 'AngelAngel',
 				kind: CompletionItemKind.Text,
 				data: 2
 			}
@@ -237,8 +237,8 @@ connection.onCompletionResolve(
 			item.detail = 'TypeScript details';
 			item.documentation = 'TypeScript documentation';
 		} else if (item.data === 2) {
-			item.detail = 'JavaScript details';
-			item.documentation = 'JavaScript documentation';
+			item.detail = 'AngelScript details';
+			item.documentation = 'AngelScript documentation';
 		}
 		return item;
 	}

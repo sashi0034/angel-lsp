@@ -17,10 +17,16 @@
 		"vscode": "^1.75.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:AngelScript"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"languages": [{
+			"id": "AngelScript",
+			"extensions": [
+				".as"
+			]
+		}],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",
