@@ -2,13 +2,13 @@ import {Position, URI} from 'vscode-languageserver';
 
 export type TokenKind = 'number' | 'identifier' | 'symbol' | 'comment'
 
-interface Location {
+export interface Location {
     uri: URI,
     start: Position,
     end: Position,
 }
 
-interface Token {
+export interface Token {
     kind: TokenKind;
     text: string;
     location: Location;
