@@ -1,18 +1,6 @@
 import {Position, URI} from 'vscode-languageserver';
 
-enum TokenKind {
-    Number,
-    Comment,
-    Variable,
-    Operator,
-}
-
-export const tokenTypes = [
-    'number',
-    'comment',
-    'variable',
-    'operator',
-];
+export type TokenKind = 'number' | 'identifier' | 'symbol' | 'comment'
 
 interface Location {
     uri: URI,
@@ -179,7 +167,7 @@ export function tokenize(str: string, uri: URI) {
         if (triedComment.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: TokenKind.Comment,
+                kind: "comment",
                 text: triedComment,
                 location: location
             });
@@ -190,7 +178,7 @@ export function tokenize(str: string, uri: URI) {
         if (triedNumber.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: TokenKind.Number,
+                kind: "number",
                 text: triedNumber,
                 location: location
             });
@@ -201,7 +189,7 @@ export function tokenize(str: string, uri: URI) {
         if (triedIdentifier.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: TokenKind.Variable,
+                kind: "identifier",
                 text: triedIdentifier,
                 location: location
             });
@@ -212,7 +200,7 @@ export function tokenize(str: string, uri: URI) {
         if (triedSymbol.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: TokenKind.Operator,
+                kind: "symbol",
                 text: triedSymbol,
                 location: location
             });

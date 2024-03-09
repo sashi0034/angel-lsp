@@ -23,7 +23,8 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {tokenTypes, tokenize} from './tokenizer';
+import {TokenKind, tokenize} from './tokenizer';
+import {tokenToSemantic, analyzedTokens} from "./analyzer";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -56,7 +57,7 @@ connection.onInitialize((params: InitializeParams) => {
     const result: InitializeResult = {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Incremental,
-			definitionProvider: true, // TODO
+            definitionProvider: true, // TODO
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true
@@ -67,7 +68,7 @@ connection.onInitialize((params: InitializeParams) => {
             },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: tokenTypes,
+                    tokenTypes: analyzedTokens,
                     tokenModifiers: ['declaration', 'readonly']
                 },
                 range: false, // if true, the server supports range-based requests
@@ -172,7 +173,7 @@ connection.languages.semanticTokens.on((params) => {
         tokens.forEach((token, i) => {
             const tokenModifier = 0; // TODO
             // TODO: 複数行のコメントや文字列のときに特殊処理
-            builder.push(token.location.start.line, token.location.start.character, token.text.length, token.kind, 0);
+            builder.push(token.location.start.line, token.location.start.character, token.text.length, tokenToSemantic(token.kind), 0);
         });
     }
 
