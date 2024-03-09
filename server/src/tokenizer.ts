@@ -73,6 +73,10 @@ class ReadingState {
         }
     }
 
+    stepFor(count: number) {
+        for (let i = 0; i < count; ++i) this.stepNext();
+    }
+
     copyHead() {
         return {
             line: this.head.line,
@@ -96,6 +100,31 @@ const allSymbols = [
 
 let s_symbolsSorted = false;
 
+function tryComment(reading: ReadingState) {
+    if (reading.isNext('//')) {
+        reading.stepFor(2);
+        let comment = '//';
+        for (; ;) {
+            if (reading.isEnd() || reading.isNextWrap()) break;
+            comment += reading.next();
+            reading.stepNext();
+        }
+        return comment;
+    }
+    if (reading.isNext('/*')) {
+        reading.stepFor(2);
+        let comment = '/*';
+        for (; ;) {
+            if (reading.isEnd() || reading.isNext('*/')) break;
+            if (reading.isNext('\r\n')) comment += '\r\n';
+            else comment += reading.next();
+            reading.stepNext();
+        }
+        return comment;
+    }
+    return '';
+}
+
 function trySymbol(reading: ReadingState) {
     if (s_symbolsSorted === false) {
         allSymbols.sort((a, b) => b.length - a.length);
@@ -104,9 +133,7 @@ function trySymbol(reading: ReadingState) {
 
     for (const symbol of allSymbols) {
         if (reading.isNext(symbol)) {
-            for (let i = 0; i < symbol.length; ++i) {
-                reading.stepNext();
-            }
+            reading.stepFor(symbol.length);
             return symbol;
         }
     }
@@ -147,6 +174,17 @@ export function tokenize(str: string, uri: URI) {
             uri: uri
         };
 
+        // コメント
+        const triedComment = tryComment(reading);
+        if (triedComment.length > 0) {
+            location.end = reading.copyHead();
+            tokens.push({
+                kind: TokenKind.Comment,
+                text: triedComment,
+                location: location
+            });
+        }
+
         // 数値
         const triedNumber = tryNumber(reading);
         if (triedNumber.length > 0) {
@@ -175,7 +213,7 @@ export function tokenize(str: string, uri: URI) {
             location.end = reading.copyHead();
             tokens.push({
                 kind: TokenKind.Operator,
-                text: triedIdentifier,
+                text: triedSymbol,
                 location: location
             });
         }

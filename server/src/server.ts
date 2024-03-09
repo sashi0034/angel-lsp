@@ -170,6 +170,7 @@ connection.languages.semanticTokens.on((params) => {
         const tokens = tokenize(document.getText(), params.textDocument.uri);
         tokens.forEach((token, i) => {
             const tokenModifier = 0; // TODO
+            // TODO: 複数行のコメントや文字列のときに特殊処理
             builder.push(token.location.start.line, token.location.start.character, token.text.length, token.kind, 0);
         });
     }
