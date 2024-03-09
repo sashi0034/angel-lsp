@@ -23,6 +23,7 @@ import {
 import {
 	TextDocument
 } from 'vscode-languageserver-textdocument';
+import { tokenTypes, tokenize } from './tokenizer';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -65,7 +66,7 @@ connection.onInitialize((params: InitializeParams) => {
 			},
 			semanticTokensProvider: {
 				legend: {
-					tokenTypes: ['class', 'function', 'variable'],
+					tokenTypes: tokenTypes,
 					tokenModifiers: ['declaration', 'readonly']
 				},
 				range: false, // if true, the server supports range-based requests
@@ -165,24 +166,11 @@ connection.languages.semanticTokens.on((params) => {
 	const builder = new SemanticTokensBuilder();
 	const document = documents.get(params.textDocument.uri);
 
-	const tokenTypes = new Map<string, number>();
-	tokenTypes.set('class', 0);
-	tokenTypes.set('function', 1);
-	tokenTypes.set('variable', 2);
-
 	if (document) {
-		const lines = document.getText().split(/\r?\n/);
-		lines.forEach((line, lineNumber) => {
-			// この部分で、行内のトークンを解析してセマンティックトークンを識別するロジックを追加
-			// 例: 簡単な正規表現を使って 'class' キーワードを検索
-			const regex = /\bclass\b/g;
-			let match;
-			while ((match = regex.exec(line))) {
-				const startPos = match.index;
-				const length = match[0].length;
-				// 'class' トークンタイプのインデックスは 0 です
-				builder.push(lineNumber, startPos, length, tokenTypes.get('class')!, 0);
-			}
+		const tokens = tokenize(document.getText(), params.textDocument.uri);
+		tokens. forEach((token, i) => {
+			const tokenModifier = 0; // TODO
+			builder.push(token.location.start.line, token.location.start.character, token.text.length, token.kind, 0);
 		});
 	}
 

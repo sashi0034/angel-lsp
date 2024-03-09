@@ -1,6 +1,14 @@
-import {Position, URI} from 'vscode-languageserver';
+import { Position, URI } from 'vscode-languageserver';
 
-type TokenKind = 'number' | 'comment'
+enum TokenKind {
+    Number,
+    Comment,
+}
+
+export const tokenTypes = [
+    'number',
+    'comment',
+];
 
 interface Location {
     uri: URI,
@@ -9,7 +17,7 @@ interface Location {
 }
 
 interface Token {
-    kind: string;
+    kind: TokenKind;
     text: string;
     location: Location;
 }
@@ -22,20 +30,24 @@ class ReadingState {
     constructor(str: string) {
         this.str = str;
         this.cursor = 0;
-        this.head = {line: 0, character: 0};
+        this.head = { line: 0, character: 0 };
     }
 
-    next() {
-        return this.str[this.cursor];
+    next(offset: number = 0) {
+        return this.str[this.cursor + offset];
     }
 
     isEnd() {
         return this.cursor >= this.str.length;
     }
 
+    isNext(expected: string) {
+        return this.str.substring(this.cursor, this.cursor + expected.length) === expected;
+    }
+
     isNextWrap() {
         const next = this.next();
-        return next === '\n' || next === '\r';
+        return next === '\r' || next === '\n';
     }
 
     isNextWhitespace() {
@@ -49,10 +61,12 @@ class ReadingState {
         if (this.isNextWrap()) {
             this.head.line++;
             this.head.character = 0;
+            if (this.isNext('\r\n')) this.cursor += 2;
+            else this.cursor += 1;
         } else {
             this.head.character++;
+            this.cursor += 1;
         }
-        this.cursor++;
     }
 }
 
@@ -87,11 +101,14 @@ export function tokenize(str: string, uri: URI) {
         const triedNumber = tryNumber(reading);
         if (triedNumber.length > 0) {
             tokens.push({
-                kind: 'number',
+                kind: TokenKind.Number,
                 text: triedNumber,
                 location: {
                     start: start,
-                    end: reading.head,
+                    end: {
+                        line: reading.head.line,
+                        character: reading.head.character
+                    },
                     uri: uri
                 }
             });
