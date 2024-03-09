@@ -1,13 +1,15 @@
-import { Position, URI } from 'vscode-languageserver';
+import {Position, URI} from 'vscode-languageserver';
 
 enum TokenKind {
     Number,
     Comment,
+    Variable,
 }
 
 export const tokenTypes = [
     'number',
     'comment',
+    'variable',
 ];
 
 interface Location {
@@ -30,7 +32,7 @@ class ReadingState {
     constructor(str: string) {
         this.str = str;
         this.cursor = 0;
-        this.head = { line: 0, character: 0 };
+        this.head = {line: 0, character: 0};
     }
 
     next(offset: number = 0) {
@@ -68,15 +70,35 @@ class ReadingState {
             this.cursor += 1;
         }
     }
+
+    copyHead() {
+        return {
+            line: this.head.line,
+            character: this.head.character
+        };
+    }
 }
 
 function isDigit(str: string): boolean {
     return /^[0-9]$/.test(str);
 }
 
+function isAlnum(c: string): boolean {
+    return /^[A-Za-z0-9_]$/.test(c);
+}
+
 function tryNumber(reading: ReadingState) {
     let result: string = "";
-    while (reading.isEnd() === false && isDigit(reading.str[reading.cursor])) {
+    while (reading.isEnd() === false && isDigit(reading.next())) {
+        result += reading.next();
+        reading.stepNext();
+    }
+    return result;
+}
+
+function tryIdentifier(reading: ReadingState) {
+    let result: string = "";
+    while (reading.isEnd() === false && isAlnum(reading.next())) {
         result += reading.next();
         reading.stepNext();
     }
@@ -93,24 +115,31 @@ export function tokenize(str: string, uri: URI) {
         if (reading.isNextWrap()) continue;
         if (reading.isNextWhitespace()) continue;
 
-        const start: Position = {
-            line: reading.head.line,
-            character: reading.head.character
+        const location = {
+            start: reading.copyHead(),
+            end: reading.copyHead(),
+            uri: uri
         };
 
+        // 数値
         const triedNumber = tryNumber(reading);
         if (triedNumber.length > 0) {
+            location.end = reading.copyHead();
             tokens.push({
                 kind: TokenKind.Number,
                 text: triedNumber,
-                location: {
-                    start: start,
-                    end: {
-                        line: reading.head.line,
-                        character: reading.head.character
-                    },
-                    uri: uri
-                }
+                location: location
+            });
+        }
+
+        // 識別子
+        const triedIdentifier = tryIdentifier(reading);
+        if (triedIdentifier.length > 0) {
+            location.end = reading.copyHead();
+            tokens.push({
+                kind: TokenKind.Variable,
+                text: triedIdentifier,
+                location: location
             });
         }
     }
