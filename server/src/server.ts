@@ -23,8 +23,8 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {TokenKind, tokenize} from './tokenizer';
-import {tokenToSemantic, analyzedTokens} from "./analyzer";
+import {RowToken, tokenize} from './tokenizer';
+import {highlightModifiers, highlightTokens} from "./highlight";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -68,8 +68,8 @@ connection.onInitialize((params: InitializeParams) => {
             },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: analyzedTokens,
-                    tokenModifiers: ['declaration', 'readonly']
+                    tokenTypes: highlightTokens,
+                    tokenModifiers: highlightModifiers
                 },
                 range: false, // if true, the server supports range-based requests
                 full: true
@@ -173,7 +173,12 @@ connection.languages.semanticTokens.on((params) => {
         tokens.forEach((token, i) => {
             const tokenModifier = 0; // TODO
             // TODO: 複数行のコメントや文字列のときに特殊処理
-            builder.push(token.location.start.line, token.location.start.character, token.text.length, tokenToSemantic(token.kind), 0);
+            builder.push(
+                token.location.start.line,
+                token.location.start.character,
+                token.text.length,
+                token.highlight.token,
+                token.highlight.modifier);
         });
     }
 

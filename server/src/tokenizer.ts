@@ -1,6 +1,7 @@
 import {Position, URI} from 'vscode-languageserver';
+import {HighlightModifier, HighlightToken} from "./highlight";
 
-export type TokenKind = 'number' | 'identifier' | 'symbol' | 'comment'
+export type RowToken = 'number' | 'reserved' | 'identifier' | 'comment'
 
 export interface Location {
     uri: URI,
@@ -9,9 +10,13 @@ export interface Location {
 }
 
 export interface Token {
-    kind: TokenKind;
+    kind: RowToken;
     text: string;
     location: Location;
+    highlight: {
+        token: HighlightToken
+        modifier: HighlightModifier
+    };
 }
 
 class ReadingState {
@@ -151,6 +156,13 @@ function tryIdentifier(reading: ReadingState) {
     return result;
 }
 
+function dummyHighlight(token: HighlightToken, modifier: HighlightModifier) {
+    return {
+        token: token,
+        modifier: modifier,
+    };
+}
+
 export function tokenize(str: string, uri: URI) {
     const tokens: Token[] = [];
     const reading = new ReadingState(str);
@@ -176,7 +188,8 @@ export function tokenize(str: string, uri: URI) {
             tokens.push({
                 kind: "comment",
                 text: triedComment,
-                location: location
+                location: location,
+                highlight: dummyHighlight(HighlightToken.Comment, HighlightModifier.Invalid)
             });
             continue;
         }
@@ -188,7 +201,21 @@ export function tokenize(str: string, uri: URI) {
             tokens.push({
                 kind: "number",
                 text: triedNumber,
-                location: location
+                location: location,
+                highlight: dummyHighlight(HighlightToken.Number, HighlightModifier.Invalid)
+            });
+            continue;
+        }
+
+        // シンボル
+        const triedSymbol = trySymbol(reading);
+        if (triedSymbol.length > 0) {
+            location.end = reading.copyHead();
+            tokens.push({
+                kind: "reserved",
+                text: triedSymbol,
+                location: location,
+                highlight: dummyHighlight(HighlightToken.Keyword, HighlightModifier.Invalid)
             });
             continue;
         }
@@ -200,19 +227,8 @@ export function tokenize(str: string, uri: URI) {
             tokens.push({
                 kind: "identifier",
                 text: triedIdentifier,
-                location: location
-            });
-            continue;
-        }
-
-        // シンボル
-        const triedSymbol = trySymbol(reading);
-        if (triedSymbol.length > 0) {
-            location.end = reading.copyHead();
-            tokens.push({
-                kind: "symbol",
-                text: triedSymbol,
-                location: location
+                location: location,
+                highlight: dummyHighlight(HighlightToken.Variable, HighlightModifier.Invalid)
             });
             continue;
         }
