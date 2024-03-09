@@ -156,10 +156,12 @@ export function tokenize(str: string, uri: URI) {
     const reading = new ReadingState(str);
 
     for (; ;) {
-        reading.stepNext();
         if (reading.isEnd()) break;
-        if (reading.isNextWrap()) continue;
-        if (reading.isNextWhitespace()) continue;
+        if (reading.isNextWrap()
+            || reading.isNextWhitespace()) {
+            reading.stepNext();
+            continue;
+        }
 
         const location = {
             start: reading.copyHead(),
@@ -176,6 +178,7 @@ export function tokenize(str: string, uri: URI) {
                 text: triedComment,
                 location: location
             });
+            continue;
         }
 
         // 数値
@@ -187,6 +190,7 @@ export function tokenize(str: string, uri: URI) {
                 text: triedNumber,
                 location: location
             });
+            continue;
         }
 
         // 識別子
@@ -198,6 +202,7 @@ export function tokenize(str: string, uri: URI) {
                 text: triedIdentifier,
                 location: location
             });
+            continue;
         }
 
         // シンボル
@@ -209,8 +214,11 @@ export function tokenize(str: string, uri: URI) {
                 text: triedSymbol,
                 location: location
             });
+            continue;
         }
 
+        // FIXME: ここに到達したらエラー?
+        reading.stepNext();
     }
 
     return tokens;
