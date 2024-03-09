@@ -103,7 +103,12 @@ function tryComment(reading: ReadingState) {
         reading.stepFor(2);
         let comment = '/*';
         for (; ;) {
-            if (reading.isEnd() || reading.isNext('*/')) break;
+            if (reading.isEnd()) break;
+            if (reading.isNext('*/')) {
+                comment += '*/';
+                reading.stepFor(2);
+                break;
+            }
             if (reading.isNext('\r\n')) comment += '\r\n';
             else comment += reading.next();
             reading.stepNext();
