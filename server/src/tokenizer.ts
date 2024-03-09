@@ -4,12 +4,14 @@ enum TokenKind {
     Number,
     Comment,
     Variable,
+    Operator,
 }
 
 export const tokenTypes = [
     'number',
     'comment',
     'variable',
+    'operator',
 ];
 
 interface Location {
@@ -87,6 +89,30 @@ function isAlnum(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
+const allSymbols = [
+    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
+    // FIXME: !is をどうするか
+];
+
+let s_symbolsSorted = false;
+
+function trySymbol(reading: ReadingState) {
+    if (s_symbolsSorted === false) {
+        allSymbols.sort((a, b) => b.length - a.length);
+        s_symbolsSorted = true;
+    }
+
+    for (const symbol of allSymbols) {
+        if (reading.isNext(symbol)) {
+            for (let i = 0; i < symbol.length; ++i) {
+                reading.stepNext();
+            }
+            return symbol;
+        }
+    }
+    return '';
+}
+
 function tryNumber(reading: ReadingState) {
     let result: string = "";
     while (reading.isEnd() === false && isDigit(reading.next())) {
@@ -142,6 +168,18 @@ export function tokenize(str: string, uri: URI) {
                 location: location
             });
         }
+
+        // シンボル
+        const triedSymbol = trySymbol(reading);
+        if (triedSymbol.length > 0) {
+            location.end = reading.copyHead();
+            tokens.push({
+                kind: TokenKind.Operator,
+                text: triedIdentifier,
+                location: location
+            });
+        }
+
     }
 
     return tokens;
