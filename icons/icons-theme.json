@@ -1,0 +1,10 @@
+{
+	"iconDefinitions": {
+	  "AngelScript": {
+		"iconPath": "./icon.png"
+	  }
+	},
+	"fileExtensions": {
+	  "as": "AngelScript"
+	}
+  }

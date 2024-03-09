@@ -27,6 +27,11 @@
 				".as"
 			]
 		}],
+		"iconThemes": [{
+			"id": "myCustomIcons",
+			"label": "My Custom Icons",
+			"path": "./icons/icons-theme.json"
+		}],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",
