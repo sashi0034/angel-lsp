@@ -16,7 +16,8 @@ import {
 	TextDocumentSyncKind,
 	InitializeResult,
 	DocumentDiagnosticReportKind,
-	type DocumentDiagnosticReport
+	type DocumentDiagnosticReport,
+	SemanticTokensBuilder,
 } from 'vscode-languageserver/node';
 
 import {
@@ -61,6 +62,14 @@ connection.onInitialize((params: InitializeParams) => {
 			diagnosticProvider: {
 				interFileDependencies: false,
 				workspaceDiagnostics: false
+			},
+			semanticTokensProvider: {
+				legend: {
+					tokenTypes: ['class', 'function', 'variable'],
+					tokenModifiers: ['declaration', 'readonly']
+				},
+				range: false, // if true, the server supports range-based requests
+				full: true
 			}
 		}
 	};
@@ -152,10 +161,39 @@ connection.languages.diagnostics.on(async (params) => {
 	}
 });
 
+connection.languages.semanticTokens.on((params) => {
+	const builder = new SemanticTokensBuilder();
+	const document = documents.get(params.textDocument.uri);
+
+	const tokenTypes = new Map<string, number>();
+	tokenTypes.set('class', 0);
+	tokenTypes.set('function', 1);
+	tokenTypes.set('variable', 2);
+
+	if (document) {
+		const lines = document.getText().split(/\r?\n/);
+		lines.forEach((line, lineNumber) => {
+			// この部分で、行内のトークンを解析してセマンティックトークンを識別するロジックを追加
+			// 例: 簡単な正規表現を使って 'class' キーワードを検索
+			const regex = /\bclass\b/g;
+			let match;
+			while ((match = regex.exec(line))) {
+				const startPos = match.index;
+				const length = match[0].length;
+				// 'class' トークンタイプのインデックスは 0 です
+				builder.push(lineNumber, startPos, length, tokenTypes.get('class')!, 0);
+			}
+		});
+	}
+
+	return builder.build();
+});
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
+	// いらない?
+	// validateTextDocument(change.document);
 });
 
 async function validateTextDocument(textDocument: TextDocument): Promise<Diagnostic[]> {
@@ -171,6 +209,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
 	const diagnostics: Diagnostic[] = [];
 	while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
 		problems++;
+
 		const diagnostic: Diagnostic = {
 			severity: DiagnosticSeverity.Warning,
 			range: {
