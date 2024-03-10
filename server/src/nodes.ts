@@ -4,6 +4,14 @@ import * as punycode from "punycode";
 export interface NodeBase {
 }
 
+// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+export class NodeScript implements NodeBase {
+    public constructor(
+        public statements: NodeFunc[]
+    ) {
+    }
+}
+
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export class NodeFunc implements NodeBase {
     public constructor(
@@ -12,7 +20,7 @@ export class NodeFunc implements NodeBase {
         public type: NodeType_ | null,
         public ref: TokenObject | null,
         public identifier: TokenObject,
-        public paramlist: NodeParamlist,
+        public paramlist: NodePARAMLIST,
         public const_: boolean,
         public funcattr: TokenObject | null,
         public statblock: [NodeStatement]
@@ -21,9 +29,10 @@ export class NodeFunc implements NodeBase {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export class NodeParamlist implements NodeBase {
+export class NodePARAMLIST implements NodeBase {
     public constructor(
-        public type: [NodeType_],
+        public types: NodeType_[],
+        public identifiers: TokenObject[],
     ) {
     }
 }
@@ -33,8 +42,8 @@ export class NodeType_ implements NodeBase {
     public constructor(
         public const_: boolean,
         public scope: TokenObject | null, // TODO
-        public datatype: NodeDatatype,
-        public type: NodeType_[] | null,
+        public datatype: NodeDATATYPE,
+        public generics: NodeType_[],
         public array: boolean,
         public ref: boolean,
     ) {
@@ -42,7 +51,7 @@ export class NodeType_ implements NodeBase {
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-export class NodeDatatype implements NodeBase {
+export class NodeDATATYPE implements NodeBase {
     public constructor(
         public identifier: TokenObject
     ) {
