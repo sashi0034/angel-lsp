@@ -2,7 +2,7 @@
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./tokenizer";
-import {NodeDATATYPE, NodeFunc, NodePARAMLIST, NodeScript, NodeType_} from "./nodes";
+import {NodeDATATYPE, NodeFunc, NodePARAMLIST, NodeScript, NodeSTATEMENT, NodeType_} from "./nodes";
 import {addDiagnostic} from "./diagnostic";
 import {HighlightModifier, HighlightToken} from "./highlight";
 
@@ -67,11 +67,13 @@ function expect(reading: ReadingState, token: string): boolean {
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(reading: ReadingState) {
+    const funcs: NodeFunc[] = [];
     while (reading.isEnd() === false) {
         const func = parseFUNC(reading);
-
+        if (func === null) continue;
+        funcs.push(func);
     }
-
+    return new NodeScript(funcs);
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
@@ -82,10 +84,12 @@ function parseSCRIPT(reading: ReadingState) {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState) {
     const type = parseTYPE(reading);
+    if (type === null) return null;
     const identifier = reading.next();
     reading.stepNext();
     const paramlist = parsePARAMLIST(reading);
-    parsePARAMLIST(reading);
+    const statblock = parseSTATBLOCK(reading);
+    return new NodeFunc([], null, type, null, identifier, paramlist, false, null, statblock);
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -95,7 +99,19 @@ function parseFUNC(reading: ReadingState) {
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 // MIXIN         ::= 'mixin' CLASS
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+function parseSTATBLOCK(reading: ReadingState): NodeSTATEMENT[] {
+    // TODO: var にも対応するようにする
+    reading.expect('{', HighlightToken.Keyword);
+    while (reading.isEnd() === false) {
+        if (reading.next().text === '}') break;
+        // const var_ = parseVAR(reading); // TODO
+        reading.stepNext();
+    }
+    reading.expect('}', HighlightToken.Keyword);
+    return [];
+}
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function parsePARAMLIST(reading: ReadingState) {
@@ -168,7 +184,7 @@ function parseDATATYPE(reading: ReadingState) {
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 
-export function processFromTokens(tokens: TokenObject[]): NodeScript {
+export function parseFromTokens(tokens: TokenObject[]): NodeScript {
     const reading = new ReadingState(tokens);
     return parseSCRIPT(reading);
 }

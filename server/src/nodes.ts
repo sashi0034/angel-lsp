@@ -20,7 +20,7 @@ export class NodeScript implements NodeBase {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export class NodeFunc implements NodeBase {
     public constructor(
-        public entity: [TokenObject],
+        public entity: TokenObject[],
         public accessor: TokenObject | null,
         public type: NodeType_ | null,
         public ref: TokenObject | null,
@@ -28,7 +28,7 @@ export class NodeFunc implements NodeBase {
         public paramlist: NodePARAMLIST,
         public const_: boolean,
         public funcattr: TokenObject | null,
-        public statblock: [NodeStatement]
+        public statblock: NodeSTATEMENT[]
     ) {
     }
 }
@@ -80,7 +80,7 @@ export class NodeDATATYPE implements NodeBase {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export interface NodeStatement extends NodeBase {
+export interface NodeSTATEMENT extends NodeBase {
 
 }
 

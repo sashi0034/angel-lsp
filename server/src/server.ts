@@ -25,6 +25,8 @@ import {
 } from 'vscode-languageserver-textdocument';
 import {RowToken, tokenize} from './tokenizer';
 import {highlightModifiers, highlightTokens} from "./highlight";
+import {parseFromTokens} from './parser';
+import {clearDiagnostics} from './diagnostic';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -180,6 +182,8 @@ connection.languages.semanticTokens.on((params) => {
                 token.highlight.token,
                 token.highlight.modifier);
         });
+        const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
+        console.log(parsed);
     }
 
     return builder.build();
