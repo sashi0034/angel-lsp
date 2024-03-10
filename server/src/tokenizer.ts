@@ -9,7 +9,7 @@ export interface Location {
     end: Position,
 }
 
-export interface Token {
+export interface TokenObject {
     kind: RowToken;
     text: string;
     location: Location;
@@ -164,7 +164,7 @@ function dummyHighlight(token: HighlightToken, modifier: HighlightModifier) {
 }
 
 export function tokenize(str: string, uri: URI) {
-    const tokens: Token[] = [];
+    const tokens: TokenObject[] = [];
     const reading = new ReadingState(str);
 
     for (; ;) {
