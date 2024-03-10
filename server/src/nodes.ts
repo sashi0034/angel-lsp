@@ -2,9 +2,6 @@ import {TokenObject} from "./tokenizer";
 import * as punycode from "punycode";
 
 export interface NodeBase {
-    headToken(): TokenObject;
-
-    tailToken(): TokenObject;
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -21,14 +18,6 @@ export class NodeFunc implements NodeBase {
         public statblock: [NodeStatement]
     ) {
     }
-
-    headToken(): TokenObject {
-        return this.entity.length > 0 ? this.entity[0] : (this.accessor ?? this.type?.headToken() ?? this.ref ?? this.identifier);
-    }
-
-    tailToken(): TokenObject {
-        return this.statblock[this.statblock.length - 1].tailToken();
-    }
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
@@ -36,14 +25,6 @@ export class NodeParamlist implements NodeBase {
     public constructor(
         public type: [NodeType_],
     ) {
-    }
-
-    headToken(): TokenObject {
-        return this.type[0].headToken();
-    }
-
-    tailToken(): TokenObject {
-        return this.type[this.type.length - 1].tailToken();
     }
 }
 
@@ -58,15 +39,6 @@ export class NodeType_ implements NodeBase {
         public ref: boolean,
     ) {
     }
-
-    public headToken(): TokenObject {
-        return this.const_ ? this.datatype.headToken() : this.scope ?? this.datatype.headToken();
-    }
-
-    public tailToken(): TokenObject {
-        return this.ref ? this.datatype.tailToken() : this.type?.[this.type.length - 1].tailToken() ?? this.datatype.tailToken();
-
-    }
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -74,14 +46,6 @@ export class NodeDatatype implements NodeBase {
     public constructor(
         public identifier: TokenObject
     ) {
-    }
-
-    headToken(): TokenObject {
-        return this.identifier;
-    }
-
-    tailToken(): TokenObject {
-        return this.identifier;
     }
 }
 
@@ -100,14 +64,6 @@ export class NodeExprterm1 implements NodeExprterm {
         public eq: TokenObject,
     ) {
     }
-
-    headToken(): TokenObject {
-        throw Error("Not Implemented");
-    }
-
-    tailToken(): TokenObject {
-        throw Error("Not Implemented");
-    }
 }
 
 export class NodeExprTerm2 implements NodeExprterm {
@@ -116,14 +72,6 @@ export class NodeExprTerm2 implements NodeExprterm {
         public value: NodeExprvalue,
         public stopop: TokenObject | null
     ) {
-    }
-
-    headToken(): TokenObject {
-        return this.preop ?? this.value.headToken();
-    }
-
-    tailToken(): TokenObject {
-        return this.stopop ?? this.value.tailToken();
     }
 }
 
@@ -154,14 +102,6 @@ export class NodeExpr implements NodeBase {
         public tail: NodeExpr | null
     ) {
     }
-
-    headToken(): TokenObject {
-        return this.head.headToken();
-    }
-
-    tailToken(): TokenObject {
-        return this.tail?.tailToken() ?? this.op ?? this.head.tailToken();
-    }
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
@@ -172,14 +112,6 @@ export class NodeAssign implements NodeBase {
         public assign: NodeAssign | null
     ) {
     }
-
-    headToken(): TokenObject {
-        return this.condition.headToken();
-    }
-
-    tailToken(): TokenObject {
-        return this.assign?.tailToken() ?? this.op ?? this.condition.headToken();
-    }
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
@@ -189,14 +121,6 @@ export class NodeCondition implements NodeBase {
         public ta: NodeExpr | null,
         public fa: NodeExpr | null
     ) {
-    }
-
-    headToken(): TokenObject {
-        return this.expr.headToken();
-    }
-
-    tailToken(): TokenObject {
-        return this.fa?.tailToken() ?? this.ta?.tailToken() ?? this.expr.tailToken();
     }
 }
 
