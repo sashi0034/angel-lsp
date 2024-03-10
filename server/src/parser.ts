@@ -3,7 +3,7 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./tokenizer";
 import {NodeDATATYPE, NodeFunc, NodePARAMLIST, NodeScript, NodeSTATEMENT, NodeType_} from "./nodes";
-import {addDiagnostic} from "./diagnostic";
+import {diagnostic} from "./diagnostic";
 import {HighlightModifier, HighlightToken} from "./highlight";
 
 class ReadingState {
@@ -35,15 +35,15 @@ class ReadingState {
 
     public expect(word: string, analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | null = null) {
         if (this.isEnd()) {
-            addDiagnostic(this.next().location, "Unexpected end of file");
+            diagnostic.addError(this.next().location, "Unexpected end of file");
             return false;
         }
         if (this.next().kind !== "reserved") {
-            addDiagnostic(this.next().location, "Expected reserved word");
+            diagnostic.addError(this.next().location, "Expected reserved word");
             return false;
         }
         if (this.next().text !== word) {
-            addDiagnostic(this.next().location, `Expected reserved word ${word}`);
+            diagnostic.addError(this.next().location, `Expected reserved word ${word}`);
             return false;
         }
         this.confirm(analyzeToken, analyzedModifier);
@@ -127,6 +127,7 @@ function parsePARAMLIST(reading: ReadingState) {
         reading.stepNext();
         reading.expect(',', HighlightToken.Keyword);
     }
+    reading.expect(')', HighlightToken.Keyword);
     return new NodePARAMLIST(types, identifiers);
 }
 
@@ -151,7 +152,7 @@ function parseDATATYPE(reading: ReadingState) {
         reading.confirm(HighlightToken.Type);
         return new NodeDATATYPE(next);
     }
-    addDiagnostic(next.location, "Expected identifier");
+    diagnostic.addError(next.location, "Expected identifier");
     return null;
 }
 

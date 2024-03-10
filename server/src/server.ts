@@ -26,7 +26,7 @@ import {
 import {RowToken, tokenize} from './tokenizer';
 import {highlightModifiers, highlightTokens} from "./highlight";
 import {parseFromTokens} from './parser';
-import {clearDiagnostics} from './diagnostic';
+import {diagnostic} from './diagnostic';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -154,7 +154,7 @@ connection.languages.diagnostics.on(async (params) => {
     if (document !== undefined) {
         return {
             kind: DocumentDiagnosticReportKind.Full,
-            items: await validateTextDocument(document)
+            items: diagnostic.get() // FIXME: await にする?
         } satisfies DocumentDiagnosticReport;
     } else {
         // We don't know the document. We can either try to read it from disk
@@ -167,6 +167,8 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.languages.semanticTokens.on((params) => {
+    diagnostic.clear();
+
     const builder = new SemanticTokensBuilder();
     const document = documents.get(params.textDocument.uri);
 
@@ -217,7 +219,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<Diagnos
                 end: textDocument.positionAt(m.index + m[0].length)
             },
             message: `${m[0]} is all uppercase.`,
-            source: 'ex'
+            source: 'ex',
         };
         if (hasDiagnosticRelatedInformationCapability) {
             diagnostic.relatedInformation = [
