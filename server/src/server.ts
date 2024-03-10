@@ -151,19 +151,11 @@ documents.onDidClose(e => {
 
 connection.languages.diagnostics.on(async (params) => {
     const document = documents.get(params.textDocument.uri);
-    if (document !== undefined) {
-        return {
-            kind: DocumentDiagnosticReportKind.Full,
-            items: diagnostic.get() // FIXME: await にする?
-        } satisfies DocumentDiagnosticReport;
-    } else {
-        // We don't know the document. We can either try to read it from disk
-        // or we don't report problems for it.
-        return {
-            kind: DocumentDiagnosticReportKind.Full,
-            items: []
-        } satisfies DocumentDiagnosticReport;
-    }
+    const items = document !== undefined ? await diagnostic.getAsync() : [];
+    return {
+        kind: DocumentDiagnosticReportKind.Full,
+        items: items
+    } satisfies DocumentDiagnosticReport;
 });
 
 connection.languages.semanticTokens.on((params) => {
@@ -186,6 +178,8 @@ connection.languages.semanticTokens.on((params) => {
         });
         const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
         console.log(parsed);
+
+        diagnostic.commit();
     }
 
     return builder.build();

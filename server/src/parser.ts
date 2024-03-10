@@ -120,12 +120,12 @@ function parsePARAMLIST(reading: ReadingState) {
     const identifiers: TokenObject[] = [];
     for (; ;) {
         if (reading.isEnd() || reading.next().text === ')') break;
+        if (types.length > 0) reading.expect(',', HighlightToken.Keyword);
         const type = parseTYPE(reading);
         if (type === null) break;
         types.push(type);
         identifiers.push(reading.next());
         reading.stepNext();
-        reading.expect(',', HighlightToken.Keyword);
     }
     reading.expect(')', HighlightToken.Keyword);
     return new NodePARAMLIST(types, identifiers);
