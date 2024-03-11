@@ -193,6 +193,26 @@ connection.languages.semanticTokens.on(async (params) => {
     return builder.build();
 });
 
+connection.onDefinition((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (document === undefined) return;
+    const cursor = params.position;
+    console.log(cursor);
+    return {
+        uri: document.uri,
+        range: {
+            start: {
+                line: 0,
+                character: 0
+            },
+            end: {
+                line: 0,
+                character: 0
+            }
+        }
+    };
+});
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
