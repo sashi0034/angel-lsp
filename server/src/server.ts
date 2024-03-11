@@ -30,6 +30,7 @@ import {diagnostic} from './code/diagnostic';
 import {analyzeFromParsed} from "./compile/analyzer";
 import {SymbolScope} from "./compile/symbolics";
 import {jumpDefinition} from "./serve/definition";
+import {profiler} from "./debug/profiler";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -182,11 +183,15 @@ connection.languages.semanticTokens.on(async (params) => {
 
     if (document === undefined) return builder.build();
 
+    profiler.restart();
     const tokens = tokenize(document.getText(), params.textDocument.uri);
+    profiler.stamp("tokenizer");
     // console.log(tokens);
     const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
+    profiler.stamp("parser");
     // console.log(parsed);
     s_analyzedScope = analyzeFromParsed(parsed);
+    profiler.stamp("analyzer");
     // console.log(analyzed);
 
     tokens.forEach((token, i) => {
