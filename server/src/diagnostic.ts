@@ -3,7 +3,14 @@ import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
 
 const s_diagnostics: Diagnostic[] = [];
 
-const s_resolves: ((value: (Diagnostic[] | PromiseLike<Diagnostic[]>)) => void)[] = [];
+// type DiagnosticResolve = ((value: (PromiseLike<Diagnostic[]>)) => void);
+// const s_resolves: {[uri: string]: DiagnosticResolve} = {};
+
+let s_resolves: ((value: (Diagnostic[] | PromiseLike<Diagnostic[]>)) => void) | null = null;
+
+function isPending(): boolean {
+    return s_resolves !== null;
+}
 
 function get(): Diagnostic[] {
     return s_diagnostics;
@@ -11,16 +18,18 @@ function get(): Diagnostic[] {
 
 function getAsync(): Promise<Diagnostic[]> {
     return new Promise((resolve) => {
-        s_resolves.push(resolve);
+        if (s_resolves !== null) {
+            s_resolves(s_diagnostics);
+            return;
+        }
+        s_resolves = resolve;
     });
 }
 
 function commit() {
-    for (const resolve of s_resolves) {
-        resolve(s_diagnostics);
-        console.log("resolved");
-    }
-    s_resolves.length = 0;
+    if (s_resolves === null) return;
+    s_resolves(s_diagnostics);
+    s_resolves = null;
 }
 
 function addError(range: Range, message: string): void {
@@ -37,6 +46,8 @@ function clear(): void {
 }
 
 export const diagnostic = {
+    get,
+    isPending,
     getAsync,
     commit,
     addError,

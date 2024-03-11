@@ -64,10 +64,10 @@ connection.onInitialize((params: InitializeParams) => {
             completionProvider: {
                 resolveProvider: true
             },
-            diagnosticProvider: {
-                interFileDependencies: false,
-                workspaceDiagnostics: false
-            },
+            // diagnosticProvider: {
+            //     interFileDependencies: false,
+            //     workspaceDiagnostics: false
+            // },
             semanticTokensProvider: {
                 legend: {
                     tokenTypes: highlightTokens,
@@ -149,38 +149,46 @@ documents.onDidClose(e => {
     documentSettings.delete(e.document.uri);
 });
 
-connection.languages.diagnostics.on(async (params) => {
-    const document = documents.get(params.textDocument.uri);
-    const items = document !== undefined ? await diagnostic.getAsync() : [];
-    return {
-        kind: DocumentDiagnosticReportKind.Full,
-        items: items
-    } satisfies DocumentDiagnosticReport;
-});
+// connection.languages.diagnostics.on(async (params) => {
+//     if (diagnostic.isPending()) {
+//         return {
+//             kind: DocumentDiagnosticReportKind.Unchanged,
+//             resultId: 'pending'
+//         } satisfies DocumentDiagnosticReport;
+//     }
+//     const document = documents.get(params.textDocument.uri);
+//     const items = document !== undefined ? await diagnostic.getAsync() : [];
+//     return {
+//         kind: DocumentDiagnosticReportKind.Full,
+//         items: items
+//     } satisfies DocumentDiagnosticReport;
+// });
 
-connection.languages.semanticTokens.on((params) => {
+connection.languages.semanticTokens.on(async (params) => {
     diagnostic.clear();
-
     const builder = new SemanticTokensBuilder();
     const document = documents.get(params.textDocument.uri);
 
-    if (document) {
-        const tokens = tokenize(document.getText(), params.textDocument.uri);
-        tokens.forEach((token, i) => {
-            const tokenModifier = 0; // TODO
-            // TODO: 複数行のコメントや文字列のときに特殊処理
-            builder.push(
-                token.location.start.line,
-                token.location.start.character,
-                token.text.length,
-                token.highlight.token,
-                token.highlight.modifier);
-        });
-        const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
-        console.log(parsed);
+    if (document === undefined) return builder.build();
 
-        diagnostic.commit();
-    }
+    const tokens = tokenize(document.getText(), params.textDocument.uri);
+    tokens.forEach((token, i) => {
+        const tokenModifier = 0; // TODO
+        // TODO: 複数行のコメントや文字列のときに特殊処理
+        builder.push(
+            token.location.start.line,
+            token.location.start.character,
+            token.text.length,
+            token.highlight.token,
+            token.highlight.modifier);
+    });
+    const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
+    // console.log(parsed);
+
+    await connection.sendDiagnostics({
+        uri: document.uri,
+        diagnostics: diagnostic.get()
+    });
 
     return builder.build();
 });
