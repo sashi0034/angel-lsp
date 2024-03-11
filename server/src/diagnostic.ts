@@ -8,6 +8,7 @@ const s_diagnostics: Diagnostic[] = [];
 
 let s_resolves: ((value: (Diagnostic[] | PromiseLike<Diagnostic[]>)) => void) | null = null;
 
+// FIXME: Obsolete
 function isPending(): boolean {
     return s_resolves !== null;
 }
@@ -16,6 +17,7 @@ function get(): Diagnostic[] {
     return s_diagnostics;
 }
 
+// FIXME: Obsolete
 function getAsync(): Promise<Diagnostic[]> {
     return new Promise((resolve) => {
         if (s_resolves !== null) {
@@ -26,6 +28,7 @@ function getAsync(): Promise<Diagnostic[]> {
     });
 }
 
+// FIXME: Obsolete
 function commit() {
     if (s_resolves === null) return;
     s_resolves(s_diagnostics);
@@ -47,9 +50,6 @@ function clear(): void {
 
 export const diagnostic = {
     get,
-    isPending,
-    getAsync,
-    commit,
     addError,
     clear,
 };
