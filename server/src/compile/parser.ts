@@ -14,8 +14,8 @@ import {
     NodeTYPE,
     NodeVAR
 } from "./nodes";
-import { diagnostic } from "./diagnostic";
-import { HighlightModifier, HighlightToken } from "./highlight";
+import { diagnostic } from "../code/diagnostic";
+import { HighlightModifier, HighlightToken } from "../code/highlight";
 
 class ReadingState {
     public constructor(

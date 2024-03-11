@@ -1,5 +1,5 @@
 import {Position, URI} from 'vscode-languageserver';
-import {HighlightModifier, HighlightToken} from "./highlight";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
 
 export type RowToken = 'number' | 'reserved' | 'identifier' | 'comment'
 

@@ -23,10 +23,10 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {RowToken, tokenize} from './tokenizer';
-import {highlightModifiers, highlightTokens} from "./highlight";
-import {parseFromTokens} from './parser';
-import {diagnostic} from './diagnostic';
+import {RowToken, tokenize} from './compile/tokenizer';
+import {highlightModifiers, highlightTokens} from "./code/highlight";
+import {parseFromTokens} from './compile/parser';
+import {diagnostic} from './code/diagnostic';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
