@@ -28,6 +28,8 @@ import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {parseFromTokens} from './compile/parser';
 import {diagnostic} from './code/diagnostic';
 import {analyzeFromParsed} from "./compile/analyzer";
+import {SymbolScope} from "./compile/symbolics";
+import {jumpDefinition} from "./serve/definition";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -61,6 +63,7 @@ connection.onInitialize((params: InitializeParams) => {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Incremental,
             definitionProvider: true, // TODO
+            declarationProvider: true, // TODO
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true
@@ -165,6 +168,13 @@ documents.onDidClose(e => {
 //     } satisfies DocumentDiagnosticReport;
 // });
 
+// TODO: 複数ファイルに対応
+let s_analyzedScope: SymbolScope = {
+    parentScope: null,
+    childScopes: [],
+    symbols: [],
+};
+
 connection.languages.semanticTokens.on(async (params) => {
     diagnostic.clear();
     const builder = new SemanticTokensBuilder();
@@ -176,7 +186,7 @@ connection.languages.semanticTokens.on(async (params) => {
     // console.log(tokens);
     const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
     // console.log(parsed);
-    const analyzed = analyzeFromParsed(parsed);
+    s_analyzedScope = analyzeFromParsed(parsed);
     // console.log(analyzed);
 
     tokens.forEach((token, i) => {
@@ -200,19 +210,14 @@ connection.languages.semanticTokens.on(async (params) => {
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const cursor = params.position;
-    console.log(cursor);
+    const caret = params.position;
+    const jumping = jumpDefinition(s_analyzedScope, caret);
+    if (jumping === null) return;
     return {
-        uri: document.uri,
+        uri: jumping.location.uri,
         range: {
-            start: {
-                line: 0,
-                character: 0
-            },
-            end: {
-                line: 0,
-                character: 0
-            }
+            start: jumping.location.start,
+            end: jumping.location.end
         }
     };
 });
