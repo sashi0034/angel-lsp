@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import { TokenObject } from "./tokenizer";
+import {TokenObject} from "./tokenizer";
 import {
     NodeASSIGN,
     NodeCONDITION,
@@ -14,8 +14,8 @@ import {
     NodeTYPE,
     NodeVAR
 } from "./nodes";
-import { diagnostic } from "../code/diagnostic";
-import { HighlightModifier, HighlightToken } from "../code/highlight";
+import {diagnostic} from "../code/diagnostic";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
 
 class ReadingState {
     public constructor(
@@ -94,13 +94,13 @@ function parseSCRIPT(reading: ReadingState) {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState) {
-    const type = parseTYPE(reading);
-    if (type === null) return null;
+    const ret = parseTYPE(reading);
+    if (ret === null) return null;
     const identifier = reading.next();
     reading.step();
     const paramlist = parsePARAMLIST(reading);
     const statblock = parseSTATBLOCK(reading);
-    return new NodeFunc([], null, type, null, identifier, paramlist, false, null, statblock);
+    return new NodeFunc([], null, ret, null, identifier, paramlist, false, null, statblock);
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -149,27 +149,25 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK {
         reading.step();
     }
     reading.expect('}', HighlightToken.Keyword);
-    return [];
+    return statements;
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function parsePARAMLIST(reading: ReadingState) {
     reading.expect('(', HighlightToken.Operator);
-    const types: NodeTYPE[] = [];
-    const identifiers: TokenObject[] = [];
+    const params: NodePARAMLIST = [];
     for (; ;) {
         if (reading.isEnd() || reading.next().text === ')') break;
-        if (types.length > 0) {
+        if (params.length > 0) {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
         const type = parseTYPE(reading);
         if (type === null) break;
-        types.push(type);
-        identifiers.push(reading.next());
+        params.push([type, reading.next()]);
         reading.step();
     }
     reading.expect(')', HighlightToken.Operator);
-    return new NodePARAMLIST(types, identifiers);
+    return params;
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]

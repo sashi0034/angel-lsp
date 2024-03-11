@@ -27,6 +27,7 @@ import {RowToken, tokenize} from './compile/tokenizer';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {parseFromTokens} from './compile/parser';
 import {diagnostic} from './code/diagnostic';
+import {analyzeFromParsed} from "./compile/analyzer";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -172,8 +173,11 @@ connection.languages.semanticTokens.on(async (params) => {
     if (document === undefined) return builder.build();
 
     const tokens = tokenize(document.getText(), params.textDocument.uri);
+    // console.log(tokens);
     const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
     // console.log(parsed);
+    const analyzed = analyzeFromParsed(parsed);
+    // console.log(analyzed);
 
     tokens.forEach((token, i) => {
         // TODO: 複数行のコメントや文字列のときに特殊処理

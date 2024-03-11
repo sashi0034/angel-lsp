@@ -22,7 +22,7 @@ export class NodeFunc implements NodeBase {
     public constructor(
         public entity: TokenObject[],
         public accessor: TokenObject | null,
-        public type: NodeTYPE | null,
+        public ret: NodeTYPE | null,
         public ref: TokenObject | null,
         public identifier: TokenObject,
         public paramlist: NodePARAMLIST,
@@ -55,13 +55,7 @@ export class NodeVAR implements NodeBase {
 export type NodeSTATBLOCK = (NodeVAR | NodeSTATEMENT)[];
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export class NodePARAMLIST implements NodeBase {
-    public constructor(
-        public types: NodeTYPE[],
-        public identifiers: TokenObject[],
-    ) {
-    }
-}
+export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject][];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
