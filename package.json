@@ -25,7 +25,8 @@
 			"id": "AngelScript",
 			"extensions": [
 				".as"
-			]
+			],
+			"configuration": "./language-configuration.json"
 		}],
 		"iconThemes": [{
 			"id": "myCustomIcons",

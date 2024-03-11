@@ -172,8 +172,10 @@ connection.languages.semanticTokens.on(async (params) => {
     if (document === undefined) return builder.build();
 
     const tokens = tokenize(document.getText(), params.textDocument.uri);
+    const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
+    // console.log(parsed);
+
     tokens.forEach((token, i) => {
-        const tokenModifier = 0; // TODO
         // TODO: 複数行のコメントや文字列のときに特殊処理
         builder.push(
             token.location.start.line,
@@ -182,8 +184,6 @@ connection.languages.semanticTokens.on(async (params) => {
             token.highlight.token,
             token.highlight.modifier);
     });
-    const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
-    // console.log(parsed);
 
     await connection.sendDiagnostics({
         uri: document.uri,

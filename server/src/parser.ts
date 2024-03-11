@@ -115,19 +115,19 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATEMENT[] {
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function parsePARAMLIST(reading: ReadingState) {
-    reading.expect('(', HighlightToken.Keyword);
+    reading.expect('(', HighlightToken.Operator);
     const types: NodeType_[] = [];
     const identifiers: TokenObject[] = [];
     for (; ;) {
         if (reading.isEnd() || reading.next().text === ')') break;
-        if (types.length > 0) reading.expect(',', HighlightToken.Keyword);
+        if (types.length > 0) reading.expect(',', HighlightToken.Operator);
         const type = parseTYPE(reading);
         if (type === null) break;
         types.push(type);
         identifiers.push(reading.next());
         reading.stepNext();
     }
-    reading.expect(')', HighlightToken.Keyword);
+    reading.expect(')', HighlightToken.Operator);
     return new NodePARAMLIST(types, identifiers);
 }
 
