@@ -120,7 +120,9 @@ function parsePARAMLIST(reading: ReadingState) {
     const identifiers: TokenObject[] = [];
     for (; ;) {
         if (reading.isEnd() || reading.next().text === ')') break;
-        if (types.length > 0) reading.expect(',', HighlightToken.Operator);
+        if (types.length > 0) {
+            if (reading.expect(',', HighlightToken.Operator) === false) break;
+        }
         const type = parseTYPE(reading);
         if (type === null) break;
         types.push(type);
@@ -148,12 +150,10 @@ function parseTYPE(reading: ReadingState) {
 function parseDATATYPE(reading: ReadingState) {
     // FIXME
     const next = reading.next();
-    if (next.kind === "identifier") {
-        reading.confirm(HighlightToken.Type);
-        return new NodeDATATYPE(next);
-    }
-    diagnostic.addError(next.location, "Expected identifier");
-    return null;
+    reading.confirm(HighlightToken.Type);
+    return new NodeDATATYPE(next);
+    // diagnostic.addError(next.location, "Expected identifier");
+    // return null;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'

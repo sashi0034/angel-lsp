@@ -86,13 +86,6 @@ function isAlnum(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-const allSymbols = [
-    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
-    // FIXME: !is をどうするか
-];
-
-let s_symbolsSorted = false;
-
 function tryComment(reading: ReadingState) {
     if (reading.isNext('//')) {
         reading.stepFor(2);
@@ -123,6 +116,13 @@ function tryComment(reading: ReadingState) {
     return '';
 }
 
+const allSymbols = [
+    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
+    // FIXME: !is をどうするか
+];
+
+let s_symbolsSorted = false;
+
 function trySymbol(reading: ReadingState) {
     if (s_symbolsSorted === false) {
         allSymbols.sort((a, b) => b.length - a.length);
@@ -146,6 +146,10 @@ function tryNumber(reading: ReadingState) {
     }
     return result;
 }
+
+const allKeywords = [
+    'and', 'abstract', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'explicit', 'external', 'false', 'final', 'float', 'for', 'from', 'funcdef', 'function', 'get', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'set', 'shared', 'super', 'switch', 'this', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
+];
 
 function tryIdentifier(reading: ReadingState) {
     let result: string = "";
@@ -224,11 +228,14 @@ export function tokenize(str: string, uri: URI) {
         const triedIdentifier = tryIdentifier(reading);
         if (triedIdentifier.length > 0) {
             location.end = reading.copyHead();
+            const isReserved = allKeywords.includes(triedIdentifier);
             tokens.push({
-                kind: "identifier",
+                kind: isReserved ? "reserved" : "identifier",
                 text: triedIdentifier,
                 location: location,
-                highlight: dummyHighlight(HighlightToken.Variable, HighlightModifier.Invalid)
+                highlight: dummyHighlight(
+                    isReserved ? HighlightToken.Keyword : HighlightToken.Variable,
+                    HighlightModifier.Invalid)
             });
             continue;
         }
