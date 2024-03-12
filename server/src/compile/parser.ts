@@ -5,11 +5,15 @@ import {TokenObject} from "./tokenizer";
 import {
     NodeASSIGN,
     NodeCONDITION,
-    NodeDATATYPE, NodeEXPR,
-    NodeEXPRTERM1, NodeEXPRTERM2,
-    NodeFunc, NodeIF,
-    NodePARAMLIST, NodeRETURN,
-    NodeScript, NodeSTATBLOCK,
+    NodeDATATYPE,
+    NodeEXPR,
+    NodeEXPRTERM2,
+    NodeFunc,
+    NodeIF,
+    NodePARAMLIST,
+    NodeRETURN,
+    NodeScript,
+    NodeSTATBLOCK,
     NodeSTATEMENT,
     NodeTYPE,
     NodeVAR
@@ -42,7 +46,7 @@ class ReadingState {
     public confirm(analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | null = null) {
         const next = this.next();
         next.highlight.token = analyzeToken;
-        if (next.highlight.modifier !== null) next.highlight.modifier = analyzedModifier as HighlightModifier;
+        if (analyzedModifier !== null) next.highlight.modifier = analyzedModifier;
         this.step();
     }
 

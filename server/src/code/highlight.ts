@@ -67,15 +67,15 @@ export enum HighlightModifier {
 }
 
 export const highlightModifiers = [
-    'Declaration',
-    'Definition',
-    'Readonly',
-    'Static',
-    'Deprecated',
-    'Abstract',
-    'Async',
-    'Modification',
-    'Documentation',
-    'DefaultLibrary',
+    'declaration',
+    'definition',
+    'readonly',
+    'static',
+    'deprecated',
+    'abstract',
+    'async',
+    'modification',
+    'documentation',
+    'defaultLibrary',
     '',
 ];
