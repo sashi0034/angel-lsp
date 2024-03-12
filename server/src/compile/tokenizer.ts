@@ -68,7 +68,8 @@ class ReadingState {
     }
 
     stepFor(count: number) {
-        for (let i = 0; i < count; ++i) this.stepNext();
+        this.head.character += count;
+        this.cursor += count;
     }
 
     copyHead() {
@@ -117,14 +118,14 @@ function tryComment(reading: ReadingState) {
     return '';
 }
 
-const allSymbols = [
+const allSymbolArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
 ];
 
-const symbolTrie = Trie.fromArray(allSymbols);
+const allSymbolTrie = Trie.fromArray(allSymbolArray);
 
 function trySymbol(reading: ReadingState) {
-    const symbol = symbolTrie.find(reading.str, reading.cursor);
+    const symbol = allSymbolTrie.find(reading.str, reading.cursor);
     reading.stepFor(symbol.length);
     return symbol;
 }
@@ -133,7 +134,7 @@ function tryNumber(reading: ReadingState) {
     let result: string = "";
     while (reading.isEnd() === false && isDigit(reading.next())) {
         result += reading.next();
-        reading.stepNext();
+        reading.stepFor(1);
     }
     return result;
 }
@@ -148,7 +149,7 @@ function tryIdentifier(reading: ReadingState) {
     let result: string = "";
     while (reading.isEnd() === false && isAlnum(reading.next())) {
         result += reading.next();
-        reading.stepNext();
+        reading.stepFor(1);
     }
     return result;
 }
