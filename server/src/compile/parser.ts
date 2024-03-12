@@ -7,7 +7,7 @@ import {
     NodeCONDITION,
     NodeDATATYPE, NodeEXPR,
     NodeEXPRTERM1, NodeEXPRTERM2,
-    NodeFunc,
+    NodeFunc, NodeIF,
     NodePARAMLIST, NodeRETURN,
     NodeScript, NodeSTATBLOCK,
     NodeSTATEMENT,
@@ -16,6 +16,8 @@ import {
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
+
+type TriedParse<T> = 'mismatch' | 'pending' | T;
 
 class ReadingState {
     public constructor(
@@ -106,7 +108,7 @@ function parseFUNC(reading: ReadingState) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function parseVAR(reading: ReadingState) {
+function parseVAR(reading: ReadingState): NodeVAR | null {
     const type = parseTYPE(reading);
     if (type === null) {
         diagnostic.addError(reading.next().location, "Expected type");
@@ -137,7 +139,11 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK {
     while (reading.isEnd() === false) {
         if (reading.next().text === '}') break;
         const statement = parseSTATEMENT(reading);
-        if (statement !== null) {
+        if (statement === 'pending') {
+            reading.step();
+            continue;
+        }
+        if (statement !== 'mismatch') {
             statements.push(statement);
             continue;
         }
@@ -197,10 +203,16 @@ function parseDATATYPE(reading: ReadingState) {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function parseSTATEMENT(reading: ReadingState) {
+function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
+    const if_ = parseIF(reading);
+    if (if_ === 'pending') return 'pending';
+    if (if_ instanceof NodeIF) return if_;
+
     const return_ = parseRETURN(reading);
-    if (return_ !== null) return return_;
-    return null;
+    if (return_ === 'pending') return 'pending';
+    if (return_ instanceof NodeRETURN) return return_;
+
+    return 'mismatch';
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
@@ -208,16 +220,35 @@ function parseSTATEMENT(reading: ReadingState) {
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+function parseIF(reading: ReadingState): TriedParse<NodeIF> {
+    if (reading.next().text !== 'if') return 'mismatch';
+    reading.step();
+    reading.expect('(', HighlightToken.Operator);
+    const assign = parseASSIGN(reading);
+    if (assign === null) return 'pending';
+    reading.expect(')', HighlightToken.Operator);
+    const ts = parseSTATEMENT(reading);
+    if (ts === 'mismatch' || ts === 'pending') return 'pending';
+    let fs = null;
+    if (reading.next().text === 'else') {
+        fs = parseSTATEMENT(reading);
+        if (fs === 'mismatch' || fs === 'pending') return new NodeIF(assign, ts, null);
+    }
+    return new NodeIF(assign, ts, fs);
+}
+
 // CONTINUE      ::= 'continue' ';'
 // EXPRSTAT      ::= [ASSIGN] ';'
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function parseRETURN(reading: ReadingState) {
-    if (reading.next().text !== 'return') return null;
+function parseRETURN(reading: ReadingState): TriedParse<NodeRETURN> {
+    if (reading.next().text !== 'return') return 'mismatch';
     reading.step();
     const assign = parseASSIGN(reading);
+    if (assign === null) return 'pending';
     reading.expect(';', HighlightToken.Operator);
     return new NodeRETURN(assign);
 }

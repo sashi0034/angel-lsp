@@ -39,7 +39,7 @@ export class NodeFunc implements NodeBase {
 export class NodeVAR implements NodeBase {
     public constructor(
         public type: NodeTYPE,
-        public identifier: TokenObject,
+        public identifier: TokenObject | null,
         public expr: NodeEXPR
     ) {
     }
@@ -63,7 +63,7 @@ export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject][];
 export class NodeTYPE implements NodeBase {
     public constructor(
         public const_: boolean,
-        public scope: TokenObject | null, // TODO
+        public scope: TokenObject | null,
         public datatype: NodeDATATYPE,
         public generics: NodeTYPE[],
         public array: boolean,
@@ -87,14 +87,24 @@ export class NodeDATATYPE implements NodeBase {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export type NodeSTATEMENT = NodeRETURN
+export type NodeSTATEMENT = NodeIF | NodeRETURN
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // BREAK         ::= 'break' ';'
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+export class NodeIF implements NodeBase {
+    public constructor(
+        public condition: NodeASSIGN,
+        public ts: NodeSTATEMENT,
+        public fs: NodeSTATEMENT | null
+    ) {
+    }
+}
+
 // CONTINUE      ::= 'continue' ';'
 // EXPRSTAT      ::= [ASSIGN] ';'
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
@@ -102,7 +112,7 @@ export type NodeSTATEMENT = NodeRETURN
 // RETURN        ::= 'return' [ASSIGN] ';'
 export class NodeRETURN implements NodeBase {
     public constructor(
-        public assign: NodeASSIGN | null
+        public assign: NodeASSIGN
     ) {
     }
 }
@@ -124,8 +134,8 @@ export type NodeEXPRTERM = NodeEXPRTERM1 | NodeEXPRTERM2;
 
 export class NodeEXPRTERM1 implements NodeBase {
     public constructor(
-        public type: NodeTYPE | null,
-        public eq: TokenObject,
+        public type: NodeTYPE,
+        public eq: TokenObject | null,
     ) {
     }
 }
@@ -165,8 +175,8 @@ export class NodeASSIGN implements NodeBase {
 export class NodeCONDITION implements NodeBase {
     public constructor(
         public expr: NodeEXPR,
-        public ta: NodeEXPR | null,
-        public fa: NodeEXPR | null
+        public ta: NodeASSIGN | null,
+        public fa: NodeASSIGN | null
     ) {
     }
 }

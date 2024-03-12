@@ -68,12 +68,13 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFunc) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
+    analyzeEXPR(scope, ast.expr);
+    if (ast.identifier === null) return;
     const variable = {
         type: ast.type,
         declare: ast.identifier,
         usage: [],
     };
-    analyzeEXPR(scope, ast.expr);
     scope.symbols.push(variable);
 }
 
