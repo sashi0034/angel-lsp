@@ -124,6 +124,7 @@ const allSymbols = [
 let s_symbolsSorted = false;
 
 function trySymbol(reading: ReadingState) {
+    // TODO: 高速化
     if (s_symbolsSorted === false) {
         allSymbols.sort((a, b) => b.length - a.length);
         s_symbolsSorted = true;
@@ -147,9 +148,11 @@ function tryNumber(reading: ReadingState) {
     return result;
 }
 
-const allKeywords = [
+const allKeywordArray = [
     'and', 'abstract', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'explicit', 'external', 'false', 'final', 'float', 'for', 'from', 'funcdef', 'function', 'get', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'set', 'shared', 'super', 'switch', 'this', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
 ];
+
+const allKeywords = new Set(allKeywordArray);
 
 function tryIdentifier(reading: ReadingState) {
     let result: string = "";
@@ -228,7 +231,7 @@ export function tokenize(str: string, uri: URI) {
         const triedIdentifier = tryIdentifier(reading);
         if (triedIdentifier.length > 0) {
             location.end = reading.copyHead();
-            const isReserved = allKeywords.includes(triedIdentifier);
+            const isReserved = allKeywords.has(triedIdentifier);
             tokens.push({
                 kind: isReserved ? "reserved" : "identifier",
                 text: triedIdentifier,
