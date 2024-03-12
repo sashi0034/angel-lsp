@@ -1,5 +1,6 @@
 import {Position, URI} from 'vscode-languageserver';
 import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {Trie} from "../utils/trie";
 
 export type RowToken = 'number' | 'reserved' | 'identifier' | 'comment'
 
@@ -118,25 +119,14 @@ function tryComment(reading: ReadingState) {
 
 const allSymbols = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
-    // FIXME: !is をどうするか
 ];
 
-let s_symbolsSorted = false;
+const symbolTrie = Trie.fromArray(allSymbols);
 
 function trySymbol(reading: ReadingState) {
-    // TODO: 高速化
-    if (s_symbolsSorted === false) {
-        allSymbols.sort((a, b) => b.length - a.length);
-        s_symbolsSorted = true;
-    }
-
-    for (const symbol of allSymbols) {
-        if (reading.isNext(symbol)) {
-            reading.stepFor(symbol.length);
-            return symbol;
-        }
-    }
-    return '';
+    const symbol = symbolTrie.find(reading.str, reading.cursor);
+    reading.stepFor(symbol.length);
+    return symbol;
 }
 
 function tryNumber(reading: ReadingState) {
