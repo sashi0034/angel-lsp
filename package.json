@@ -28,6 +28,13 @@
 			],
 			"configuration": "./language-configuration.json"
 		}],
+		"configurationDefaults": {
+			"editor.semanticTokenColorCustomizations": {
+				"rules": {
+					"builtin": "#00b0e0"
+				}
+			}
+		},
 		"iconThemes": [{
 			"id": "myCustomIcons",
 			"label": "My Custom Icons",

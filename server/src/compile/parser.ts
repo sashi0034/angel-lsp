@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import {TokenObject} from "./tokenizer";
+import {TokenObject} from "./token";
 import {
     NodeASSIGN,
     NodeCONDITION,
@@ -68,20 +68,6 @@ class ReadingState {
     }
 }
 
-function tryConsume(reading: ReadingState, token: string) {
-    if (reading.isEnd()) return false;
-    if (reading.next().text !== token) return false;
-    reading.step();
-    return true;
-}
-
-function expect(reading: ReadingState, token: string): boolean {
-    if (reading.isEnd()) return false;
-    if (reading.next().text !== token) return false;
-    reading.step();
-    return true;
-}
-
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(reading: ReadingState) {
     const funcs: NodeFunc[] = [];
@@ -126,7 +112,7 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
         diagnostic.addError(reading.next().location, "Expected expression");
         return null;
     }
-    reading.expect(';', HighlightToken.Keyword);
+    reading.expect(';', HighlightToken.Operator);
     return new NodeVAR(type, identifier, expr);
 }
 
@@ -173,9 +159,14 @@ function parsePARAMLIST(reading: ReadingState) {
         }
         const type = parseTYPE(reading);
         if (type === null) break;
-        params.push([type, reading.next()]);
-        reading.step();
+        if (reading.next().kind === 'identifier') {
+            params.push([type, reading.next()]);
+            reading.step();
+        } else {
+            params.push([type, null]);
+        }
     }
+
     reading.expect(')', HighlightToken.Operator);
     return params;
 }
@@ -197,7 +188,8 @@ function parseTYPE(reading: ReadingState) {
 function parseDATATYPE(reading: ReadingState) {
     // FIXME
     const next = reading.next();
-    reading.confirm(HighlightToken.Type);
+    if (reading.next().kind === 'identifier') reading.confirm(HighlightToken.Type);
+    else reading.confirm(HighlightToken.Builtin);
     return new NodeDATATYPE(next);
     // diagnostic.addError(next.location, "Expected identifier");
     // return null;

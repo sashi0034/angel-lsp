@@ -24,6 +24,7 @@ export enum HighlightToken {
     Number, // For tokens that represent a number literal.
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
+    Builtin,
 }
 
 export const highlightTokens = [
@@ -50,6 +51,7 @@ export const highlightTokens = [
     'number',
     'regexp',
     'operator',
+    'builtin',
 ];
 
 export enum HighlightModifier {

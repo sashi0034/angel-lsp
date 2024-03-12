@@ -1,4 +1,4 @@
-import {TokenObject} from "./tokenizer";
+import {TokenObject} from "./token";
 import {NodePARAMLIST, NodeTYPE} from "./nodes";
 
 export interface SymbolicType {

@@ -1,4 +1,4 @@
-import {TokenObject} from "./tokenizer";
+import {TokenObject} from "./token";
 import * as punycode from "punycode";
 
 export interface NodeBase {
@@ -55,7 +55,7 @@ export class NodeVAR implements NodeBase {
 export type NodeSTATBLOCK = (NodeVAR | NodeSTATEMENT)[];
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject][];
+export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject | null][];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 

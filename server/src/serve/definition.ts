@@ -1,6 +1,6 @@
 import {SymbolScope} from "../compile/symbolics";
 import {Position} from "vscode-languageserver";
-import {TokenObject} from "../compile/tokenizer";
+import {TokenObject} from "../compile/token";
 
 export function jumpDefinition(scope: SymbolScope, caret: Position): TokenObject | null {
     for (const symbol of scope.symbols) {

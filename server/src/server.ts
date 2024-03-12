@@ -23,7 +23,7 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {RowToken, tokenize} from './compile/tokenizer';
+import {tokenize} from './compile/tokenizer';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {parseFromTokens} from './compile/parser';
 import {diagnostic} from './code/diagnostic';
