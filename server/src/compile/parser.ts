@@ -102,7 +102,7 @@ function parseFUNC(reading: ReadingState) {
 function parseVAR(reading: ReadingState): NodeVAR | null {
     const type = parseTYPE(reading);
     if (type === null) {
-        diagnostic.addError(reading.next().location, "Expected type");
+        // diagnostic.addError(reading.next().location, "Expected type");
         return null;
     }
     const identifier = reading.next();
@@ -244,10 +244,16 @@ function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
     reading.expect('(', HighlightToken.Operator);
 
     const initial = parseEXPRSTAT(reading) ?? parseVAR(reading);
-    if (initial === null) return 'pending';
+    if (initial === null) {
+        diagnostic.addError(reading.next().location, "Expected initial expression or variable declaration");
+        return 'pending';
+    }
 
     const condition = parseEXPRSTAT(reading);
-    if (condition === null) return 'pending';
+    if (condition === null) {
+        diagnostic.addError(reading.next().location, "Expected condition expression");
+        return 'pending';
+    }
 
     const increment: NodeASSIGN[] = [];
     for (; ;) {
@@ -274,10 +280,16 @@ function parseWHILE(reading: ReadingState): TriedParse<NodeWHILE> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) return 'pending';
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected condition expression");
+        return 'pending';
+    }
     reading.expect(')', HighlightToken.Operator);
     const statement = parseSTATEMENT(reading);
-    if (statement === 'mismatch' || statement === 'pending') return 'pending';
+    if (statement === 'mismatch' || statement === 'pending') {
+        diagnostic.addError(reading.next().location, "Expected statement");
+        return 'pending';
+    }
     return new NodeWHILE(assign, statement);
 }
 
@@ -289,14 +301,20 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) return 'pending';
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected condition expression");
+        return 'pending';
+    }
     reading.expect(')', HighlightToken.Operator);
     const ts = parseSTATEMENT(reading);
     if (ts === 'mismatch' || ts === 'pending') return 'pending';
     let fs = null;
     if (reading.next().text === 'else') {
         fs = parseSTATEMENT(reading);
-        if (fs === 'mismatch' || fs === 'pending') return new NodeIF(assign, ts, null);
+        if (fs === 'mismatch' || fs === 'pending') {
+            diagnostic.addError(reading.next().location, "Expected statement");
+            return new NodeIF(assign, ts, null);
+        }
     }
     return new NodeIF(assign, ts, fs);
 }
@@ -322,7 +340,10 @@ function parseRETURN(reading: ReadingState): TriedParse<NodeRETURN> {
     if (reading.next().text !== 'return') return 'mismatch';
     reading.step();
     const assign = parseASSIGN(reading);
-    if (assign === null) return 'pending';
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected expression");
+        return 'pending';
+    }
     reading.expect(';', HighlightToken.Operator);
     return new NodeRETURN(assign);
 }
@@ -371,7 +392,7 @@ function parseEXPRVALUE(reading: ReadingState) {
     // TODO
     const next = reading.next();
     if (next.kind === 'reserved') {
-        diagnostic.addError(reading.next().location, 'Expected expression value');
+        /// diagnostic.addError(reading.next().location, 'Expected expression value');
         return null;
     }
     reading.step();
