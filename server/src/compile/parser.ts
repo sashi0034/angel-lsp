@@ -220,11 +220,21 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     const statblock = parseSTATBLOCK(reading);
     if (statblock !== null) return statblock;
 
+    const break_ = parseBREAK(reading);
+    if (break_ === 'break') return 'break';
+
     return 'mismatch';
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+
 // BREAK         ::= 'break' ';'
+function parseBREAK(reading: ReadingState) {
+    if (reading.next().text !== 'break') return null;
+    reading.step();
+    reading.expect(';', HighlightToken.Operator);
+    return 'break';
+}
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {

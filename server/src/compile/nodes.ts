@@ -87,7 +87,7 @@ export class NodeDATATYPE implements NodeBase {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export type NodeSTATEMENT = NodeIF | NodeFOR | NodeWHILE | NodeRETURN
+export type NodeSTATEMENT = NodeIF | NodeFOR | NodeWHILE | NodeRETURN | NodeSTATBLOCK | 'break'
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // BREAK         ::= 'break' ';'
