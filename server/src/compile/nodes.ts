@@ -88,7 +88,7 @@ export class NodeDATATYPE implements NodeBase {
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 export type NodeSTATEMENT =
-    NodeIF | NodeFOR | NodeWHILE | NodeRETURN | NodeSTATBLOCK | 'break' | 'continue'
+    NodeIF | NodeFOR | NodeWHILE | NodeRETURN | NodeSTATBLOCK | 'break' | 'continue' | NodeDOWHILE
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // BREAK         ::= 'break' ';'
@@ -114,6 +114,13 @@ export class NodeWHILE implements NodeBase {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+export class NodeDOWHILE implements NodeBase {
+    public constructor(
+        public statement: NodeSTATEMENT,
+        public assign: NodeASSIGN
+    ) {
+    }
+}
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 export class NodeIF implements NodeBase {

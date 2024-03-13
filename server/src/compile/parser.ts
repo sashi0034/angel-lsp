@@ -5,7 +5,7 @@ import {TokenObject} from "./token";
 import {
     NodeASSIGN,
     NodeCONDITION,
-    NodeDATATYPE,
+    NodeDATATYPE, NodeDOWHILE,
     NodeEXPR,
     NodeEXPRTERM2, NodeFOR,
     NodeFunc,
@@ -23,6 +23,8 @@ import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {func} from "vscode-languageserver/lib/common/utils/is";
 
 type TriedParse<T> = 'mismatch' | 'pending' | T;
+
+// 診断メッセージは pending 発生時に発行する
 
 class ReadingState {
     public constructor(
@@ -227,6 +229,10 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     const continue_ = parseCONTINUE(reading);
     if (continue_ === 'continue') return 'continue';
 
+    const dowhile = parseDOWHILE(reading);
+    if (dowhile === 'pending') return 'pending';
+    if (dowhile instanceof NodeDOWHILE) return dowhile;
+
     return 'mismatch';
 }
 
@@ -297,6 +303,25 @@ function parseWHILE(reading: ReadingState): TriedParse<NodeWHILE> {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+function parseDOWHILE(reading: ReadingState): TriedParse<NodeDOWHILE> {
+    if (reading.next().text !== 'do') return 'mismatch';
+    reading.step();
+    const statement = parseSTATEMENT(reading);
+    if (statement === 'mismatch' || statement === 'pending') {
+        diagnostic.addError(reading.next().location, "Expected statement");
+        return 'pending';
+    }
+    reading.expect('while', HighlightToken.Keyword);
+    reading.expect('(', HighlightToken.Operator);
+    const assign = parseASSIGN(reading);
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected condition expression");
+        return 'pending';
+    }
+    reading.expect(')', HighlightToken.Operator);
+    reading.expect(';', HighlightToken.Operator);
+    return new NodeDOWHILE(statement, assign);
+}
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function parseIF(reading: ReadingState): TriedParse<NodeIF> {
