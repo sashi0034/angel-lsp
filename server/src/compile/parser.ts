@@ -91,7 +91,7 @@ function parseFUNC(reading: ReadingState) {
     const identifier = reading.next();
     reading.step();
     const paramlist = parsePARAMLIST(reading);
-    const statblock = parseSTATBLOCK(reading);
+    const statblock = parseSTATBLOCK(reading) ?? [];
     return new NodeFunc([], null, ret, null, identifier, paramlist, false, null, statblock);
 }
 
@@ -123,8 +123,9 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK {
-    reading.expect('{', HighlightToken.Keyword);
+function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
+    if (reading.next().text !== '{') return null;
+    reading.step();
     const statements: NodeSTATBLOCK = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === '}') break;
@@ -215,6 +216,9 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     const return_ = parseRETURN(reading);
     if (return_ === 'pending') return 'pending';
     if (return_ instanceof NodeRETURN) return return_;
+
+    const statblock = parseSTATBLOCK(reading);
+    if (statblock !== null) return statblock;
 
     return 'mismatch';
 }
