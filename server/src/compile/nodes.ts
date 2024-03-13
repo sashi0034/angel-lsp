@@ -94,7 +94,12 @@ export type NodeSTATEMENT = NodeIF | NodeFOR | NodeWHILE | NodeRETURN | NodeSTAT
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 export class NodeFOR implements NodeBase {
-    public constructor() {
+    public constructor(
+        public initial: NodeVAR | NodeEXPRSTAT,
+        public condition: NodeEXPRSTAT,
+        public increment: NodeASSIGN[],
+        public statement: NodeSTATEMENT
+    ) {
     }
 }
 
@@ -120,7 +125,10 @@ export class NodeIF implements NodeBase {
 }
 
 // CONTINUE      ::= 'continue' ';'
+
 // EXPRSTAT      ::= [ASSIGN] ';'
+export type NodeEXPRSTAT = NodeASSIGN | null;
+
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'

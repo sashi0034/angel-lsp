@@ -20,6 +20,7 @@ import {
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {func} from "vscode-languageserver/lib/common/utils/is";
 
 type TriedParse<T> = 'mismatch' | 'pending' | T;
 
@@ -240,7 +241,31 @@ function parseBREAK(reading: ReadingState) {
 function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
     if (reading.next().text !== 'for') return 'mismatch';
     reading.step();
-    return new NodeFOR();
+    reading.expect('(', HighlightToken.Operator);
+
+    const initial = parseEXPRSTAT(reading) ?? parseVAR(reading);
+    if (initial === null) return 'pending';
+
+    const condition = parseEXPRSTAT(reading);
+    if (condition === null) return 'pending';
+
+    const increment: NodeASSIGN[] = [];
+    for (; ;) {
+        if (increment.length > 0) {
+            if (reading.next().text !== ',') break;
+            reading.step();
+        }
+        const assign = parseASSIGN(reading);
+        if (assign === null) break;
+        increment.push(assign);
+    }
+
+    reading.expect(')', HighlightToken.Operator);
+
+    const statement = parseSTATEMENT(reading);
+    if (statement === 'mismatch' || statement === 'pending') return 'pending';
+
+    return new NodeFOR(initial, condition, increment, statement);
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -277,7 +302,19 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
 }
 
 // CONTINUE      ::= 'continue' ';'
+
 // EXPRSTAT      ::= [ASSIGN] ';'
+function parseEXPRSTAT(reading: ReadingState) {
+    if (reading.next().text === ';') {
+        reading.step();
+        return null;
+    }
+    const assign = parseASSIGN(reading);
+    if (assign === null) return null;
+    reading.expect(';', HighlightToken.Operator);
+    return assign;
+}
+
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
