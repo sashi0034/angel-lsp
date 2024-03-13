@@ -208,7 +208,7 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
 
     const for_ = parseFOR(reading);
     if (for_ === 'pending') return 'pending';
-    // if (for_ instanceof NodeFOR) return for_;
+    if (for_ instanceof NodeFOR) return for_;
 
     const while_ = parseWHILE(reading);
     if (while_ === 'pending') return 'pending';
@@ -223,6 +223,9 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
 
     const break_ = parseBREAK(reading);
     if (break_ === 'break') return 'break';
+
+    const continue_ = parseCONTINUE(reading);
+    if (continue_ === 'continue') return 'continue';
 
     return 'mismatch';
 }
@@ -320,6 +323,12 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
 }
 
 // CONTINUE      ::= 'continue' ';'
+function parseCONTINUE(reading: ReadingState) {
+    if (reading.next().text !== 'continue') return null;
+    reading.step();
+    reading.expect(';', HighlightToken.Operator);
+    return 'continue';
+}
 
 // EXPRSTAT      ::= [ASSIGN] ';'
 function parseEXPRSTAT(reading: ReadingState) {
