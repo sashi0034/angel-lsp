@@ -3,12 +3,13 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./token";
 import {
+    NodeARGLIST,
     NodeASSIGN, NodeCASE,
     NodeCONDITION,
     NodeDATATYPE, NodeDOWHILE,
     NodeEXPR, NodeEXPRSTAT,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFunc,
+    NodeFunc, NodeFUNCCALL,
     NodeIF,
     NodePARAMLIST,
     NodeRETURN,
@@ -40,9 +41,9 @@ class ReadingState {
         return this.pos >= this.tokens.length;
     }
 
-    public next(): TokenObject {
-        if (this.pos >= this.tokens.length) return this.tokens[this.tokens.length - 1];
-        return this.tokens[this.pos];
+    public next(step: number = 0): TokenObject {
+        if (this.pos + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
+        return this.tokens[this.pos + step];
     }
 
     public step() {
@@ -503,6 +504,9 @@ function parseEXPRTERM2(reading: ReadingState) {
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     // TODO
+    const funccall = parseFUNCCALL(reading);
+    if (funccall !== null) return funccall;
+
     const varaccess = parseVARACCESS(reading);
     if (varaccess !== null) return varaccess;
 
@@ -544,6 +548,14 @@ function parseLITERAL(reading: ReadingState) {
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+function parseFUNCCALL(reading: ReadingState) {
+    if (reading.next().kind === 'identifier' && reading.next(1).text === '(') {
+        const next = reading.next();
+        reading.confirm(HighlightToken.Function);
+        return new NodeFUNCCALL(next, parseARGLIST(reading));
+    }
+    return null;
+}
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function parseVARACCESS(reading: ReadingState) {
@@ -554,6 +566,32 @@ function parseVARACCESS(reading: ReadingState) {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+function parseARGLIST(reading: ReadingState) {
+    reading.expect('(', HighlightToken.Operator);
+    const args: [TokenObject | null, NodeASSIGN][] = [];
+    while (reading.isEnd() === false) {
+        if (reading.next().text === ')') {
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
+        if (args.length > 0) {
+            if (reading.expect(',', HighlightToken.Operator) === false) break;
+        }
+        let identifier = null;
+        if (reading.next().kind === 'identifier' && reading.next(1).text === ':') {
+            identifier = reading.next();
+            reading.confirm(HighlightToken.Parameter);
+            reading.confirm(HighlightToken.Operator);
+        }
+        const assign = parseASSIGN(reading);
+        if (assign === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            continue;
+        }
+        args.push([identifier, assign]);
+    }
+    return new NodeARGLIST(args);
+}
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function parseASSIGN(reading: ReadingState): NodeASSIGN | null {

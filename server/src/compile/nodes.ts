@@ -212,7 +212,16 @@ export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject | NodeASSIGN
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+export class NodeFUNCCALL implements NodeBase {
+    public constructor(
+        public identifier: TokenObject,
+        public arglist: NodeARGLIST
+    ) {
+    }
+
+}
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 export class NodeVARACCESS implements NodeBase {
@@ -223,6 +232,12 @@ export class NodeVARACCESS implements NodeBase {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+export class NodeARGLIST implements NodeBase {
+    public constructor(
+        public args: [identifier: TokenObject | null, NodeASSIGN][]
+    ) {
+    }
+}
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 export class NodeASSIGN implements NodeBase {
