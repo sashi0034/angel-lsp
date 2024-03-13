@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import {TokenObject} from "./token";
+import { TokenObject } from "./token";
 import {
     NodeARGLIST,
     NodeASSIGN, NodeCASE,
@@ -19,9 +19,9 @@ import {
     NodeTYPE,
     NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
-import {diagnostic} from "../code/diagnostic";
-import {HighlightModifier, HighlightToken} from "../code/highlight";
-import {func} from "vscode-languageserver/lib/common/utils/is";
+import { diagnostic } from "../code/diagnostic";
+import { HighlightModifier, HighlightToken } from "../code/highlight";
+import { func } from "vscode-languageserver/lib/common/utils/is";
 
 type TriedParse<T> = 'mismatch' | 'pending' | T;
 
@@ -465,18 +465,22 @@ function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function parseEXPR(reading: ReadingState): NodeEXPR | null {
-    const exprterm = parseEXPRTERM(reading);
-    if (exprterm === null) return null;
-    const exprop = parseEXPROP(reading);
-    if (exprop === null) return new NodeEXPR(exprterm, null, null);
+    const exprTerm = parseEXPRTERM(reading);
+    if (exprTerm === null) return null;
+    const exprOp = parseEXPROP(reading);
+    if (exprOp === null) return new NodeEXPR(exprTerm, null, null);
     const tail = parseEXPR(reading);
-    return new NodeEXPR(exprterm, exprop, tail);
+    if (tail === null) {
+        diagnostic.addError(reading.next().location, "Expected expression");
+        return new NodeEXPR(exprTerm, null, null);
+    }
+    return new NodeEXPR(exprTerm, exprOp, tail);
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseEXPRTERM(reading: ReadingState) {
-    const exprterm2 = parseEXPRTERM2(reading);
-    if (exprterm2 !== null) return exprterm2;
+    const exprTerm2 = parseEXPRTERM2(reading);
+    if (exprTerm2 !== null) return exprTerm2;
     return null;
 }
 
@@ -484,21 +488,25 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 const opStopSet = new Set(['.', '[', '(', '++', '--']);
 
 function parseEXPRTERM2(reading: ReadingState) {
+    const rollbackPos = reading.getPos();
     let pre = null;
     if (preOpSet.has(reading.next().text)) {
         pre = reading.next();
         reading.confirm(HighlightToken.Operator);
     }
 
-    const exprvalue = parseEXPRVALUE(reading);
-    if (exprvalue === null) return null;
+    const exprValue = parseEXPRVALUE(reading);
+    if (exprValue === null) {
+        reading.setPos(rollbackPos);
+        return null;
+    }
 
     let stop = null;
     if (opStopSet.has(reading.next().text)) {
         stop = reading.next();
         reading.confirm(HighlightToken.Operator);
     }
-    return new NodeEXPRTERM2(pre, exprvalue, stop);
+    return new NodeEXPRTERM2(pre, exprValue, stop);
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
