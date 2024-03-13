@@ -509,6 +509,17 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     const literal = parseLITERAL(reading);
     if (literal !== null) return literal;
 
+    if (reading.next().text === '(') {
+        reading.confirm(HighlightToken.Operator);
+        const assign = parseASSIGN(reading);
+        if (assign === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            return null;
+        }
+        reading.expect(')', HighlightToken.Operator);
+        return assign;
+    }
+
     return null;
 }
 

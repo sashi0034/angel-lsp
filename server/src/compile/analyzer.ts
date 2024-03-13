@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    NodeASSIGN,
     NodeEXPR,
     NodeEXPRTERM,
     NodeEXPRTERM1,
@@ -150,6 +151,9 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
         }
         declared.usage.push(token);
     }
+    if (exprvalue instanceof NodeASSIGN) {
+        analyzeASSIGN(scope, exprvalue);
+    }
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
@@ -161,7 +165,12 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 // VARACCESS     ::= SCOPE IDENTIFIER
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
+function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN) {
+    // TODO
+}
+
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 
 export function analyzeFromParsed(ast: NodeScript) {

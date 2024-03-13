@@ -205,7 +205,7 @@ export class NodeEXPRTERM2 implements NodeBase {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject
+export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject | NodeASSIGN
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
