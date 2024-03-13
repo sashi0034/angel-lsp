@@ -153,7 +153,7 @@ export class NodeIF implements NodeBase {
 // CONTINUE      ::= 'continue' ';'
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-export type NodeEXPRSTAT = NodeASSIGN | null;
+export type NodeEXPRSTAT = NodeASSIGN | 'empty';
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 

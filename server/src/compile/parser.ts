@@ -6,7 +6,7 @@ import {
     NodeASSIGN, NodeCASE,
     NodeCONDITION,
     NodeDATATYPE, NodeDOWHILE,
-    NodeEXPR,
+    NodeEXPR, NodeEXPRSTAT,
     NodeEXPRTERM2, NodeFOR,
     NodeFunc,
     NodeIF,
@@ -253,6 +253,9 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     if (switch_ === 'pending') return 'pending';
     if (switch_ instanceof NodeSWITCH) return switch_;
 
+    const exprstat = parseEXPRSTAT(reading);
+    if (exprstat !== null) return exprstat;
+
     return 'mismatch';
 }
 
@@ -295,7 +298,7 @@ function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
 
-    const initial = parseEXPRSTAT(reading) ?? parseVAR(reading);
+    const initial: NodeEXPRSTAT | NodeVAR | null = parseEXPRSTAT(reading) ?? parseVAR(reading);
     if (initial === null) {
         diagnostic.addError(reading.next().location, "Expected initial expression or variable declaration");
         return 'pending';
@@ -399,10 +402,10 @@ function parseCONTINUE(reading: ReadingState) {
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function parseEXPRSTAT(reading: ReadingState) {
+function parseEXPRSTAT(reading: ReadingState): NodeEXPRSTAT | null {
     if (reading.next().text === ';') {
-        reading.step();
-        return null;
+        reading.confirm(HighlightToken.Operator);
+        return 'empty';
     }
     const assign = parseASSIGN(reading);
     if (assign === null) return null;
@@ -468,10 +471,12 @@ function parseEXPRTERM(reading: ReadingState) {
     return null;
 }
 
+const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
+const opStopSet = new Set(['.', '[', '(', '++', '--']);
+
 function parseEXPRTERM2(reading: ReadingState) {
-    const preops = ['-', '+', '!', '++', '--', '~', '@'];
     let pre = null;
-    if (preops.includes(reading.next().text)) {
+    if (preOpSet.has(reading.next().text)) {
         pre = reading.next();
         reading.confirm(HighlightToken.Operator);
     }
@@ -479,9 +484,8 @@ function parseEXPRTERM2(reading: ReadingState) {
     const exprvalue = parseEXPRVALUE(reading);
     if (exprvalue === null) return null;
 
-    const opstops = ['.', '[', '(', '++', '--'];
     let stop = null;
-    if (opstops.includes(reading.next().text)) {
+    if (opStopSet.has(reading.next().text)) {
         stop = reading.next();
         reading.confirm(HighlightToken.Operator);
     }
@@ -550,14 +554,15 @@ function parseEXPROP(reading: ReadingState) {
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseASSIGNOP(reading: ReadingState) {
-    const candidates = [
-        '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
-    ];
-    if (candidates.includes(reading.next().text) === false) return null;
+    if (assignOpSet.has(reading.next().text) === false) return null;
     const next = reading.next();
     reading.confirm(HighlightToken.Operator);
     return next;
 }
+
+const assignOpSet = new Set([
+    '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
+]);
 
 export function parseFromTokens(tokens: TokenObject[]): NodeScript {
     const reading = new ReadingState(tokens);
