@@ -87,12 +87,26 @@ export class NodeDATATYPE implements NodeBase {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export type NodeSTATEMENT = NodeIF | NodeRETURN
+export type NodeSTATEMENT = NodeIF | NodeFOR | NodeWHILE | NodeRETURN
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // BREAK         ::= 'break' ';'
+
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+export class NodeFOR implements NodeBase {
+    public constructor() {
+    }
+}
+
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+export class NodeWHILE implements NodeBase {
+    public constructor(
+        public assign: NodeASSIGN,
+        public statement: NodeSTATEMENT
+    ) {
+    }
+}
+
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]

@@ -7,7 +7,7 @@ import {
     NodeCONDITION,
     NodeDATATYPE,
     NodeEXPR,
-    NodeEXPRTERM2,
+    NodeEXPRTERM2, NodeFOR,
     NodeFunc,
     NodeIF,
     NodePARAMLIST,
@@ -16,7 +16,7 @@ import {
     NodeSTATBLOCK,
     NodeSTATEMENT,
     NodeTYPE,
-    NodeVAR
+    NodeVAR, NodeWHILE
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
@@ -204,6 +204,14 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     if (if_ === 'pending') return 'pending';
     if (if_ instanceof NodeIF) return if_;
 
+    const for_ = parseFOR(reading);
+    if (for_ === 'pending') return 'pending';
+    // if (for_ instanceof NodeFOR) return for_;
+
+    const while_ = parseWHILE(reading);
+    if (while_ === 'pending') return 'pending';
+    if (while_ instanceof NodeWHILE) return while_;
+
     const return_ = parseRETURN(reading);
     if (return_ === 'pending') return 'pending';
     if (return_ instanceof NodeRETURN) return return_;
@@ -213,8 +221,27 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // BREAK         ::= 'break' ';'
+
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
+    if (reading.next().text !== 'for') return 'mismatch';
+    reading.step();
+    return new NodeFOR();
+}
+
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+function parseWHILE(reading: ReadingState): TriedParse<NodeWHILE> {
+    if (reading.next().text !== 'while') return 'mismatch';
+    reading.step();
+    reading.expect('(', HighlightToken.Operator);
+    const assign = parseASSIGN(reading);
+    if (assign === null) return 'pending';
+    reading.expect(')', HighlightToken.Operator);
+    const statement = parseSTATEMENT(reading);
+    if (statement === 'mismatch' || statement === 'pending') return 'pending';
+    return new NodeWHILE(assign, statement);
+}
+
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
