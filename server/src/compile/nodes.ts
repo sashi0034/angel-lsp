@@ -205,7 +205,7 @@ export class NodeEXPRTERM2 implements NodeBase {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = TokenObject
+export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -213,7 +213,15 @@ export type  NodeEXPRVALUE = TokenObject
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+
 // VARACCESS     ::= SCOPE IDENTIFIER
+export class NodeVARACCESS implements NodeBase {
+    public constructor(
+        public identifier: TokenObject
+    ) {
+    }
+}
+
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]

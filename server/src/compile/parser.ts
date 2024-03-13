@@ -7,7 +7,7 @@ import {
     NodeCONDITION,
     NodeDATATYPE, NodeDOWHILE,
     NodeEXPR, NodeEXPRSTAT,
-    NodeEXPRTERM2, NodeFOR,
+    NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
     NodeFunc,
     NodeIF,
     NodePARAMLIST,
@@ -16,7 +16,7 @@ import {
     NodeSTATBLOCK,
     NodeSTATEMENT, NodeSWITCH,
     NodeTYPE,
-    NodeVAR, NodeWHILE
+    NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
@@ -196,6 +196,7 @@ function parseTYPE(reading: ReadingState) {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -500,15 +501,15 @@ function parseEXPRTERM2(reading: ReadingState) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseEXPRVALUE(reading: ReadingState) {
+function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     // TODO
-    const next = reading.next();
-    if (next.kind === 'reserved') {
-        /// diagnostic.addError(reading.next().location, 'Expected expression value');
-        return null;
-    }
-    reading.step();
-    return next;
+    const varaccess = parseVARACCESS(reading);
+    if (varaccess !== null) return varaccess;
+
+    const literal = parseLITERAL(reading);
+    if (literal !== null) return literal;
+
+    return null;
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
@@ -516,9 +517,31 @@ function parseEXPRVALUE(reading: ReadingState) {
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+function parseLITERAL(reading: ReadingState) {
+    const next = reading.next();
+    if (next.kind === 'number') {
+        reading.confirm(HighlightToken.Number);
+        return next;
+    }
+    if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
+        reading.confirm(HighlightToken.Builtin);
+        return next;
+    }
+    return null;
+}
+
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+
 // VARACCESS     ::= SCOPE IDENTIFIER
+function parseVARACCESS(reading: ReadingState) {
+    const next = reading.next();
+    if (next.kind !== 'identifier') return null;
+    reading.confirm(HighlightToken.Variable);
+    return new NodeVARACCESS(next);
+}
+
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]

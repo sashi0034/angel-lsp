@@ -8,7 +8,7 @@ import {
     NodeFunc,
     NodeScript,
     NodeSTATBLOCK, NodeSTATEMENT,
-    NodeVAR
+    NodeVAR, NodeVARACCESS
 } from "./nodes";
 import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolScope} from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
@@ -140,16 +140,16 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeEXPRVALUE(scope: SymbolScope, token: NodeEXPRVALUE) {
-    if (token.kind !== 'identifier') {
-        return;
+function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
+    if (exprvalue instanceof NodeVARACCESS) {
+        const token = exprvalue.identifier;
+        const declared = findSymbolWithParent(scope, token);
+        if (declared === null) {
+            diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
+            return;
+        }
+        declared.usage.push(token);
     }
-    const declared = findSymbolWithParent(scope, token);
-    if (declared === null) {
-        diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
-        return;
-    }
-    declared.usage.push(token);
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
