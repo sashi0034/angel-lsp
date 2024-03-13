@@ -33,6 +33,9 @@ class ReadingState {
     ) {
     }
 
+    public getPos = () => this.pos;
+    public setPos = (pos: number) => this.pos = pos;
+
     public isEnd(): boolean {
         return this.pos >= this.tokens.length;
     }
@@ -105,12 +108,17 @@ function parseFUNC(reading: ReadingState) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function parseVAR(reading: ReadingState): NodeVAR | null {
+    const rollbackPos = reading.getPos();
     const type = parseTYPE(reading);
     if (type === null) {
         // diagnostic.addError(reading.next().location, "Expected type");
         return null;
     }
     const identifier = reading.next();
+    if (identifier.kind !== 'identifier') {
+        reading.setPos(rollbackPos);
+        return null;
+    }
     reading.confirm(HighlightToken.Variable);
     reading.expect('=', HighlightToken.Operator);
     const expr = parseEXPR(reading);
@@ -135,18 +143,17 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
     const statements: NodeSTATBLOCK = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === '}') break;
+        const var_ = parseVAR(reading);
+        if (var_ !== null) {
+            statements.push(var_);
+            continue;
+        }
         const statement = parseSTATEMENT(reading);
         if (statement === 'pending') {
-            reading.step();
             continue;
         }
         if (statement !== 'mismatch') {
             statements.push(statement);
-            continue;
-        }
-        const var_ = parseVAR(reading);
-        if (var_ !== null) {
-            statements.push(var_);
             continue;
         }
         reading.step();
