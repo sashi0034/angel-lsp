@@ -88,9 +88,27 @@ export class NodeDATATYPE implements NodeBase {
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 export type NodeSTATEMENT =
-    NodeIF | NodeFOR | NodeWHILE | NodeRETURN | NodeSTATBLOCK | 'break' | 'continue' | NodeDOWHILE
+    NodeIF
+    | NodeFOR
+    | NodeWHILE
+    | NodeRETURN
+    | NodeSTATBLOCK
+    | 'break'
+    | 'continue'
+    | NodeDOWHILE
+    | NodeSWITCH
+    | NodeEXPRSTAT;
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+export class NodeSWITCH implements NodeBase {
+    public constructor(
+        public assign: NodeASSIGN,
+        public cases: NodeCASE[]
+    ) {
+    }
+
+}
+
 // BREAK         ::= 'break' ';'
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
@@ -148,6 +166,13 @@ export class NodeRETURN implements NodeBase {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+export class NodeCASE implements NodeBase {
+    public constructor(
+        public expr: NodeEXPR | null,
+        public statement: NodeSTATEMENT[]
+    ) {
+    }
+}
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 export class NodeEXPR implements NodeBase {

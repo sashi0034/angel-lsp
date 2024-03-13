@@ -3,7 +3,7 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./token";
 import {
-    NodeASSIGN,
+    NodeASSIGN, NodeCASE,
     NodeCONDITION,
     NodeDATATYPE, NodeDOWHILE,
     NodeEXPR,
@@ -14,7 +14,7 @@ import {
     NodeRETURN,
     NodeScript,
     NodeSTATBLOCK,
-    NodeSTATEMENT,
+    NodeSTATEMENT, NodeSWITCH,
     NodeTYPE,
     NodeVAR, NodeWHILE
 } from "./nodes";
@@ -233,10 +233,37 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     if (dowhile === 'pending') return 'pending';
     if (dowhile instanceof NodeDOWHILE) return dowhile;
 
+    const switch_ = parseSWITCH(reading);
+    if (switch_ === 'pending') return 'pending';
+    if (switch_ instanceof NodeSWITCH) return switch_;
+
     return 'mismatch';
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+function parseSWITCH(reading: ReadingState): TriedParse<NodeSWITCH> {
+    if (reading.next().text !== 'switch') return 'mismatch';
+    reading.step();
+    reading.expect('(', HighlightToken.Operator);
+    const assign = parseASSIGN(reading);
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected expression");
+        return 'pending';
+    }
+    reading.expect(')', HighlightToken.Operator);
+    reading.expect('{', HighlightToken.Operator);
+    const cases: NodeCASE[] = [];
+
+    for (; ;) {
+        if (reading.isEnd() || reading.next().text === '}') break;
+        const case_ = parseCASE(reading);
+        if (case_ === 'mismatch') break;
+        if (case_ === 'pending') continue;
+        cases.push(case_);
+    }
+    reading.expect('}', HighlightToken.Operator);
+    return new NodeSWITCH(assign, cases);
+}
 
 // BREAK         ::= 'break' ';'
 function parseBREAK(reading: ReadingState) {
@@ -383,6 +410,30 @@ function parseRETURN(reading: ReadingState): TriedParse<NodeRETURN> {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
+    let expr = null;
+    if (reading.next().text === 'case') {
+        reading.step();
+        expr = parseEXPR(reading);
+        if (expr === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            return 'pending';
+        }
+    } else if (reading.next().text === 'default') {
+        reading.step();
+    } else {
+        return 'mismatch';
+    }
+    reading.expect(':', HighlightToken.Operator);
+    const statements: NodeSTATEMENT[] = [];
+    for (; ;) {
+        const statement = parseSTATEMENT(reading);
+        if (statement === 'mismatch') break;
+        if (statement === 'pending') continue;
+        statements.push(statement);
+    }
+    return new NodeCASE(expr, statements);
+}
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function parseEXPR(reading: ReadingState): NodeEXPR | null {
