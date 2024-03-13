@@ -76,8 +76,11 @@ function parseSCRIPT(reading: ReadingState) {
     const funcs: NodeFunc[] = [];
     while (reading.isEnd() === false) {
         const func = parseFUNC(reading);
-        if (func === null) continue;
-        funcs.push(func);
+        if (func !== null) {
+            funcs.push(func);
+            continue;
+        }
+        reading.step();
     }
     return new NodeScript(funcs);
 }
@@ -192,14 +195,27 @@ function parseTYPE(reading: ReadingState) {
 function parseDATATYPE(reading: ReadingState) {
     // FIXME
     const next = reading.next();
-    if (reading.next().kind === 'identifier') reading.confirm(HighlightToken.Type);
-    else reading.confirm(HighlightToken.Builtin);
-    return new NodeDATATYPE(next);
-    // diagnostic.addError(next.location, "Expected identifier");
-    // return null;
+    if (reading.next().kind === 'identifier') {
+        reading.confirm(HighlightToken.Type);
+        return new NodeDATATYPE(next);
+    }
+
+    const primtype = parsePRIMTYPE(reading);
+    if (primtype !== null) return new NodeDATATYPE(primtype);
+
+    return null;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+function parsePRIMTYPE(reading: ReadingState) {
+    const next = reading.next();
+    if (primeTypeSet.has(next.text) === false) return null;
+    reading.confirm(HighlightToken.Builtin);
+    return next;
+}
+
+const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
+
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
