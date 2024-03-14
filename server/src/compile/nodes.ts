@@ -2,6 +2,7 @@ import {TokenObject} from "./token";
 import * as punycode from "punycode";
 
 export interface NodeBase {
+    nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -11,70 +12,65 @@ export type NodeSCRIPT = (NodeVAR | NodeFUNC)[];
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-export class NodeCLASS implements NodeBase {
-    public constructor(
-        public identifier: TokenObject,
-        public bases: TokenObject[],
-        public definitions: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
-    ) {
-    }
+export interface NodeCLASS extends NodeBase {
+    nodeName: 'CLASS'
+    identifier: TokenObject,
+    bases: TokenObject[],
+    definitions: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-export class NodeFUNC implements NodeBase {
-    public constructor(
-        public entity: TokenObject[],
-        public accessor: TokenObject | null,
-        public returnType: NodeTYPE | null,
-        public ref: TokenObject | null,
-        public identifier: TokenObject,
-        public paramList: NodePARAMLIST,
-        public isConst: boolean,
-        public funcAttr: TokenObject | null,
-        public statBlock: NodeSTATBLOCK
-    ) {
-    }
+export interface NodeFUNC extends NodeBase {
+    nodeName: 'FUNC'
+    entity: TokenObject[],
+    accessor: TokenObject | null,
+    returnType: NodeTYPE | null,
+    ref: TokenObject | null,
+    identifier: TokenObject,
+    paramList: NodePARAMLIST,
+    isConst: boolean,
+    funcAttr: TokenObject | null,
+    statBlock: NodeSTATBLOCK
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-export class NodeVAR implements NodeBase {
-    public constructor(
-        public type: NodeTYPE,
-        public identifier: TokenObject | null,
-        public expr: NodeEXPR
-    ) {
-    }
+export interface NodeVAR extends NodeBase {
+    nodeName: 'VAR'
+    type: NodeTYPE,
+    identifier: TokenObject | null,
+    expr: NodeEXPR
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-export class NodeFUNCDEF implements NodeBase {
+export interface NodeFUNCDEF extends NodeBase {
 
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-export class NodeVIRTPROP implements NodeBase {
-    public constructor(
-        public modifier: 'private' | 'protected | null',
-        public type: NodeTYPE,
-        public isRef: boolean,
-        public identifier: TokenObject,
-        public getter: [isConst: boolean, NodeSTATBLOCK | null] | null,
-        public setter: NodeFUNC | null
-    ) {
-    }
+export interface NodeVIRTPROP extends NodeBase {
+    nodeName: 'VIRTPROP'
+    modifier: 'private' | 'protected | null',
+    type: NodeTYPE,
+    isRef: boolean,
+    identifier: TokenObject,
+    getter: [isConst: boolean, NodeSTATBLOCK | null] | null,
+    setter: NodeFUNC | null
 }
 
 // MIXIN         ::= 'mixin' CLASS
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-export type NodeSTATBLOCK = (NodeVAR | NodeSTATEMENT)[];
+export type NodeSTATBLOCK = {
+    nodeName: 'STATBLOCK',
+    statements: (NodeVAR | NodeSTATEMENT)[]
+};
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject | null][];
@@ -82,37 +78,30 @@ export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject | null][];
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-export class NodeTYPE implements NodeBase {
-    public constructor(
-        public const_: boolean,
-        public scope: NodeSCOPE | null,
-        public datatype: NodeDATATYPE,
-        public generics: NodeTYPE[],
-        public array: boolean,
-        public ref: boolean,
-    ) {
-    }
+export interface NodeTYPE extends NodeBase {
+    nodeName: 'TYPE'
+    isConst: boolean,
+    scope: NodeSCOPE | null,
+    datatype: NodeDATATYPE,
+    generics: NodeTYPE[],
+    array: boolean,
+    ref: boolean,
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-export class NodeSCOPE implements NodeBase {
-    public constructor(
-        public isGlobal: boolean,
-        public namespaces: TokenObject[],
-        public generic: [className: TokenObject, types: NodeTYPE[]] | null
-    ) {
-    }
-
+export interface NodeSCOPE extends NodeBase {
+    nodeName: 'SCOPE'
+    isGlobal: boolean,
+    namespaces: TokenObject[],
+    generic: [className: TokenObject, types: NodeTYPE[]] | null
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-export class NodeDATATYPE implements NodeBase {
-    public constructor(
-        public identifier: TokenObject
-    ) {
-    }
+export interface NodeDATATYPE extends NodeBase {
+    nodeName: 'DATATYPE';
+    identifier: TokenObject;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -125,169 +114,152 @@ export type NodeSTATEMENT =
     | NodeWHILE
     | NodeRETURN
     | NodeSTATBLOCK
-    | 'break'
-    | 'continue'
+    | NodeBREAK
+    | NodeCONTINUE
     | NodeDOWHILE
     | NodeSWITCH
     | NodeEXPRSTAT;
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-export class NodeSWITCH implements NodeBase {
-    public constructor(
-        public assign: NodeASSIGN,
-        public cases: NodeCASE[]
-    ) {
-    }
-
+export interface NodeSWITCH extends NodeBase {
+    nodeName: 'SWITCH'
+    assign: NodeASSIGN,
+    cases: NodeCASE[]
 }
 
 // BREAK         ::= 'break' ';'
+export interface NodeBREAK extends NodeBase {
+    nodeName: 'BREAK';
+}
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-export class NodeFOR implements NodeBase {
-    public constructor(
-        public initial: NodeVAR | NodeEXPRSTAT,
-        public condition: NodeEXPRSTAT,
-        public increment: NodeASSIGN[],
-        public statement: NodeSTATEMENT
-    ) {
-    }
+export interface NodeFOR extends NodeBase {
+    nodeName: 'FOR'
+    initial: NodeVAR | NodeEXPRSTAT,
+    condition: NodeEXPRSTAT,
+    increment: NodeASSIGN[],
+    statement: NodeSTATEMENT
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-export class NodeWHILE implements NodeBase {
-    public constructor(
-        public assign: NodeASSIGN,
-        public statement: NodeSTATEMENT
-    ) {
-    }
+export interface NodeWHILE extends NodeBase {
+    nodeName: 'WHILE'
+    assign: NodeASSIGN,
+    statement: NodeSTATEMENT
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-export class NodeDOWHILE implements NodeBase {
-    public constructor(
-        public statement: NodeSTATEMENT,
-        public assign: NodeASSIGN
-    ) {
-    }
+export interface NodeDOWHILE extends NodeBase {
+    nodeName: 'DOWHILE'
+    statement: NodeSTATEMENT,
+    assign: NodeASSIGN
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-export class NodeIF implements NodeBase {
-    public constructor(
-        public condition: NodeASSIGN,
-        public ts: NodeSTATEMENT,
-        public fs: NodeSTATEMENT | null
-    ) {
-    }
+export interface NodeIF extends NodeBase {
+    nodeName: 'IF'
+    condition: NodeASSIGN,
+    ts: NodeSTATEMENT,
+    fs: NodeSTATEMENT | null
 }
 
 // CONTINUE      ::= 'continue' ';'
+export interface NodeCONTINUE extends NodeBase {
+    nodeName: 'CONTINUE';
+}
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-export type NodeEXPRSTAT = NodeASSIGN | 'empty';
+export type NodeEXPRSTAT = {
+    nodeName: 'EXPRSTAT',
+    assign: NodeASSIGN | null
+};
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-export class NodeRETURN implements NodeBase {
-    public constructor(
-        public assign: NodeASSIGN
-    ) {
-    }
+export interface NodeRETURN extends NodeBase {
+    nodeName: 'RETURN';
+    assign: NodeASSIGN;
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-export class NodeCASE implements NodeBase {
-    public constructor(
-        public expr: NodeEXPR | null,
-        public statement: NodeSTATEMENT[]
-    ) {
-    }
+export interface NodeCASE extends NodeBase {
+    nodeName: 'CASE'
+    expr: NodeEXPR | null,
+    statement: NodeSTATEMENT[]
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-export class NodeEXPR implements NodeBase {
-    public constructor(
-        public head: NodeEXPRTERM,
-        public op: TokenObject | null,
-        public tail: NodeEXPR | null
-    ) {
-    }
+export interface NodeEXPR extends NodeBase {
+    nodeName: 'EXPR'
+    head: NodeEXPRTERM,
+    op: TokenObject | null,
+    tail: NodeEXPR | null
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export type NodeEXPRTERM = NodeEXPRTERM1 | NodeEXPRTERM2;
 
-export class NodeEXPRTERM1 implements NodeBase {
-    public constructor(
-        public type: NodeTYPE,
-        public eq: TokenObject | null,
-    ) {
-    }
+export interface NodeEXPRTERM1 extends NodeBase {
+    nodeName: 'EXPRTERM'
+    exprTerm: 1
+    type: NodeTYPE,
+    eq: TokenObject | null,
 }
 
-export class NodeEXPRTERM2 implements NodeBase {
-    public constructor(
-        public preop: TokenObject | null,
-        public value: NodeEXPRVALUE,
-        public stopop: TokenObject | null
-    ) {
-    }
+export interface NodeEXPRTERM2 extends NodeBase {
+    nodeName: 'EXPRTERM'
+    exprTerm: 2,
+    preop: TokenObject | null,
+    value: NodeEXPRVALUE,
+    stopop: TokenObject | null
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject | NodeASSIGN
+export type  NodeEXPRVALUE = NodeFUNCCALL | NodeVARACCESS | NodeLITERAL | NodeASSIGN
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+export interface NodeLITERAL extends NodeBase {
+    nodeName: 'LITERAL';
+    value: TokenObject;
+}
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-export class NodeFUNCCALL implements NodeBase {
-    public constructor(
-        public scope: NodeSCOPE | null,
-        public identifier: TokenObject,
-        public argList: NodeARGLIST
-    ) {
-    }
-
+export interface NodeFUNCCALL extends NodeBase {
+    nodeName: 'FUNCCALL'
+    scope: NodeSCOPE | null,
+    identifier: TokenObject,
+    argList: NodeARGLIST
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-export class NodeVARACCESS implements NodeBase {
-    public constructor(
-        public identifier: TokenObject
-    ) {
-    }
+export interface NodeVARACCESS extends NodeBase {
+    nodeName: 'VARACCESS';
+    identifier: TokenObject;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-export class NodeARGLIST implements NodeBase {
-    public constructor(
-        public args: [identifier: TokenObject | null, NodeASSIGN][]
-    ) {
-    }
+export interface NodeARGLIST extends NodeBase {
+    nodeName: 'ARGLIST';
+    args: [identifier: TokenObject | null, NodeASSIGN][];
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-export class NodeASSIGN implements NodeBase {
-    public constructor(
-        public condition: NodeCONDITION,
-        public op: TokenObject | null,
-        public assign: NodeASSIGN | null
-    ) {
-    }
+export interface NodeASSIGN extends NodeBase {
+    nodeName: 'ASSIGN'
+    condition: NodeCONDITION,
+    op: TokenObject | null,
+    assign: NodeASSIGN | null
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export class NodeCONDITION implements NodeBase {
-    public constructor(
-        public expr: NodeEXPR,
-        public ta: NodeASSIGN | null,
-        public fa: NodeASSIGN | null
-    ) {
-    }
+export interface NodeCONDITION extends NodeBase {
+    nodeName: 'CONDITION'
+    expr: NodeEXPR,
+    ta: NodeASSIGN | null,
+    fa: NodeASSIGN | null
 }

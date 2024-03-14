@@ -20,7 +20,7 @@ function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeSCRIPT) {
 
     // 宣言分析
     for (const statement of ast) {
-        if (statement instanceof NodeFUNC) {
+        if (statement.nodeName === 'FUNC') {
             if (statement.returnType === null) continue;
             const symbol: SymbolicFunction = {
                 args: statement.paramList,
@@ -90,8 +90,8 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
-    for (const statement of ast) {
-        if (statement instanceof NodeVAR) {
+    for (const statement of ast.statements) {
+        if (statement.nodeName === 'VAR') {
             analyzeVAR(scope, statement);
         } else {
             analyzeSTATEMENT(scope, statement as NodeSTATEMENT);
@@ -134,7 +134,7 @@ function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR) {
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
-    if (ast instanceof NodeEXPRTERM1) {
+    if (ast.exprTerm === 1) {
         // TODO
     } else {
         const exprterm = ast as NodeEXPRTERM2;
@@ -144,7 +144,7 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
-    if (exprvalue instanceof NodeVARACCESS) {
+    if (exprvalue.nodeName === 'VARACCESS') {
         const token = exprvalue.identifier;
         const declared = findSymbolWithParent(scope, token);
         if (declared === null) {
@@ -153,7 +153,7 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
         }
         declared.usage.push(token);
     }
-    if (exprvalue instanceof NodeASSIGN) {
+    if (exprvalue.nodeName === 'ASSIGN') {
         analyzeASSIGN(scope, exprvalue);
     }
 }
