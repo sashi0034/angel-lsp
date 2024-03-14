@@ -6,8 +6,8 @@ import {
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE,
-    NodeFunc,
-    NodeScript,
+    NodeFUNC,
+    NodeSCRIPT,
     NodeSTATBLOCK, NodeSTATEMENT,
     NodeVAR, NodeVARACCESS
 } from "./nodes";
@@ -15,26 +15,28 @@ import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolScope} from 
 import {diagnostic} from "../code/diagnostic";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeScript) {
-    const funcScopes: [SymbolScope, NodeFunc][] = [];
+function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeSCRIPT) {
+    const funcScopes: [SymbolScope, NodeFUNC][] = [];
 
     // 宣言分析
-    for (const func of ast.statements) {
-        if (func.ret === null) continue;
-        const symbol: SymbolicFunction = {
-            args: func.paramlist,
-            ret: func.ret,
-            declare: func.identifier,
-            usage: [],
-        };
-        const scope: SymbolScope = {
-            parentScope: globalScope,
-            childScopes: [],
-            symbols: [symbol],
-        };
-        globalScope.childScopes.push(scope);
-        globalScope.symbols.push(symbol);
-        funcScopes.push([scope, func]);
+    for (const statement of ast) {
+        if (statement instanceof NodeFUNC) {
+            if (statement.returnType === null) continue;
+            const symbol: SymbolicFunction = {
+                args: statement.paramList,
+                ret: statement.returnType,
+                declare: statement.identifier,
+                usage: [],
+            };
+            const scope: SymbolScope = {
+                parentScope: globalScope,
+                childScopes: [],
+                symbols: [symbol],
+            };
+            globalScope.childScopes.push(scope);
+            globalScope.symbols.push(symbol);
+            funcScopes.push([scope, statement]);
+        }
     }
 
     // 実装分析
@@ -49,11 +51,11 @@ function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeScript) {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function analyzeFUNC(scope: SymbolScope, ast: NodeFunc) {
-    if (ast.ret === null) return;
+function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
+    if (ast.returnType === null) return;
 
     // 引数をスコープに追加
-    for (const [type, identifier] of ast.paramlist) {
+    for (const [type, identifier] of ast.paramList) {
         if (identifier === null) continue;
         scope.symbols.push({
             type: type,
@@ -63,7 +65,7 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFunc) {
     }
 
     // スコープ分析
-    analyzeSTATBLOCK(scope, ast.statblock);
+    analyzeSTATBLOCK(scope, ast.statBlock);
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -173,7 +175,7 @@ function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN) {
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 
-export function analyzeFromParsed(ast: NodeScript) {
+export function analyzeFromParsed(ast: NodeSCRIPT) {
     const globalScope: SymbolScope = {
         parentScope: null,
         childScopes: [],

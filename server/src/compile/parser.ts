@@ -9,11 +9,11 @@ import {
     NodeDATATYPE, NodeDOWHILE,
     NodeEXPR, NodeEXPRSTAT,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFunc, NodeFUNCCALL,
+    NodeFUNC, NodeFUNCCALL,
     NodeIF,
     NodePARAMLIST,
     NodeRETURN, NodeSCOPE,
-    NodeScript,
+    NodeSCRIPT,
     NodeSTATBLOCK,
     NodeSTATEMENT, NodeSWITCH,
     NodeTYPE,
@@ -77,16 +77,16 @@ class ReadingState {
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(reading: ReadingState) {
-    const funcs: NodeFunc[] = [];
+    const script: NodeSCRIPT = [];
     while (reading.isEnd() === false) {
         const func = parseFUNC(reading);
         if (func !== null) {
-            funcs.push(func);
+            script.push(func);
             continue;
         }
         reading.step();
     }
-    return new NodeScript(funcs);
+    return script;
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
@@ -96,13 +96,13 @@ function parseSCRIPT(reading: ReadingState) {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState) {
-    const ret = parseTYPE(reading);
-    if (ret === null) return null;
+    const returnType = parseTYPE(reading);
+    if (returnType === null) return null;
     const identifier = reading.next();
     reading.step();
-    const paramlist = parsePARAMLIST(reading);
-    const statblock = parseSTATBLOCK(reading) ?? [];
-    return new NodeFunc([], null, ret, null, identifier, paramlist, false, null, statblock);
+    const paramList = parsePARAMLIST(reading);
+    const statBlock = parseSTATBLOCK(reading) ?? [];
+    return new NodeFUNC([], null, returnType, null, identifier, paramList, false, null, statBlock);
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -734,7 +734,7 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokens(tokens: TokenObject[]): NodeScript {
+export function parseFromTokens(tokens: TokenObject[]): NodeSCRIPT {
     const reading = new ReadingState(tokens);
     return parseSCRIPT(reading);
 }

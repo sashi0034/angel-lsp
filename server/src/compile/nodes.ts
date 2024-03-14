@@ -5,30 +5,35 @@ export interface NodeBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export class NodeScript implements NodeBase {
+export type NodeSCRIPT = (NodeVAR | NodeFUNC)[];
+
+// NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+
+// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+export class NodeCLASS implements NodeBase {
     public constructor(
-        public statements: NodeFunc[]
+        public identifier: TokenObject,
+        public bases: TokenObject[],
+        public definitions: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
     ) {
     }
 }
 
-// NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-export class NodeFunc implements NodeBase {
+export class NodeFUNC implements NodeBase {
     public constructor(
         public entity: TokenObject[],
         public accessor: TokenObject | null,
-        public ret: NodeTYPE | null,
+        public returnType: NodeTYPE | null,
         public ref: TokenObject | null,
         public identifier: TokenObject,
-        public paramlist: NodePARAMLIST,
-        public const_: boolean,
-        public funcattr: TokenObject | null,
-        public statblock: NodeSTATBLOCK
+        public paramList: NodePARAMLIST,
+        public isConst: boolean,
+        public funcAttr: TokenObject | null,
+        public statBlock: NodeSTATBLOCK
     ) {
     }
 }
@@ -46,8 +51,25 @@ export class NodeVAR implements NodeBase {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+export class NodeFUNCDEF implements NodeBase {
+
+}
+
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+export class NodeVIRTPROP implements NodeBase {
+    public constructor(
+        public modifier: 'private' | 'protected | null',
+        public type: NodeTYPE,
+        public isRef: boolean,
+        public identifier: TokenObject,
+        public getter: [isConst: boolean, NodeSTATBLOCK | null] | null,
+        public setter: NodeFUNC | null
+    ) {
+    }
+}
+
 // MIXIN         ::= 'mixin' CLASS
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
