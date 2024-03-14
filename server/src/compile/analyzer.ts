@@ -75,7 +75,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
         if (initializer === null) continue;
-        analyzeEXPR(scope, initializer);
+        if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
         const variable = {
             type: ast.type,
             declare: var_.identifier,

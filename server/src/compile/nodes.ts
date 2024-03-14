@@ -46,7 +46,7 @@ export interface NodeVAR extends NodeBase {
     type: NodeTYPE,
     variables: {
         identifier: TokenObject,
-        initializer: NodeEXPR | null
+        initializer: NodeEXPR | NodeARGLIST | null
     }[];
 }
 

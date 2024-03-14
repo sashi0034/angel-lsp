@@ -231,7 +231,7 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
     }
     const variables: {
         identifier: TokenObject,
-        initializer: NodeEXPR | null
+        initializer: NodeEXPR | NodeARGLIST | null
     }[] = [];
     for (; ;) {
         // 識別子
@@ -259,6 +259,11 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
                 return null;
             }
             variables.push({identifier: identifier, initializer: expr});
+        } else {
+            const argList = parseARGLIST(reading);
+            if (reading !== null) {
+                variables.push({identifier: identifier, initializer: argList});
+            }
         }
 
         // 追加または終了判定
