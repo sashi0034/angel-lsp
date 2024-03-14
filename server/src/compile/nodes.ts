@@ -220,13 +220,46 @@ export interface NodeEXPRTERM2 extends NodeBase {
     exprTerm: 2,
     preOp: TokenObject | null,
     value: NodeEXPRVALUE,
-    stopOp: TokenObject | null
+    postOp: NodeEXPRPOSTOP | null
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type  NodeEXPRVALUE = NodeFUNCCALL | NodeVARACCESS | NodeLITERAL | NodeASSIGN
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
+// EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+
+// EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+export type NodeEXPRPOSTOP = NodeEXPRPOSTOP1 | NodeEXPRPOSTOP2 | NodeEXPRPOSTOP3 | NodeEXPRPOSTOP4;
+
+// ('.' (FUNCCALL | IDENTIFIER))
+export interface NodeEXPRPOSTOP1 extends NodeBase {
+    nodeName: 'EXPRPOSTOP';
+    postOp: 1;
+    member: NodeFUNCCALL | TokenObject;
+}
+
+// ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
+export interface NodeEXPRPOSTOP2 extends NodeBase {
+    nodeName: 'EXPRPOSTOP';
+    postOp: 2;
+    indexes: { identifier: TokenObject | null, assign: NodeASSIGN }[];
+}
+
+// ARGLIST
+export interface NodeEXPRPOSTOP3 extends NodeBase {
+    nodeName: 'EXPRPOSTOP';
+    postOp: 3;
+    args: NodeARGLIST;
+}
+
+// ++ | --
+export interface NodeEXPRPOSTOP4 extends NodeBase {
+    nodeName: 'EXPRPOSTOP';
+    postOp: 4;
+    operator: '++' | '--';
+}
+
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 

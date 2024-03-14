@@ -5,24 +5,38 @@ import {TokenObject} from "./token";
 import {
     AccessModifier,
     NodeARGLIST,
-    NodeASSIGN, NodeBREAK, NodeCASE, NodeCLASS,
-    NodeCONDITION, NodeCONTINUE,
-    NodeDATATYPE, NodeDOWHILE,
-    NodeEXPR, NodeEXPRSTAT,
-    NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFUNC, NodeFUNCCALL, NodeFUNCDEF,
+    NodeASSIGN,
+    NodeBREAK,
+    NodeCASE,
+    NodeCLASS,
+    NodeCONDITION,
+    NodeCONTINUE,
+    NodeDATATYPE,
+    NodeDOWHILE,
+    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRPOSTOP1, NodeEXPRPOSTOP2, NodeEXPRPOSTOP3,
+    NodeEXPRSTAT,
+    NodeEXPRTERM2,
+    NodeEXPRVALUE,
+    NodeFOR,
+    NodeFUNC,
+    NodeFUNCCALL,
+    NodeFUNCDEF,
     NodeIF,
     NodePARAMLIST,
-    NodeRETURN, NodeSCOPE,
+    NodeRETURN,
+    NodeSCOPE,
     NodeSCRIPT,
     NodeSTATBLOCK,
-    NodeSTATEMENT, NodeSWITCH,
+    NodeSTATEMENT,
+    NodeSWITCH,
     NodeTYPE,
-    NodeVAR, NodeVARACCESS, NodeVIRTPROP, NodeWHILE
+    NodeVAR,
+    NodeVARACCESS,
+    NodeVIRTPROP,
+    NodeWHILE
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
-import {func} from "vscode-languageserver/lib/common/utils/is";
 
 type TriedParse<T> = 'mismatch' | 'pending' | T;
 
@@ -777,7 +791,8 @@ function parseEXPRTERM(reading: ReadingState) {
 }
 
 const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
-const opStopSet = new Set(['.', '[', '(', '++', '--']);
+
+// const postOpSet = new Set(['.', '[', '(', '++', '--']);
 
 function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
     const rollbackPos = reading.getPos();
@@ -793,17 +808,14 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
         return null;
     }
 
-    let stop = null;
-    if (opStopSet.has(reading.next().text)) {
-        stop = reading.next();
-        reading.confirm(HighlightToken.Operator);
-    }
+    const postOp = parseEXPRPOSTOP(reading);
+
     return {
         nodeName: 'EXPRTERM',
         exprTerm: 2,
         preOp: pre,
         value: exprValue,
-        stopOp: stop
+        postOp: postOp
     };
 }
 
@@ -835,7 +847,94 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+function parseEXPRPOSTOP(reading: ReadingState): NodeEXPRPOSTOP | null {
+    const exprPostOp1 = parseEXPRPOSTOP1(reading);
+    if (exprPostOp1 !== null) return exprPostOp1;
+
+    const exprPostOp2 = parseEXPRPOSTOP2(reading);
+    if (exprPostOp2 !== null) return exprPostOp2;
+
+    const argList = parseARGLIST(reading);
+    if (argList !== null) return {
+        nodeName: 'EXPRPOSTOP',
+        postOp: 3,
+        args: argList
+    };
+
+    const maybeOperator = reading.next().text;
+    if (maybeOperator === '++' || maybeOperator === '--') {
+        reading.confirm(HighlightToken.Operator);
+        return {
+            nodeName: 'EXPRPOSTOP',
+            postOp: 4,
+            operator: maybeOperator
+        };
+    }
+
+    return null;
+}
+
+// ('.' (FUNCCALL | IDENTIFIER))
+function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | null {
+    if (reading.next().text !== '.') return null;
+    reading.confirm(HighlightToken.Operator);
+    const funcCall = parseFUNCCALL(reading);
+    if (funcCall !== null) return {
+        nodeName: 'EXPRPOSTOP',
+        postOp: 1,
+        member: funcCall,
+    };
+    const identifier = reading.next();
+    if (identifier.kind !== 'identifier') {
+        diagnostic.addError(reading.next().location, "Expected identifier");
+        return null;
+    }
+    reading.confirm(HighlightToken.Variable);
+    return {
+        nodeName: 'EXPRPOSTOP',
+        postOp: 1,
+        member: identifier
+    };
+}
+
+// ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
+function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
+    if (reading.next().text !== '[') return null;
+    reading.confirm(HighlightToken.Operator);
+    const indexes: { identifier: TokenObject | null, assign: NodeASSIGN }[] = [];
+    for (; ;) {
+        if (reading.next().text === ']') {
+            if (indexes.length === 0) {
+                diagnostic.addError(reading.next().location, "Expected index");
+            }
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
+        if (indexes.length > 0) {
+            if (reading.expect(',', HighlightToken.Operator) === false) break;
+        }
+        let identifier = null;
+        if (reading.next(0).kind === 'identifier' && reading.next(1).text === ':') {
+            identifier = reading.next();
+            reading.confirm(HighlightToken.Parameter);
+            reading.confirm(HighlightToken.Operator);
+        }
+        const assign = parseASSIGN(reading);
+        if (assign === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            continue;
+        }
+        indexes.push({identifier: identifier, assign: assign});
+    }
+    return {
+        nodeName: 'EXPRPOSTOP',
+        postOp: 2,
+        indexes: indexes
+    };
+}
+
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 
