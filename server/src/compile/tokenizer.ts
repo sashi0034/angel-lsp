@@ -115,10 +115,21 @@ function trySymbol(reading: ReadingState) {
 
 function tryNumber(reading: ReadingState) {
     let result: string = "";
-    while (reading.isEnd() === false && isDigit(reading.next())) {
-        result += reading.next();
-        reading.stepFor(1);
+    let isFloating = false;
+
+    for (; ;) {
+        if (reading.isEnd()) break;
+        const next = reading.next();
+        const floatStart = next === '.' && isFloating === false;
+        const floatEnd = next === 'f' && isFloating;
+        if (isDigit(next) || floatStart || floatEnd) {
+            result += next;
+            reading.stepFor(1);
+            if (floatStart) isFloating = true;
+            if (floatEnd) break;
+        } else break;
     }
+
     return result;
 }
 
