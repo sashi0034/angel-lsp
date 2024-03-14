@@ -3,6 +3,7 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./token";
 import {
+    AccessorModifier,
     NodeARGLIST,
     NodeASSIGN, NodeBREAK, NodeCASE, NodeCLASS,
     NodeCONDITION, NodeCONTINUE,
@@ -163,6 +164,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const rollbackPos = reading.getPos();
+    const accessor: AccessorModifier = parseAccessorModifier(reading);
     const returnType = parseTYPE(reading);
     if (returnType === null) return null;
     const identifier = reading.next();
@@ -176,7 +178,7 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
     return {
         nodeName: 'FUNC',
         entity: [],
-        accessor: null,
+        accessor: accessor,
         returnType: returnType,
         ref: null,
         identifier: identifier,
@@ -187,11 +189,24 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
     };
 }
 
+// ['private' | 'protected']
+function parseAccessorModifier(reading: ReadingState): AccessorModifier {
+    const next = reading.next().text;
+    if (next === 'private' || next === 'protected') {
+        reading.confirm(HighlightToken.Builtin);
+        return next;
+    }
+    return 'public';
+}
+
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function parseVAR(reading: ReadingState): NodeVAR | null {
     const rollbackPos = reading.getPos();
+
+    const accessor: AccessorModifier = parseAccessorModifier(reading);
+
     const type = parseTYPE(reading);
     if (type === null) {
         // diagnostic.addError(reading.next().location, "Expected type");
@@ -244,6 +259,7 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
 
     return {
         nodeName: 'VAR',
+        accessor: accessor,
         type: type,
         variables: variables
     };
