@@ -63,7 +63,7 @@ class ReadingState {
             return false;
         }
         if (this.next().kind !== "reserved") {
-            diagnostic.addError(this.next().location, "Expected reserved word");
+            diagnostic.addError(this.next().location, `Expected reserved word ${word}`);
             return false;
         }
         if (this.next().text !== word) {
@@ -207,6 +207,33 @@ function parseTYPE(reading: ReadingState) {
     return new NodeTYPE(isConst, scope, datatype, [], false, false);
 }
 
+// '<' TYPE {',' TYPE} '>'
+function parseGENERICS(reading: ReadingState): NodeTYPE[] | null {
+    const rollbackPos = reading.getPos();
+    if (reading.next().text !== '<') return null;
+    reading.confirm(HighlightToken.Operator);
+    const generics: NodeTYPE[] = [];
+    for (; ;) {
+        if (reading.next().text === '>') {
+            reading.confirm(HighlightToken.Operator);
+            return generics;
+        }
+        if (generics.length > 0) {
+            if (reading.next().text !== ',') {
+                reading.setPos(rollbackPos);
+                return null;
+            }
+            reading.confirm(HighlightToken.Operator);
+        }
+        const type = parseTYPE(reading);
+        if (type === null) {
+            reading.setPos(rollbackPos);
+            return null;
+        }
+        generics.push(type);
+    }
+}
+
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
@@ -228,26 +255,14 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
             namespaces.push(identifier);
             continue;
         } else if (reading.next(1).text === '<') {
+            const rollbackPos = reading.getPos();
             reading.confirm(HighlightToken.Class);
-            reading.confirm(HighlightToken.Operator);
-            const generics: NodeTYPE[] = [];
-            for (; ;) {
-                if (reading.next().text === '>') {
-                    reading.confirm(HighlightToken.Operator);
-                    break;
-                }
-                if (generics.length > 0) {
-                    reading.expect(',', HighlightToken.Operator);
-                }
-                const type = parseTYPE(reading);
-                if (type === null) break;
-                generics.push(type);
+            const generics = parseGENERICS(reading);
+            if (generics === null || reading.next().text !== '::') {
+                reading.setPos(rollbackPos);
+                break;
             }
-            if (reading.next().text !== '::') break;
             reading.confirm(HighlightToken.Operator);
-            if (generics.length === 0) {
-                diagnostic.addError(reading.next().location, "Expected type");
-            }
             return new NodeSCOPE(isGlobal, namespaces, [identifier, generics]);
         }
         break;
