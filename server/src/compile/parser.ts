@@ -131,7 +131,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
     const bases: TokenObject[] = [];
     if (reading.next().text === ':') {
         reading.confirm(HighlightToken.Operator);
-        for (; ;) {
+        while (reading.isEnd() === false) {
             if (reading.next().text === '{') break;
             if (bases.length > 0) {
                 if (reading.expect(',', HighlightToken.Operator) === false) break;
@@ -233,7 +233,7 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
         identifier: TokenObject,
         initializer: NodeEXPR | NodeARGLIST | null
     }[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         // 識別子
         const identifier = reading.next();
         if (identifier.kind !== 'identifier') {
@@ -327,8 +327,8 @@ function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
     if (reading.next().text !== '(') return null;
     reading.confirm(HighlightToken.Operator);
     const params: NodePARAMLIST = [];
-    for (; ;) {
-        if (reading.isEnd() || reading.next().text === ')') break;
+    while (reading.isEnd() === false) {
+        if (reading.next().text === ')') break;
         if (params.length > 0) {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
@@ -381,10 +381,10 @@ function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
     if (reading.next().text !== '<') return null;
     reading.confirm(HighlightToken.Operator);
     const generics: NodeTYPE[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         if (reading.next().text === '>') {
             reading.confirm(HighlightToken.Operator);
-            return generics;
+            break;
         }
         if (generics.length > 0) {
             if (reading.next().text !== ',') {
@@ -400,6 +400,7 @@ function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
         }
         generics.push(type);
     }
+    return generics;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -412,7 +413,7 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
         isGlobal = true;
     }
     const namespaces: TokenObject[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         const identifier = reading.next(0);
         if (identifier.kind !== 'identifier') {
             break;
@@ -539,7 +540,7 @@ function parseSWITCH(reading: ReadingState): TriedParse<NodeSWITCH> {
     reading.expect('{', HighlightToken.Operator);
     const cases: NodeCASE[] = [];
 
-    for (; ;) {
+    while (reading.isEnd() === false) {
         if (reading.isEnd() || reading.next().text === '}') break;
         const case_ = parseCASE(reading);
         if (case_ === 'mismatch') break;
@@ -581,7 +582,7 @@ function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
     }
 
     const increment: NodeASSIGN[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         if (increment.length > 0) {
             if (reading.next().text !== ',') break;
             reading.step();
@@ -749,7 +750,7 @@ function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
     }
     reading.expect(':', HighlightToken.Operator);
     const statements: NodeSTATEMENT[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         const statement = parseSTATEMENT(reading);
         if (statement === 'mismatch') break;
         if (statement === 'pending') continue;
@@ -912,7 +913,7 @@ function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
     if (reading.next().text !== '[') return null;
     reading.confirm(HighlightToken.Operator);
     const indexes: { identifier: TokenObject | null, assign: NodeASSIGN }[] = [];
-    for (; ;) {
+    while (reading.isEnd() === false) {
         if (reading.next().text === ']') {
             if (indexes.length === 0) {
                 diagnostic.addError(reading.next().location, "Expected index");
