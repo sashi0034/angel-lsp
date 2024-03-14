@@ -63,7 +63,7 @@ export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject | null][];
 export class NodeTYPE implements NodeBase {
     public constructor(
         public const_: boolean,
-        public scope: TokenObject | null,
+        public scope: NodeSCOPE | null,
         public datatype: NodeDATATYPE,
         public generics: NodeTYPE[],
         public array: boolean,
@@ -73,7 +73,17 @@ export class NodeTYPE implements NodeBase {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+export class NodeSCOPE implements NodeBase {
+    public constructor(
+        public isGlobal: boolean,
+        public namespaces: TokenObject[],
+        public generic: [className: TokenObject, types: NodeTYPE[]] | null
+    ) {
+    }
+
+}
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export class NodeDATATYPE implements NodeBase {
@@ -216,8 +226,9 @@ export type  NodeEXPRVALUE = NodeVARACCESS | TokenObject | NodeASSIGN
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export class NodeFUNCCALL implements NodeBase {
     public constructor(
+        public scope: NodeSCOPE | null,
         public identifier: TokenObject,
-        public arglist: NodeARGLIST
+        public argList: NodeARGLIST
     ) {
     }
 

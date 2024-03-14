@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import { TokenObject } from "./token";
+import {TokenObject} from "./token";
 import {
     NodeARGLIST,
     NodeASSIGN, NodeCASE,
@@ -12,16 +12,16 @@ import {
     NodeFunc, NodeFUNCCALL,
     NodeIF,
     NodePARAMLIST,
-    NodeRETURN,
+    NodeRETURN, NodeSCOPE,
     NodeScript,
     NodeSTATBLOCK,
     NodeSTATEMENT, NodeSWITCH,
     NodeTYPE,
     NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
-import { diagnostic } from "../code/diagnostic";
-import { HighlightModifier, HighlightToken } from "../code/highlight";
-import { func } from "vscode-languageserver/lib/common/utils/is";
+import {diagnostic} from "../code/diagnostic";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {func} from "vscode-languageserver/lib/common/utils/is";
 
 type TriedParse<T> = 'mismatch' | 'pending' | T;
 
@@ -190,15 +190,72 @@ function parsePARAMLIST(reading: ReadingState) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseTYPE(reading: ReadingState) {
-    // FIXME
+    const rollbackPos = reading.getPos();
+    let isConst = false;
+    if (reading.next().text === 'const') {
+        reading.confirm(HighlightToken.Keyword);
+        isConst = true;
+    }
+
+    const scope = parseSCOPE(reading);
+
     const datatype = parseDATATYPE(reading);
-    if (datatype === null) return null;
-    return new NodeTYPE(false, null, datatype, [], false, false);
+    if (datatype === null) {
+        reading.setPos(rollbackPos);
+        return null;
+    }
+    return new NodeTYPE(isConst, scope, datatype, [], false, false);
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
+    let isGlobal = false;
+    if (reading.next().text === '::') {
+        reading.confirm(HighlightToken.Operator);
+        isGlobal = true;
+    }
+    const namespaces: TokenObject[] = [];
+    for (; ;) {
+        const identifier = reading.next(0);
+        if (identifier.kind !== 'identifier') {
+            break;
+        }
+        if (reading.next(1).text === '::') {
+            reading.confirm(HighlightToken.Namespace);
+            reading.confirm(HighlightToken.Operator);
+            namespaces.push(identifier);
+            continue;
+        } else if (reading.next(1).text === '<') {
+            reading.confirm(HighlightToken.Class);
+            reading.confirm(HighlightToken.Operator);
+            const generics: NodeTYPE[] = [];
+            for (; ;) {
+                if (reading.next().text === '>') {
+                    reading.confirm(HighlightToken.Operator);
+                    break;
+                }
+                if (generics.length > 0) {
+                    reading.expect(',', HighlightToken.Operator);
+                }
+                const type = parseTYPE(reading);
+                if (type === null) break;
+                generics.push(type);
+            }
+            reading.expect('::', HighlightToken.Operator);
+            if (generics.length === 0) {
+                diagnostic.addError(reading.next().location, "Expected type");
+            }
+            return new NodeSCOPE(isGlobal, namespaces, [identifier, generics]);
+        }
+        break;
+    }
+    if (isGlobal === false && namespaces.length === 0) {
+        return null;
+    }
+    return new NodeSCOPE(isGlobal, namespaces, null);
+}
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 function parseDATATYPE(reading: ReadingState) {
@@ -512,11 +569,11 @@ function parseEXPRTERM2(reading: ReadingState) {
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     // TODO
-    const funccall = parseFUNCCALL(reading);
-    if (funccall !== null) return funccall;
+    const funcCall = parseFUNCCALL(reading);
+    if (funcCall !== null) return funcCall;
 
-    const varaccess = parseVARACCESS(reading);
-    if (varaccess !== null) return varaccess;
+    const varAccess = parseVARACCESS(reading);
+    if (varAccess !== null) return varAccess;
 
     const literal = parseLITERAL(reading);
     if (literal !== null) return literal;
@@ -557,12 +614,20 @@ function parseLITERAL(reading: ReadingState) {
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function parseFUNCCALL(reading: ReadingState) {
-    if (reading.next().kind === 'identifier' && reading.next(1).text === '(') {
-        const next = reading.next();
-        reading.confirm(HighlightToken.Function);
-        return new NodeFUNCCALL(next, parseARGLIST(reading));
+    const rollbackPos = reading.getPos();
+    const scope = parseSCOPE(reading);
+    const identifier = reading.next();
+    if (identifier.kind !== 'identifier') {
+        reading.setPos(rollbackPos);
+        return null;
     }
-    return null;
+    reading.confirm(HighlightToken.Function);
+    const argList = parseARGLIST(reading);
+    if (argList === null) {
+        reading.setPos(rollbackPos);
+        return null;
+    }
+    return new NodeFUNCCALL(scope, identifier, argList);
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
@@ -574,8 +639,9 @@ function parseVARACCESS(reading: ReadingState) {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function parseARGLIST(reading: ReadingState) {
-    reading.expect('(', HighlightToken.Operator);
+function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
+    if (reading.next().text !== '(') return null;
+    reading.confirm(HighlightToken.Operator);
     const args: [TokenObject | null, NodeASSIGN][] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
