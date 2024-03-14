@@ -95,7 +95,7 @@ export interface NodeSCOPE extends NodeBase {
     nodeName: 'SCOPE'
     isGlobal: boolean,
     namespaces: TokenObject[],
-    generic: [className: TokenObject, types: NodeTYPE[]] | null
+    generic: { className: TokenObject, types: NodeTYPE[] } | null
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -210,9 +210,9 @@ export interface NodeEXPRTERM1 extends NodeBase {
 export interface NodeEXPRTERM2 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
-    preop: TokenObject | null,
+    preOp: TokenObject | null,
     value: NodeEXPRVALUE,
-    stopop: TokenObject | null
+    stopOp: TokenObject | null
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
@@ -245,7 +245,7 @@ export interface NodeVARACCESS extends NodeBase {
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeARGLIST extends NodeBase {
     nodeName: 'ARGLIST';
-    args: [identifier: TokenObject | null, NodeASSIGN][];
+    args: { identifier: TokenObject | null, assign: NodeASSIGN }[];
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]

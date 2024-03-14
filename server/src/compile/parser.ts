@@ -235,7 +235,7 @@ function parseTYPE(reading: ReadingState): NodeTYPE | null {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseGENERICS(reading: ReadingState): NodeTYPE[] | null {
+function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
     const rollbackPos = reading.getPos();
     if (reading.next().text !== '<') return null;
     reading.confirm(HighlightToken.Operator);
@@ -284,8 +284,8 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
         } else if (reading.next(1).text === '<') {
             const rollbackPos = reading.getPos();
             reading.confirm(HighlightToken.Class);
-            const generics = parseGENERICS(reading);
-            if (generics === null || reading.next().text !== '::') {
+            const types = parseTypeParameters(reading);
+            if (types === null || reading.next().text !== '::') {
                 reading.setPos(rollbackPos);
                 break;
             }
@@ -294,7 +294,7 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
                 nodeName: 'SCOPE',
                 isGlobal: isGlobal,
                 namespaces: namespaces,
-                generic: [identifier, generics]
+                generic: {className: identifier, types: types}
             };
         }
         break;
@@ -682,9 +682,9 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
     return {
         nodeName: 'EXPRTERM',
         exprTerm: 2,
-        preop: pre,
+        preOp: pre,
         value: exprValue,
-        stopop: stop
+        stopOp: stop
     };
 }
 
@@ -772,7 +772,7 @@ function parseVARACCESS(reading: ReadingState): NodeVARACCESS | null {
 function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
     if (reading.next().text !== '(') return null;
     reading.confirm(HighlightToken.Operator);
-    const args: [TokenObject | null, NodeASSIGN][] = [];
+    const args: { identifier: TokenObject | null, assign: NodeASSIGN }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
             reading.confirm(HighlightToken.Operator);
@@ -792,7 +792,7 @@ function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
             diagnostic.addError(reading.next().location, "Expected expression");
             continue;
         }
-        args.push([identifier, assign]);
+        args.push({identifier: identifier, assign: assign});
     }
     return {
         nodeName: 'ARGLIST',
