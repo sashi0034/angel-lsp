@@ -162,11 +162,16 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState): NodeFUNC | null {
+    const rollbackPos = reading.getPos();
     const returnType = parseTYPE(reading);
     if (returnType === null) return null;
     const identifier = reading.next();
     reading.step();
     const paramList = parsePARAMLIST(reading);
+    if (paramList === null) {
+        reading.setPos(rollbackPos);
+        return null;
+    }
     const statBlock = parseSTATBLOCK(reading) ?? {nodeName: 'STATBLOCK', statements: []};
     return {
         nodeName: 'FUNC',
@@ -280,8 +285,9 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function parsePARAMLIST(reading: ReadingState) {
-    reading.expect('(', HighlightToken.Operator);
+function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
+    if (reading.next().text !== '(') return null;
+    reading.confirm(HighlightToken.Operator);
     const params: NodePARAMLIST = [];
     for (; ;) {
         if (reading.isEnd() || reading.next().text === ')') break;
