@@ -243,7 +243,8 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
                 if (type === null) break;
                 generics.push(type);
             }
-            reading.expect('::', HighlightToken.Operator);
+            if (reading.next().text !== '::') break;
+            reading.confirm(HighlightToken.Operator);
             if (generics.length === 0) {
                 diagnostic.addError(reading.next().location, "Expected type");
             }
@@ -688,17 +689,18 @@ function parseCONDITION(reading: ReadingState) {
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseEXPROP(reading: ReadingState) {
-    const candidates = [
-        '+', '-', '*', '/', '%', '**',
-        '==', '!=', '<', '<=', '>', '>=', 'is',
-        '&&', '||', '^^', 'and', 'or', 'xor',
-        '&', '|', '^', '<<', '>>', '>>>'
-    ];
-    if (candidates.includes(reading.next().text) === false) return null;
+    if (exprOpSet.has(reading.next().text) === false) return null;
     const next = reading.next();
     reading.confirm(HighlightToken.Operator);
     return next;
 }
+
+const exprOpSet = new Set([
+    '+', '-', '*', '/', '%', '**',
+    '==', '!=', '<', '<=', '>', '>=', 'is',
+    '&&', '||', '^^', 'and', 'or', 'xor',
+    '&', '|', '^', '<<', '>>', '>>>'
+]);
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
