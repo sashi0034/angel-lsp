@@ -6,7 +6,7 @@ export interface NodeBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export type NodeSCRIPT = (NodeVAR | NodeFUNC)[];
+export type NodeSCRIPT = (NodeCLASS | NodeVAR | NodeFUNC)[];
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -16,7 +16,7 @@ export interface NodeCLASS extends NodeBase {
     nodeName: 'CLASS'
     identifier: TokenObject,
     bases: TokenObject[],
-    definitions: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
+    members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'

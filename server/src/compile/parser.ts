@@ -4,12 +4,12 @@
 import {TokenObject} from "./token";
 import {
     NodeARGLIST,
-    NodeASSIGN, NodeBREAK, NodeCASE,
+    NodeASSIGN, NodeBREAK, NodeCASE, NodeCLASS,
     NodeCONDITION, NodeCONTINUE,
     NodeDATATYPE, NodeDOWHILE,
     NodeEXPR, NodeEXPRSTAT,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFUNC, NodeFUNCCALL,
+    NodeFUNC, NodeFUNCCALL, NodeFUNCDEF,
     NodeIF,
     NodePARAMLIST,
     NodeRETURN, NodeSCOPE,
@@ -17,7 +17,7 @@ import {
     NodeSTATBLOCK,
     NodeSTATEMENT, NodeSWITCH,
     NodeTYPE,
-    NodeVAR, NodeVARACCESS, NodeWHILE
+    NodeVAR, NodeVARACCESS, NodeVIRTPROP, NodeWHILE
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
@@ -84,6 +84,14 @@ function parseSCRIPT(reading: ReadingState) {
             script.push(func);
             continue;
         }
+
+        const class_ = parseCLASS(reading);
+        if (class_ === 'pending') continue;
+        if (class_ !== 'mismatch') {
+            script.push(class_);
+            continue;
+        }
+
         reading.step();
     }
     return script;
@@ -91,7 +99,65 @@ function parseSCRIPT(reading: ReadingState) {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
+    if (reading.next().text !== 'class') return 'mismatch';
+    reading.confirm(HighlightToken.Builtin);
+    const identifier = reading.next();
+    if (identifier.kind !== 'identifier') {
+        diagnostic.addError(reading.next().location, "Expected identifier");
+        return 'pending';
+    }
+    reading.confirm(HighlightToken.Class);
+    const bases: TokenObject[] = [];
+    if (reading.next().text === ':') {
+        reading.confirm(HighlightToken.Operator);
+        for (; ;) {
+            if (reading.next().text === '{') break;
+            if (bases.length > 0) {
+                if (reading.expect(',', HighlightToken.Operator) === false) break;
+            }
+            if (reading.next().kind !== 'identifier') {
+                diagnostic.addError(reading.next().location, "Expected identifier");
+                break;
+            }
+            bases.push(reading.next());
+            reading.confirm(HighlightToken.Type);
+        }
+    }
+    reading.expect('{', HighlightToken.Operator);
+    const members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[] = [];
+    for (; ;) {
+        if (reading.isEnd()) {
+            diagnostic.addError(reading.next().location, "Unexpected end of file");
+            break;
+        }
+        if (reading.next().text === '}') {
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
+        const func = parseFUNC(reading);
+        if (func !== null) {
+            members.push(func);
+            continue;
+        }
+        const var_ = parseVAR(reading);
+        if (var_ !== null) {
+            members.push(var_);
+            continue;
+        }
+        diagnostic.addError(reading.next().location, "Expected class member");
+        reading.step();
+    }
+    return {
+        nodeName: 'CLASS',
+        identifier: identifier,
+        bases: bases,
+        members: members
+    };
+}
+
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
