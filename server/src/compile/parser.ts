@@ -13,7 +13,10 @@ import {
     NodeCONTINUE,
     NodeDATATYPE,
     NodeDOWHILE,
-    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRPOSTOP1, NodeEXPRPOSTOP2, NodeEXPRPOSTOP3,
+    NodeEXPR,
+    NodeEXPRPOSTOP,
+    NodeEXPRPOSTOP1,
+    NodeEXPRPOSTOP2,
     NodeEXPRSTAT,
     NodeEXPRTERM2,
     NodeEXPRVALUE,
@@ -979,7 +982,8 @@ function parseFUNCCALL(reading: ReadingState): NodeFUNCCALL | null {
 function parseVARACCESS(reading: ReadingState): NodeVARACCESS | null {
     const next = reading.next();
     if (next.kind !== 'identifier') return null;
-    reading.confirm(HighlightToken.Variable);
+    const isBuiltin: boolean = next.text === 'this';
+    reading.confirm(isBuiltin ? HighlightToken.Builtin : HighlightToken.Variable);
     return {
         nodeName: 'VARACCESS',
         identifier: next
