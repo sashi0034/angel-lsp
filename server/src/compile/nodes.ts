@@ -41,8 +41,10 @@ export interface NodeFUNC extends NodeBase {
 export interface NodeVAR extends NodeBase {
     nodeName: 'VAR'
     type: NodeTYPE,
-    identifier: TokenObject | null,
-    expr: NodeEXPR
+    variables: {
+        identifier: TokenObject,
+        initializer: NodeEXPR | null
+    }[];
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
@@ -95,7 +97,10 @@ export interface NodeSCOPE extends NodeBase {
     nodeName: 'SCOPE'
     isGlobal: boolean,
     namespaces: TokenObject[],
-    generic: { className: TokenObject, types: NodeTYPE[] } | null
+    generic: {
+        className: TokenObject,
+        types: NodeTYPE[]
+    } | null
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')

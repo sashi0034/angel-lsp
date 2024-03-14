@@ -192,24 +192,55 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
         // diagnostic.addError(reading.next().location, "Expected type");
         return null;
     }
-    const identifier = reading.next();
-    if (identifier.kind !== 'identifier') {
-        reading.setPos(rollbackPos);
-        return null;
+    const variables: {
+        identifier: TokenObject,
+        initializer: NodeEXPR | null
+    }[] = [];
+    for (; ;) {
+        // 識別子
+        const identifier = reading.next();
+        if (identifier.kind !== 'identifier') {
+            if (variables.length === 0) {
+                reading.setPos(rollbackPos);
+                return null;
+            } else {
+                diagnostic.addError(reading.next().location, "Expected identifier");
+            }
+        }
+        reading.confirm(HighlightToken.Variable);
+
+        // 初期化子
+        if (reading.next().text === ';') {
+            reading.confirm(HighlightToken.Operator);
+            variables.push({identifier: identifier, initializer: null});
+            break;
+        } else if (reading.next().text === '=') {
+            reading.confirm(HighlightToken.Operator);
+            const expr = parseEXPR(reading);
+            if (expr === null) {
+                diagnostic.addError(reading.next().location, "Expected expression");
+                return null;
+            }
+            variables.push({identifier: identifier, initializer: expr});
+        }
+
+        // 追加または終了判定
+        if (reading.next().text === ',') {
+            reading.confirm(HighlightToken.Operator);
+            continue;
+        } else if (reading.next().text === ';') {
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
+
+        diagnostic.addError(reading.next().location, "Expected ',' or ';'");
+        reading.step();
     }
-    reading.confirm(HighlightToken.Variable);
-    reading.expect('=', HighlightToken.Operator);
-    const expr = parseEXPR(reading);
-    if (expr === null) {
-        diagnostic.addError(reading.next().location, "Expected expression");
-        return null;
-    }
-    reading.expect(';', HighlightToken.Operator);
+
     return {
         nodeName: 'VAR',
         type: type,
-        identifier: identifier,
-        expr: expr
+        variables: variables
     };
 }
 

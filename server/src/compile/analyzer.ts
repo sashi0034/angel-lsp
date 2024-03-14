@@ -72,14 +72,17 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
-    analyzeEXPR(scope, ast.expr);
-    if (ast.identifier === null) return;
-    const variable = {
-        type: ast.type,
-        declare: ast.identifier,
-        usage: [],
-    };
-    scope.symbols.push(variable);
+    for (const var_ of ast.variables) {
+        const initializer = var_.initializer;
+        if (initializer === null) continue;
+        analyzeEXPR(scope, initializer);
+        const variable = {
+            type: ast.type,
+            declare: var_.identifier,
+            usage: [],
+        };
+        scope.symbols.push(variable);
+    }
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
