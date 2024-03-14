@@ -1,7 +1,8 @@
 import {Position, URI} from 'vscode-languageserver';
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {Trie} from "../utils/trie";
-import {TokenObject} from "./token";
+import {Location, TokenObject} from "./token";
+import {diagnostic} from "../code/diagnostic";
 
 class ReadingState {
     str: string;
@@ -155,9 +156,35 @@ function dummyHighlight(token: HighlightToken, modifier: HighlightModifier) {
     };
 }
 
+// 英数字や記号以外の文字列のバッファ
+class UnknownBuffer {
+    private buffer: string = "";
+    private location: Location | null = null;
+
+    public append(head: Location, next: string) {
+        if (this.location === null) this.location = head;
+        else if (head.start.line !== this.location.start.line
+            || head.start.character - this.location.end.character > 1) {
+            this.flush();
+            this.location = head;
+        }
+        this.location.end = head.end;
+        this.buffer += next;
+    }
+
+    public flush() {
+        if (this.buffer.length === 0) return;
+        if (this.location === null) return;
+        this.location.end.character++;
+        diagnostic.addError(this.location, 'Unknown token: ' + this.buffer);
+        this.buffer = "";
+    }
+}
+
 export function tokenize(str: string, uri: URI) {
     const tokens: TokenObject[] = [];
     const reading = new ReadingState(str);
+    const unknownBuffer = new UnknownBuffer();
 
     for (; ;) {
         if (reading.isEnd()) break;
@@ -228,9 +255,10 @@ export function tokenize(str: string, uri: URI) {
             continue;
         }
 
-        // FIXME: ここに到達したらエラー?
+        unknownBuffer.append(location, reading.next());
         reading.stepNext();
     }
 
+    unknownBuffer.flush();
     return tokens;
 }
