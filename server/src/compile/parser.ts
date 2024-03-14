@@ -3,7 +3,7 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./token";
 import {
-    AccessorModifier,
+    AccessModifier,
     NodeARGLIST,
     NodeASSIGN, NodeBREAK, NodeCASE, NodeCLASS,
     NodeCONDITION, NodeCONTINUE,
@@ -164,7 +164,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const rollbackPos = reading.getPos();
-    const accessor: AccessorModifier = parseAccessorModifier(reading);
+    const accessor: AccessModifier = parseAccessModifier(reading);
     const returnType = parseTYPE(reading);
     if (returnType === null) return null;
     const identifier = reading.next();
@@ -190,7 +190,7 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
 }
 
 // ['private' | 'protected']
-function parseAccessorModifier(reading: ReadingState): AccessorModifier {
+function parseAccessModifier(reading: ReadingState): AccessModifier {
     const next = reading.next().text;
     if (next === 'private' || next === 'protected') {
         reading.confirm(HighlightToken.Builtin);
@@ -205,7 +205,7 @@ function parseAccessorModifier(reading: ReadingState): AccessorModifier {
 function parseVAR(reading: ReadingState): NodeVAR | null {
     const rollbackPos = reading.getPos();
 
-    const accessor: AccessorModifier = parseAccessorModifier(reading);
+    const accessor: AccessModifier = parseAccessModifier(reading);
 
     const type = parseTYPE(reading);
     if (type === null) {

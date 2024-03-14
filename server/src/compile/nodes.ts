@@ -1,7 +1,7 @@
 import {TokenObject} from "./token";
 import * as punycode from "punycode";
 
-export type AccessorModifier = 'public' | 'private' | 'protected';
+export type AccessModifier = 'public' | 'private' | 'protected';
 
 export interface NodeBase {
     nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
@@ -27,7 +27,7 @@ export interface NodeCLASS extends NodeBase {
 export interface NodeFUNC extends NodeBase {
     nodeName: 'FUNC';
     entity: TokenObject[];
-    accessor: AccessorModifier;
+    accessor: AccessModifier;
     returnType: NodeTYPE | null;
     ref: TokenObject | null;
     identifier: TokenObject;
@@ -42,7 +42,7 @@ export interface NodeFUNC extends NodeBase {
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 export interface NodeVAR extends NodeBase {
     nodeName: 'VAR'
-    accessor: AccessorModifier,
+    accessor: AccessModifier,
     type: NodeTYPE,
     variables: {
         identifier: TokenObject,
