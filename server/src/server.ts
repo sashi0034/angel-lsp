@@ -23,14 +23,10 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {tokenize} from './compile/tokenizer';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
-import {parseFromTokens} from './compile/parser';
 import {diagnostic} from './code/diagnostic';
-import {analyzeFromParsed} from "./compile/analyzer";
-import {SymbolScope} from "./compile/symbolics";
 import {jumpDefinition} from "./serve/definition";
-import {profiler} from "./debug/profiler";
+import {getBuiltAnalyzed, buildSemanticTokens} from "./serve/builder";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -169,54 +165,29 @@ documents.onDidClose(e => {
 //     } satisfies DocumentDiagnosticReport;
 // });
 
-// TODO: 複数ファイルに対応
-let s_analyzedScope: SymbolScope = {
-    parentScope: null,
-    childScopes: [],
-    symbols: [],
-};
-
 connection.languages.semanticTokens.on(async (params) => {
     diagnostic.clear();
-    const builder = new SemanticTokensBuilder();
     const document = documents.get(params.textDocument.uri);
 
-    if (document === undefined) return builder.build();
+    if (document === undefined) return new SemanticTokensBuilder().build();
 
-    profiler.restart();
-    const tokens = tokenize(document.getText(), params.textDocument.uri);
-    profiler.stamp("tokenizer");
-    // console.log(tokens);
-    const parsed = parseFromTokens(tokens.filter(t => t.kind !== 'comment'));
-    profiler.stamp("parser");
-    // console.log(parsed);
-    s_analyzedScope = analyzeFromParsed(parsed);
-    profiler.stamp("analyzer");
-    // console.log(analyzed);
-
-    tokens.forEach((token, i) => {
-        // TODO: 複数行のコメントや文字列のときに特殊処理
-        builder.push(
-            token.location.start.line,
-            token.location.start.character,
-            token.text.length,
-            token.highlight.token,
-            token.highlight.modifier);
-    });
+    const built = buildSemanticTokens(document.getText(), document.uri);
 
     await connection.sendDiagnostics({
         uri: document.uri,
         diagnostics: diagnostic.get()
     });
 
-    return builder.build();
+    return built;
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
+    const analyzedScope = getBuiltAnalyzed();
+    if (analyzedScope === null) return;
     const caret = params.position;
-    const jumping = jumpDefinition(s_analyzedScope, caret);
+    const jumping = jumpDefinition(analyzedScope, caret);
     if (jumping === null) return;
     return {
         uri: jumping.location.uri,

@@ -110,6 +110,7 @@ function parseSCRIPT(reading: ReadingState) {
             continue;
         }
 
+        diagnostic.addError(reading.next().location, "Unexpected token");
         reading.step();
     }
     return script;
