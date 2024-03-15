@@ -955,6 +955,10 @@ function parseLITERAL(reading: ReadingState) {
         reading.confirm(HighlightToken.Number);
         return next;
     }
+    if (next.kind === 'string') {
+        reading.confirm(HighlightToken.String);
+        return next;
+    }
     if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
         reading.confirm(HighlightToken.Builtin);
         return next;
