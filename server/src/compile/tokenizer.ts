@@ -5,9 +5,13 @@ import {Location, TokenObject} from "./token";
 import {diagnostic} from "../code/diagnostic";
 
 class ReadingState {
-    str: string;
-    cursor: number;
-    head: Position;
+    public readonly str: URI;
+    private cursor: number;
+    private head: Position;
+
+    public getCursor() {
+        return this.cursor;
+    }
 
     constructor(str: string) {
         this.str = str;
@@ -109,11 +113,12 @@ const allSymbolArray = [
 const allSymbolTrie = Trie.fromArray(allSymbolArray);
 
 function trySymbol(reading: ReadingState) {
-    const symbol = allSymbolTrie.find(reading.str, reading.cursor);
+    const symbol = allSymbolTrie.find(reading.str, reading.getCursor());
     reading.stepFor(symbol.length);
     return symbol;
 }
 
+// 数値解析
 function tryNumber(reading: ReadingState) {
     let result: string = "";
     let isFloating = false;
@@ -129,6 +134,46 @@ function tryNumber(reading: ReadingState) {
             if (floatStart) isFloating = true;
             if (floatEnd) break;
         } else break;
+    }
+
+    return result;
+}
+
+// 文字列解析
+function tryString(reading: ReadingState) {
+    let result: string = "";
+    if (reading.next() !== '\'' && reading.next() !== '"') return "";
+    const startQuote: '\'' | '"' | '"""' = (() => {
+        if (reading.isNext('"""')) return '"""';
+        else if (reading.isNext('"')) return '"';
+        return '\'';
+    })();
+    result += startQuote;
+    reading.stepFor(startQuote.length);
+
+    let isEscaping = false;
+    for (; ;) {
+        if (reading.isEnd()) break;
+
+        if (startQuote !== '"""' && reading.isNextWrap()) {
+            diagnostic.addError({
+                start: reading.copyHead(),
+                end: reading.copyHead(),
+            }, 'Missing end quote ' + startQuote);
+            break;
+        } else if (isEscaping === false && reading.isNext(startQuote)) {
+            result += startQuote;
+            reading.stepFor(startQuote.length);
+            break;
+        } else {
+            if (reading.next() === '\\' && isEscaping === false) {
+                isEscaping = true;
+            } else {
+                isEscaping = false;
+            }
+            result += reading.next();
+            reading.stepNext();
+        }
     }
 
     return result;
@@ -224,6 +269,19 @@ export function tokenize(str: string, uri: URI) {
                 text: triedNumber,
                 location: location,
                 highlight: dummyHighlight(HighlightToken.Number, HighlightModifier.Invalid)
+            });
+            continue;
+        }
+
+        // 文字列
+        const triedString = tryString(reading);
+        if (triedString.length > 0) {
+            location.end = reading.copyHead();
+            tokens.push({
+                kind: "string",
+                text: triedString,
+                location: location,
+                highlight: dummyHighlight(HighlightToken.String, HighlightModifier.Invalid)
             });
             continue;
         }

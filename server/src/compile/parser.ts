@@ -1019,6 +1019,7 @@ function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
         const assign = parseASSIGN(reading);
         if (assign === null) {
             diagnostic.addError(reading.next().location, "Expected expression");
+            reading.step();
             continue;
         }
         args.push({identifier: identifier, assign: assign});

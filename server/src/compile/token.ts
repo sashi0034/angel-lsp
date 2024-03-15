@@ -1,7 +1,7 @@
 import {Position, URI} from "vscode-languageserver";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 
-export type RowToken = 'number' | 'reserved' | 'identifier' | 'comment'
+export type RowToken = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
 
 export interface Location {
     uri: URI,
