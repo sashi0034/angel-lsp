@@ -77,15 +77,15 @@ class ReadingState {
 
     public expect(word: string, analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | null = null) {
         if (this.isEnd()) {
-            diagnostic.addError(this.next().location, "Unexpected end of file");
+            diagnostic.addError(this.next().location, "Unexpected end of file ❌");
             return false;
         }
         if (this.next().kind !== "reserved") {
-            diagnostic.addError(this.next().location, `Expected reserved word ${word}`);
+            diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
             return false;
         }
         if (this.next().text !== word) {
-            diagnostic.addError(this.next().location, `Expected reserved word ${word}`);
+            diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
             return false;
         }
         this.confirm(analyzeToken, analyzedModifier);
@@ -1066,12 +1066,27 @@ function parseASSIGN(reading: ReadingState): NodeASSIGN | null {
 function parseCONDITION(reading: ReadingState): NodeCONDITION | null {
     const expr = parseEXPR(reading);
     if (expr === null) return null;
-    return {
+    const result: NodeCONDITION = {
         nodeName: 'CONDITION',
         expr: expr,
-        ta: null,
-        fa: null
+        ternary: undefined
     };
+    if (reading.next().text === '?') {
+        reading.confirm(HighlightToken.Operator);
+        const ta = parseASSIGN(reading);
+        if (ta === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            return result;
+        }
+        reading.expect(':', HighlightToken.Operator);
+        const fa = parseASSIGN(reading);
+        if (fa === null) {
+            diagnostic.addError(reading.next().location, "Expected expression");
+            return result;
+        }
+        result.ternary = {ta: ta, fa: fa};
+    }
+    return result;
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST

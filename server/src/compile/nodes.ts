@@ -302,6 +302,8 @@ export interface NodeASSIGN extends NodeBase {
 export interface NodeCONDITION extends NodeBase {
     nodeName: 'CONDITION'
     expr: NodeEXPR,
-    ta: NodeASSIGN | null,
-    fa: NodeASSIGN | null
+    ternary: {
+        ta: NodeASSIGN,
+        fa: NodeASSIGN
+    } | undefined
 }
