@@ -3,7 +3,7 @@
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenObject} from "./token";
 import {
-    AccessModifier,
+    AccessModifier, EntityModifier,
     NodeARGLIST,
     NodeASSIGN,
     NodeBREAK,
@@ -168,6 +168,24 @@ function parseNAMESPACE(reading: ReadingState): TriedParse<NodeNAMESPACE> {
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
+function parseEntityModifier(reading: ReadingState): EntityModifier | null {
+    let modifier: EntityModifier | null = null;
+    while (reading.isEnd() === false) {
+        const next = reading.next().text;
+        if (next === 'shared' || next === 'external') {
+            if (modifier === null) {
+                modifier = {isShared: false, isExternal: false};
+            }
+            if (next === 'shared') modifier.isShared = true;
+            else if (next === 'external') modifier.isExternal = true;
+            reading.confirm(HighlightToken.Builtin);
+        } else break;
+    }
+
+    return modifier;
+
+}
+
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
     if (reading.next().text !== 'class') return 'mismatch';
@@ -231,6 +249,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const rollbackPos = reading.getPos();
+    const entity = parseEntityModifier(reading);
     const accessor: AccessModifier = parseAccessModifier(reading);
     const returnType = parseTYPE(reading);
     if (returnType === null) return null;
@@ -244,7 +263,7 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const statBlock = parseSTATBLOCK(reading) ?? {nodeName: 'STATBLOCK', statements: []};
     return {
         nodeName: 'FUNC',
-        entity: [],
+        entity: entity,
         accessor: accessor,
         returnType: returnType,
         ref: null,
@@ -1013,7 +1032,7 @@ function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
     while (reading.isEnd() === false) {
         if (reading.next().text === ']') {
             if (indexes.length === 0) {
-                diagnostic.addError(reading.next().location, "Expected index");
+                diagnostic.addError(reading.next().location, "Expected index 📮");
             }
             reading.confirm(HighlightToken.Operator);
             break;
@@ -1029,7 +1048,7 @@ function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
         }
         const assign = parseASSIGN(reading);
         if (assign === null) {
-            diagnostic.addError(reading.next().location, "Expected expression");
+            diagnostic.addError(reading.next().location, "Expected expression 📮");
             continue;
         }
         indexes.push({identifier: identifier, assign: assign});

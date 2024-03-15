@@ -3,6 +3,8 @@ import * as punycode from "punycode";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 export type TypeModifier = 'in' | 'out' | 'inout';
+export type EntityModifier = { isShared: boolean, isExternal: boolean };
+export type ClassModifier = { isShared: boolean, isAbstract: boolean, isFinal: boolean, isExternal: boolean };
 
 export interface NodeBase {
     nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
@@ -33,7 +35,7 @@ export interface NodeCLASS extends NodeBase {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export interface NodeFUNC extends NodeBase {
     nodeName: 'FUNC';
-    entity: TokenObject[];
+    entity: EntityModifier | null;
     accessor: AccessModifier;
     returnType: NodeTYPE | null;
     ref: TokenObject | null;
