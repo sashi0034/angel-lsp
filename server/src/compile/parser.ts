@@ -832,8 +832,8 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
     }
 
     const exprValue = parseEXPRVALUE(reading);
-    if (exprValue === null) {
-        reading.setPos(rollbackPos);
+    if (exprValue === 'mismatch') reading.setPos(rollbackPos);
+    if (exprValue === 'mismatch' || exprValue === 'pending') {
         return null;
     }
 
@@ -849,13 +849,13 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
+function parseEXPRVALUE(reading: ReadingState): TriedParse<NodeEXPRVALUE> {
     const lambda = parseLAMBDA(reading);
-    if (lambda === 'pending') return null;
+    if (lambda === 'pending') return 'pending';
     if (lambda !== 'mismatch') return lambda;
 
     const cast = parseCAST(reading);
-    if (cast === 'pending') return null;
+    if (cast === 'pending') return 'pending';
     if (cast !== 'mismatch') return cast;
 
     if (reading.next().text === '(') {
@@ -863,7 +863,7 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
         const assign = parseASSIGN(reading);
         if (assign === null) {
             diagnostic.addError(reading.next().location, "Expected expression 🖼️");
-            return null;
+            return 'pending';
         }
         reading.expect(')', HighlightToken.Operator);
         return assign;
@@ -881,7 +881,7 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     const varAccess = parseVARACCESS(reading);
     if (varAccess !== null) return varAccess;
 
-    return null;
+    return 'mismatch';
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
@@ -1024,7 +1024,10 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
     reading.expect('(', HighlightToken.Operator);
     const params: { type: NodeTYPE | null, typeMod: TypeModifier | null, identifier: TokenObject | null }[] = [];
     while (reading.isEnd() === false) {
-        if (reading.next().text === ')') break;
+        if (reading.next().text === ')') {
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
         if (params.length > 0) {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
@@ -1045,7 +1048,6 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
         }
         params.push({type: type, typeMod: typeMod, identifier: identifier});
     }
-    reading.expect(')', HighlightToken.Operator);
     const statBlock = parseSTATBLOCK(reading);
     if (statBlock === null) {
         diagnostic.addError(reading.next().location, "Expected statement block 🪔");
