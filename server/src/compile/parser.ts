@@ -9,7 +9,7 @@ import {
     NodeBREAK,
     NodeCASE,
     NodeCLASS,
-    NodeCONDITION,
+    NodeCONDITION, NodeCONSTRUCTCALL,
     NodeCONTINUE,
     NodeDATATYPE,
     NodeDOWHILE,
@@ -357,20 +357,19 @@ function parseTYPE(reading: ReadingState): NodeTYPE | null {
         reading.confirm(HighlightToken.Keyword);
         isConst = true;
     }
-
     const scope = parseSCOPE(reading);
-
     const datatype = parseDATATYPE(reading);
     if (datatype === null) {
         reading.setPos(rollbackPos);
         return null;
     }
+    const generics = parseTypeParameters(reading) ?? [];
     return {
         nodeName: 'TYPE',
         isConst: isConst,
         scope: scope,
         datatype: datatype,
-        generics: [],
+        generics: generics,
         array: false,
         ref: false
     };
@@ -400,6 +399,9 @@ function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
             return null;
         }
         generics.push(type);
+    }
+    if (generics.length == 0) {
+        diagnostic.addError(reading.next().location, "Expected type parameter 🪹");
     }
     return generics;
 }
@@ -832,9 +834,11 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
-    // TODO
     const funcCall = parseFUNCCALL(reading);
     if (funcCall !== null) return funcCall;
+
+    const constructCall = parseCONSTRUCTCALL(reading);
+    if (constructCall !== null) return constructCall;
 
     const varAccess = parseVARACCESS(reading);
     if (varAccess !== null) return varAccess;
@@ -857,6 +861,24 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
+function parseCONSTRUCTCALL(reading: ReadingState): NodeCONSTRUCTCALL | null {
+    const rollbackPos = reading.getPos();
+    const type = parseTYPE(reading);
+    if (type === null) return null;
+
+    const argList = parseARGLIST(reading);
+    if (argList === null) {
+        reading.setPos(rollbackPos);
+        return null;
+    }
+
+    return {
+        nodeName: 'CONSTRUCTCALL',
+        type: type,
+        argList: argList
+    };
+}
+
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
@@ -1030,7 +1052,7 @@ function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
         }
         const assign = parseASSIGN(reading);
         if (assign === null) {
-            diagnostic.addError(reading.next().location, "Expected expression");
+            diagnostic.addError(reading.next().location, "Expected expression 🍡");
             reading.step();
             continue;
         }
@@ -1047,19 +1069,16 @@ function parseASSIGN(reading: ReadingState): NodeASSIGN | null {
     const condition = parseCONDITION(reading);
     if (condition === null) return null;
     const op = parseASSIGNOP(reading);
-    if (op === null) return {
+    const result: NodeASSIGN = {
         nodeName: 'ASSIGN',
         condition: condition,
-        op: null,
-        assign: null
+        tail: null
     };
+    if (op === null) return result;
     const assign = parseASSIGN(reading);
-    return {
-        nodeName: 'ASSIGN',
-        condition: condition,
-        op: op,
-        assign: assign
-    };
+    if (assign === null) return result;
+    result.tail = {op: op, assign: assign};
+    return result;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
@@ -1069,27 +1088,25 @@ function parseCONDITION(reading: ReadingState): NodeCONDITION | null {
     const result: NodeCONDITION = {
         nodeName: 'CONDITION',
         expr: expr,
-        ternary: undefined
+        ternary: null
     };
     if (reading.next().text === '?') {
         reading.confirm(HighlightToken.Operator);
         const ta = parseASSIGN(reading);
         if (ta === null) {
-            diagnostic.addError(reading.next().location, "Expected expression");
+            diagnostic.addError(reading.next().location, "Expected expression 🤹");
             return result;
         }
         reading.expect(':', HighlightToken.Operator);
         const fa = parseASSIGN(reading);
         if (fa === null) {
-            diagnostic.addError(reading.next().location, "Expected expression");
+            diagnostic.addError(reading.next().location, "Expected expression 🤹");
             return result;
         }
         result.ternary = {ta: ta, fa: fa};
     }
     return result;
 }
-
-// CONSTRUCTCALL ::= TYPE ARGLIST
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseEXPROP(reading: ReadingState) {

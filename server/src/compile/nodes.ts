@@ -215,6 +215,7 @@ export interface NodeEXPRTERM1 extends NodeBase {
     eq: TokenObject | null,
 }
 
+// ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeEXPRTERM2 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
@@ -224,9 +225,15 @@ export interface NodeEXPRTERM2 extends NodeBase {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = NodeFUNCCALL | NodeVARACCESS | NodeLITERAL | NodeASSIGN
+export type  NodeEXPRVALUE = NodeCONSTRUCTCALL | NodeFUNCCALL | NodeVARACCESS | NodeLITERAL | NodeASSIGN
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
+export interface NodeCONSTRUCTCALL extends NodeBase {
+    nodeName: 'CONSTRUCTCALL';
+    type: NodeTYPE;
+    argList: NodeARGLIST;
+}
+
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
@@ -292,10 +299,12 @@ export interface NodeARGLIST extends NodeBase {
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 export interface NodeASSIGN extends NodeBase {
-    nodeName: 'ASSIGN'
-    condition: NodeCONDITION,
-    op: TokenObject | null,
-    assign: NodeASSIGN | null
+    nodeName: 'ASSIGN';
+    condition: NodeCONDITION;
+    tail: {
+        op: TokenObject
+        assign: NodeASSIGN
+    } | null;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
@@ -305,5 +314,5 @@ export interface NodeCONDITION extends NodeBase {
     ternary: {
         ta: NodeASSIGN,
         fa: NodeASSIGN
-    } | undefined
+    } | null
 }

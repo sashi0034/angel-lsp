@@ -146,9 +146,9 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
-    if (exprvalue.nodeName === 'VARACCESS') {
-        const token = exprvalue.identifier;
+function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE) {
+    if (exprValue.nodeName === 'VARACCESS') {
+        const token = exprValue.identifier;
         const declared = findSymbolWithParent(scope, token);
         if (declared === null) {
             diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
@@ -156,8 +156,8 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprvalue: NodeEXPRVALUE) {
         }
         declared.usage.push(token);
     }
-    if (exprvalue.nodeName === 'ASSIGN') {
-        analyzeASSIGN(scope, exprvalue);
+    if (exprValue.nodeName === 'ASSIGN') {
+        analyzeASSIGN(scope, exprValue);
     }
 }
 
