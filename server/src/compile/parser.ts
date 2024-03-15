@@ -24,7 +24,7 @@ import {
     NodeFUNC,
     NodeFUNCCALL,
     NodeFUNCDEF,
-    NodeIF, NodeLAMBDA,
+    NodeIF, NodeLAMBDA, NodeNAMESPACE,
     NodePARAMLIST,
     NodeRETURN,
     NodeSCOPE,
@@ -94,7 +94,7 @@ class ReadingState {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function parseSCRIPT(reading: ReadingState) {
+function parseSCRIPT(reading: ReadingState): NodeSCRIPT {
     const script: NodeSCRIPT = [];
     while (reading.isEnd() === false) {
         const func = parseFUNC(reading);
@@ -110,13 +110,62 @@ function parseSCRIPT(reading: ReadingState) {
             continue;
         }
 
-        diagnostic.addError(reading.next().location, "Unexpected token");
-        reading.step();
+        const namespace_ = parseNAMESPACE(reading);
+        if (namespace_ === 'pending') continue;
+        if (namespace_ !== 'mismatch') {
+            script.push(namespace_);
+            continue;
+        }
+
+        if (reading.next().text === ';') {
+            reading.confirm(HighlightToken.Operator);
+            continue;
+        }
+
+        break;
     }
     return script;
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+function parseNAMESPACE(reading: ReadingState): TriedParse<NodeNAMESPACE> {
+    if (reading.next().text !== 'namespace') return 'mismatch';
+    reading.confirm(HighlightToken.Builtin);
+
+    const namespaces: TokenObject[] = [];
+    while (reading.isEnd() === false) {
+        if (reading.next().text === '{') {
+            if (namespaces.length === 0) {
+                diagnostic.addError(reading.next().location, "Expected identifier 🐚");
+            }
+            reading.confirm(HighlightToken.Operator);
+            break;
+        }
+        if (namespaces.length > 0) {
+            if (reading.expect('::', HighlightToken.Operator) === false) continue;
+        }
+        const identifier = reading.next();
+        if (identifier.kind !== 'identifier') {
+            diagnostic.addError(reading.next().location, "Expected identifier 🐚");
+            break;
+        }
+        reading.confirm(HighlightToken.Namespace);
+        namespaces.push(identifier);
+    }
+
+    if (namespaces.length === 0) {
+        return 'pending';
+    }
+
+    const script = parseSCRIPT(reading);
+    reading.expect('}', HighlightToken.Operator);
+    return {
+        nodeName: 'NAMESPACE',
+        namespaces: namespaces,
+        script: script
+    };
+}
+
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
@@ -1029,7 +1078,7 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
             break;
         }
         if (params.length > 0) {
-            if (reading.expect(',', HighlightToken.Operator) === false) break;
+            if (reading.expect(',', HighlightToken.Operator) === false) continue;
         }
 
         if (reading.next(0).kind === 'identifier' && reading.next(1).kind === 'reserved') {
@@ -1231,5 +1280,14 @@ const assignOpSet = new Set([
 
 export function parseFromTokens(tokens: TokenObject[]): NodeSCRIPT {
     const reading = new ReadingState(tokens);
-    return parseSCRIPT(reading);
+    const script: NodeSCRIPT = [];
+    while (reading.isEnd() === false) {
+        script.concat(parseSCRIPT(reading));
+        if (reading.isEnd() === false) {
+            diagnostic.addError(reading.next().location, "Unexpected token ⚠️");
+            reading.step();
+        }
+    }
+
+    return script;
 }
