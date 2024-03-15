@@ -7,7 +7,7 @@ import {
     NodeARGLIST,
     NodeASSIGN,
     NodeBREAK,
-    NodeCASE,
+    NodeCASE, NodeCAST,
     NodeCLASS,
     NodeCONDITION, NodeCONSTRUCTCALL,
     NodeCONTINUE,
@@ -843,6 +843,10 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
     const varAccess = parseVARACCESS(reading);
     if (varAccess !== null) return varAccess;
 
+    const cast = parseCAST(reading);
+    if (cast === 'pending') return null;
+    if (cast !== 'mismatch') return cast;
+
     const literal = parseLITERAL(reading);
     if (literal !== null) return {nodeName: 'LITERAL', value: literal};
 
@@ -850,7 +854,7 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
         reading.confirm(HighlightToken.Operator);
         const assign = parseASSIGN(reading);
         if (assign === null) {
-            diagnostic.addError(reading.next().location, "Expected expression");
+            diagnostic.addError(reading.next().location, "Expected expression 🖼️");
             return null;
         }
         reading.expect(')', HighlightToken.Operator);
@@ -969,7 +973,32 @@ function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+function parseCAST(reading: ReadingState): TriedParse<NodeCAST> {
+    if (reading.next().text !== 'cast') return 'mismatch';
+    reading.confirm(HighlightToken.Keyword);
+    reading.expect('<', HighlightToken.Operator);
+    const type = parseTYPE(reading);
+    if (type === null) {
+        diagnostic.addError(reading.next().location, "Expected type");
+        return 'pending';
+    }
+    reading.expect('>', HighlightToken.Operator);
+    reading.expect('(', HighlightToken.Operator);
+    const assign = parseASSIGN(reading);
+    if (assign === null) {
+        diagnostic.addError(reading.next().location, "Expected expression");
+        return 'pending';
+    }
+    reading.expect(')', HighlightToken.Operator);
+    return {
+        nodeName: 'CAST',
+        type: type,
+        assign: assign
+    };
+}
+
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function parseLITERAL(reading: ReadingState) {

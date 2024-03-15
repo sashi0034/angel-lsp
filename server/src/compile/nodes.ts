@@ -225,7 +225,7 @@ export interface NodeEXPRTERM2 extends NodeBase {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = NodeCONSTRUCTCALL | NodeFUNCCALL | NodeVARACCESS | NodeLITERAL | NodeASSIGN
+export type  NodeEXPRVALUE = NodeCONSTRUCTCALL | NodeFUNCCALL | NodeVARACCESS | NodeCAST | NodeLITERAL | NodeASSIGN
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 export interface NodeCONSTRUCTCALL extends NodeBase {
@@ -268,6 +268,12 @@ export interface NodeEXPRPOSTOP4 extends NodeBase {
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+export interface NodeCAST extends NodeBase {
+    nodeName: 'CAST';
+    type: NodeTYPE;
+    assign: NodeASSIGN;
+}
+
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
