@@ -280,6 +280,7 @@ export interface NodeFUNCCALL extends NodeBase {
 // VARACCESS     ::= SCOPE IDENTIFIER
 export interface NodeVARACCESS extends NodeBase {
     nodeName: 'VARACCESS';
+    scope: NodeSCOPE | null,
     identifier: TokenObject;
 }
 

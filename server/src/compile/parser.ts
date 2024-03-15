@@ -804,6 +804,7 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 
 // const postOpSet = new Set(['.', '[', '(', '++', '--']);
 
+// ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
     const rollbackPos = reading.getPos();
     let pre = null;
@@ -991,12 +992,19 @@ function parseFUNCCALL(reading: ReadingState): NodeFUNCCALL | null {
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function parseVARACCESS(reading: ReadingState): NodeVARACCESS | null {
+    const scope = parseSCOPE(reading);
     const next = reading.next();
-    if (next.kind !== 'identifier') return null;
+    if (next.kind !== 'identifier') {
+        if (scope !== null) {
+            diagnostic.addError(reading.next().location, "Expected identifier");
+        }
+        return null;
+    }
     const isBuiltin: boolean = next.text === 'this';
     reading.confirm(isBuiltin ? HighlightToken.Builtin : HighlightToken.Variable);
     return {
         nodeName: 'VARACCESS',
+        scope: scope,
         identifier: next
     };
 }
