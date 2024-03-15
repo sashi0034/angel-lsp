@@ -55,11 +55,11 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
     if (ast.returnType === null) return;
 
     // 引数をスコープに追加
-    for (const [type, identifier] of ast.paramList) {
-        if (identifier === null) continue;
+    for (const param of ast.paramList) {
+        if (param.identifier === null) continue;
         scope.symbols.push({
-            type: type,
-            declare: identifier,
+            type: param.type,
+            declare: param.identifier,
             usage: [],
         });
     }

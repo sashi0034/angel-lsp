@@ -2,6 +2,7 @@ import {TokenObject} from "./token";
 import * as punycode from "punycode";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
+export type TypeModifier = 'in' | 'out' | 'inout';
 
 export interface NodeBase {
     nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
@@ -78,7 +79,7 @@ export type NodeSTATBLOCK = {
 };
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = [type: NodeTYPE, identifier: TokenObject | null][];
+export type NodePARAMLIST = { type: NodeTYPE, identifier: TokenObject | null }[];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
@@ -225,7 +226,14 @@ export interface NodeEXPRTERM2 extends NodeBase {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE = NodeCONSTRUCTCALL | NodeFUNCCALL | NodeVARACCESS | NodeCAST | NodeLITERAL | NodeASSIGN
+export type  NodeEXPRVALUE =
+    NodeCONSTRUCTCALL
+    | NodeFUNCCALL
+    | NodeVARACCESS
+    | NodeCAST
+    | NodeLITERAL
+    | NodeASSIGN
+    | NodeLAMBDA;
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 export interface NodeCONSTRUCTCALL extends NodeBase {
@@ -275,6 +283,11 @@ export interface NodeCAST extends NodeBase {
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+export interface NodeLAMBDA extends NodeBase {
+    nodeName: 'LAMBDA';
+    params: { type: NodeTYPE | null, typeMod: TypeModifier | null, identifier: TokenObject | null }[],
+    statBlock: NodeSTATBLOCK
+}
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLITERAL extends NodeBase {

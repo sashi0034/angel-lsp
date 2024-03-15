@@ -24,7 +24,7 @@ import {
     NodeFUNC,
     NodeFUNCCALL,
     NodeFUNCDEF,
-    NodeIF,
+    NodeIF, NodeLAMBDA,
     NodePARAMLIST,
     NodeRETURN,
     NodeSCOPE,
@@ -36,7 +36,7 @@ import {
     NodeVAR,
     NodeVARACCESS,
     NodeVIRTPROP,
-    NodeWHILE
+    NodeWHILE, TypeModifier
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightModifier, HighlightToken} from "../code/highlight";
@@ -326,6 +326,11 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
     if (reading.next().text !== '(') return null;
+    if (reading.next().text === 'void') {
+        reading.confirm(HighlightToken.Builtin);
+        reading.expect(')', HighlightToken.Operator);
+        return [];
+    }
     reading.confirm(HighlightToken.Operator);
     const params: NodePARAMLIST = [];
     while (reading.isEnd() === false) {
@@ -336,10 +341,10 @@ function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
         const type = parseTYPE(reading);
         if (type === null) break;
         if (reading.next().kind === 'identifier') {
-            params.push([type, reading.next()]);
+            params.push({type: type, identifier: reading.next()});
             reading.step();
         } else {
-            params.push([type, null]);
+            params.push({type: type, identifier: null});
         }
     }
 
@@ -348,6 +353,17 @@ function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+function parseTYPEMOD(reading: ReadingState): TypeModifier | null {
+    if (reading.next().text !== '&') return null;
+    reading.confirm(HighlightToken.Builtin);
+    const next = reading.next().text;
+    if (next === 'in' || next === 'out' || next === 'inout') {
+        reading.confirm(HighlightToken.Builtin);
+        return next;
+    } else {
+        return 'inout';
+    }
+}
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseTYPE(reading: ReadingState): NodeTYPE | null {
@@ -834,21 +850,13 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
-    const funcCall = parseFUNCCALL(reading);
-    if (funcCall !== null) return funcCall;
-
-    const constructCall = parseCONSTRUCTCALL(reading);
-    if (constructCall !== null) return constructCall;
-
-    const varAccess = parseVARACCESS(reading);
-    if (varAccess !== null) return varAccess;
+    const lambda = parseLAMBDA(reading);
+    if (lambda === 'pending') return null;
+    if (lambda !== 'mismatch') return lambda;
 
     const cast = parseCAST(reading);
     if (cast === 'pending') return null;
     if (cast !== 'mismatch') return cast;
-
-    const literal = parseLITERAL(reading);
-    if (literal !== null) return {nodeName: 'LITERAL', value: literal};
 
     if (reading.next().text === '(') {
         reading.confirm(HighlightToken.Operator);
@@ -860,6 +868,18 @@ function parseEXPRVALUE(reading: ReadingState): NodeEXPRVALUE | null {
         reading.expect(')', HighlightToken.Operator);
         return assign;
     }
+
+    const literal = parseLITERAL(reading);
+    if (literal !== null) return {nodeName: 'LITERAL', value: literal};
+
+    const funcCall = parseFUNCCALL(reading);
+    if (funcCall !== null) return funcCall;
+
+    const constructCall = parseCONSTRUCTCALL(reading);
+    if (constructCall !== null) return constructCall;
+
+    const varAccess = parseVARACCESS(reading);
+    if (varAccess !== null) return varAccess;
 
     return null;
 }
@@ -998,7 +1018,45 @@ function parseCAST(reading: ReadingState): TriedParse<NodeCAST> {
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
+    if (reading.next().text !== 'function') return 'mismatch';
+    reading.confirm(HighlightToken.Keyword);
+    reading.expect('(', HighlightToken.Operator);
+    const params: { type: NodeTYPE | null, typeMod: TypeModifier | null, identifier: TokenObject | null }[] = [];
+    while (reading.isEnd() === false) {
+        if (reading.next().text === ')') break;
+        if (params.length > 0) {
+            if (reading.expect(',', HighlightToken.Operator) === false) break;
+        }
 
+        if (reading.next(0).kind === 'identifier' && reading.next(1).kind === 'reserved') {
+            reading.confirm(HighlightToken.Parameter);
+            params.push({type: null, typeMod: null, identifier: reading.next()});
+            continue;
+        }
+
+        const type = parseTYPE(reading);
+        const typeMod = type !== null ? parseTYPEMOD(reading) : null;
+
+        let identifier: TokenObject | null = null;
+        if (reading.next().kind === 'identifier') {
+            identifier = reading.next();
+            reading.confirm(HighlightToken.Parameter);
+        }
+        params.push({type: type, typeMod: typeMod, identifier: identifier});
+    }
+    reading.expect(')', HighlightToken.Operator);
+    const statBlock = parseSTATBLOCK(reading);
+    if (statBlock === null) {
+        diagnostic.addError(reading.next().location, "Expected statement block 🪔");
+        return 'pending';
+    }
+    return {
+        nodeName: 'LAMBDA',
+        params: params,
+        statBlock: statBlock
+    };
+};
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function parseLITERAL(reading: ReadingState) {
