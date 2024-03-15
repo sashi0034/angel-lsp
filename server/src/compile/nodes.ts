@@ -37,8 +37,7 @@ export interface NodeFUNC extends NodeBase {
     nodeName: 'FUNC';
     entity: EntityModifier | null;
     accessor: AccessModifier;
-    returnType: NodeTYPE | null;
-    ref: TokenObject | null;
+    head: { returnType: NodeTYPE; isRef: boolean; } | '~';
     identifier: TokenObject;
     paramList: NodePARAMLIST;
     isConst: boolean;

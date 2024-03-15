@@ -250,9 +250,21 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const rollbackPos = reading.getPos();
     const entity = parseEntityModifier(reading);
-    const accessor: AccessModifier = parseAccessModifier(reading);
-    const returnType = parseTYPE(reading);
-    if (returnType === null) return null;
+    const accessor = parseAccessModifier(reading);
+    let head: { returnType: NodeTYPE; isRef: boolean; } | '~';
+    if (reading.next().text === '~') {
+        reading.confirm(HighlightToken.Operator);
+        head = '~';
+    } else {
+        const returnType = parseTYPE(reading);
+        if (returnType === null) {
+            reading.setPos(rollbackPos);
+            return null;
+        }
+        const isRef = reading.next().text === '&';
+        if (isRef) reading.confirm(HighlightToken.Builtin);
+        head = {returnType: returnType, isRef: isRef};
+    }
     const identifier = reading.next();
     reading.step();
     const paramList = parsePARAMLIST(reading);
@@ -265,8 +277,7 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
         nodeName: 'FUNC',
         entity: entity,
         accessor: accessor,
-        returnType: returnType,
-        ref: null,
+        head: head,
         identifier: identifier,
         paramList: paramList,
         isConst: false,

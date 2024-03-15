@@ -1,12 +1,13 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    NodeASSIGN,
+    NodeARGLIST,
+    NodeASSIGN, NodeCONDITION,
     NodeEXPR,
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE,
-    NodeFUNC,
+    NodeFUNC, NodeRETURN,
     NodeSCRIPT,
     NodeSTATBLOCK, NodeSTATEMENT,
     NodeVAR, NodeVARACCESS
@@ -14,34 +15,38 @@ import {
 import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolScope} from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
 
-// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeSCRIPT) {
-    const funcScopes: [SymbolScope, NodeFUNC][] = [];
+type AnalyzeQueue = {
+    funcQueue: { scope: SymbolScope, node: NodeFUNC }[],
+};
 
+// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+function forwardSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeSCRIPT) {
     // 宣言分析
     for (const statement of ast) {
         if (statement.nodeName === 'FUNC') {
-            if (statement.returnType === null) continue;
+            if (statement.head === '~') continue;
             const symbol: SymbolicFunction = {
                 args: statement.paramList,
-                ret: statement.returnType,
+                ret: statement.head.returnType,
                 declare: statement.identifier,
                 usage: [],
             };
             const scope: SymbolScope = {
-                parentScope: globalScope,
+                parentScope: scriptScope,
                 childScopes: [],
                 symbols: [symbol],
             };
-            globalScope.childScopes.push(scope);
-            globalScope.symbols.push(symbol);
-            funcScopes.push([scope, statement]);
+            scriptScope.childScopes.push(scope);
+            scriptScope.symbols.push(symbol);
+            queue.funcQueue.push({scope, node: statement});
         }
     }
+}
 
+function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeSCRIPT) {
     // 実装分析
-    for (const [scope, func] of funcScopes) {
-        analyzeFUNC(scope, func);
+    for (const func of queue.funcQueue) {
+        analyzeFUNC(func.scope, func.node);
     }
 }
 
@@ -52,7 +57,10 @@ function analyzeSCRIPT(globalScope: SymbolScope, ast: NodeSCRIPT) {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
-    if (ast.returnType === null) return;
+    if (ast.head === '~') {
+        analyzeSTATBLOCK(scope, ast.statBlock);
+        return;
+    }
 
     // 引数をスコープに追加
     for (const param of ast.paramList) {
@@ -75,7 +83,8 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
         if (initializer === null) continue;
-        if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
+        else if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
+        else if (initializer.nodeName === 'ARGLIST') analyzeARGLIST(scope, initializer);
         const variable = {
             type: ast.type,
             declare: var_.identifier,
@@ -105,7 +114,12 @@ function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
+    // TODO
+}
+
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -113,7 +127,33 @@ function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
-    // TODO
+    switch (ast.nodeName) {
+        case 'IF':
+            break;
+        case 'FOR':
+            break;
+        case 'WHILE':
+            break;
+        case 'RETURN':
+            analyzeRETURN(scope, ast);
+            break;
+        case 'STATBLOCK':
+            break;
+        case 'BREAK':
+            break;
+        case 'CONTINUE':
+            break;
+        case 'DOWHILE':
+            break;
+        case 'SWITCH':
+            break;
+        case 'EXPRSTAT':
+            break;
+        // case 'TRY':
+        //     break;
+        default:
+            break;
+    }
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
@@ -125,7 +165,12 @@ function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
 // CONTINUE      ::= 'continue' ';'
 // EXPRSTAT      ::= [ASSIGN] ';'
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+
 // RETURN        ::= 'return' [ASSIGN] ';'
+function analyzeRETURN(scope: SymbolScope, ast: NodeRETURN) {
+    analyzeASSIGN(scope, ast.assign);
+}
+
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
@@ -139,9 +184,8 @@ function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR) {
 function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
     if (ast.exprTerm === 1) {
         // TODO
-    } else {
-        const exprterm = ast as NodeEXPRTERM2;
-        analyzeEXPRVALUE(scope, exprterm.value);
+    } else if (ast.exprTerm === 2) {
+        analyzeEXPRVALUE(scope, ast.value);
     }
 }
 
@@ -169,14 +213,25 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE) {
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 // VARACCESS     ::= SCOPE IDENTIFIER
+
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+function analyzeARGLIST(scope: SymbolScope, argList: NodeARGLIST) {
+}
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN) {
-    // TODO
+    analyzeCONDITION(scope, assign.condition);
+    if (assign.tail === null) return;
+    analyzeASSIGN(scope, assign.tail.assign);
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION) {
+    analyzeEXPR(scope, condition.expr);
+    if (condition.ternary === null) return;
+    analyzeASSIGN(scope, condition.ternary.ta);
+    analyzeASSIGN(scope, condition.ternary.fa);
+}
 
 export function analyzeFromParsed(ast: NodeSCRIPT) {
     const globalScope: SymbolScope = {
@@ -185,7 +240,13 @@ export function analyzeFromParsed(ast: NodeSCRIPT) {
         symbols: [],
     };
 
-    analyzeSCRIPT(globalScope, ast);
+    const queue: AnalyzeQueue = {
+        funcQueue: [],
+    };
+
+    forwardSCRIPT(queue, globalScope, ast);
+
+    analyzeSCRIPT(queue, globalScope, ast);
 
     return globalScope;
 }
