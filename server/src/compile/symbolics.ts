@@ -1,20 +1,25 @@
 import {TokenObject} from "./token";
 import {NodePARAMLIST, NodeTYPE} from "./nodes";
 
+export type  SymbolKind = 'type' | 'function' | 'variable';
+
 export interface SymbolicType {
-    type: NodeTYPE;
+    symbolKind: 'type';
+    bases: NodeTYPE[];
     declare: TokenObject;
     usage: TokenObject[];
 }
 
 export interface SymbolicFunction {
+    symbolKind: 'function';
     args: NodePARAMLIST;
-    ret: NodeTYPE;
+    returnType: NodeTYPE;
     declare: TokenObject;
     usage: TokenObject[];
 }
 
 export interface SymbolicVariable {
+    symbolKind: 'variable';
     type: NodeTYPE;
     declare: TokenObject;
     usage: TokenObject[];
@@ -28,12 +33,12 @@ export interface SymbolScope {
     symbols: SymbolicObject[];
 }
 
-export function findSymbolWithParent(scope: SymbolScope, token: TokenObject): SymbolicObject | null {
+export function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind | undefined): SymbolicObject | null {
     for (const symbol of scope.symbols) {
-        // if (symbol.declare === null) continue;
-        if (symbol.declare.text === token.text) return symbol;
+        if (kind !== undefined && symbol.symbolKind !== kind) continue;
+        if (symbol.declare.text === identifier) return symbol;
     }
     if (scope.parentScope === null) return null;
-    return findSymbolWithParent(scope.parentScope, token);
+    return findSymbolWithParent(scope.parentScope, identifier, kind);
 }
 

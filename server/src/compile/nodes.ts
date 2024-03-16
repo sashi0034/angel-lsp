@@ -62,7 +62,7 @@ export interface NodeVAR extends NodeBase {
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 export interface NodeFUNCDEF extends NodeBase {
-
+    nodeName: 'FUNCDEF';
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'

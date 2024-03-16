@@ -2,43 +2,33 @@
 
 import {
     NodeARGLIST,
-    NodeASSIGN, NodeCONDITION,
+    NodeASSIGN, NodeCLASS, NodeCONDITION,
     NodeEXPR,
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE,
-    NodeFUNC, NodeRETURN,
+    NodeFUNC, NodePARAMLIST, NodeRETURN,
     NodeSCRIPT,
     NodeSTATBLOCK, NodeSTATEMENT,
     NodeVAR, NodeVARACCESS
 } from "./nodes";
-import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolScope} from "./symbolics";
+import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolicVariable, SymbolScope} from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
 
 type AnalyzeQueue = {
+    classQueue: { scope: SymbolScope, node: NodeCLASS }[],
     funcQueue: { scope: SymbolScope, node: NodeFUNC }[],
 };
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function forwardSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeSCRIPT) {
+function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeSCRIPT) {
     // 宣言分析
     for (const statement of ast) {
-        if (statement.nodeName === 'FUNC') {
-            if (statement.head === '~') continue;
-            const symbol: SymbolicFunction = {
-                args: statement.paramList,
-                ret: statement.head.returnType,
-                declare: statement.identifier,
-                usage: [],
-            };
-            const scope: SymbolScope = {
-                parentScope: scriptScope,
-                childScopes: [],
-                symbols: [symbol],
-            };
-            scriptScope.childScopes.push(scope);
-            scriptScope.symbols.push(symbol);
-            queue.funcQueue.push({scope, node: statement});
+        const nodeName = statement.nodeName;
+        if (nodeName === 'CLASS') {
+            forwardCLASS(queue, parentScope, statement);
+        } else if (nodeName === 'FUNC') {
+            forwardFUNC(queue, parentScope, statement);
         }
     }
 }
@@ -52,10 +42,58 @@ function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeCLASS) {
+    const symbol: SymbolicType = {
+        symbolKind: 'type',
+        bases: [],
+        declare: ast.identifier,
+        usage: [],
+    };
+    const scope: SymbolScope = {
+        parentScope: parentScope,
+        childScopes: [],
+        symbols: [symbol],
+    };
+    parentScope.childScopes.push(scope);
+    parentScope.symbols.push(symbol);
+    queue.classQueue.push({scope, node: ast});
+
+    for (const member of ast.members) {
+        if (member.nodeName === 'VIRTPROP') {
+            // TODO
+        } else if (member.nodeName === 'FUNC') {
+            forwardFUNC(queue, scope, member);
+        } else if (member.nodeName === 'VAR') {
+            // TODO
+        }
+    }
+
+}
+
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeFUNC) {
+    if (ast.head === '~') return;
+    const symbol: SymbolicFunction = {
+        symbolKind: 'function',
+        args: ast.paramList,
+        returnType: ast.head.returnType,
+        declare: ast.identifier,
+        usage: [],
+    };
+    const scope: SymbolScope = {
+        parentScope: parentScope,
+        childScopes: [],
+        symbols: [symbol],
+    };
+    parentScope.childScopes.push(scope);
+    parentScope.symbols.push(symbol);
+    queue.funcQueue.push({scope, node: ast});
+}
+
 function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
     if (ast.head === '~') {
         analyzeSTATBLOCK(scope, ast.statBlock);
@@ -63,14 +101,7 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
     }
 
     // 引数をスコープに追加
-    for (const param of ast.paramList) {
-        if (param.identifier === null) continue;
-        scope.symbols.push({
-            type: param.type,
-            declare: param.identifier,
-            usage: [],
-        });
-    }
+    analyzePARAMLIST(scope, ast.paramList);
 
     // スコープ分析
     analyzeSTATBLOCK(scope, ast.statBlock);
@@ -85,7 +116,8 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
         if (initializer === null) continue;
         else if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
         else if (initializer.nodeName === 'ARGLIST') analyzeARGLIST(scope, initializer);
-        const variable = {
+        const variable: SymbolicVariable = {
+            symbolKind: 'variable',
             type: ast.type,
             declare: var_.identifier,
             usage: [],
@@ -112,6 +144,25 @@ function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
+    for (const param of ast) {
+        if (param.identifier === null) continue;
+
+        if (param.type.datatype.identifier.kind === 'identifier') {
+            if (findSymbolWithParent(scope, param.type.datatype.identifier.text, 'type') === null) {
+                diagnostic.addError(param.type.datatype.identifier.location, `Undefined type: ${param.type.datatype.identifier.text}`);
+            }
+        }
+
+        scope.symbols.push({
+            symbolKind: 'variable',
+            type: param.type,
+            declare: param.identifier,
+            usage: [],
+        });
+    }
+}
+
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 
@@ -128,31 +179,31 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
     switch (ast.nodeName) {
-        case 'IF':
-            break;
-        case 'FOR':
-            break;
-        case 'WHILE':
-            break;
-        case 'RETURN':
-            analyzeRETURN(scope, ast);
-            break;
-        case 'STATBLOCK':
-            break;
-        case 'BREAK':
-            break;
-        case 'CONTINUE':
-            break;
-        case 'DOWHILE':
-            break;
-        case 'SWITCH':
-            break;
-        case 'EXPRSTAT':
-            break;
+    case 'IF':
+        break;
+    case 'FOR':
+        break;
+    case 'WHILE':
+        break;
+    case 'RETURN':
+        analyzeRETURN(scope, ast);
+        break;
+    case 'STATBLOCK':
+        break;
+    case 'BREAK':
+        break;
+    case 'CONTINUE':
+        break;
+    case 'DOWHILE':
+        break;
+    case 'SWITCH':
+        break;
+    case 'EXPRSTAT':
+        break;
         // case 'TRY':
         //     break;
-        default:
-            break;
+    default:
+        break;
     }
 }
 
@@ -193,7 +244,7 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
 function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE) {
     if (exprValue.nodeName === 'VARACCESS') {
         const token = exprValue.identifier;
-        const declared = findSymbolWithParent(scope, token);
+        const declared = findSymbolWithParent(scope, token.text, 'variable');
         if (declared === null) {
             diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
             return;
@@ -241,6 +292,7 @@ export function analyzeFromParsed(ast: NodeSCRIPT) {
     };
 
     const queue: AnalyzeQueue = {
+        classQueue: [],
         funcQueue: [],
     };
 
@@ -250,4 +302,3 @@ export function analyzeFromParsed(ast: NodeSCRIPT) {
 
     return globalScope;
 }
-
