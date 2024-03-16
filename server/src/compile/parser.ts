@@ -1312,7 +1312,7 @@ export function parseFromTokens(tokens: TokenObject[]): NodeSCRIPT {
     const reading = new ReadingState(tokens);
     const script: NodeSCRIPT = [];
     while (reading.isEnd() === false) {
-        script.concat(parseSCRIPT(reading));
+        script.push(...parseSCRIPT(reading));
         if (reading.isEnd() === false) {
             diagnostic.addError(reading.next().location, "Unexpected token ⚠️");
             reading.step();
