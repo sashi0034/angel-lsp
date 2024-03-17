@@ -18,3 +18,14 @@ export interface TokenObject {
         modifier: HighlightModifier
     };
 }
+
+export const dummyToken: TokenObject = {
+    kind: 'reserved',
+    text: '',
+    location: {
+        uri: '',
+        start: {line: 0, character: 0},
+        end: {line: 0, character: 0},
+    },
+    highlight: {token: HighlightToken.Builtin, modifier: HighlightModifier.Invalid},
+};

@@ -5,7 +5,7 @@ import {TokenObject} from "../compile/token";
 export function jumpDefinition(scope: SymbolScope, caret: Position): TokenObject | null {
     for (const symbol of scope.symbols) {
         // スコープ内のシンボルを検索
-        for (const usage of symbol.usage) {
+        for (const usage of symbol.usageList) {
             // そのシンボルの使用箇所を検索
             const usedPos = usage.location.start;
             if (usedPos.line === caret.line
@@ -13,7 +13,7 @@ export function jumpDefinition(scope: SymbolScope, caret: Position): TokenObject
                 && caret.character <= usedPos.character + usage.text.length
             ) {
                 // 使用箇所であれば宣言箇所を返す
-                return symbol.declare;
+                return symbol.declaredPlace;
             }
         }
     }
