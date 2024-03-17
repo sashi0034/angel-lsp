@@ -2,15 +2,15 @@
 
 import {
     NodeARGLIST,
-    NodeASSIGN, NodeCLASS, NodeCONDITION,
-    NodeEXPR,
+    NodeASSIGN, NodeCASE, NodeCLASS, NodeCONDITION, NodeDOWHILE,
+    NodeEXPR, NodeEXPRSTAT,
     NodeEXPRTERM,
     NodeEXPRTERM1,
-    NodeEXPRTERM2, NodeEXPRVALUE,
-    NodeFUNC, NodePARAMLIST, NodeRETURN,
+    NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
+    NodeFUNC, NodeIF, NodePARAMLIST, NodeRETURN,
     NodeSCRIPT,
-    NodeSTATBLOCK, NodeSTATEMENT,
-    NodeVAR, NodeVARACCESS
+    NodeSTATBLOCK, NodeSTATEMENT, NodeSWITCH,
+    NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
 import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolicVariable, SymbolScope} from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
@@ -113,9 +113,10 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
 function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
-        if (initializer === null) continue;
-        else if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
-        else if (initializer.nodeName === 'ARGLIST') analyzeARGLIST(scope, initializer);
+        if (initializer !== null) {
+            if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
+            if (initializer.nodeName === 'ARGLIST') analyzeARGLIST(scope, initializer);
+        }
         const variable: SymbolicVariable = {
             symbolKind: 'variable',
             type: ast.type,
@@ -180,25 +181,32 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
 function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
     switch (ast.nodeName) {
     case 'IF':
+        analyzeIF(scope, ast);
         break;
     case 'FOR':
+        analyzeFOR(scope, ast);
         break;
     case 'WHILE':
+        analyzeWHILE(scope, ast);
         break;
     case 'RETURN':
         analyzeRETURN(scope, ast);
         break;
     case 'STATBLOCK':
+        analyzeSTATBLOCK(scope, ast);
         break;
     case 'BREAK':
         break;
     case 'CONTINUE':
         break;
     case 'DOWHILE':
+        analyzeDOWHILE(scope, ast);
         break;
     case 'SWITCH':
+        analyzeSWITCH(scope, ast);
         break;
     case 'EXPRSTAT':
+        analyzeEXPRSTAT(scope, ast);
         break;
         // case 'TRY':
         //     break;
@@ -208,13 +216,55 @@ function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
+    analyzeASSIGN(scope, ast.assign);
+    for (const c of ast.cases) {
+        analyzeCASE(scope, c);
+    }
+}
+
 // BREAK         ::= 'break' ';'
+
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
+    if (ast.initial.nodeName === 'VAR') analyzeVAR(scope, ast.initial);
+    else analyzeEXPRSTAT(scope, ast.initial);
+
+    analyzeEXPRSTAT(scope, ast.condition);
+
+    for (const inc of ast.increment) {
+        analyzeASSIGN(scope, inc);
+    }
+
+    analyzeSTATEMENT(scope, ast.statement);
+}
+
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+function analyzeWHILE(scope: SymbolScope, ast: NodeWHILE) {
+    analyzeASSIGN(scope, ast.assign);
+    analyzeSTATEMENT(scope, ast.statement);
+}
+
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+function analyzeDOWHILE(scope: SymbolScope, ast: NodeDOWHILE) {
+    analyzeSTATEMENT(scope, ast.statement);
+    analyzeASSIGN(scope, ast.assign);
+}
+
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+function analyzeIF(scope: SymbolScope, ast: NodeIF) {
+    analyzeASSIGN(scope, ast.condition);
+    analyzeSTATEMENT(scope, ast.ts);
+    if (ast.fs !== null) analyzeSTATEMENT(scope, ast.fs);
+}
+
 // CONTINUE      ::= 'continue' ';'
+
 // EXPRSTAT      ::= [ASSIGN] ';'
+function analyzeEXPRSTAT(scope: SymbolScope, ast: NodeEXPRSTAT) {
+    if (ast.assign !== null) analyzeASSIGN(scope, ast.assign);
+}
+
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
@@ -223,6 +273,12 @@ function analyzeRETURN(scope: SymbolScope, ast: NodeRETURN) {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
+    if (ast.expr !== null) analyzeEXPR(scope, ast.expr);
+    for (const statement of ast.statements) {
+        analyzeSTATEMENT(scope, statement);
+    }
+}
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR) {

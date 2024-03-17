@@ -202,7 +202,7 @@ export interface NodeRETURN extends NodeBase {
 export interface NodeCASE extends NodeBase {
     nodeName: 'CASE'
     expr: NodeEXPR | null,
-    statement: NodeSTATEMENT[]
+    statements: NodeSTATEMENT[]
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}

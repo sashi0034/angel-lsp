@@ -857,7 +857,7 @@ function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
     return {
         nodeName: 'CASE',
         expr: expr,
-        statement: statements
+        statements: statements
     };
 }
 
