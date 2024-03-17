@@ -21,6 +21,10 @@ export interface NodeNAMESPACE extends NodeBase {
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+export interface NodeENUM extends NodeBase {
+    nodeName: 'ENUM'
+    identifier: TokenObject,
+}
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeCLASS extends NodeBase {

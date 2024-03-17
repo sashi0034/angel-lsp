@@ -54,9 +54,9 @@ function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeCLASS) {
     const symbol: SymbolicType = {
         symbolKind: 'type',
-        bases: [],
         declare: ast.identifier,
         usage: [],
+        node: ast,
     };
     const scope: SymbolScope = {
         parentScope: parentScope,
@@ -86,10 +86,9 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeFUN
     if (ast.head === '~') return;
     const symbol: SymbolicFunction = {
         symbolKind: 'function',
-        args: ast.paramList,
-        returnType: ast.head.returnType,
         declare: ast.identifier,
         usage: [],
+        node: ast,
     };
     const scope: SymbolScope = {
         parentScope: parentScope,
@@ -182,6 +181,22 @@ function analyzeTYPE(scope: SymbolScope, ast: NodeTYPE): SymbolicType | null {
     }
 
     return null;
+}
+
+function checkTypeMatch(src: SymbolicType, dest: SymbolicType) {
+    if (isTypeMatch(src, dest) === false) {
+        diagnostic.addError(dest.declare.location, `Type mismatch: ${src.declare.text} and ${dest.declare.text}`);
+    }
+}
+
+function isTypeMatch(src: SymbolicType, dest: SymbolicType) {
+    if (src.declare.kind === 'identifier' && dest.declare.kind === 'identifier') {
+        if (src.declare.text !== dest.declare.text) {
+            return false;
+        }
+    }
+    // TODO
+    return true;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -298,19 +313,24 @@ function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR) {
-    analyzeEXPRTERM(scope, ast.head);
+function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR): SymbolicType | null {
+    const lhs = analyzeEXPRTERM(scope, ast.head);
     // TODO: 型チェック
-    if (ast.tail !== null) analyzeEXPR(scope, ast.tail);
+    if (ast.tail !== null) {
+        const rhs = analyzeEXPR(scope, ast.tail);
+        if (lhs !== null && rhs !== null) checkTypeMatch(lhs, rhs);
+    }
+    return lhs;
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
+function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM): SymbolicType | null {
     if (ast.exprTerm === 1) {
         // TODO
     } else if (ast.exprTerm === 2) {
-        analyzeEXPRVALUE(scope, ast.value);
+        return analyzeEXPRVALUE(scope, ast.value);
     }
+    return null;
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
@@ -321,15 +341,8 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Symboli
     case 'FUNCCALL':
         return analyzeFUNCCALL(scope, exprValue);
     case 'VARACCESS': {
-        const token = exprValue.identifier;
-        const declared = findSymbolicVariableWithParent(scope, token.text);
-        if (declared === null) {
-            diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
-            return null;
-        }
-        declared.usage.push(token);
+        return anlyzeVARACCESS(scope, exprValue);
     }
-        break;
     case 'CAST':
         break;
     case 'LITERAL':
@@ -354,35 +367,66 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Symboli
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): SymbolicType | null {
-    const func = findSymbolicFunctionWithParent(scope, funcCall.identifier.text);
-    if (func === null) {
+    const calleeFunc = findSymbolicFunctionWithParent(scope, funcCall.identifier.text);
+    if (calleeFunc === null) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
         return null;
     }
-    func.usage.push(funcCall.identifier);
-    analyzeARGLIST(scope, funcCall.argList);
-    return findSymbolicTypeWithParent(scope, func.returnType.nodeName);
+    const head = calleeFunc.node.head;
+    const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : null;
+    calleeFunc.usage.push(funcCall.identifier);
+    const argTypes = analyzeARGLIST(scope, funcCall.argList);
+    if (argTypes.length === calleeFunc.node.paramList.length) {
+        for (let i = 0; i < argTypes.length; i++) {
+            const actualType = argTypes[i];
+            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.node.paramList[i].type.datatype.identifier.text);
+            if (actualType === null || expectedType === null) continue;
+            checkTypeMatch(actualType, expectedType);
+        }
+    } else {
+        diagnostic.addError(funcCall.identifier.location, `Argument count mismatch: ${funcCall.identifier.text}`);
+    }
+    return returnType;
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
+function anlyzeVARACCESS(scope: SymbolScope, varAccess: NodeVARACCESS): SymbolicType | null {
+    const token = varAccess.identifier;
+    const declared = findSymbolicVariableWithParent(scope, token.text);
+    if (declared === null) {
+        diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
+        return null;
+    }
+    declared.usage.push(token);
+    return declared.type;
+}
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function analyzeARGLIST(scope: SymbolScope, argList: NodeARGLIST) {
+function analyzeARGLIST(scope: SymbolScope, argList: NodeARGLIST): (SymbolicType | null)[] {
+    const types: (SymbolicType | null)[] = [];
+    for (const arg of argList.args) {
+        types.push(analyzeASSIGN(scope, arg.assign));
+    }
+    return types;
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN) {
-    analyzeCONDITION(scope, assign.condition);
-    if (assign.tail === null) return;
-    analyzeASSIGN(scope, assign.tail.assign);
+function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN): SymbolicType | null {
+    const lhs = analyzeCONDITION(scope, assign.condition);
+    if (assign.tail === null) return null;
+    const rhs = analyzeASSIGN(scope, assign.tail.assign);
+    if (lhs !== null && rhs !== null) checkTypeMatch(lhs, rhs);
+    return lhs;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION) {
-    analyzeEXPR(scope, condition.expr);
-    if (condition.ternary === null) return;
-    analyzeASSIGN(scope, condition.ternary.ta);
-    analyzeASSIGN(scope, condition.ternary.fa);
+export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION): SymbolicType | null {
+    const exprType = analyzeEXPR(scope, condition.expr);
+    if (condition.ternary === null) return exprType;
+    const ta = analyzeASSIGN(scope, condition.ternary.ta);
+    const fa = analyzeASSIGN(scope, condition.ternary.fa);
+    if (ta !== null && fa !== null) checkTypeMatch(ta, fa);
+    return ta;
 }
 
 export function analyzeFromParsed(ast: NodeSCRIPT) {

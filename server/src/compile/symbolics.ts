@@ -1,21 +1,20 @@
 import {TokenObject} from "./token";
-import {NodeCLASS, NodePARAMLIST, NodeTYPE} from "./nodes";
+import {NodeCLASS, NodeENUM, NodeFUNC, NodeFUNCDEF, NodePARAMLIST, NodeTYPE} from "./nodes";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
 export interface SymbolicType {
     symbolKind: 'type';
-    bases: NodeTYPE[];
     declare: TokenObject;
     usage: TokenObject[];
+    node: NodeENUM | NodeCLASS;
 }
 
 export interface SymbolicFunction {
     symbolKind: 'function';
-    args: NodePARAMLIST;
-    returnType: NodeTYPE;
     declare: TokenObject;
     usage: TokenObject[];
+    node: NodeFUNC;
 }
 
 export interface SymbolicVariable {
