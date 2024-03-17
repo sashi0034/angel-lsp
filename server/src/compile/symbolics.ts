@@ -19,7 +19,7 @@ export interface SymbolicFunction {
 
 export interface SymbolicVariable {
     symbolKind: 'variable';
-    type: SymbolicType | null;
+    type: SymbolicType | undefined;
     declare: TokenObject;
     usage: TokenObject[];
 }
@@ -27,30 +27,30 @@ export interface SymbolicVariable {
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
 export interface SymbolScope {
-    parentScope: SymbolScope | null;
+    parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbols: SymbolicObject[];
 }
 
-export function findSymbolicTypeWithParent(scope: SymbolScope, identifier: string): SymbolicType | null {
+export function findSymbolicTypeWithParent(scope: SymbolScope, identifier: string): SymbolicType | undefined {
     return findSymbolWithParent(scope, identifier, 'type') as SymbolicType;
 }
 
-export function findSymbolicFunctionWithParent(scope: SymbolScope, identifier: string): SymbolicFunction | null {
+export function findSymbolicFunctionWithParent(scope: SymbolScope, identifier: string): SymbolicFunction | undefined {
     return findSymbolWithParent(scope, identifier, 'function') as SymbolicFunction;
 }
 
-export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: string): SymbolicVariable | null {
+export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: string): SymbolicVariable | undefined {
     return findSymbolWithParent(scope, identifier, 'variable') as SymbolicVariable;
 }
 
-function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind | undefined): SymbolicObject | null {
+function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind | undefined): SymbolicObject | undefined {
     for (const symbol of scope.symbols) {
         if (kind !== undefined && symbol.symbolKind !== kind) continue;
         if (symbol.declare === undefined) continue;
         if (symbol.declare.text === identifier) return symbol;
     }
-    if (scope.parentScope === null) return null;
+    if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier, kind);
 }
 

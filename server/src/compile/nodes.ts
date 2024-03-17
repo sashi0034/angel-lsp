@@ -39,13 +39,13 @@ export interface NodeCLASS extends NodeBase {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export interface NodeFUNC extends NodeBase {
     nodeName: 'FUNC';
-    entity: EntityModifier | null;
+    entity: EntityModifier | undefined;
     accessor: AccessModifier;
     head: { returnType: NodeTYPE; isRef: boolean; } | '~';
     identifier: TokenObject;
     paramList: NodePARAMLIST;
     isConst: boolean;
-    funcAttr: TokenObject | null;
+    funcAttr: TokenObject | undefined;
     statBlock: NodeSTATBLOCK;
 }
 
@@ -58,7 +58,7 @@ export interface NodeVAR extends NodeBase {
     type: NodeTYPE,
     variables: {
         identifier: TokenObject,
-        initializer: NodeEXPR | NodeARGLIST | null
+        initializer: NodeEXPR | NodeARGLIST | undefined
     }[];
 }
 
@@ -72,12 +72,12 @@ export interface NodeFUNCDEF extends NodeBase {
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface NodeVIRTPROP extends NodeBase {
     nodeName: 'VIRTPROP'
-    modifier: 'private' | 'protected | null',
+    modifier: 'private' | 'protected' | 'null',
     type: NodeTYPE,
     isRef: boolean,
     identifier: TokenObject,
-    getter: [isConst: boolean, NodeSTATBLOCK | null] | null,
-    setter: NodeFUNC | null
+    getter: [isConst: boolean, NodeSTATBLOCK | undefined] | undefined,
+    setter: NodeFUNC | undefined
 }
 
 // MIXIN         ::= 'mixin' CLASS
@@ -90,7 +90,7 @@ export type NodeSTATBLOCK = {
 };
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = { type: NodeTYPE, identifier: TokenObject | null }[];
+export type NodePARAMLIST = { type: NodeTYPE, identifier: TokenObject | undefined }[];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
@@ -98,7 +98,7 @@ export type NodePARAMLIST = { type: NodeTYPE, identifier: TokenObject | null }[]
 export interface NodeTYPE extends NodeBase {
     nodeName: 'TYPE'
     isConst: boolean,
-    scope: NodeSCOPE | null,
+    scope: NodeSCOPE | undefined,
     datatype: NodeDATATYPE,
     generics: NodeTYPE[],
     array: boolean,
@@ -115,7 +115,7 @@ export interface NodeSCOPE extends NodeBase {
     generic: {
         className: TokenObject,
         types: NodeTYPE[]
-    } | null
+    } | undefined
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -180,7 +180,7 @@ export interface NodeIF extends NodeBase {
     nodeName: 'IF'
     condition: NodeASSIGN,
     ts: NodeSTATEMENT,
-    fs: NodeSTATEMENT | null
+    fs: NodeSTATEMENT | undefined
 }
 
 // CONTINUE      ::= 'continue' ';'
@@ -191,7 +191,7 @@ export interface NodeCONTINUE extends NodeBase {
 // EXPRSTAT      ::= [ASSIGN] ';'
 export type NodeEXPRSTAT = {
     nodeName: 'EXPRSTAT',
-    assign: NodeASSIGN | null
+    assign: NodeASSIGN | undefined
 };
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
@@ -205,7 +205,7 @@ export interface NodeRETURN extends NodeBase {
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 export interface NodeCASE extends NodeBase {
     nodeName: 'CASE'
-    expr: NodeEXPR | null,
+    expr: NodeEXPR | undefined,
     statements: NodeSTATEMENT[]
 }
 
@@ -213,8 +213,8 @@ export interface NodeCASE extends NodeBase {
 export interface NodeEXPR extends NodeBase {
     nodeName: 'EXPR'
     head: NodeEXPRTERM,
-    op: TokenObject | null,
-    tail: NodeEXPR | null
+    op: TokenObject | undefined,
+    tail: NodeEXPR | undefined
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
@@ -224,16 +224,16 @@ export interface NodeEXPRTERM1 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 1
     type: NodeTYPE,
-    eq: TokenObject | null,
+    eq: TokenObject | undefined,
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeEXPRTERM2 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
-    preOp: TokenObject | null,
+    preOp: TokenObject | undefined,
     value: NodeEXPRVALUE,
-    postOp: NodeEXPRPOSTOP | null
+    postOp: NodeEXPRPOSTOP | undefined
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
@@ -269,7 +269,7 @@ export interface NodeEXPRPOSTOP1 extends NodeBase {
 export interface NodeEXPRPOSTOP2 extends NodeBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 2;
-    indexes: { identifier: TokenObject | null, assign: NodeASSIGN }[];
+    indexes: { identifier: TokenObject | undefined, assign: NodeASSIGN }[];
 }
 
 // ARGLIST
@@ -296,7 +296,7 @@ export interface NodeCAST extends NodeBase {
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLAMBDA extends NodeBase {
     nodeName: 'LAMBDA';
-    params: { type: NodeTYPE | null, typeMod: TypeModifier | null, identifier: TokenObject | null }[],
+    params: { type: NodeTYPE | undefined, typeMod: TypeModifier | undefined, identifier: TokenObject | undefined }[],
     statBlock: NodeSTATBLOCK
 }
 
@@ -309,7 +309,7 @@ export interface NodeLITERAL extends NodeBase {
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFUNCCALL extends NodeBase {
     nodeName: 'FUNCCALL'
-    scope: NodeSCOPE | null,
+    scope: NodeSCOPE | undefined,
     identifier: TokenObject,
     argList: NodeARGLIST
 }
@@ -317,14 +317,14 @@ export interface NodeFUNCCALL extends NodeBase {
 // VARACCESS     ::= SCOPE IDENTIFIER
 export interface NodeVARACCESS extends NodeBase {
     nodeName: 'VARACCESS';
-    scope: NodeSCOPE | null,
+    scope: NodeSCOPE | undefined,
     identifier: TokenObject;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeARGLIST extends NodeBase {
     nodeName: 'ARGLIST';
-    args: { identifier: TokenObject | null, assign: NodeASSIGN }[];
+    args: { identifier: TokenObject | undefined, assign: NodeASSIGN }[];
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
@@ -334,7 +334,7 @@ export interface NodeASSIGN extends NodeBase {
     tail: {
         op: TokenObject
         assign: NodeASSIGN
-    } | null;
+    } | undefined;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
@@ -344,5 +344,5 @@ export interface NodeCONDITION extends NodeBase {
     ternary: {
         ta: NodeASSIGN,
         fa: NodeASSIGN
-    } | null
+    } | undefined
 }

@@ -68,14 +68,14 @@ class ReadingState {
         this.pos++;
     }
 
-    public confirm(analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | null = null) {
+    public confirm(analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | undefined = undefined) {
         const next = this.next();
         next.highlight.token = analyzeToken;
-        if (analyzedModifier !== null) next.highlight.modifier = analyzedModifier;
+        if (analyzedModifier !== undefined) next.highlight.modifier = analyzedModifier;
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | null = null) {
+    public expect(word: string, analyzeToken: HighlightToken, analyzedModifier: HighlightModifier | undefined = undefined) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file ❌");
             return false;
@@ -98,7 +98,7 @@ function parseSCRIPT(reading: ReadingState): NodeSCRIPT {
     const script: NodeSCRIPT = [];
     while (reading.isEnd() === false) {
         const func = parseFUNC(reading);
-        if (func !== null) {
+        if (func !== undefined) {
             script.push(func);
             continue;
         }
@@ -168,12 +168,12 @@ function parseNAMESPACE(reading: ReadingState): TriedParse<NodeNAMESPACE> {
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
-function parseEntityModifier(reading: ReadingState): EntityModifier | null {
-    let modifier: EntityModifier | null = null;
+function parseEntityModifier(reading: ReadingState): EntityModifier | undefined {
+    let modifier: EntityModifier | undefined = undefined;
     while (reading.isEnd() === false) {
         const next = reading.next().text;
         if (next === 'shared' || next === 'external') {
-            if (modifier === null) {
+            if (modifier === undefined) {
                 modifier = {isShared: false, isExternal: false};
             }
             if (next === 'shared') modifier.isShared = true;
@@ -224,12 +224,12 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
             break;
         }
         const func = parseFUNC(reading);
-        if (func !== null) {
+        if (func !== undefined) {
             members.push(func);
             continue;
         }
         const var_ = parseVAR(reading);
-        if (var_ !== null) {
+        if (var_ !== undefined) {
             members.push(var_);
             continue;
         }
@@ -247,7 +247,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFUNC(reading: ReadingState): NodeFUNC | null {
+function parseFUNC(reading: ReadingState): NodeFUNC | undefined {
     const rollbackPos = reading.getPos();
     const entity = parseEntityModifier(reading);
     const accessor = parseAccessModifier(reading);
@@ -257,9 +257,9 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
         head = '~';
     } else {
         const returnType = parseTYPE(reading);
-        if (returnType === null) {
+        if (returnType === undefined) {
             reading.setPos(rollbackPos);
-            return null;
+            return undefined;
         }
         const isRef = reading.next().text === '&';
         if (isRef) reading.confirm(HighlightToken.Builtin);
@@ -268,9 +268,9 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
     const identifier = reading.next();
     reading.step();
     const paramList = parsePARAMLIST(reading);
-    if (paramList === null) {
+    if (paramList === undefined) {
         reading.setPos(rollbackPos);
-        return null;
+        return undefined;
     }
     const statBlock = parseSTATBLOCK(reading) ?? {nodeName: 'STATBLOCK', statements: []};
     return {
@@ -281,7 +281,7 @@ function parseFUNC(reading: ReadingState): NodeFUNC | null {
         identifier: identifier,
         paramList: paramList,
         isConst: false,
-        funcAttr: null,
+        funcAttr: undefined,
         statBlock: statBlock
     };
 }
@@ -299,19 +299,19 @@ function parseAccessModifier(reading: ReadingState): AccessModifier {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function parseVAR(reading: ReadingState): NodeVAR | null {
+function parseVAR(reading: ReadingState): NodeVAR | undefined {
     const rollbackPos = reading.getPos();
 
     const accessor: AccessModifier = parseAccessModifier(reading);
 
     const type = parseTYPE(reading);
-    if (type === null) {
+    if (type === undefined) {
         // diagnostic.addError(reading.next().location, "Expected type");
-        return null;
+        return undefined;
     }
     const variables: {
         identifier: TokenObject,
-        initializer: NodeEXPR | NodeARGLIST | null
+        initializer: NodeEXPR | NodeARGLIST | undefined
     }[] = [];
     while (reading.isEnd() === false) {
         // 識別子
@@ -319,7 +319,7 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
         if (identifier.kind !== 'identifier') {
             if (variables.length === 0) {
                 reading.setPos(rollbackPos);
-                return null;
+                return undefined;
             } else {
                 diagnostic.addError(reading.next().location, "Expected identifier");
             }
@@ -329,19 +329,19 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
         // 初期化子
         if (reading.next().text === ';') {
             reading.confirm(HighlightToken.Operator);
-            variables.push({identifier: identifier, initializer: null});
+            variables.push({identifier: identifier, initializer: undefined});
             break;
         } else if (reading.next().text === '=') {
             reading.confirm(HighlightToken.Operator);
             const expr = parseEXPR(reading);
-            if (expr === null) {
+            if (expr === undefined) {
                 diagnostic.addError(reading.next().location, "Expected expression");
-                return null;
+                return undefined;
             }
             variables.push({identifier: identifier, initializer: expr});
         } else {
             const argList = parseARGLIST(reading);
-            if (reading !== null) {
+            if (reading !== undefined) {
                 variables.push({identifier: identifier, initializer: argList});
             }
         }
@@ -374,14 +374,14 @@ function parseVAR(reading: ReadingState): NodeVAR | null {
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
-    if (reading.next().text !== '{') return null;
+function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | undefined {
+    if (reading.next().text !== '{') return undefined;
     reading.step();
     const statements: (NodeVAR | NodeSTATEMENT)[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === '}') break;
         const var_ = parseVAR(reading);
-        if (var_ !== null) {
+        if (var_ !== undefined) {
             statements.push(var_);
             continue;
         }
@@ -403,8 +403,8 @@ function parseSTATBLOCK(reading: ReadingState): NodeSTATBLOCK | null {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
-    if (reading.next().text !== '(') return null;
+function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | undefined {
+    if (reading.next().text !== '(') return undefined;
     if (reading.next().text === 'void') {
         reading.confirm(HighlightToken.Builtin);
         reading.expect(')', HighlightToken.Operator);
@@ -418,12 +418,12 @@ function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
         const type = parseTYPE(reading);
-        if (type === null) break;
+        if (type === undefined) break;
         if (reading.next().kind === 'identifier') {
             params.push({type: type, identifier: reading.next()});
             reading.step();
         } else {
-            params.push({type: type, identifier: null});
+            params.push({type: type, identifier: undefined});
         }
     }
 
@@ -432,8 +432,8 @@ function parsePARAMLIST(reading: ReadingState): NodePARAMLIST | null {
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
-function parseTYPEMOD(reading: ReadingState): TypeModifier | null {
-    if (reading.next().text !== '&') return null;
+function parseTYPEMOD(reading: ReadingState): TypeModifier | undefined {
+    if (reading.next().text !== '&') return undefined;
     reading.confirm(HighlightToken.Builtin);
     const next = reading.next().text;
     if (next === 'in' || next === 'out' || next === 'inout') {
@@ -445,7 +445,7 @@ function parseTYPEMOD(reading: ReadingState): TypeModifier | null {
 }
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function parseTYPE(reading: ReadingState): NodeTYPE | null {
+function parseTYPE(reading: ReadingState): NodeTYPE | undefined {
     const rollbackPos = reading.getPos();
     let isConst = false;
     if (reading.next().text === 'const') {
@@ -454,9 +454,9 @@ function parseTYPE(reading: ReadingState): NodeTYPE | null {
     }
     const scope = parseSCOPE(reading);
     const datatype = parseDATATYPE(reading);
-    if (datatype === null) {
+    if (datatype === undefined) {
         reading.setPos(rollbackPos);
-        return null;
+        return undefined;
     }
     const generics = parseTypeParameters(reading) ?? [];
     return {
@@ -471,9 +471,9 @@ function parseTYPE(reading: ReadingState): NodeTYPE | null {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
+function parseTypeParameters(reading: ReadingState): NodeTYPE[] | undefined {
     const rollbackPos = reading.getPos();
-    if (reading.next().text !== '<') return null;
+    if (reading.next().text !== '<') return undefined;
     reading.confirm(HighlightToken.Operator);
     const generics: NodeTYPE[] = [];
     while (reading.isEnd() === false) {
@@ -484,14 +484,14 @@ function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
         if (generics.length > 0) {
             if (reading.next().text !== ',') {
                 reading.setPos(rollbackPos);
-                return null;
+                return undefined;
             }
             reading.confirm(HighlightToken.Operator);
         }
         const type = parseTYPE(reading);
-        if (type === null) {
+        if (type === undefined) {
             reading.setPos(rollbackPos);
-            return null;
+            return undefined;
         }
         generics.push(type);
     }
@@ -504,7 +504,7 @@ function parseTypeParameters(reading: ReadingState): NodeTYPE[] | null {
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
+function parseSCOPE(reading: ReadingState): NodeSCOPE | undefined {
     let isGlobal = false;
     if (reading.next().text === '::') {
         reading.confirm(HighlightToken.Operator);
@@ -525,7 +525,7 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
             const rollbackPos = reading.getPos();
             reading.confirm(HighlightToken.Class);
             const types = parseTypeParameters(reading);
-            if (types === null || reading.next().text !== '::') {
+            if (types === undefined || reading.next().text !== '::') {
                 reading.setPos(rollbackPos);
                 break;
             }
@@ -540,18 +540,18 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | null {
         break;
     }
     if (isGlobal === false && namespaces.length === 0) {
-        return null;
+        return undefined;
     }
     return {
         nodeName: 'SCOPE',
         isGlobal: isGlobal,
         namespaces: namespaces,
-        generic: null
+        generic: undefined
     };
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-function parseDATATYPE(reading: ReadingState): NodeDATATYPE | null {
+function parseDATATYPE(reading: ReadingState): NodeDATATYPE | undefined {
     // FIXME
     const next = reading.next();
     if (reading.next().kind === 'identifier') {
@@ -563,18 +563,18 @@ function parseDATATYPE(reading: ReadingState): NodeDATATYPE | null {
     }
 
     const primtype = parsePRIMTYPE(reading);
-    if (primtype !== null) return {
+    if (primtype !== undefined) return {
         nodeName: 'DATATYPE',
         identifier: primtype
     };
 
-    return null;
+    return undefined;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 function parsePRIMTYPE(reading: ReadingState) {
     const next = reading.next();
-    if (primeTypeSet.has(next.text) === false) return null;
+    if (primeTypeSet.has(next.text) === false) return undefined;
     reading.confirm(HighlightToken.Builtin);
     return next;
 }
@@ -602,13 +602,13 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     if (return_ !== 'mismatch') return return_;
 
     const statBlock = parseSTATBLOCK(reading);
-    if (statBlock !== null) return statBlock;
+    if (statBlock !== undefined) return statBlock;
 
     const break_ = parseBREAK(reading);
-    if (break_ !== null) return break_;
+    if (break_ !== undefined) return break_;
 
     const continue_ = parseCONTINUE(reading);
-    if (continue_ !== null) return continue_;
+    if (continue_ !== undefined) return continue_;
 
     const dowhile = parseDOWHILE(reading);
     if (dowhile === 'pending') return 'pending';
@@ -619,7 +619,7 @@ function parseSTATEMENT(reading: ReadingState): TriedParse<NodeSTATEMENT> {
     if (switch_ !== 'mismatch') return switch_;
 
     const exprStat = parseEXPRSTAT(reading);
-    if (exprStat !== null) return exprStat;
+    if (exprStat !== undefined) return exprStat;
 
     return 'mismatch';
 }
@@ -630,7 +630,7 @@ function parseSWITCH(reading: ReadingState): TriedParse<NodeSWITCH> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected expression");
         return 'pending';
     }
@@ -654,8 +654,8 @@ function parseSWITCH(reading: ReadingState): TriedParse<NodeSWITCH> {
 }
 
 // BREAK         ::= 'break' ';'
-function parseBREAK(reading: ReadingState): NodeBREAK | null {
-    if (reading.next().text !== 'break') return null;
+function parseBREAK(reading: ReadingState): NodeBREAK | undefined {
+    if (reading.next().text !== 'break') return undefined;
     reading.step();
     reading.expect(';', HighlightToken.Operator);
     return {nodeName: 'BREAK'};
@@ -667,14 +667,14 @@ function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
 
-    const initial: NodeEXPRSTAT | NodeVAR | null = parseEXPRSTAT(reading) ?? parseVAR(reading);
-    if (initial === null) {
+    const initial: NodeEXPRSTAT | NodeVAR | undefined = parseEXPRSTAT(reading) ?? parseVAR(reading);
+    if (initial === undefined) {
         diagnostic.addError(reading.next().location, "Expected initial expression or variable declaration");
         return 'pending';
     }
 
     const condition = parseEXPRSTAT(reading);
-    if (condition === null) {
+    if (condition === undefined) {
         diagnostic.addError(reading.next().location, "Expected condition expression");
         return 'pending';
     }
@@ -686,7 +686,7 @@ function parseFOR(reading: ReadingState): TriedParse<NodeFOR> {
             reading.step();
         }
         const assign = parseASSIGN(reading);
-        if (assign === null) break;
+        if (assign === undefined) break;
         increment.push(assign);
     }
 
@@ -710,7 +710,7 @@ function parseWHILE(reading: ReadingState): TriedParse<NodeWHILE> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected condition expression");
         return 'pending';
     }
@@ -740,7 +740,7 @@ function parseDOWHILE(reading: ReadingState): TriedParse<NodeDOWHILE> {
     reading.expect('while', HighlightToken.Keyword);
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected condition expression");
         return 'pending';
     }
@@ -759,14 +759,14 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
     reading.step();
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected condition expression");
         return 'pending';
     }
     reading.expect(')', HighlightToken.Operator);
     const ts = parseSTATEMENT(reading);
     if (ts === 'mismatch' || ts === 'pending') return 'pending';
-    let fs = null;
+    let fs = undefined;
     if (reading.next().text === 'else') {
         fs = parseSTATEMENT(reading);
         if (fs === 'mismatch' || fs === 'pending') {
@@ -775,7 +775,7 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
                 nodeName: 'IF',
                 condition: assign,
                 ts: ts,
-                fs: null
+                fs: undefined
             };
         }
     }
@@ -788,24 +788,24 @@ function parseIF(reading: ReadingState): TriedParse<NodeIF> {
 }
 
 // CONTINUE      ::= 'continue' ';'
-function parseCONTINUE(reading: ReadingState): NodeCONTINUE | null {
-    if (reading.next().text !== 'continue') return null;
+function parseCONTINUE(reading: ReadingState): NodeCONTINUE | undefined {
+    if (reading.next().text !== 'continue') return undefined;
     reading.step();
     reading.expect(';', HighlightToken.Operator);
     return {nodeName: 'CONTINUE'};
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function parseEXPRSTAT(reading: ReadingState): NodeEXPRSTAT | null {
+function parseEXPRSTAT(reading: ReadingState): NodeEXPRSTAT | undefined {
     if (reading.next().text === ';') {
         reading.confirm(HighlightToken.Operator);
         return {
             nodeName: "EXPRSTAT",
-            assign: null
+            assign: undefined
         };
     }
     const assign = parseASSIGN(reading);
-    if (assign === null) return null;
+    if (assign === undefined) return undefined;
     reading.expect(';', HighlightToken.Operator);
     return {
         nodeName: "EXPRSTAT",
@@ -820,7 +820,7 @@ function parseRETURN(reading: ReadingState): TriedParse<NodeRETURN> {
     if (reading.next().text !== 'return') return 'mismatch';
     reading.step();
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected expression");
         return 'pending';
     }
@@ -833,11 +833,11 @@ function parseRETURN(reading: ReadingState): TriedParse<NodeRETURN> {
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
-    let expr = null;
+    let expr = undefined;
     if (reading.next().text === 'case') {
         reading.step();
         expr = parseEXPR(reading);
-        if (expr === null) {
+        if (expr === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression");
             return 'pending';
         }
@@ -862,24 +862,24 @@ function parseCASE(reading: ReadingState): TriedParse<NodeCASE> {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function parseEXPR(reading: ReadingState): NodeEXPR | null {
+function parseEXPR(reading: ReadingState): NodeEXPR | undefined {
     const exprTerm = parseEXPRTERM(reading);
-    if (exprTerm === null) return null;
+    if (exprTerm === undefined) return undefined;
     const exprOp = parseEXPROP(reading);
-    if (exprOp === null) return {
+    if (exprOp === undefined) return {
         nodeName: 'EXPR',
         head: exprTerm,
-        op: null,
-        tail: null
+        op: undefined,
+        tail: undefined
     };
     const tail = parseEXPR(reading);
-    if (tail === null) {
+    if (tail === undefined) {
         diagnostic.addError(reading.next().location, "Expected expression");
         return {
             nodeName: 'EXPR',
             head: exprTerm,
-            op: null,
-            tail: null
+            op: undefined,
+            tail: undefined
         };
     }
     return {
@@ -893,8 +893,8 @@ function parseEXPR(reading: ReadingState): NodeEXPR | null {
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseEXPRTERM(reading: ReadingState) {
     const exprTerm2 = parseEXPRTERM2(reading);
-    if (exprTerm2 !== null) return exprTerm2;
-    return null;
+    if (exprTerm2 !== undefined) return exprTerm2;
+    return undefined;
 }
 
 const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
@@ -902,9 +902,9 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 // const postOpSet = new Set(['.', '[', '(', '++', '--']);
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
+function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | undefined {
     const rollbackPos = reading.getPos();
-    let pre = null;
+    let pre = undefined;
     if (preOpSet.has(reading.next().text)) {
         pre = reading.next();
         reading.confirm(HighlightToken.Operator);
@@ -913,7 +913,7 @@ function parseEXPRTERM2(reading: ReadingState): NodeEXPRTERM2 | null {
     const exprValue = parseEXPRVALUE(reading);
     if (exprValue === 'mismatch') reading.setPos(rollbackPos);
     if (exprValue === 'mismatch' || exprValue === 'pending') {
-        return null;
+        return undefined;
     }
 
     const postOp = parseEXPRPOSTOP(reading);
@@ -940,7 +940,7 @@ function parseEXPRVALUE(reading: ReadingState): TriedParse<NodeEXPRVALUE> {
     if (reading.next().text === '(') {
         reading.confirm(HighlightToken.Operator);
         const assign = parseASSIGN(reading);
-        if (assign === null) {
+        if (assign === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression 🖼️");
             return 'pending';
         }
@@ -949,30 +949,30 @@ function parseEXPRVALUE(reading: ReadingState): TriedParse<NodeEXPRVALUE> {
     }
 
     const literal = parseLITERAL(reading);
-    if (literal !== null) return {nodeName: 'LITERAL', value: literal};
+    if (literal !== undefined) return {nodeName: 'LITERAL', value: literal};
 
     const funcCall = parseFUNCCALL(reading);
-    if (funcCall !== null) return funcCall;
+    if (funcCall !== undefined) return funcCall;
 
     const constructCall = parseCONSTRUCTCALL(reading);
-    if (constructCall !== null) return constructCall;
+    if (constructCall !== undefined) return constructCall;
 
     const varAccess = parseVARACCESS(reading);
-    if (varAccess !== null) return varAccess;
+    if (varAccess !== undefined) return varAccess;
 
     return 'mismatch';
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-function parseCONSTRUCTCALL(reading: ReadingState): NodeCONSTRUCTCALL | null {
+function parseCONSTRUCTCALL(reading: ReadingState): NodeCONSTRUCTCALL | undefined {
     const rollbackPos = reading.getPos();
     const type = parseTYPE(reading);
-    if (type === null) return null;
+    if (type === undefined) return undefined;
 
     const argList = parseARGLIST(reading);
-    if (argList === null) {
+    if (argList === undefined) {
         reading.setPos(rollbackPos);
-        return null;
+        return undefined;
     }
 
     return {
@@ -985,15 +985,15 @@ function parseCONSTRUCTCALL(reading: ReadingState): NodeCONSTRUCTCALL | null {
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function parseEXPRPOSTOP(reading: ReadingState): NodeEXPRPOSTOP | null {
+function parseEXPRPOSTOP(reading: ReadingState): NodeEXPRPOSTOP | undefined {
     const exprPostOp1 = parseEXPRPOSTOP1(reading);
-    if (exprPostOp1 !== null) return exprPostOp1;
+    if (exprPostOp1 !== undefined) return exprPostOp1;
 
     const exprPostOp2 = parseEXPRPOSTOP2(reading);
-    if (exprPostOp2 !== null) return exprPostOp2;
+    if (exprPostOp2 !== undefined) return exprPostOp2;
 
     const argList = parseARGLIST(reading);
-    if (argList !== null) return {
+    if (argList !== undefined) return {
         nodeName: 'EXPRPOSTOP',
         postOp: 3,
         args: argList
@@ -1009,15 +1009,15 @@ function parseEXPRPOSTOP(reading: ReadingState): NodeEXPRPOSTOP | null {
         };
     }
 
-    return null;
+    return undefined;
 }
 
 // ('.' (FUNCCALL | IDENTIFIER))
-function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | null {
-    if (reading.next().text !== '.') return null;
+function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | undefined {
+    if (reading.next().text !== '.') return undefined;
     reading.confirm(HighlightToken.Operator);
     const funcCall = parseFUNCCALL(reading);
-    if (funcCall !== null) return {
+    if (funcCall !== undefined) return {
         nodeName: 'EXPRPOSTOP',
         postOp: 1,
         member: funcCall,
@@ -1025,7 +1025,7 @@ function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | null {
     const identifier = reading.next();
     if (identifier.kind !== 'identifier') {
         diagnostic.addError(reading.next().location, "Expected identifier");
-        return null;
+        return undefined;
     }
     reading.confirm(HighlightToken.Variable);
     return {
@@ -1036,10 +1036,10 @@ function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | null {
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
-function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
-    if (reading.next().text !== '[') return null;
+function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | undefined {
+    if (reading.next().text !== '[') return undefined;
     reading.confirm(HighlightToken.Operator);
-    const indexes: { identifier: TokenObject | null, assign: NodeASSIGN }[] = [];
+    const indexes: { identifier: TokenObject | undefined, assign: NodeASSIGN }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ']') {
             if (indexes.length === 0) {
@@ -1051,14 +1051,14 @@ function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | null {
         if (indexes.length > 0) {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
-        let identifier = null;
+        let identifier = undefined;
         if (reading.next(0).kind === 'identifier' && reading.next(1).text === ':') {
             identifier = reading.next();
             reading.confirm(HighlightToken.Parameter);
             reading.confirm(HighlightToken.Operator);
         }
         const assign = parseASSIGN(reading);
-        if (assign === null) {
+        if (assign === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression 📮");
             continue;
         }
@@ -1077,14 +1077,14 @@ function parseCAST(reading: ReadingState): TriedParse<NodeCAST> {
     reading.confirm(HighlightToken.Keyword);
     reading.expect('<', HighlightToken.Operator);
     const type = parseTYPE(reading);
-    if (type === null) {
+    if (type === undefined) {
         diagnostic.addError(reading.next().location, "Expected type");
         return 'pending';
     }
     reading.expect('>', HighlightToken.Operator);
     reading.expect('(', HighlightToken.Operator);
     const assign = parseASSIGN(reading);
-    if (assign === null) {
+    if (assign === undefined) {
         diagnostic.addError(reading.next().location, "Expected expression");
         return 'pending';
     }
@@ -1101,7 +1101,11 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
     if (reading.next().text !== 'function') return 'mismatch';
     reading.confirm(HighlightToken.Keyword);
     reading.expect('(', HighlightToken.Operator);
-    const params: { type: NodeTYPE | null, typeMod: TypeModifier | null, identifier: TokenObject | null }[] = [];
+    const params: {
+        type: NodeTYPE | undefined,
+        typeMod: TypeModifier | undefined,
+        identifier: TokenObject | undefined
+    }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
             reading.confirm(HighlightToken.Operator);
@@ -1113,14 +1117,14 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
 
         if (reading.next(0).kind === 'identifier' && reading.next(1).kind === 'reserved') {
             reading.confirm(HighlightToken.Parameter);
-            params.push({type: null, typeMod: null, identifier: reading.next()});
+            params.push({type: undefined, typeMod: undefined, identifier: reading.next()});
             continue;
         }
 
         const type = parseTYPE(reading);
-        const typeMod = type !== null ? parseTYPEMOD(reading) : null;
+        const typeMod = type !== undefined ? parseTYPEMOD(reading) : undefined;
 
-        let identifier: TokenObject | null = null;
+        let identifier: TokenObject | undefined = undefined;
         if (reading.next().kind === 'identifier') {
             identifier = reading.next();
             reading.confirm(HighlightToken.Parameter);
@@ -1128,7 +1132,7 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
         params.push({type: type, typeMod: typeMod, identifier: identifier});
     }
     const statBlock = parseSTATBLOCK(reading);
-    if (statBlock === null) {
+    if (statBlock === undefined) {
         diagnostic.addError(reading.next().location, "Expected statement block 🪔");
         return 'pending';
     }
@@ -1154,23 +1158,23 @@ function parseLITERAL(reading: ReadingState) {
         reading.confirm(HighlightToken.Builtin);
         return next;
     }
-    return null;
+    return undefined;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-function parseFUNCCALL(reading: ReadingState): NodeFUNCCALL | null {
+function parseFUNCCALL(reading: ReadingState): NodeFUNCCALL | undefined {
     const rollbackPos = reading.getPos();
     const scope = parseSCOPE(reading);
     const identifier = reading.next();
     if (identifier.kind !== 'identifier') {
         reading.setPos(rollbackPos);
-        return null;
+        return undefined;
     }
     reading.confirm(HighlightToken.Function);
     const argList = parseARGLIST(reading);
-    if (argList === null) {
+    if (argList === undefined) {
         reading.setPos(rollbackPos);
-        return null;
+        return undefined;
     }
     return {
         nodeName: 'FUNCCALL',
@@ -1181,14 +1185,14 @@ function parseFUNCCALL(reading: ReadingState): NodeFUNCCALL | null {
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function parseVARACCESS(reading: ReadingState): NodeVARACCESS | null {
+function parseVARACCESS(reading: ReadingState): NodeVARACCESS | undefined {
     const scope = parseSCOPE(reading);
     const next = reading.next();
     if (next.kind !== 'identifier') {
-        if (scope !== null) {
+        if (scope !== undefined) {
             diagnostic.addError(reading.next().location, "Expected identifier");
         }
-        return null;
+        return undefined;
     }
     const isBuiltin: boolean = next.text === 'this';
     reading.confirm(isBuiltin ? HighlightToken.Builtin : HighlightToken.Variable);
@@ -1200,10 +1204,10 @@ function parseVARACCESS(reading: ReadingState): NodeVARACCESS | null {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
-    if (reading.next().text !== '(') return null;
+function parseARGLIST(reading: ReadingState): NodeARGLIST | undefined {
+    if (reading.next().text !== '(') return undefined;
     reading.confirm(HighlightToken.Operator);
-    const args: { identifier: TokenObject | null, assign: NodeASSIGN }[] = [];
+    const args: { identifier: TokenObject | undefined, assign: NodeASSIGN }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
             reading.confirm(HighlightToken.Operator);
@@ -1212,14 +1216,14 @@ function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
         if (args.length > 0) {
             if (reading.expect(',', HighlightToken.Operator) === false) break;
         }
-        let identifier = null;
+        let identifier = undefined;
         if (reading.next().kind === 'identifier' && reading.next(1).text === ':') {
             identifier = reading.next();
             reading.confirm(HighlightToken.Parameter);
             reading.confirm(HighlightToken.Operator);
         }
         const assign = parseASSIGN(reading);
-        if (assign === null) {
+        if (assign === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression 🍡");
             reading.step();
             continue;
@@ -1233,41 +1237,41 @@ function parseARGLIST(reading: ReadingState): NodeARGLIST | null {
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function parseASSIGN(reading: ReadingState): NodeASSIGN | null {
+function parseASSIGN(reading: ReadingState): NodeASSIGN | undefined {
     const condition = parseCONDITION(reading);
-    if (condition === null) return null;
+    if (condition === undefined) return undefined;
     const op = parseASSIGNOP(reading);
     const result: NodeASSIGN = {
         nodeName: 'ASSIGN',
         condition: condition,
-        tail: null
+        tail: undefined
     };
-    if (op === null) return result;
+    if (op === undefined) return result;
     const assign = parseASSIGN(reading);
-    if (assign === null) return result;
+    if (assign === undefined) return result;
     result.tail = {op: op, assign: assign};
     return result;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-function parseCONDITION(reading: ReadingState): NodeCONDITION | null {
+function parseCONDITION(reading: ReadingState): NodeCONDITION | undefined {
     const expr = parseEXPR(reading);
-    if (expr === null) return null;
+    if (expr === undefined) return undefined;
     const result: NodeCONDITION = {
         nodeName: 'CONDITION',
         expr: expr,
-        ternary: null
+        ternary: undefined
     };
     if (reading.next().text === '?') {
         reading.confirm(HighlightToken.Operator);
         const ta = parseASSIGN(reading);
-        if (ta === null) {
+        if (ta === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression 🤹");
             return result;
         }
         reading.expect(':', HighlightToken.Operator);
         const fa = parseASSIGN(reading);
-        if (fa === null) {
+        if (fa === undefined) {
             diagnostic.addError(reading.next().location, "Expected expression 🤹");
             return result;
         }
@@ -1278,7 +1282,7 @@ function parseCONDITION(reading: ReadingState): NodeCONDITION | null {
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseEXPROP(reading: ReadingState) {
-    if (exprOpSet.has(reading.next().text) === false) return null;
+    if (exprOpSet.has(reading.next().text) === false) return undefined;
     const next = reading.next();
     reading.confirm(HighlightToken.Operator);
     return next;
@@ -1298,7 +1302,7 @@ const exprOpSet = new Set([
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseASSIGNOP(reading: ReadingState) {
-    if (assignOpSet.has(reading.next().text) === false) return null;
+    if (assignOpSet.has(reading.next().text) === false) return undefined;
     const next = reading.next();
     reading.confirm(HighlightToken.Operator);
     return next;
