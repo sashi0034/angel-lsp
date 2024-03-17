@@ -7,12 +7,19 @@ import {
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFUNC, NodeIF, NodePARAMLIST, NodeRETURN,
+    NodeFUNC, NodeFUNCCALL, NodeIF, NodePARAMLIST, NodeRETURN,
     NodeSCRIPT,
-    NodeSTATBLOCK, NodeSTATEMENT, NodeSWITCH,
+    NodeSTATBLOCK, NodeSTATEMENT, NodeSWITCH, NodeTYPE,
     NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
-import {findSymbolWithParent, SymbolicFunction, SymbolicType, SymbolicVariable, SymbolScope} from "./symbolics";
+import {
+    findSymbolicFunctionWithParent,
+    findSymbolicTypeWithParent, findSymbolicVariableWithParent,
+    SymbolicFunction,
+    SymbolicType,
+    SymbolicVariable,
+    SymbolScope
+} from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
 
 type AnalyzeQueue = {
@@ -111,6 +118,7 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
+    const type = analyzeTYPE(scope, ast.type);
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
         if (initializer !== null) {
@@ -119,7 +127,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
         }
         const variable: SymbolicVariable = {
             symbolKind: 'variable',
-            type: ast.type,
+            type: type,
             declare: var_.identifier,
             usage: [],
         };
@@ -149,15 +157,11 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
     for (const param of ast) {
         if (param.identifier === null) continue;
 
-        if (param.type.datatype.identifier.kind === 'identifier') {
-            if (findSymbolWithParent(scope, param.type.datatype.identifier.text, 'type') === null) {
-                diagnostic.addError(param.type.datatype.identifier.location, `Undefined type: ${param.type.datatype.identifier.text}`);
-            }
-        }
+        const type = analyzeTYPE(scope, param.type);
 
         scope.symbols.push({
             symbolKind: 'variable',
-            type: param.type,
+            type: type,
             declare: param.identifier,
             usage: [],
         });
@@ -165,7 +169,20 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+function analyzeTYPE(scope: SymbolScope, ast: NodeTYPE): SymbolicType | null {
+    if (ast.datatype.identifier.kind === 'identifier') {
+        const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier.text);
+        if (found !== null) {
+            found.usage.push(ast.datatype.identifier);
+            return found;
+        }
+        diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text}`);
+    }
+
+    return null;
+}
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
@@ -297,19 +314,35 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE) {
-    if (exprValue.nodeName === 'VARACCESS') {
+function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): SymbolicType | null {
+    switch (exprValue.nodeName) {
+    case 'CONSTRUCTCALL':
+        break;
+    case 'FUNCCALL':
+        return analyzeFUNCCALL(scope, exprValue);
+    case 'VARACCESS': {
         const token = exprValue.identifier;
-        const declared = findSymbolWithParent(scope, token.text, 'variable');
+        const declared = findSymbolicVariableWithParent(scope, token.text);
         if (declared === null) {
             diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
-            return;
+            return null;
         }
         declared.usage.push(token);
     }
-    if (exprValue.nodeName === 'ASSIGN') {
+        break;
+    case 'CAST':
+        break;
+    case 'LITERAL':
+        break;
+    case 'ASSIGN':
         analyzeASSIGN(scope, exprValue);
+        break;
+    case 'LAMBDA':
+        break;
+    default:
+        break;
     }
+    return null;
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
@@ -318,7 +351,19 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE) {
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): SymbolicType | null {
+    const func = findSymbolicFunctionWithParent(scope, funcCall.identifier.text);
+    if (func === null) {
+        diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
+        return null;
+    }
+    func.usage.push(funcCall.identifier);
+    analyzeARGLIST(scope, funcCall.argList);
+    return findSymbolicTypeWithParent(scope, func.returnType.nodeName);
+}
+
 // VARACCESS     ::= SCOPE IDENTIFIER
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
