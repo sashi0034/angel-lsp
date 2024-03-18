@@ -3,7 +3,7 @@
 import {
     NodeARGLIST,
     NodeASSIGN, NodeCASE, NodeCLASS, NodeCONDITION, NodeDOWHILE,
-    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRSTAT,
+    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRPOSTOP1, NodeEXPRSTAT,
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
@@ -14,7 +14,7 @@ import {
 } from "./nodes";
 import {
     builtinBoolType,
-    builtinNumberType, builtinVoidType, DeducedType,
+    builtinNumberType, builtinVoidType, DeducedType, findScopeWithParent,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent, findSymbolicVariableWithParent,
     SymbolicFunction,
@@ -23,7 +23,7 @@ import {
     SymbolScope
 } from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
-import {EssentialToken} from "./token";
+import {dummyToken, EssentialToken} from "./token";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeCLASS }[],
@@ -54,23 +54,24 @@ function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeCLASS) {
+function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, nodeClass: NodeCLASS) {
     const symbol: SymbolicType = {
         symbolKind: 'type',
-        declaredPlace: ast.identifier,
+        declaredPlace: nodeClass.identifier,
         usageList: [],
-        node: ast,
+        node: nodeClass,
     };
     const scope: SymbolScope = {
+        identifier: nodeClass.identifier,
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
-    queue.classQueue.push({scope, node: ast});
+    queue.classQueue.push({scope, node: nodeClass});
 
-    for (const member of ast.memberList) {
+    for (const member of nodeClass.memberList) {
         if (member.nodeName === 'VIRTPROP') {
             // TODO
         } else if (member.nodeName === 'FUNC') {
@@ -94,6 +95,7 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeFUN
         node: ast,
     };
     const scope: SymbolScope = {
+        identifier: ast.identifier,
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
@@ -378,22 +380,26 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Deduced
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP, exprValue: SymbolicType) {
     if (exprPostOp.postOp === 1) {
-        if ("nodeName" in exprPostOp.member) {
-            if (typeof (exprValue.node) === 'string' || exprValue.node.nodeName !== 'CLASS') {
-                diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
-                return undefined;
-            }
+        return analyzeEXPRPOSTOP1(scope, exprPostOp, exprValue);
+    }
+}
 
-            const method = findMethodInClass(exprValue.node, exprPostOp.member.identifier.text);
-            if (method === undefined) {
-                diagnostic.addError(exprPostOp.member.identifier.location, `Undefined method: ${exprPostOp.member.identifier.text}`);
-                return undefined;
-            }
-
-            // analyzeFunctionCall(scope, exprPostOp.member, method);
-        } else {
-            // TODO
+function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exprValue: SymbolicType) {
+    if ('nodeName' in exprPostOp.member) {
+        if (typeof (exprValue.node) === 'string' || exprValue.node.nodeName !== 'CLASS') {
+            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
+            return undefined;
         }
+
+        const classScope = findScopeWithParent(scope, exprValue.node.identifier.text);
+        if (classScope === undefined) {
+            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.node.identifier.text}`);
+            return undefined;
+        }
+
+        analyzeFUNCCALL(classScope, exprPostOp.member);
+    } else {
+        // TODO
     }
 }
 
@@ -493,6 +499,7 @@ export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION): 
 
 export function analyzeFromParsed(ast: NodeSCRIPT) {
     const globalScope: SymbolScope = {
+        identifier: dummyToken,
         parentScope: undefined,
         childScopes: [],
         symbolList: [],

@@ -27,6 +27,7 @@ export interface SymbolicVariable {
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
 export interface SymbolScope {
+    identifier: EssentialToken;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
@@ -79,5 +80,13 @@ function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: Symb
     }
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier, kind);
+}
+
+export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    for (const child of scope.childScopes) {
+        if (child.identifier.text === identifier) return child;
+    }
+    if (scope.parentScope === undefined) return undefined;
+    return findScopeWithParent(scope.parentScope, identifier);
 }
 
