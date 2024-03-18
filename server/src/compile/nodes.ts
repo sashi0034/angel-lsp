@@ -1,4 +1,4 @@
-import {ProgramToken} from "./token";
+import {EssentialToken} from "./token";
 import * as punycode from "punycode";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
@@ -19,21 +19,21 @@ export type NodeSCRIPT = (NodeCLASS | NodeVAR | NodeFUNC | NodeNAMESPACE)[];
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNAMESPACE extends NodeBase {
     nodeName: 'NAMESPACE'
-    namespaces: ProgramToken[],
+    namespaces: EssentialToken[],
     script: NodeSCRIPT
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface NodeENUM extends NodeBase {
     nodeName: 'ENUM'
-    identifier: ProgramToken,
+    identifier: EssentialToken,
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeCLASS extends NodeBase {
     nodeName: 'CLASS'
-    identifier: ProgramToken,
-    bases: ProgramToken[],
+    identifier: EssentialToken,
+    bases: EssentialToken[],
     members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 
@@ -45,10 +45,10 @@ export interface NodeFUNC extends NodeBase {
     entity: EntityModifier | undefined;
     accessor: AccessModifier;
     head: { returnType: NodeTYPE; isRef: boolean; } | '~';
-    identifier: ProgramToken;
+    identifier: EssentialToken;
     paramList: NodePARAMLIST;
     isConst: boolean;
-    funcAttr: ProgramToken | undefined;
+    funcAttr: EssentialToken | undefined;
     statBlock: NodeSTATBLOCK;
 }
 
@@ -60,7 +60,7 @@ export interface NodeVAR extends NodeBase {
     accessor: AccessModifier,
     type: NodeTYPE,
     variables: {
-        identifier: ProgramToken,
+        identifier: EssentialToken,
         initializer: NodeEXPR | NodeARGLIST | undefined
     }[];
 }
@@ -78,7 +78,7 @@ export interface NodeVIRTPROP extends NodeBase {
     modifier: 'private' | 'protected' | 'null',
     type: NodeTYPE,
     isRef: boolean,
-    identifier: ProgramToken,
+    identifier: EssentialToken,
     getter: [isConst: boolean, NodeSTATBLOCK | undefined] | undefined,
     setter: NodeFUNC | undefined
 }
@@ -93,7 +93,7 @@ export type NodeSTATBLOCK = {
 };
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = { type: NodeTYPE, identifier: ProgramToken | undefined }[];
+export type NodePARAMLIST = { type: NodeTYPE, identifier: EssentialToken | undefined }[];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
@@ -114,9 +114,9 @@ export interface NodeTYPE extends NodeBase {
 export interface NodeSCOPE extends NodeBase {
     nodeName: 'SCOPE'
     isGlobal: boolean,
-    namespaces: ProgramToken[],
+    namespaces: EssentialToken[],
     generic: {
-        className: ProgramToken,
+        className: EssentialToken,
         types: NodeTYPE[]
     } | undefined
 }
@@ -124,7 +124,7 @@ export interface NodeSCOPE extends NodeBase {
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export interface NodeDATATYPE extends NodeBase {
     nodeName: 'DATATYPE';
-    identifier: ProgramToken;
+    identifier: EssentialToken;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -216,7 +216,7 @@ export interface NodeCASE extends NodeBase {
 export interface NodeEXPR extends NodeBase {
     nodeName: 'EXPR'
     head: NodeEXPRTERM,
-    op: ProgramToken | undefined,
+    op: EssentialToken | undefined,
     tail: NodeEXPR | undefined
 }
 
@@ -227,14 +227,14 @@ export interface NodeEXPRTERM1 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 1
     type: NodeTYPE,
-    eq: ProgramToken | undefined,
+    eq: EssentialToken | undefined,
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeEXPRTERM2 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
-    preOp: ProgramToken | undefined,
+    preOp: EssentialToken | undefined,
     value: NodeEXPRVALUE,
     postOp: NodeEXPRPOSTOP | undefined
 }
@@ -265,14 +265,14 @@ export type NodeEXPRPOSTOP = NodeEXPRPOSTOP1 | NodeEXPRPOSTOP2 | NodeEXPRPOSTOP3
 export interface NodeEXPRPOSTOP1 extends NodeBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 1;
-    member: NodeFUNCCALL | ProgramToken;
+    member: NodeFUNCCALL | EssentialToken;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 export interface NodeEXPRPOSTOP2 extends NodeBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 2;
-    indexes: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[];
+    indexes: { identifier: EssentialToken | undefined, assign: NodeASSIGN }[];
 }
 
 // ARGLIST
@@ -299,21 +299,21 @@ export interface NodeCAST extends NodeBase {
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLAMBDA extends NodeBase {
     nodeName: 'LAMBDA';
-    params: { type: NodeTYPE | undefined, typeMod: TypeModifier | undefined, identifier: ProgramToken | undefined }[],
+    params: { type: NodeTYPE | undefined, typeMod: TypeModifier | undefined, identifier: EssentialToken | undefined }[],
     statBlock: NodeSTATBLOCK
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLITERAL extends NodeBase {
     nodeName: 'LITERAL';
-    value: ProgramToken;
+    value: EssentialToken;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFUNCCALL extends NodeBase {
     nodeName: 'FUNCCALL'
     scope: NodeSCOPE | undefined,
-    identifier: ProgramToken,
+    identifier: EssentialToken,
     argList: NodeARGLIST
 }
 
@@ -321,13 +321,13 @@ export interface NodeFUNCCALL extends NodeBase {
 export interface NodeVARACCESS extends NodeBase {
     nodeName: 'VARACCESS';
     scope: NodeSCOPE | undefined,
-    identifier: ProgramToken;
+    identifier: EssentialToken;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeARGLIST extends NodeBase {
     nodeName: 'ARGLIST';
-    args: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[];
+    args: { identifier: EssentialToken | undefined, assign: NodeASSIGN }[];
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
@@ -335,7 +335,7 @@ export interface NodeASSIGN extends NodeBase {
     nodeName: 'ASSIGN';
     condition: NodeCONDITION;
     tail: {
-        op: ProgramToken
+        op: EssentialToken
         assign: NodeASSIGN
     } | undefined;
 }
