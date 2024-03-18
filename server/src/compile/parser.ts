@@ -197,7 +197,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFUNC(parsing: ParsingState): NodeFUNC | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     const entity = parseEntityModifier(parsing);
     const accessor = parseAccessModifier(parsing);
     let head: { returnType: NodeTYPE; isRef: boolean; } | '~';
@@ -207,7 +207,7 @@ function parseFUNC(parsing: ParsingState): NodeFUNC | undefined {
     } else {
         const returnType = parseTYPE(parsing);
         if (returnType === undefined) {
-            parsing.setPos(rollbackPos);
+            parsing.backtrack(regionStart);
             return undefined;
         }
         const isRef = parsing.next().text === '&';
@@ -218,7 +218,7 @@ function parseFUNC(parsing: ParsingState): NodeFUNC | undefined {
     parsing.step();
     const paramList = parsePARAMLIST(parsing);
     if (paramList === undefined) {
-        parsing.setPos(rollbackPos);
+        parsing.backtrack(regionStart);
         return undefined;
     }
     const statBlock = parseSTATBLOCK(parsing) ?? {nodeName: 'STATBLOCK', statements: []};
@@ -249,7 +249,7 @@ function parseAccessModifier(parsing: ParsingState): AccessModifier {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function parseVAR(parsing: ParsingState): NodeVAR | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
 
     const accessor: AccessModifier = parseAccessModifier(parsing);
 
@@ -267,7 +267,7 @@ function parseVAR(parsing: ParsingState): NodeVAR | undefined {
         const identifier = parsing.next();
         if (identifier.kind !== 'identifier') {
             if (variables.length === 0) {
-                parsing.setPos(rollbackPos);
+                parsing.backtrack(regionStart);
                 return undefined;
             } else {
                 diagnostic.addError(parsing.next().location, "Expected identifier");
@@ -395,7 +395,7 @@ function parseTYPEMOD(parsing: ParsingState): TypeModifier | undefined {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     let isConst = false;
     if (parsing.next().text === 'const') {
         parsing.confirm(HighlightTokenKind.Keyword);
@@ -404,7 +404,7 @@ function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
     const scope = parseSCOPE(parsing);
     const datatype = parseDATATYPE(parsing);
     if (datatype === undefined) {
-        parsing.setPos(rollbackPos);
+        parsing.backtrack(regionStart);
         return undefined;
     }
     const generics = parseTypeParameters(parsing) ?? [];
@@ -421,7 +421,7 @@ function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
 
 // '<' TYPE {',' TYPE} '>'
 function parseTypeParameters(parsing: ParsingState): NodeTYPE[] | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     if (parsing.next().text !== '<') return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
     const generics: NodeTYPE[] = [];
@@ -432,14 +432,14 @@ function parseTypeParameters(parsing: ParsingState): NodeTYPE[] | undefined {
         }
         if (generics.length > 0) {
             if (parsing.next().text !== ',') {
-                parsing.setPos(rollbackPos);
+                parsing.backtrack(regionStart);
                 return undefined;
             }
             parsing.confirm(HighlightTokenKind.Operator);
         }
         const type = parseTYPE(parsing);
         if (type === undefined) {
-            parsing.setPos(rollbackPos);
+            parsing.backtrack(regionStart);
             return undefined;
         }
         generics.push(type);
@@ -471,11 +471,11 @@ function parseSCOPE(parsing: ParsingState): NodeSCOPE | undefined {
             namespaces.push(identifier);
             continue;
         } else if (parsing.next(1).text === '<') {
-            const rollbackPos = parsing.getPos();
+            const regionStart = parsing.next();
             parsing.confirm(HighlightTokenKind.Class);
             const types = parseTypeParameters(parsing);
             if (types === undefined || parsing.next().text !== '::') {
-                parsing.setPos(rollbackPos);
+                parsing.backtrack(regionStart);
                 break;
             }
             parsing.confirm(HighlightTokenKind.Operator);
@@ -852,7 +852,7 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     let pre = undefined;
     if (preOpSet.has(parsing.next().text)) {
         pre = parsing.next();
@@ -860,7 +860,7 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
     }
 
     const exprValue = parseEXPRVALUE(parsing);
-    if (exprValue === 'mismatch') parsing.setPos(rollbackPos);
+    if (exprValue === 'mismatch') parsing.backtrack(regionStart);
     if (exprValue === 'mismatch' || exprValue === 'pending') {
         return undefined;
     }
@@ -914,13 +914,13 @@ function parseEXPRVALUE(parsing: ParsingState): TriedParse<NodeEXPRVALUE> {
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 function parseCONSTRUCTCALL(parsing: ParsingState): NodeCONSTRUCTCALL | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     const type = parseTYPE(parsing);
     if (type === undefined) return undefined;
 
     const argList = parseARGLIST(parsing);
     if (argList === undefined) {
-        parsing.setPos(rollbackPos);
+        parsing.backtrack(regionStart);
         return undefined;
     }
 
@@ -1112,17 +1112,17 @@ function parseLITERAL(parsing: ParsingState) {
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function parseFUNCCALL(parsing: ParsingState): NodeFUNCCALL | undefined {
-    const rollbackPos = parsing.getPos();
+    const regionStart = parsing.next();
     const scope = parseSCOPE(parsing);
     const identifier = parsing.next();
     if (identifier.kind !== 'identifier') {
-        parsing.setPos(rollbackPos);
+        parsing.backtrack(regionStart);
         return undefined;
     }
     parsing.confirm(HighlightTokenKind.Function);
     const argList = parseARGLIST(parsing);
     if (argList === undefined) {
-        parsing.setPos(rollbackPos);
+        parsing.backtrack(regionStart);
         return undefined;
     }
     return {

@@ -13,24 +13,25 @@ export interface ParsingToken extends ProgramToken {
 export class ParsingState {
     public constructor(
         private tokens: ParsingToken[],
-        private pos: number = 0
+        private cursorIndex: number = 0
     ) {
     }
 
-    public getPos = () => this.pos;
-    public setPos = (pos: number) => this.pos = pos;
-
-    public isEnd(): boolean {
-        return this.pos >= this.tokens.length;
+    public backtrack(token: ParsingToken) {
+        this.cursorIndex = token.index;
     }
 
-    public next(step: number = 0): ProgramToken {
-        if (this.pos + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
-        return this.tokens[this.pos + step];
+    public isEnd(): boolean {
+        return this.cursorIndex >= this.tokens.length;
+    }
+
+    public next(step: number = 0): ParsingToken {
+        if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
+        return this.tokens[this.cursorIndex + step];
     }
 
     public step() {
-        this.pos++;
+        this.cursorIndex++;
     }
 
     public confirm(analyzeToken: HighlightTokenKind, analyzedModifier: HighlightModifierKind | undefined = undefined) {
