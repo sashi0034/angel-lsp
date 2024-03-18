@@ -13,7 +13,8 @@ import {
     NodeVAR, NodeVARACCESS, NodeWHILE
 } from "./nodes";
 import {
-    builtinNumberType,
+    builtinBoolType,
+    builtinNumberType, builtinVoidType,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent, findSymbolicVariableWithParent,
     SymbolicFunction,
@@ -62,10 +63,10 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeCL
     const scope: SymbolScope = {
         parentScope: parentScope,
         childScopes: [],
-        symbols: [symbol],
+        symbolList: [symbol],
     };
     parentScope.childScopes.push(scope);
-    parentScope.symbols.push(symbol);
+    parentScope.symbolList.push(symbol);
     queue.classQueue.push({scope, node: ast});
 
     for (const member of ast.members) {
@@ -94,10 +95,10 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeFUN
     const scope: SymbolScope = {
         parentScope: parentScope,
         childScopes: [],
-        symbols: [symbol],
+        symbolList: [symbol],
     };
     parentScope.childScopes.push(scope);
-    parentScope.symbols.push(symbol);
+    parentScope.symbolList.push(symbol);
     queue.funcQueue.push({scope, node: ast});
 }
 
@@ -131,7 +132,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
             declaredPlace: var_.identifier,
             usageList: [],
         };
-        scope.symbols.push(variable);
+        scope.symbolList.push(variable);
     }
 }
 
@@ -159,7 +160,7 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
 
         const type = analyzeTYPE(scope, param.type);
 
-        scope.symbols.push({
+        scope.symbolList.push({
             symbolKind: 'variable',
             type: type,
             declaredPlace: param.identifier,
@@ -172,26 +173,34 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeTYPE(scope: SymbolScope, ast: NodeTYPE): SymbolicType | undefined {
-    if (ast.datatype.identifier.kind === 'identifier') {
-        const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier.text);
-        if (found !== undefined) {
-            found.usageList.push(ast.datatype.identifier);
-            return found;
-        }
-        diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text}`);
+    const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
+    if (found !== undefined) {
+        found.usageList.push(ast.datatype.identifier);
+        return found;
     }
-
-    return undefined;
+    diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text}`);
 }
 
 function isTypeMatch(src: SymbolicType, dest: SymbolicType) {
-    if (src.declaredPlace.kind === 'identifier' && dest.declaredPlace.kind === 'identifier') {
-        if (src.declaredPlace.text !== dest.declaredPlace.text) {
+    const srcNode = src.node;
+    if (srcNode === 'void') {
+        return false;
+    }
+    if (srcNode === 'number') {
+        return dest.node === 'number';
+    }
+    if (srcNode === 'bool') {
+        return dest.node === 'bool';
+    }
+    // TODO : 継承などに対応
+    if (srcNode.nodeName === 'CLASS') {
+        if (typeof (dest.node) === 'string' || dest.node.nodeName !== 'CLASS') {
             return false;
         }
+        return srcNode.identifier.text === dest.node.identifier.text;
     }
-    // TODO
-    return true;
+
+    return false;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -362,6 +371,10 @@ function analyzeLITERAL(scope: SymbolScope, literal: NodeLITERAL): SymbolicType 
     if (literal.value.kind === 'number') {
         return builtinNumberType;
     }
+    const literalText = literal.value.text;
+    if (literalText === 'true' || literalText === 'false') {
+        return builtinBoolType;
+    }
     // TODO
     return undefined;
 }
@@ -380,7 +393,7 @@ function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): SymbolicTy
     if (argTypes.length === calleeFunc.node.paramList.length) {
         for (let i = 0; i < argTypes.length; i++) {
             const actualType = argTypes[i];
-            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.node.paramList[i].type.datatype.identifier.text);
+            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.node.paramList[i].type.datatype.identifier);
             if (actualType === undefined || expectedType === undefined) continue;
             if (isTypeMatch(actualType, expectedType) === false) {
                 diagnostic.addError(funcCall.identifier.location, `Argument type mismatch: ${funcCall.identifier.text}`);
@@ -436,7 +449,7 @@ export function analyzeFromParsed(ast: NodeSCRIPT) {
     const globalScope: SymbolScope = {
         parentScope: undefined,
         childScopes: [],
-        symbols: [],
+        symbolList: [],
     };
 
     const queue: AnalyzeQueue = {

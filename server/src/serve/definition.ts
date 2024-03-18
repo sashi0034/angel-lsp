@@ -3,7 +3,7 @@ import {Position} from "vscode-languageserver";
 import {TokenObject} from "../compile/token";
 
 export function jumpDefinition(scope: SymbolScope, caret: Position): TokenObject | null {
-    for (const symbol of scope.symbols) {
+    for (const symbol of scope.symbolList) {
         // スコープ内のシンボルを検索
         for (const usage of symbol.usageList) {
             // そのシンボルの使用箇所を検索

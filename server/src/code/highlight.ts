@@ -1,6 +1,6 @@
 // https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide
 
-export enum HighlightToken {
+export enum HighlightTokenKind {
     Namespace, // For identifiers that declare or reference a namespace, module, or package.
     Class, // For identifiers that declare or reference a class type.
     Enum, // For identifiers that declare or reference an enumeration type.
@@ -54,7 +54,7 @@ export const highlightTokens = [
     'builtin',
 ];
 
-export enum HighlightModifier {
+export enum HighlightModifierKind {
     Declaration, // For declarations of symbols.
     Definition, // For definitions of symbols, for example, in header files.
     Readonly, // For readonly variables and member fields (constants).

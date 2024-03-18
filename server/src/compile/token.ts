@@ -1,22 +1,24 @@
 import {Position, URI} from "vscode-languageserver";
-import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
-export type RowToken = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
+export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
 
-export interface Location {
+export interface LocationInfo {
     uri: URI,
     start: Position,
     end: Position,
 }
 
+export interface HighlightInfo {
+    token: HighlightTokenKind;
+    modifier: HighlightModifierKind;
+}
+
 export interface TokenObject {
-    kind: RowToken;
+    kind: TokenKind;
     text: string;
-    location: Location;
-    highlight: {
-        token: HighlightToken
-        modifier: HighlightModifier
-    };
+    location: LocationInfo;
+    highlight: HighlightInfo;
 }
 
 export const dummyToken: TokenObject = {
@@ -27,5 +29,5 @@ export const dummyToken: TokenObject = {
         start: {line: 0, character: 0},
         end: {line: 0, character: 0},
     },
-    highlight: {token: HighlightToken.Builtin, modifier: HighlightModifier.Invalid},
-};
+    highlight: {token: HighlightTokenKind.Builtin, modifier: HighlightModifierKind.Invalid},
+} as const;

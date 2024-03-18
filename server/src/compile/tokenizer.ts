@@ -1,7 +1,7 @@
 import {Position, URI} from 'vscode-languageserver';
-import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {Trie} from "../utils/trie";
-import {Location, TokenObject} from "./token";
+import {HighlightInfo, LocationInfo, TokenObject} from "./token";
 import {diagnostic} from "../code/diagnostic";
 
 class ReadingState {
@@ -196,7 +196,7 @@ function tryIdentifier(reading: ReadingState) {
     return result;
 }
 
-function dummyHighlight(token: HighlightToken, modifier: HighlightModifier) {
+function dummyHighlight(token: HighlightTokenKind, modifier: HighlightModifierKind): HighlightInfo {
     return {
         token: token,
         modifier: modifier,
@@ -206,9 +206,9 @@ function dummyHighlight(token: HighlightToken, modifier: HighlightModifier) {
 // 英数字や記号以外の文字列のバッファ
 class UnknownBuffer {
     private buffer: string = "";
-    private location: Location | null = null;
+    private location: LocationInfo | null = null;
 
-    public append(head: Location, next: string) {
+    public append(head: LocationInfo, next: string) {
         if (this.location === null) this.location = head;
         else if (head.start.line !== this.location.start.line
             || head.start.character - this.location.end.character > 1) {
@@ -255,7 +255,7 @@ export function tokenize(str: string, uri: URI) {
                 kind: "comment",
                 text: triedComment,
                 location: location,
-                highlight: dummyHighlight(HighlightToken.Comment, HighlightModifier.Invalid)
+                highlight: dummyHighlight(HighlightTokenKind.Comment, HighlightModifierKind.Invalid)
             });
             continue;
         }
@@ -268,7 +268,7 @@ export function tokenize(str: string, uri: URI) {
                 kind: "number",
                 text: triedNumber,
                 location: location,
-                highlight: dummyHighlight(HighlightToken.Number, HighlightModifier.Invalid)
+                highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
             });
             continue;
         }
@@ -281,7 +281,7 @@ export function tokenize(str: string, uri: URI) {
                 kind: "string",
                 text: triedString,
                 location: location,
-                highlight: dummyHighlight(HighlightToken.String, HighlightModifier.Invalid)
+                highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
             });
             continue;
         }
@@ -294,7 +294,7 @@ export function tokenize(str: string, uri: URI) {
                 kind: "reserved",
                 text: triedSymbol,
                 location: location,
-                highlight: dummyHighlight(HighlightToken.Keyword, HighlightModifier.Invalid)
+                highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
             });
             continue;
         }
@@ -309,8 +309,8 @@ export function tokenize(str: string, uri: URI) {
                 text: triedIdentifier,
                 location: location,
                 highlight: dummyHighlight(
-                    isReserved ? HighlightToken.Keyword : HighlightToken.Variable,
-                    HighlightModifier.Invalid)
+                    isReserved ? HighlightTokenKind.Keyword : HighlightTokenKind.Variable,
+                    HighlightModifierKind.Invalid)
             });
             continue;
         }
