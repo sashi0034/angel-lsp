@@ -34,7 +34,7 @@ export interface NodeCLASS extends NodeBase {
     nodeName: 'CLASS'
     identifier: EssentialToken,
     bases: EssentialToken[],
-    members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
+    memberList: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'

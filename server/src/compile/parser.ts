@@ -189,7 +189,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
         nodeName: 'CLASS',
         identifier: identifier,
         bases: bases,
-        members: members
+        memberList: members
     };
 }
 

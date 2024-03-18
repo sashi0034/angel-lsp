@@ -3,7 +3,7 @@
 import {
     NodeARGLIST,
     NodeASSIGN, NodeCASE, NodeCLASS, NodeCONDITION, NodeDOWHILE,
-    NodeEXPR, NodeEXPRSTAT,
+    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRSTAT,
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
@@ -23,6 +23,7 @@ import {
     SymbolScope
 } from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
+import {EssentialToken} from "./token";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeCLASS }[],
@@ -69,7 +70,7 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeCL
     parentScope.symbolList.push(symbol);
     queue.classQueue.push({scope, node: ast});
 
-    for (const member of ast.members) {
+    for (const member of ast.memberList) {
         if (member.nodeName === 'VIRTPROP') {
             // TODO
         } else if (member.nodeName === 'FUNC') {
@@ -332,9 +333,17 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM): SymbolicType | 
     if (ast.exprTerm === 1) {
         // TODO
     } else if (ast.exprTerm === 2) {
-        return analyzeEXPRVALUE(scope, ast.value);
+        return analyzeEXPRTERM2(scope, ast);
     }
     return undefined;
+}
+
+function analyzeEXPRTERM2(scope: SymbolScope, exprTerm: NodeEXPRTERM2) {
+    const exprValue = analyzeEXPRVALUE(scope, exprTerm.value);
+    if (exprTerm.postOp !== undefined && exprValue !== undefined) {
+        analyzeEXPRPOSTOP(scope, exprTerm.postOp, exprValue);
+    }
+    return exprValue;
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
@@ -363,7 +372,38 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Symboli
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP, exprValue: SymbolicType) {
+    if (exprPostOp.postOp === 1) {
+        if ("nodeName" in exprPostOp.member) {
+            if (typeof (exprValue.node) === 'string' || exprValue.node.nodeName !== 'CLASS') {
+                diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
+                return undefined;
+            }
+
+            const method = findMethodInClass(exprValue.node, exprPostOp.member.identifier.text);
+            if (method === undefined) {
+                diagnostic.addError(exprPostOp.member.identifier.location, `Undefined method: ${exprPostOp.member.identifier.text}`);
+                return undefined;
+            }
+
+            // analyzeFunctionCall(scope, exprPostOp.member, method);
+        } else {
+            // TODO
+        }
+    }
+}
+
+function findMethodInClass(nodeClass: NodeCLASS, identifier: string): NodeFUNC | undefined {
+    for (const member of nodeClass.memberList) {
+        if (member.nodeName === 'FUNC' && member.identifier.text === identifier) {
+            return member;
+        }
+    }
+    return undefined;
+}
+
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
@@ -386,6 +426,10 @@ function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): SymbolicTy
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
         return undefined;
     }
+    return analyzeFunctionCall(scope, funcCall, calleeFunc);
+}
+
+function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFUNCCALL, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.node.head;
     const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
     calleeFunc.usageList.push(funcCall.identifier);
