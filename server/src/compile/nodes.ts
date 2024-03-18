@@ -33,7 +33,7 @@ export interface NodeENUM extends NodeBase {
 export interface NodeCLASS extends NodeBase {
     nodeName: 'CLASS'
     identifier: EssentialToken,
-    bases: EssentialToken[],
+    baseList: EssentialToken[],
     memberList: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 

@@ -32,6 +32,10 @@ export interface SymbolScope {
     symbolList: SymbolicObject[];
 }
 
+export interface DeducedType {
+    symbol: SymbolicType;
+}
+
 function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
     return {
         symbolKind: 'type',

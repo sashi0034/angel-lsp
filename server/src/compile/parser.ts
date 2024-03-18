@@ -188,7 +188,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
     return {
         nodeName: 'CLASS',
         identifier: identifier,
-        bases: bases,
+        baseList: bases,
         memberList: members
     };
 }
