@@ -7,6 +7,7 @@ import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
 import {SymbolScope} from "../compile/symbolics";
 import {SemanticTokens} from "vscode-languageserver-protocol";
+import {ParsingToken} from "../compile/parsing";
 
 // TODO: 複数ファイルに対応
 let s_builtAnalyzed: SymbolScope | null = null;
@@ -35,9 +36,14 @@ export function buildSemanticTokens(document: string, uri: URI): SemanticTokens 
     return builder.build();
 }
 
-function filterTokens(tokens: ProgramToken[]): ProgramToken[] {
+function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
     // コメント除去
-    const actualTokens = tokens.filter(t => t.kind !== 'comment');
+    const actualTokens = tokens.filter(t => t.kind !== 'comment').map(token => {
+        return {
+            ...token,
+            index: -1
+        };
+    });
 
     // 連続する文字列の結合
     for (let i = actualTokens.length - 1; i >= 1; i--) {
@@ -51,10 +57,15 @@ function filterTokens(tokens: ProgramToken[]): ProgramToken[] {
                     start: actualTokens[i - 1].location.start,
                     end: actualTokens[i].location.end
                 },
-                highlight: actualTokens[i - 1].highlight
+                highlight: actualTokens[i - 1].highlight,
+                index: -1
             };
             actualTokens.splice(i, 1);
         }
+    }
+
+    for (let i = 0; i < actualTokens.length; i++) {
+        actualTokens[i].index = i;
     }
     return actualTokens;
 }

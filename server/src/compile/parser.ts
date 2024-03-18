@@ -40,7 +40,7 @@ import {
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParsingState, TriedParse} from "./parsing";
+import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(parsing: ParsingState): NodeSCRIPT {
@@ -1261,7 +1261,7 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokens(tokens: ProgramToken[]): NodeSCRIPT {
+export function parseFromTokens(tokens: ParsingToken[]): NodeSCRIPT {
     const parsing = new ParsingState(tokens);
     const script: NodeSCRIPT = [];
     while (parsing.isEnd() === false) {

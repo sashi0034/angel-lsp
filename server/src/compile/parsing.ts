@@ -7,12 +7,12 @@ export type TriedParse<T> = 'mismatch' | 'pending' | T;
 // 診断メッセージは pending 発生時に発行する
 
 export interface ParsingToken extends ProgramToken {
-    pos: number;
+    index: number;
 }
 
 export class ParsingState {
     public constructor(
-        private tokens: ProgramToken[],
+        private tokens: ParsingToken[],
         private pos: number = 0
     ) {
     }
