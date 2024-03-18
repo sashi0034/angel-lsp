@@ -1,7 +1,7 @@
 import {Position, URI} from 'vscode-languageserver';
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {Trie} from "../utils/trie";
-import {HighlightInfo, LocationInfo, TokenObject} from "./token";
+import {HighlightInfo, LocationInfo, ProgramToken} from "./token";
 import {diagnostic} from "../code/diagnostic";
 
 class ReadingState {
@@ -229,7 +229,7 @@ class UnknownBuffer {
 }
 
 export function tokenize(str: string, uri: URI) {
-    const tokens: TokenObject[] = [];
+    const tokens: ProgramToken[] = [];
     const reading = new ReadingState(str);
     const unknownBuffer = new UnknownBuffer();
 

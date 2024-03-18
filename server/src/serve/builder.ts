@@ -1,5 +1,5 @@
 import {SemanticTokensBuilder} from "vscode-languageserver/node";
-import {TokenObject} from "../compile/token";
+import {ProgramToken} from "../compile/token";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokens} from "../compile/parser";
@@ -35,7 +35,7 @@ export function buildSemanticTokens(document: string, uri: URI): SemanticTokens 
     return builder.build();
 }
 
-function filterTokens(tokens: TokenObject[]): TokenObject[] {
+function filterTokens(tokens: ProgramToken[]): ProgramToken[] {
     // コメント除去
     const actualTokens = tokens.filter(t => t.kind !== 'comment');
 
@@ -59,7 +59,7 @@ function filterTokens(tokens: TokenObject[]): TokenObject[] {
     return actualTokens;
 }
 
-function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenObject) {
+function pushTokenToBuilder(builder: SemanticTokensBuilder, token: ProgramToken) {
     builder.push(
         token.location.start.line,
         token.location.start.character,

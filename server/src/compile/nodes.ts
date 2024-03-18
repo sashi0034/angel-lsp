@@ -1,9 +1,12 @@
-import {TokenObject} from "./token";
+import {ProgramToken} from "./token";
 import * as punycode from "punycode";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
+
 export type TypeModifier = 'in' | 'out' | 'inout';
+
 export type EntityModifier = { isShared: boolean, isExternal: boolean };
+
 export type ClassModifier = { isShared: boolean, isAbstract: boolean, isFinal: boolean, isExternal: boolean };
 
 export interface NodeBase {
@@ -16,21 +19,21 @@ export type NodeSCRIPT = (NodeCLASS | NodeVAR | NodeFUNC | NodeNAMESPACE)[];
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNAMESPACE extends NodeBase {
     nodeName: 'NAMESPACE'
-    namespaces: TokenObject[],
+    namespaces: ProgramToken[],
     script: NodeSCRIPT
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface NodeENUM extends NodeBase {
     nodeName: 'ENUM'
-    identifier: TokenObject,
+    identifier: ProgramToken,
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeCLASS extends NodeBase {
     nodeName: 'CLASS'
-    identifier: TokenObject,
-    bases: TokenObject[],
+    identifier: ProgramToken,
+    bases: ProgramToken[],
     members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[]
 }
 
@@ -42,10 +45,10 @@ export interface NodeFUNC extends NodeBase {
     entity: EntityModifier | undefined;
     accessor: AccessModifier;
     head: { returnType: NodeTYPE; isRef: boolean; } | '~';
-    identifier: TokenObject;
+    identifier: ProgramToken;
     paramList: NodePARAMLIST;
     isConst: boolean;
-    funcAttr: TokenObject | undefined;
+    funcAttr: ProgramToken | undefined;
     statBlock: NodeSTATBLOCK;
 }
 
@@ -57,7 +60,7 @@ export interface NodeVAR extends NodeBase {
     accessor: AccessModifier,
     type: NodeTYPE,
     variables: {
-        identifier: TokenObject,
+        identifier: ProgramToken,
         initializer: NodeEXPR | NodeARGLIST | undefined
     }[];
 }
@@ -75,7 +78,7 @@ export interface NodeVIRTPROP extends NodeBase {
     modifier: 'private' | 'protected' | 'null',
     type: NodeTYPE,
     isRef: boolean,
-    identifier: TokenObject,
+    identifier: ProgramToken,
     getter: [isConst: boolean, NodeSTATBLOCK | undefined] | undefined,
     setter: NodeFUNC | undefined
 }
@@ -90,7 +93,7 @@ export type NodeSTATBLOCK = {
 };
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = { type: NodeTYPE, identifier: TokenObject | undefined }[];
+export type NodePARAMLIST = { type: NodeTYPE, identifier: ProgramToken | undefined }[];
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
@@ -111,9 +114,9 @@ export interface NodeTYPE extends NodeBase {
 export interface NodeSCOPE extends NodeBase {
     nodeName: 'SCOPE'
     isGlobal: boolean,
-    namespaces: TokenObject[],
+    namespaces: ProgramToken[],
     generic: {
-        className: TokenObject,
+        className: ProgramToken,
         types: NodeTYPE[]
     } | undefined
 }
@@ -121,7 +124,7 @@ export interface NodeSCOPE extends NodeBase {
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export interface NodeDATATYPE extends NodeBase {
     nodeName: 'DATATYPE';
-    identifier: TokenObject;
+    identifier: ProgramToken;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -213,7 +216,7 @@ export interface NodeCASE extends NodeBase {
 export interface NodeEXPR extends NodeBase {
     nodeName: 'EXPR'
     head: NodeEXPRTERM,
-    op: TokenObject | undefined,
+    op: ProgramToken | undefined,
     tail: NodeEXPR | undefined
 }
 
@@ -224,14 +227,14 @@ export interface NodeEXPRTERM1 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 1
     type: NodeTYPE,
-    eq: TokenObject | undefined,
+    eq: ProgramToken | undefined,
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeEXPRTERM2 extends NodeBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
-    preOp: TokenObject | undefined,
+    preOp: ProgramToken | undefined,
     value: NodeEXPRVALUE,
     postOp: NodeEXPRPOSTOP | undefined
 }
@@ -262,14 +265,14 @@ export type NodeEXPRPOSTOP = NodeEXPRPOSTOP1 | NodeEXPRPOSTOP2 | NodeEXPRPOSTOP3
 export interface NodeEXPRPOSTOP1 extends NodeBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 1;
-    member: NodeFUNCCALL | TokenObject;
+    member: NodeFUNCCALL | ProgramToken;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 export interface NodeEXPRPOSTOP2 extends NodeBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 2;
-    indexes: { identifier: TokenObject | undefined, assign: NodeASSIGN }[];
+    indexes: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[];
 }
 
 // ARGLIST
@@ -296,21 +299,21 @@ export interface NodeCAST extends NodeBase {
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLAMBDA extends NodeBase {
     nodeName: 'LAMBDA';
-    params: { type: NodeTYPE | undefined, typeMod: TypeModifier | undefined, identifier: TokenObject | undefined }[],
+    params: { type: NodeTYPE | undefined, typeMod: TypeModifier | undefined, identifier: ProgramToken | undefined }[],
     statBlock: NodeSTATBLOCK
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLITERAL extends NodeBase {
     nodeName: 'LITERAL';
-    value: TokenObject;
+    value: ProgramToken;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFUNCCALL extends NodeBase {
     nodeName: 'FUNCCALL'
     scope: NodeSCOPE | undefined,
-    identifier: TokenObject,
+    identifier: ProgramToken,
     argList: NodeARGLIST
 }
 
@@ -318,13 +321,13 @@ export interface NodeFUNCCALL extends NodeBase {
 export interface NodeVARACCESS extends NodeBase {
     nodeName: 'VARACCESS';
     scope: NodeSCOPE | undefined,
-    identifier: TokenObject;
+    identifier: ProgramToken;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeARGLIST extends NodeBase {
     nodeName: 'ARGLIST';
-    args: { identifier: TokenObject | undefined, assign: NodeASSIGN }[];
+    args: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[];
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
@@ -332,7 +335,7 @@ export interface NodeASSIGN extends NodeBase {
     nodeName: 'ASSIGN';
     condition: NodeCONDITION;
     tail: {
-        op: TokenObject
+        op: ProgramToken
         assign: NodeASSIGN
     } | undefined;
 }

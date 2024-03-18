@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import {TokenObject} from "./token";
+import {ProgramToken} from "./token";
 import {
     AccessModifier, EntityModifier,
     NodeARGLIST,
@@ -47,7 +47,7 @@ type TriedParse<T> = 'mismatch' | 'pending' | T;
 
 class ReadingState {
     public constructor(
-        private tokens: TokenObject[],
+        private tokens: ProgramToken[],
         private pos: number = 0
     ) {
     }
@@ -59,7 +59,7 @@ class ReadingState {
         return this.pos >= this.tokens.length;
     }
 
-    public next(step: number = 0): TokenObject {
+    public next(step: number = 0): ProgramToken {
         if (this.pos + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
         return this.tokens[this.pos + step];
     }
@@ -132,7 +132,7 @@ function parseNAMESPACE(reading: ReadingState): TriedParse<NodeNAMESPACE> {
     if (reading.next().text !== 'namespace') return 'mismatch';
     reading.confirm(HighlightTokenKind.Builtin);
 
-    const namespaces: TokenObject[] = [];
+    const namespaces: ProgramToken[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === '{') {
             if (namespaces.length === 0) {
@@ -196,7 +196,7 @@ function parseCLASS(reading: ReadingState): TriedParse<NodeCLASS> {
         return 'pending';
     }
     reading.confirm(HighlightTokenKind.Class);
-    const bases: TokenObject[] = [];
+    const bases: ProgramToken[] = [];
     if (reading.next().text === ':') {
         reading.confirm(HighlightTokenKind.Operator);
         while (reading.isEnd() === false) {
@@ -310,7 +310,7 @@ function parseVAR(reading: ReadingState): NodeVAR | undefined {
         return undefined;
     }
     const variables: {
-        identifier: TokenObject,
+        identifier: ProgramToken,
         initializer: NodeEXPR | NodeARGLIST | undefined
     }[] = [];
     while (reading.isEnd() === false) {
@@ -510,7 +510,7 @@ function parseSCOPE(reading: ReadingState): NodeSCOPE | undefined {
         reading.confirm(HighlightTokenKind.Operator);
         isGlobal = true;
     }
-    const namespaces: TokenObject[] = [];
+    const namespaces: ProgramToken[] = [];
     while (reading.isEnd() === false) {
         const identifier = reading.next(0);
         if (identifier.kind !== 'identifier') {
@@ -1039,7 +1039,7 @@ function parseEXPRPOSTOP1(reading: ReadingState): NodeEXPRPOSTOP1 | undefined {
 function parseEXPRPOSTOP2(reading: ReadingState): NodeEXPRPOSTOP2 | undefined {
     if (reading.next().text !== '[') return undefined;
     reading.confirm(HighlightTokenKind.Operator);
-    const indexes: { identifier: TokenObject | undefined, assign: NodeASSIGN }[] = [];
+    const indexes: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ']') {
             if (indexes.length === 0) {
@@ -1104,7 +1104,7 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
     const params: {
         type: NodeTYPE | undefined,
         typeMod: TypeModifier | undefined,
-        identifier: TokenObject | undefined
+        identifier: ProgramToken | undefined
     }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
@@ -1124,7 +1124,7 @@ const parseLAMBDA = (reading: ReadingState): TriedParse<NodeLAMBDA> => {
         const type = parseTYPE(reading);
         const typeMod = type !== undefined ? parseTYPEMOD(reading) : undefined;
 
-        let identifier: TokenObject | undefined = undefined;
+        let identifier: ProgramToken | undefined = undefined;
         if (reading.next().kind === 'identifier') {
             identifier = reading.next();
             reading.confirm(HighlightTokenKind.Parameter);
@@ -1207,7 +1207,7 @@ function parseVARACCESS(reading: ReadingState): NodeVARACCESS | undefined {
 function parseARGLIST(reading: ReadingState): NodeARGLIST | undefined {
     if (reading.next().text !== '(') return undefined;
     reading.confirm(HighlightTokenKind.Operator);
-    const args: { identifier: TokenObject | undefined, assign: NodeASSIGN }[] = [];
+    const args: { identifier: ProgramToken | undefined, assign: NodeASSIGN }[] = [];
     while (reading.isEnd() === false) {
         if (reading.next().text === ')') {
             reading.confirm(HighlightTokenKind.Operator);
@@ -1312,7 +1312,7 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokens(tokens: TokenObject[]): NodeSCRIPT {
+export function parseFromTokens(tokens: ProgramToken[]): NodeSCRIPT {
     const reading = new ReadingState(tokens);
     const script: NodeSCRIPT = [];
     while (reading.isEnd() === false) {

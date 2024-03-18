@@ -1,8 +1,8 @@
 import {SymbolScope} from "../compile/symbolics";
 import {Position} from "vscode-languageserver";
-import {TokenObject} from "../compile/token";
+import {EssentialToken} from "../compile/token";
 
-export function jumpDefinition(scope: SymbolScope, caret: Position): TokenObject | null {
+export function jumpDefinition(scope: SymbolScope, caret: Position): EssentialToken | null {
     for (const symbol of scope.symbolList) {
         // スコープ内のシンボルを検索
         for (const usage of symbol.usageList) {

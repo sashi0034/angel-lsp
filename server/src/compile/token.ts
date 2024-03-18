@@ -14,14 +14,17 @@ export interface HighlightInfo {
     modifier: HighlightModifierKind;
 }
 
-export interface TokenObject {
+export interface EssentialToken {
     kind: TokenKind;
     text: string;
     location: LocationInfo;
+}
+
+export interface ProgramToken extends EssentialToken {
     highlight: HighlightInfo;
 }
 
-export const dummyToken: TokenObject = {
+export const dummyToken: EssentialToken = {
     kind: 'reserved',
     text: '',
     location: {
@@ -29,5 +32,4 @@ export const dummyToken: TokenObject = {
         start: {line: 0, character: 0},
         end: {line: 0, character: 0},
     },
-    highlight: {token: HighlightTokenKind.Builtin, modifier: HighlightModifierKind.Invalid},
 } as const;

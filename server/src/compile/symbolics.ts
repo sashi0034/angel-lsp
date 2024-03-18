@@ -1,27 +1,27 @@
-import {dummyToken, TokenObject} from "./token";
+import {dummyToken, EssentialToken} from "./token";
 import {NodeCLASS, NodeENUM, NodeFUNC, NodeFUNCDEF, NodePARAMLIST, NodeTYPE} from "./nodes";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
 export interface SymbolicType {
     symbolKind: 'type';
-    declaredPlace: TokenObject;
-    usageList: TokenObject[];
+    declaredPlace: EssentialToken;
+    usageList: EssentialToken[];
     node: NodeENUM | NodeCLASS | 'bool' | 'number' | 'void';
 }
 
 export interface SymbolicFunction {
     symbolKind: 'function';
-    declaredPlace: TokenObject;
-    usageList: TokenObject[];
+    declaredPlace: EssentialToken;
+    usageList: EssentialToken[];
     node: NodeFUNC;
 }
 
 export interface SymbolicVariable {
     symbolKind: 'variable';
     type: SymbolicType | undefined;
-    declaredPlace: TokenObject;
-    usageList: TokenObject[];
+    declaredPlace: EssentialToken;
+    usageList: EssentialToken[];
 }
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
@@ -47,7 +47,7 @@ export const builtinBoolType: SymbolicType = createBuiltinType('bool');
 
 export const builtinVoidType: SymbolicType = createBuiltinType('void');
 
-export function findSymbolicTypeWithParent(scope: SymbolScope, token: TokenObject): SymbolicType | undefined {
+export function findSymbolicTypeWithParent(scope: SymbolScope, token: EssentialToken): SymbolicType | undefined {
     const tokenText = token.text;
     if (token.kind === 'reserved') {
         if ((tokenText === 'bool')) return builtinBoolType;
