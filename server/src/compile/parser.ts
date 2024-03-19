@@ -21,21 +21,21 @@ import {
     NodeEXPRTERM2,
     NodeEXPRVALUE,
     NodeFOR,
-    NodeFUNC,
+    NodeFunc,
     NodeFUNCCALL,
-    NodeFUNCDEF,
-    NodeIF, NodeLAMBDA, NodeLITERAL, NodeNAMESPACE,
+    NodeFuncDef,
+    NodeIF, NodeLAMBDA, NodeLITERAL, NodeNamespace,
     NodePARAMLIST,
     NodeRETURN,
     NodeSCOPE,
-    NodeSCRIPT,
+    NodeScript,
     NodeSTATBLOCK,
-    NodeSTATEMENT,
+    NodeStatement,
     NodeSWITCH,
     NodeTYPE,
-    NodeVAR,
+    NodeVar,
     NodeVARACCESS,
-    NodeVIRTPROP,
+    NodeVirtProp,
     NodeWHILE, TypeModifier
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
@@ -43,8 +43,8 @@ import {HighlightTokenKind} from "../code/highlight";
 import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function parseSCRIPT(parsing: ParsingState): NodeSCRIPT {
-    const script: NodeSCRIPT = [];
+function parseSCRIPT(parsing: ParsingState): NodeScript {
+    const script: NodeScript = [];
     while (parsing.isEnd() === false) {
         const func = parseFUNC(parsing);
         if (func !== undefined) {
@@ -77,7 +77,7 @@ function parseSCRIPT(parsing: ParsingState): NodeSCRIPT {
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNAMESPACE> {
+function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
     if (parsing.next().text !== 'namespace') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
@@ -165,7 +165,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
         }
     }
     parsing.expect('{', HighlightTokenKind.Operator);
-    const members: (NodeVIRTPROP | NodeVAR | NodeFUNC | NodeFUNCDEF)[] = [];
+    const members: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
     for (; ;) {
         if (parsing.isEnd()) {
             diagnostic.addError(parsing.next().location, "Unexpected end of file");
@@ -200,7 +200,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFUNC(parsing: ParsingState): NodeFUNC | undefined {
+function parseFUNC(parsing: ParsingState): NodeFunc | undefined {
     const rangeStart = parsing.next();
     const entity = parseEntityModifier(parsing);
     const accessor = parseAccessModifier(parsing);
@@ -253,7 +253,7 @@ function parseAccessModifier(parsing: ParsingState): AccessModifier {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function parseVAR(parsing: ParsingState): NodeVAR | undefined {
+function parseVAR(parsing: ParsingState): NodeVar | undefined {
     const rangeStart = parsing.next();
 
     const accessor: AccessModifier = parseAccessModifier(parsing);
@@ -332,7 +332,7 @@ function parseVAR(parsing: ParsingState): NodeVAR | undefined {
 function parseSTATBLOCK(parsing: ParsingState): NodeSTATBLOCK | undefined {
     if (parsing.next().text !== '{') return undefined;
     parsing.step();
-    const statements: (NodeVAR | NodeSTATEMENT)[] = [];
+    const statements: (NodeVar | NodeStatement)[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
         const var_ = parseVAR(parsing);
@@ -545,7 +545,7 @@ const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', '
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeSTATEMENT> {
+function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     const if_ = parseIF(parsing);
     if (if_ === 'pending') return 'pending';
     if (if_ !== 'mismatch') return if_;
@@ -632,7 +632,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFOR> {
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
 
-    const initial: NodeEXPRSTAT | NodeVAR | undefined = parseEXPRSTAT(parsing) ?? parseVAR(parsing);
+    const initial: NodeEXPRSTAT | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVAR(parsing);
     if (initial === undefined) {
         diagnostic.addError(parsing.next().location, "Expected initial expression or variable declaration");
         return 'pending';
@@ -824,7 +824,7 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
         return 'mismatch';
     }
     parsing.expect(':', HighlightTokenKind.Operator);
-    const statements: NodeSTATEMENT[] = [];
+    const statements: NodeStatement[] = [];
     while (parsing.isEnd() === false) {
         const statement = parseSTATEMENT(parsing);
         if (statement === 'mismatch') break;
@@ -1320,9 +1320,9 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokens(tokens: ParsingToken[]): NodeSCRIPT {
+export function parseFromTokens(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
-    const script: NodeSCRIPT = [];
+    const script: NodeScript = [];
     while (parsing.isEnd() === false) {
         script.push(...parseSCRIPT(parsing));
         if (parsing.isEnd() === false) {

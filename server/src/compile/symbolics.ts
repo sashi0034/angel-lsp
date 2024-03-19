@@ -1,5 +1,5 @@
 import {dummyToken, EssentialToken} from "./token";
-import {NodeCLASS, NodeENUM, NodeFUNC, NodeFUNCDEF, NodeNAMESPACE, NodePARAMLIST, NodeTYPE} from "./nodes";
+import {NodeCLASS, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodePARAMLIST, NodeTYPE} from "./nodes";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
@@ -7,14 +7,14 @@ export interface SymbolicType {
     symbolKind: 'type';
     declaredPlace: EssentialToken;
     usageList: EssentialToken[];
-    sourceNode: NodeENUM | NodeCLASS | 'bool' | 'number' | 'void';
+    sourceNode: NodeEnum | NodeCLASS | 'bool' | 'number' | 'void';
 }
 
 export interface SymbolicFunction {
     symbolKind: 'function';
     declaredPlace: EssentialToken;
     usageList: EssentialToken[];
-    sourceNode: NodeFUNC;
+    sourceNode: NodeFunc;
 }
 
 export interface SymbolicVariable {
@@ -29,7 +29,7 @@ export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 type SingleNamespaceToken = EssentialToken;
 
 export interface SymbolScope {
-    ownerNode: NodeCLASS | NodeFUNC | SingleNamespaceToken | undefined;
+    ownerNode: NodeCLASS | NodeFunc | SingleNamespaceToken | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];

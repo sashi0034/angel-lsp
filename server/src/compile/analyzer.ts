@@ -17,18 +17,18 @@ import {
     NodeEXPRTERM2,
     NodeEXPRVALUE,
     NodeFOR,
-    NodeFUNC,
+    NodeFunc,
     NodeFUNCCALL,
     NodeIF,
-    NodeLITERAL, NodeNAMESPACE,
+    NodeLITERAL, NodeNamespace,
     NodePARAMLIST,
     NodeRETURN, NodeSCOPE,
-    NodeSCRIPT,
+    NodeScript,
     NodeSTATBLOCK,
-    NodeSTATEMENT,
+    NodeStatement,
     NodeSWITCH,
     NodeTYPE,
-    NodeVAR,
+    NodeVar,
     NodeVARACCESS,
     NodeWHILE
 } from "./nodes";
@@ -50,11 +50,11 @@ import {diagnostic} from "../code/diagnostic";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeCLASS }[],
-    funcQueue: { scope: SymbolScope, node: NodeFUNC }[],
+    funcQueue: { scope: SymbolScope, node: NodeFunc }[],
 };
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeSCRIPT) {
+function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeScript) {
     // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -68,7 +68,7 @@ function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
     }
 }
 
-function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeSCRIPT) {
+function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeScript) {
     // 実装分析
     for (const func of queue.funcQueue) {
         analyzeFUNC(func.scope, func.node);
@@ -76,7 +76,7 @@ function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNAMESPACE) {
+function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNamespace) {
     if (namespace_.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
@@ -135,7 +135,7 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFUNC) {
+function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
     if (func.head === '~') return;
     const symbol: SymbolicFunction = {
         symbolKind: 'function',
@@ -154,7 +154,7 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFU
     queue.funcQueue.push({scope, node: func});
 }
 
-function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
+function analyzeFUNC(scope: SymbolScope, ast: NodeFunc) {
     if (ast.head === '~') {
         analyzeSTATBLOCK(scope, ast.statBlock);
         return;
@@ -170,7 +170,7 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function analyzeVAR(scope: SymbolScope, ast: NodeVAR) {
+function analyzeVAR(scope: SymbolScope, ast: NodeVar) {
     const type = analyzeTYPE(scope, ast.type);
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
@@ -200,7 +200,7 @@ function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
         if (statement.nodeName === 'VAR') {
             analyzeVAR(scope, statement);
         } else {
-            analyzeSTATEMENT(scope, statement as NodeSTATEMENT);
+            analyzeSTATEMENT(scope, statement as NodeStatement);
         }
     }
 }
@@ -290,7 +290,7 @@ function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeSCOPE): SymbolSco
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function analyzeSTATEMENT(scope: SymbolScope, ast: NodeSTATEMENT) {
+function analyzeSTATEMENT(scope: SymbolScope, ast: NodeStatement) {
     switch (ast.nodeName) {
     case 'IF':
         analyzeIF(scope, ast);
@@ -564,7 +564,7 @@ export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION): 
     return ta;
 }
 
-export function analyzeFromParsed(ast: NodeSCRIPT) {
+export function analyzeFromParsed(ast: NodeScript) {
     const globalScope: SymbolScope = {
         ownerNode: undefined,
         parentScope: undefined,
