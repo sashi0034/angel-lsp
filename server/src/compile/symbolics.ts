@@ -1,5 +1,5 @@
 import {dummyToken, EssentialToken} from "./token";
-import {NodeCLASS, NodeENUM, NodeFUNC, NodeFUNCDEF, NodePARAMLIST, NodeTYPE} from "./nodes";
+import {NodeCLASS, NodeENUM, NodeFUNC, NodeFUNCDEF, NodeNAMESPACE, NodePARAMLIST, NodeTYPE} from "./nodes";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
@@ -7,14 +7,14 @@ export interface SymbolicType {
     symbolKind: 'type';
     declaredPlace: EssentialToken;
     usageList: EssentialToken[];
-    node: NodeENUM | NodeCLASS | 'bool' | 'number' | 'void';
+    sourceNode: NodeENUM | NodeCLASS | 'bool' | 'number' | 'void';
 }
 
 export interface SymbolicFunction {
     symbolKind: 'function';
     declaredPlace: EssentialToken;
     usageList: EssentialToken[];
-    node: NodeFUNC;
+    sourceNode: NodeFUNC;
 }
 
 export interface SymbolicVariable {
@@ -26,8 +26,10 @@ export interface SymbolicVariable {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
+type SingleNamespaceToken = EssentialToken;
+
 export interface SymbolScope {
-    identifier: EssentialToken;
+    ownerNode: NodeCLASS | NodeFUNC | SingleNamespaceToken | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
@@ -42,7 +44,7 @@ function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
         symbolKind: 'type',
         declaredPlace: dummyToken,
         usageList: [],
-        node: name,
+        sourceNode: name,
     } as const;
 }
 
@@ -72,9 +74,9 @@ export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: s
     return findSymbolWithParent(scope, identifier, 'variable') as SymbolicVariable;
 }
 
-function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind | undefined): SymbolicObject | undefined {
+function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {
     for (const symbol of scope.symbolList) {
-        if (kind !== undefined && symbol.symbolKind !== kind) continue;
+        if (symbol.symbolKind !== kind) continue;
         if (symbol.declaredPlace === undefined) continue;
         if (symbol.declaredPlace.text === identifier) return symbol;
     }
@@ -82,11 +84,37 @@ function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: Symb
     return findSymbolWithParent(scope.parentScope, identifier, kind);
 }
 
-export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+export function findClassScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
-        if (child.identifier.text === identifier) return child;
+        if (child.ownerNode === undefined) continue;
+        if ('nodeName' in child.ownerNode === false) continue;
+        if (child.ownerNode.nodeName !== 'CLASS') continue;
+        if (child.ownerNode.identifier.text === identifier) return child;
     }
     if (scope.parentScope === undefined) return undefined;
-    return findScopeWithParent(scope.parentScope, identifier);
+    return findClassScopeWithParent(scope.parentScope, identifier);
 }
 
+export function findNamespaceScope(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    for (const child of scope.childScopes) {
+        if (child.ownerNode === undefined) continue;
+        if ('nodeName' in child.ownerNode) continue;
+        if (child.ownerNode.text === identifier) return child;
+    }
+    return undefined;
+}
+
+export function findNamespaceScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    for (const child of scope.childScopes) {
+        if (child.ownerNode === undefined) continue;
+        if ('nodeName' in child.ownerNode) continue;
+        if (child.ownerNode.text === identifier) return child;
+    }
+    if (scope.parentScope === undefined) return undefined;
+    return findClassScopeWithParent(scope.parentScope, identifier);
+}
+
+export function findGlobalScope(scope: SymbolScope): SymbolScope {
+    if (scope.parentScope === undefined) return scope;
+    return findGlobalScope(scope.parentScope);
+}

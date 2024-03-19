@@ -19,7 +19,7 @@ export type NodeSCRIPT = (NodeCLASS | NodeVAR | NodeFUNC | NodeNAMESPACE)[];
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNAMESPACE extends NodeBase {
     nodeName: 'NAMESPACE'
-    namespaces: EssentialToken[],
+    namespaceList: EssentialToken[],
     script: NodeSCRIPT
 }
 
@@ -114,7 +114,7 @@ export interface NodeTYPE extends NodeBase {
 export interface NodeSCOPE extends NodeBase {
     nodeName: 'SCOPE'
     isGlobal: boolean,
-    namespaces: EssentialToken[],
+    namespaceList: EssentialToken[],
     generic: {
         className: EssentialToken,
         types: NodeTYPE[]

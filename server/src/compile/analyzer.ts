@@ -2,28 +2,50 @@
 
 import {
     NodeARGLIST,
-    NodeASSIGN, NodeCASE, NodeCLASS, NodeCONDITION, NodeDOWHILE,
-    NodeEXPR, NodeEXPRPOSTOP, NodeEXPRPOSTOP1, NodeEXPRSTAT,
+    NodeASSIGN,
+    NodeCASE,
+    NodeCLASS,
+    NodeCONDITION,
+    NodeDOWHILE,
+    NodeEXPR,
+    NodeEXPRPOSTOP,
+    NodeEXPRPOSTOP1,
+    NodeEXPRSTAT,
     NodeEXPRTERM,
     NodeEXPRTERM1,
-    NodeEXPRTERM2, NodeEXPRVALUE, NodeFOR,
-    NodeFUNC, NodeFUNCCALL, NodeIF, NodeLITERAL, NodePARAMLIST, NodeRETURN,
+    NodeEXPRTERM2,
+    NodeEXPRVALUE,
+    NodeFOR,
+    NodeFUNC,
+    NodeFUNCCALL,
+    NodeIF,
+    NodeLITERAL, NodeNAMESPACE,
+    NodePARAMLIST,
+    NodeRETURN, NodeSCOPE,
     NodeSCRIPT,
-    NodeSTATBLOCK, NodeSTATEMENT, NodeSWITCH, NodeTYPE,
-    NodeVAR, NodeVARACCESS, NodeWHILE
+    NodeSTATBLOCK,
+    NodeSTATEMENT,
+    NodeSWITCH,
+    NodeTYPE,
+    NodeVAR,
+    NodeVARACCESS,
+    NodeWHILE
 } from "./nodes";
 import {
     builtinBoolType,
-    builtinNumberType, builtinVoidType, DeducedType, findScopeWithParent,
+    builtinNumberType,
+    builtinVoidType,
+    DeducedType,
+    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
     findSymbolicFunctionWithParent,
-    findSymbolicTypeWithParent, findSymbolicVariableWithParent,
+    findSymbolicTypeWithParent,
+    findSymbolicVariableWithParent,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolScope
 } from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
-import {dummyToken, EssentialToken} from "./token";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeCLASS }[],
@@ -39,6 +61,8 @@ function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
             forwardCLASS(queue, parentScope, statement);
         } else if (nodeName === 'FUNC') {
             forwardFUNC(queue, parentScope, statement);
+        } else if (nodeName === 'NAMESPACE') {
+            forwardNAMESPACE(queue, parentScope, statement);
         }
     }
 }
@@ -51,27 +75,51 @@ function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNAMESPACE) {
+    if (namespace_.namespaceList.length === 0) return;
+
+    let scopeIterator = parentScope;
+    for (let i = 0; i < namespace_.namespaceList.length; i++) {
+        const nextNamespace = namespace_.namespaceList[i];
+        const existing = findNamespaceScope(parentScope, nextNamespace.text);
+        if (existing === undefined) {
+            const newScope: SymbolScope = {
+                ownerNode: nextNamespace,
+                parentScope: parentScope,
+                childScopes: [],
+                symbolList: [],
+            };
+            scopeIterator.childScopes.push(newScope);
+            scopeIterator = newScope;
+        } else {
+            scopeIterator = existing;
+        }
+    }
+
+    forwardSCRIPT(queue, scopeIterator, namespace_.script);
+}
+
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, nodeClass: NodeCLASS) {
+function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeCLASS) {
     const symbol: SymbolicType = {
         symbolKind: 'type',
-        declaredPlace: nodeClass.identifier,
+        declaredPlace: class_.identifier,
         usageList: [],
-        node: nodeClass,
+        sourceNode: class_,
     };
     const scope: SymbolScope = {
-        identifier: nodeClass.identifier,
+        ownerNode: class_,
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
-    queue.classQueue.push({scope, node: nodeClass});
+    queue.classQueue.push({scope, node: class_});
 
-    for (const member of nodeClass.memberList) {
+    for (const member of class_.memberList) {
         if (member.nodeName === 'VIRTPROP') {
             // TODO
         } else if (member.nodeName === 'FUNC') {
@@ -86,23 +134,23 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, nodeClass: 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeFUNC) {
-    if (ast.head === '~') return;
+function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFUNC) {
+    if (func.head === '~') return;
     const symbol: SymbolicFunction = {
         symbolKind: 'function',
-        declaredPlace: ast.identifier,
+        declaredPlace: func.identifier,
         usageList: [],
-        node: ast,
+        sourceNode: func,
     };
     const scope: SymbolScope = {
-        identifier: ast.identifier,
+        ownerNode: func,
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
-    queue.funcQueue.push({scope, node: ast});
+    queue.funcQueue.push({scope, node: func});
 }
 
 function analyzeFUNC(scope: SymbolScope, ast: NodeFUNC) {
@@ -187,22 +235,22 @@ function analyzeTYPE(scope: SymbolScope, ast: NodeTYPE): DeducedType | undefined
 function isTypeMatch(src: DeducedType, dest: DeducedType) {
     const srcType = src.symbol;
     const destType = dest.symbol;
-    const srcNode = srcType.node;
+    const srcNode = srcType.sourceNode;
     if (srcNode === 'void') {
         return false;
     }
     if (srcNode === 'number') {
-        return destType.node === 'number';
+        return destType.sourceNode === 'number';
     }
     if (srcNode === 'bool') {
-        return destType.node === 'bool';
+        return destType.sourceNode === 'bool';
     }
     // TODO : 継承などに対応
     if (srcNode.nodeName === 'CLASS') {
-        if (typeof (destType.node) === 'string' || destType.node.nodeName !== 'CLASS') {
+        if (typeof (destType.sourceNode) === 'string' || destType.sourceNode.nodeName !== 'CLASS') {
             return false;
         }
-        return srcNode.identifier.text === destType.node.identifier.text;
+        return srcNode.identifier.text === destType.sourceNode.identifier.text;
     }
 
     return false;
@@ -214,6 +262,28 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeSCOPE): SymbolScope | undefined {
+    let scopeIterator = symbolScope;
+    if (nodeScope.isGlobal) {
+        scopeIterator = findGlobalScope(symbolScope);
+    }
+    for (const nextScope of nodeScope.namespaceList) {
+        const found = findNamespaceScope(scopeIterator, nextScope.text);
+        if (found === undefined) {
+            if (nodeScope.isGlobal === false && symbolScope.parentScope !== undefined) {
+                return analyzeSCOPE(symbolScope.parentScope, nodeScope);
+            } else {
+                diagnostic.addError(nextScope.location, `Undefined namespace: ${nextScope.text}`);
+                return undefined;
+            }
+        } else {
+            scopeIterator = found;
+        }
+    }
+
+    return scopeIterator;
+}
+
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
@@ -386,14 +456,14 @@ function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP, exprV
 
 function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exprValue: SymbolicType) {
     if ('nodeName' in exprPostOp.member) {
-        if (typeof (exprValue.node) === 'string' || exprValue.node.nodeName !== 'CLASS') {
+        if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'CLASS') {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
         }
 
-        const classScope = findScopeWithParent(scope, exprValue.node.identifier.text);
+        const classScope = findClassScopeWithParent(scope, exprValue.sourceNode.identifier.text);
         if (classScope === undefined) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.node.identifier.text}`);
+            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.sourceNode.identifier.text}`);
             return undefined;
         }
 
@@ -429,6 +499,11 @@ function analyzeLITERAL(scope: SymbolScope, literal: NodeLITERAL): DeducedType |
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): DeducedType | undefined {
+    if (funcCall.scope !== undefined) {
+        const namespaceScope = analyzeSCOPE(scope, funcCall.scope);
+        if (namespaceScope === undefined) return undefined;
+        scope = namespaceScope;
+    }
     const calleeFunc = findSymbolicFunctionWithParent(scope, funcCall.identifier.text);
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
@@ -438,14 +513,14 @@ function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): DeducedTyp
 }
 
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFUNCCALL, calleeFunc: SymbolicFunction) {
-    const head = calleeFunc.node.head;
+    const head = calleeFunc.sourceNode.head;
     const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
     calleeFunc.usageList.push(funcCall.identifier);
     const argTypes = analyzeARGLIST(scope, funcCall.argList);
-    if (argTypes.length === calleeFunc.node.paramList.length) {
+    if (argTypes.length === calleeFunc.sourceNode.paramList.length) {
         for (let i = 0; i < argTypes.length; i++) {
             const actualType = argTypes[i];
-            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.node.paramList[i].type.datatype.identifier);
+            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.sourceNode.paramList[i].type.datatype.identifier);
             if (actualType === undefined || expectedType === undefined) continue;
             if (isTypeMatch(actualType, {symbol: expectedType}) === false) {
                 diagnostic.addError(funcCall.identifier.location, `Argument type mismatch: ${funcCall.identifier.text}`);
@@ -499,7 +574,7 @@ export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION): 
 
 export function analyzeFromParsed(ast: NodeSCRIPT) {
     const globalScope: SymbolScope = {
-        identifier: dummyToken,
+        ownerNode: undefined,
         parentScope: undefined,
         childScopes: [],
         symbolList: [],

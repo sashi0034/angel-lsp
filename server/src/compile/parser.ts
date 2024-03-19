@@ -110,7 +110,7 @@ function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNAMESPACE> {
     parsing.expect('}', HighlightTokenKind.Operator);
     return {
         nodeName: 'NAMESPACE',
-        namespaces: namespaces,
+        namespaceList: namespaces,
         script: script
     };
 }
@@ -482,7 +482,7 @@ function parseSCOPE(parsing: ParsingState): NodeSCOPE | undefined {
             return {
                 nodeName: 'SCOPE',
                 isGlobal: isGlobal,
-                namespaces: namespaces,
+                namespaceList: namespaces,
                 generic: {className: identifier, types: types}
             };
         }
@@ -494,7 +494,7 @@ function parseSCOPE(parsing: ParsingState): NodeSCOPE | undefined {
     return {
         nodeName: 'SCOPE',
         isGlobal: isGlobal,
-        namespaces: namespaces,
+        namespaceList: namespaces,
         generic: undefined
     };
 }
