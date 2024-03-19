@@ -343,7 +343,7 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
 
     analyzeEXPRSTAT(scope, ast.condition);
 
-    for (const inc of ast.increment) {
+    for (const inc of ast.incrementList) {
         analyzeASSIGN(scope, inc);
     }
 
@@ -386,7 +386,7 @@ function analyzeRETURN(scope: SymbolScope, ast: NodeRETURN) {
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
     if (ast.expr !== undefined) analyzeEXPR(scope, ast.expr);
-    for (const statement of ast.statements) {
+    for (const statement of ast.statementList) {
         analyzeSTATEMENT(scope, statement);
     }
 }
@@ -396,7 +396,7 @@ function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR): DeducedType | undefined
     const lhs = analyzeEXPRTERM(scope, ast.head);
     // TODO: 型チェック
     if (ast.tail !== undefined) {
-        const rhs = analyzeEXPR(scope, ast.tail);
+        const rhs = analyzeEXPR(scope, ast.tail.expr);
         // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
     }
     return lhs;
@@ -471,15 +471,6 @@ function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exp
     } else {
         // TODO
     }
-}
-
-function findMethodInClass(nodeClass: NodeCLASS, identifier: string): NodeFUNC | undefined {
-    for (const member of nodeClass.memberList) {
-        if (member.nodeName === 'FUNC' && member.identifier.text === identifier) {
-            return member;
-        }
-    }
-    return undefined;
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'

@@ -413,9 +413,9 @@ function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
         isConst: isConst,
         scope: scope,
         datatype: datatype,
-        generics: generics,
-        array: false,
-        ref: false
+        genericList: generics,
+        isArray: false,
+        isRef: false
     };
 }
 
@@ -648,7 +648,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFOR> {
         nodeName: 'FOR',
         initial: initial,
         condition: condition,
-        increment: increment,
+        incrementList: increment,
         statement: statement
     };
 }
@@ -806,7 +806,7 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
     return {
         nodeName: 'CASE',
         expr: expr,
-        statements: statements
+        statementList: statements
     };
 }
 
@@ -818,7 +818,6 @@ function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
     if (exprOp === undefined) return {
         nodeName: 'EXPR',
         head: exprTerm,
-        op: undefined,
         tail: undefined
     };
     const tail = parseEXPR(parsing);
@@ -827,15 +826,16 @@ function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
         return {
             nodeName: 'EXPR',
             head: exprTerm,
-            op: undefined,
             tail: undefined
         };
     }
     return {
         nodeName: 'EXPR',
         head: exprTerm,
-        op: exprOp,
-        tail: tail
+        tail: {
+            operator: exprOp,
+            expr: tail
+        }
     };
 }
 

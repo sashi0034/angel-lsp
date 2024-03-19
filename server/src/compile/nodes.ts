@@ -1,13 +1,25 @@
 import {EssentialToken} from "./token";
-import * as punycode from "punycode";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
-export type EntityModifier = { isShared: boolean, isExternal: boolean };
+export interface EntityModifier {
+    isShared: boolean,
+    isExternal: boolean
+}
 
-export type ClassModifier = { isShared: boolean, isAbstract: boolean, isFinal: boolean, isExternal: boolean };
+export interface ClassModifier {
+    isShared: boolean,
+    isAbstract: boolean,
+    isFinal: boolean,
+    isExternal: boolean
+}
+
+export interface OperatedExpr {
+    operator: EssentialToken,
+    expr: NodeEXPR
+}
 
 export interface NodeBase {
     nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
@@ -103,9 +115,9 @@ export interface NodeTYPE extends NodeBase {
     isConst: boolean,
     scope: NodeSCOPE | undefined,
     datatype: NodeDATATYPE,
-    generics: NodeTYPE[],
-    array: boolean,
-    ref: boolean,
+    genericList: NodeTYPE[],
+    isArray: boolean,
+    isRef: boolean,
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -160,7 +172,7 @@ export interface NodeFOR extends NodeBase {
     nodeName: 'FOR'
     initial: NodeVAR | NodeEXPRSTAT,
     condition: NodeEXPRSTAT,
-    increment: NodeASSIGN[],
+    incrementList: NodeASSIGN[],
     statement: NodeSTATEMENT
 }
 
@@ -209,15 +221,14 @@ export interface NodeRETURN extends NodeBase {
 export interface NodeCASE extends NodeBase {
     nodeName: 'CASE'
     expr: NodeEXPR | undefined,
-    statements: NodeSTATEMENT[]
+    statementList: NodeSTATEMENT[]
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 export interface NodeEXPR extends NodeBase {
     nodeName: 'EXPR'
     head: NodeEXPRTERM,
-    op: EssentialToken | undefined,
-    tail: NodeEXPR | undefined
+    tail: OperatedExpr | undefined
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
