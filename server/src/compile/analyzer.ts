@@ -5,7 +5,7 @@ import {
     NodeARGLIST,
     NodeASSIGN,
     NodeCASE,
-    NodeCLASS,
+    NodeClass,
     NodeCONDITION,
     NodeDOWHILE,
     NodeEXPR,
@@ -21,15 +21,15 @@ import {
     NodeFUNCCALL,
     NodeIF,
     NodeLITERAL, NodeNamespace,
-    NodePARAMLIST,
-    NodeRETURN, NodeSCOPE,
+    NodeParamList,
+    NodeRETURN, NodeScope,
     NodeScript,
-    NodeSTATBLOCK,
+    NodeStatBlock,
     NodeStatement,
     NodeSWITCH,
-    NodeTYPE,
+    NodeType,
     NodeVar,
-    NodeVARACCESS,
+    NodeVarAccess,
     NodeWHILE
 } from "./nodes";
 import {
@@ -49,7 +49,7 @@ import {
 import {diagnostic} from "../code/diagnostic";
 
 type AnalyzeQueue = {
-    classQueue: { scope: SymbolScope, node: NodeCLASS }[],
+    classQueue: { scope: SymbolScope, node: NodeClass }[],
     funcQueue: { scope: SymbolScope, node: NodeFunc }[],
 };
 
@@ -103,7 +103,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeCLASS) {
+function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeClass) {
     const symbol: SymbolicType = {
         symbolKind: 'type',
         declaredPlace: class_.identifier,
@@ -195,7 +195,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVar) {
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
+function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeStatBlock) {
     for (const statement of ast.statements) {
         if (statement.nodeName === 'VAR') {
             analyzeVAR(scope, statement);
@@ -206,7 +206,7 @@ function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeSTATBLOCK) {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
+function analyzePARAMLIST(scope: SymbolScope, ast: NodeParamList) {
     for (const param of ast) {
         if (param.identifier === undefined) continue;
 
@@ -224,7 +224,7 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodePARAMLIST) {
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function analyzeTYPE(scope: SymbolScope, ast: NodeTYPE): DeducedType | undefined {
+function analyzeTYPE(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
     const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
     if (found !== undefined) {
         found.usageList.push(ast.datatype.identifier);
@@ -263,7 +263,7 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeSCOPE): SymbolScope | undefined {
+function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
     let scopeIterator = symbolScope;
     if (nodeScope.isGlobal) {
         scopeIterator = findGlobalScope(symbolScope);
@@ -525,7 +525,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFUNCCALL, calleeF
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVARACCESS): DeducedType | undefined {
+function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
     const token = varAccess.identifier;
     const declared = findSymbolicVariableWithParent(scope, token.text);
     if (declared === undefined) {

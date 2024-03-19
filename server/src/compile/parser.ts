@@ -8,7 +8,7 @@ import {
     NodeASSIGN,
     NodeBREAK,
     NodeCASE, NodeCAST,
-    NodeCLASS,
+    NodeClass,
     NodeCONDITION, NodeCONSTRUCTCALL,
     NodeCONTINUE,
     NodeDATATYPE,
@@ -25,16 +25,16 @@ import {
     NodeFUNCCALL,
     NodeFuncDef,
     NodeIF, NodeLAMBDA, NodeLITERAL, NodeNamespace,
-    NodePARAMLIST,
+    NodeParamList,
     NodeRETURN,
-    NodeSCOPE,
+    NodeScope,
     NodeScript,
-    NodeSTATBLOCK,
+    NodeStatBlock,
     NodeStatement,
     NodeSWITCH,
-    NodeTYPE,
+    NodeType,
     NodeVar,
-    NodeVARACCESS,
+    NodeVarAccess,
     NodeVirtProp,
     NodeWHILE, TypeModifier
 } from "./nodes";
@@ -46,7 +46,7 @@ import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 function parseSCRIPT(parsing: ParsingState): NodeScript {
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
-        const func = parseFUNC(parsing);
+        const func = parseFunc(parsing);
         if (func !== undefined) {
             script.push(func);
             continue;
@@ -138,7 +138,7 @@ function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined 
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
+function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
     if (parsing.next().text !== 'class') return 'mismatch';
     parsing.confirm(HighlightTokenKind.Builtin);
@@ -164,6 +164,8 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
             parsing.confirm(HighlightTokenKind.Type);
         }
     }
+    const scopeStart = parsing.next();
+    let scopeEnd = scopeStart;
     parsing.expect('{', HighlightTokenKind.Operator);
     const members: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
     for (; ;) {
@@ -172,10 +174,11 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
             break;
         }
         if (parsing.next().text === '}') {
+            scopeEnd = parsing.next();
             parsing.confirm(HighlightTokenKind.Operator);
             break;
         }
-        const func = parseFUNC(parsing);
+        const func = parseFunc(parsing);
         if (func !== undefined) {
             members.push(func);
             continue;
@@ -191,6 +194,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
     return {
         nodeName: 'CLASS',
         nodeRange: {start: rangeStart, end: parsing.last()},
+        scopeRange: {start: scopeStart, end: scopeEnd},
         identifier: identifier,
         baseList: baseList,
         memberList: members
@@ -200,11 +204,11 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFUNC(parsing: ParsingState): NodeFunc | undefined {
+function parseFunc(parsing: ParsingState): NodeFunc | undefined {
     const rangeStart = parsing.next();
     const entity = parseEntityModifier(parsing);
     const accessor = parseAccessModifier(parsing);
-    let head: { returnType: NodeTYPE; isRef: boolean; } | '~';
+    let head: { returnType: NodeType; isRef: boolean; } | '~';
     if (parsing.next().text === '~') {
         parsing.confirm(HighlightTokenKind.Operator);
         head = '~';
@@ -225,10 +229,17 @@ function parseFUNC(parsing: ParsingState): NodeFunc | undefined {
         parsing.backtrack(rangeStart);
         return undefined;
     }
-    const statBlock = parseSTATBLOCK(parsing) ?? {nodeName: 'STATBLOCK', statements: []};
+    let statBlock = parseStatBlock(parsing);
+    if (statBlock === undefined) statBlock = {
+        nodeName: 'STATBLOCK',
+        nodeRange: {start: parsing.next(), end: parsing.next()},
+        statements: []
+    };
+
     return {
         nodeName: 'FUNC',
         nodeRange: {start: rangeStart, end: parsing.last()},
+        scopeRange: statBlock.nodeRange,
         entity: entity,
         accessor: accessor,
         head: head,
@@ -329,8 +340,9 @@ function parseVAR(parsing: ParsingState): NodeVar | undefined {
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function parseSTATBLOCK(parsing: ParsingState): NodeSTATBLOCK | undefined {
+function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
     if (parsing.next().text !== '{') return undefined;
+    const rangeStart = parsing.next();
     parsing.step();
     const statements: (NodeVar | NodeStatement)[] = [];
     while (parsing.isEnd() === false) {
@@ -353,12 +365,13 @@ function parseSTATBLOCK(parsing: ParsingState): NodeSTATBLOCK | undefined {
     parsing.expect('}', HighlightTokenKind.Keyword);
     return {
         nodeName: 'STATBLOCK',
+        nodeRange: {start: rangeStart, end: parsing.last()},
         statements: statements
     };
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function parsePARAMLIST(parsing: ParsingState): NodePARAMLIST | undefined {
+function parsePARAMLIST(parsing: ParsingState): NodeParamList | undefined {
     if (parsing.next().text !== '(') return undefined;
     if (parsing.next().text === 'void') {
         parsing.confirm(HighlightTokenKind.Builtin);
@@ -366,7 +379,7 @@ function parsePARAMLIST(parsing: ParsingState): NodePARAMLIST | undefined {
         return [];
     }
     parsing.confirm(HighlightTokenKind.Operator);
-    const params: NodePARAMLIST = [];
+    const params: NodeParamList = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ')') break;
         if (params.length > 0) {
@@ -400,7 +413,7 @@ function parseTYPEMOD(parsing: ParsingState): TypeModifier | undefined {
 }
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
+function parseTYPE(parsing: ParsingState): NodeType | undefined {
     const rangeStart = parsing.next();
     let isConst = false;
     if (parsing.next().text === 'const') {
@@ -427,11 +440,11 @@ function parseTYPE(parsing: ParsingState): NodeTYPE | undefined {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseTypeParameters(parsing: ParsingState): NodeTYPE[] | undefined {
+function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
     const rangeStart = parsing.next();
     if (parsing.next().text !== '<') return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
-    const generics: NodeTYPE[] = [];
+    const generics: NodeType[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '>') {
             parsing.confirm(HighlightTokenKind.Operator);
@@ -460,7 +473,7 @@ function parseTypeParameters(parsing: ParsingState): NodeTYPE[] | undefined {
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function parseSCOPE(parsing: ParsingState): NodeSCOPE | undefined {
+function parseSCOPE(parsing: ParsingState): NodeScope | undefined {
     const rangeStart = parsing.next();
     let isGlobal = false;
     if (parsing.next().text === '::') {
@@ -562,7 +575,7 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     if (return_ === 'pending') return 'pending';
     if (return_ !== 'mismatch') return return_;
 
-    const statBlock = parseSTATBLOCK(parsing);
+    const statBlock = parseStatBlock(parsing);
     if (statBlock !== undefined) return statBlock;
 
     const break_ = parseBREAK(parsing);
@@ -1098,7 +1111,7 @@ const parseLAMBDA = (parsing: ParsingState): TriedParse<NodeLAMBDA> => {
     parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect('(', HighlightTokenKind.Operator);
     const params: {
-        type: NodeTYPE | undefined,
+        type: NodeType | undefined,
         typeMod: TypeModifier | undefined,
         identifier: ProgramToken | undefined
     }[] = [];
@@ -1127,7 +1140,7 @@ const parseLAMBDA = (parsing: ParsingState): TriedParse<NodeLAMBDA> => {
         }
         params.push({type: type, typeMod: typeMod, identifier: identifier});
     }
-    const statBlock = parseSTATBLOCK(parsing);
+    const statBlock = parseStatBlock(parsing);
     if (statBlock === undefined) {
         diagnostic.addError(parsing.next().location, "Expected statement block 🪔");
         return 'pending';
@@ -1183,7 +1196,7 @@ function parseFUNCCALL(parsing: ParsingState): NodeFUNCCALL | undefined {
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function parseVARACCESS(parsing: ParsingState): NodeVARACCESS | undefined {
+function parseVARACCESS(parsing: ParsingState): NodeVarAccess | undefined {
     const rangeStart = parsing.next();
     const scope = parseSCOPE(parsing);
     const next = parsing.next();
