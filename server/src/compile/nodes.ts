@@ -1,12 +1,20 @@
-import {EssentialToken} from "./token";
+import {EssentialToken, LocationInfo} from "./token";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
-export interface ParsedRange {
+export interface NodeRange {
     start: EssentialToken,
     end: EssentialToken
+}
+
+export function getRangeLocation(range: NodeRange): LocationInfo {
+    return {
+        uri: range.start.location.uri,
+        start: range.start.location.start,
+        end: range.end.location.end
+    };
 }
 
 export interface EntityModifier {
@@ -21,14 +29,9 @@ export interface ClassModifier {
     isExternal: boolean
 }
 
-export interface OperatedExpression {
-    operator: EssentialToken,
-    expression: NodeEXPR
-}
-
 export interface NodeBase {
     nodeName: 'SCRIPT' | 'NAMESPACE' | 'ENUM' | 'CLASS' | 'TYPEDEF' | 'FUNC' | 'INTERFACE' | 'VAR' | 'IMPORT' | 'FUNCDEF' | 'VIRTPROP' | 'MIXIN' | 'INTFMTHD' | 'STATBLOCK' | 'PARAMLIST' | 'TYPEMOD' | 'TYPE' | 'INITLIST' | 'SCOPE' | 'DATATYPE' | 'PRIMTYPE' | 'FUNCATTR' | 'STATEMENT' | 'SWITCH' | 'BREAK' | 'FOR' | 'WHILE' | 'DOWHILE' | 'IF' | 'CONTINUE' | 'EXPRSTAT' | 'TRY' | 'RETURN' | 'CASE' | 'EXPR' | 'EXPRTERM' | 'EXPRVALUE' | 'CONSTRUCTCALL' | 'EXPRPREOP' | 'EXPRPOSTOP' | 'CAST' | 'LAMBDA' | 'LITERAL' | 'FUNCCALL' | 'VARACCESS' | 'ARGLIST' | 'ASSIGN' | 'CONDITION' | 'EXPROP' | 'BITOP' | 'MATHOP' | 'COMPOP' | 'LOGICOP' | 'ASSIGNOP' | 'IDENTIFIER' | 'NUMBER' | 'STRING' | 'BITS' | 'COMMENT' | 'WHITESPACE';
-    nodeRange: ParsedRange;
+    nodeRange: NodeRange;
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -111,7 +114,12 @@ export type NodeSTATBLOCK = {
 };
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodePARAMLIST = { type: NodeTYPE, identifier: EssentialToken | undefined }[];
+export type NodePARAMLIST = DeclaredTypeIdentifier[];
+
+export interface DeclaredTypeIdentifier {
+    type: NodeTYPE,
+    identifier: EssentialToken | undefined
+}
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
@@ -234,7 +242,12 @@ export interface NodeCASE extends NodeBase {
 export interface NodeEXPR extends NodeBase {
     nodeName: 'EXPR'
     head: NodeEXPRTERM,
-    tail: OperatedExpression | undefined
+    tail: DeclaredOpExpr | undefined
+}
+
+export interface DeclaredOpExpr {
+    operator: EssentialToken,
+    expression: NodeEXPR
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
@@ -344,7 +357,12 @@ export interface NodeVARACCESS extends NodeBase {
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeARGLIST extends NodeBase {
     nodeName: 'ARGLIST';
-    args: { identifier: EssentialToken | undefined, assign: NodeASSIGN }[];
+    args: DeclaredArgument[];
+}
+
+export interface DeclaredArgument {
+    identifier: EssentialToken | undefined,
+    assign: NodeASSIGN
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]

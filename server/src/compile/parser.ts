@@ -148,19 +148,19 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
         return 'pending';
     }
     parsing.confirm(HighlightTokenKind.Class);
-    const bases: ProgramToken[] = [];
+    const baseList: ProgramToken[] = [];
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightTokenKind.Operator);
         while (parsing.isEnd() === false) {
             if (parsing.next().text === '{') break;
-            if (bases.length > 0) {
+            if (baseList.length > 0) {
                 if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
             }
             if (parsing.next().kind !== 'identifier') {
                 diagnostic.addError(parsing.next().location, "Expected identifier");
                 break;
             }
-            bases.push(parsing.next());
+            baseList.push(parsing.next());
             parsing.confirm(HighlightTokenKind.Type);
         }
     }
@@ -192,7 +192,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeCLASS> {
         nodeName: 'CLASS',
         nodeRange: {start: rangeStart, end: parsing.last()},
         identifier: identifier,
-        baseList: bases,
+        baseList: baseList,
         memberList: members
     };
 }

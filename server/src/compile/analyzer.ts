@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    getRangeLocation,
     NodeARGLIST,
     NodeASSIGN,
     NodeCASE,
@@ -514,7 +515,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFUNCCALL, calleeF
             const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.sourceNode.paramList[i].type.datatype.identifier);
             if (actualType === undefined || expectedType === undefined) continue;
             if (isTypeMatch(actualType, {symbol: expectedType}) === false) {
-                diagnostic.addError(funcCall.identifier.location, `Argument type mismatch: ${funcCall.identifier.text}`);
+                diagnostic.addError(getRangeLocation(funcCall.argList.args[i].assign.nodeRange), `Argument type mismatch: ${funcCall.identifier.text}`);
             }
         }
     } else {
