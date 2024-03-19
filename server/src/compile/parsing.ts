@@ -30,6 +30,11 @@ export class ParsingState {
         return this.tokens[this.cursorIndex + step];
     }
 
+    public last(): ParsingToken {
+        if (this.cursorIndex <= 0) return this.tokens[0];
+        return this.tokens[this.cursorIndex - 1];
+    }
+
     public step() {
         this.cursorIndex++;
     }

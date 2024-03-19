@@ -396,7 +396,7 @@ function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR): DeducedType | undefined
     const lhs = analyzeEXPRTERM(scope, ast.head);
     // TODO: 型チェック
     if (ast.tail !== undefined) {
-        const rhs = analyzeEXPR(scope, ast.tail.expr);
+        const rhs = analyzeEXPR(scope, ast.tail.expression);
         // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
     }
     return lhs;
