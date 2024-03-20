@@ -26,7 +26,9 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getBuiltAnalyzed, buildSemanticTokens} from "./serve/builder";
+import {getDiagnosedScope, startDiagnose} from "./serve/diagnoser";
+import {CompletionRequest} from "vscode-languageserver";
+import {searchCompletionItems} from "./serve/completion";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -63,7 +65,8 @@ connection.onInitialize((params: InitializeParams) => {
             declarationProvider: true, // TODO
             // Tell the client that this server supports code completion.
             completionProvider: {
-                resolveProvider: true
+                resolveProvider: true,
+                triggerCharacters: [' ', '.', ':', '(', '[']
             },
             // diagnosticProvider: {
             //     interFileDependencies: false,
@@ -76,7 +79,7 @@ connection.onInitialize((params: InitializeParams) => {
                 },
                 range: false, // if true, the server supports range-based requests
                 full: true
-            }
+            },
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -171,7 +174,7 @@ connection.languages.semanticTokens.on(async (params) => {
 
     if (document === undefined) return new SemanticTokensBuilder().build();
 
-    const built = buildSemanticTokens(document.getText(), document.uri);
+    const built = startDiagnose(document.getText(), document.uri);
 
     await connection.sendDiagnostics({
         uri: document.uri,
@@ -184,10 +187,10 @@ connection.languages.semanticTokens.on(async (params) => {
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const analyzedScope = getBuiltAnalyzed();
-    if (analyzedScope === null) return;
+    const diagnosedScope = getDiagnosedScope();
+    if (diagnosedScope === undefined) return;
     const caret = params.position;
-    const jumping = jumpDefinition(analyzedScope, caret);
+    const jumping = jumpDefinition(diagnosedScope, caret);
     if (jumping === null) return;
     return {
         uri: jumping.location.uri,
@@ -212,22 +215,27 @@ connection.onDidChangeWatchedFiles(_change => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-    (_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
+    (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
         // The pass parameter contains the position of the text document in
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
-        return [
-            {
-                label: 'TypeScript',
-                kind: CompletionItemKind.Text,
-                data: 1
-            },
-            {
-                label: 'AngelAngel',
-                kind: CompletionItemKind.Text,
-                data: 2
-            }
-        ];
+
+        const diagnosedScope = getDiagnosedScope();
+        if (diagnosedScope === undefined) return [];
+        return searchCompletionItems(diagnosedScope, documentPosition.position);
+
+        // return [
+        //     {
+        //         label: 'TypeScript',
+        //         kind: CompletionItemKind.Text,
+        //         data: 1
+        //     },
+        //     {
+        //         label: 'AngelAngel2',
+        //         kind: CompletionItemKind.Text,
+        //         data: 2
+        //     }
+        // ];
     }
 );
 

@@ -9,7 +9,7 @@ export interface NodesRange {
     end: EssentialToken
 }
 
-export function getRangeLocation(range: NodesRange): LocationInfo {
+export function getNodeLocation(range: NodesRange): LocationInfo {
     return {
         uri: range.start.location.uri,
         start: range.start.location.start,

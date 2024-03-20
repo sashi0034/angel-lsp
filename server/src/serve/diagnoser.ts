@@ -10,13 +10,13 @@ import {SemanticTokens} from "vscode-languageserver-protocol";
 import {ParsingToken} from "../compile/parsing";
 
 // TODO: 複数ファイルに対応
-let s_builtAnalyzed: SymbolScope | null = null;
+let s_diagnosedScope: SymbolScope | undefined = undefined;
 
-export function getBuiltAnalyzed() {
-    return s_builtAnalyzed;
+export function getDiagnosedScope() {
+    return s_diagnosedScope;
 }
 
-export function buildSemanticTokens(document: string, uri: URI): SemanticTokens {
+export function startDiagnose(document: string, uri: URI): SemanticTokens {
     const builder = new SemanticTokensBuilder();
     profiler.restart();
     const tokens = tokenize(document, uri);
@@ -25,7 +25,7 @@ export function buildSemanticTokens(document: string, uri: URI): SemanticTokens 
     const parsed = parseFromTokens(filterTokens(tokens));
     profiler.stamp("parser");
     // console.log(parsed);
-    s_builtAnalyzed = analyzeFromParsed(parsed);
+    s_diagnosedScope = analyzeFromParsed(parsed);
     profiler.stamp("analyzer");
     // console.log(analyzed);
 

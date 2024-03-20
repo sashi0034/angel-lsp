@@ -26,10 +26,8 @@ export interface SymbolicVariable {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
-type SingleNamespaceToken = EssentialToken;
-
 export interface SymbolScope {
-    ownerNode: NodeClass | NodeFunc | SingleNamespaceToken | undefined;
+    ownerNode: NodeClass | NodeFunc | EssentialToken | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];

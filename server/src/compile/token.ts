@@ -1,12 +1,15 @@
-import {Position, URI} from "vscode-languageserver";
+import {Position, Range, URI} from "vscode-languageserver";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
 export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
 
-export interface LocationInfo {
-    uri: URI,
-    start: Position,
-    end: Position,
+export type LocationInfo = { uri: string } & Range;
+
+export function isPositionInLocation(position: Position, location: LocationInfo): boolean {
+    return location.start.line <= position.line
+        && position.line <= location.end.line
+        && location.start.character <= position.character
+        && position.character <= location.end.character;
 }
 
 export interface HighlightInfo {
