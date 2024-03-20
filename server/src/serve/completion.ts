@@ -30,8 +30,14 @@ export function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolS
         const location = getNodeLocation(child.ownerNode.scopeRange);
         if (isPositionInLocation(caret, location)) {
             const found = findIncludedScopes(child, caret);
-            if (found.length > 0) result.push(...found);
+            result.push(...found);
         }
+    }
+
+    if (scope.ownerNode === undefined
+        || ('scopeRange' in scope.ownerNode && isPositionInLocation(caret, getNodeLocation(scope.ownerNode.scopeRange)))
+    ) {
+        result.push(scope);
     }
 
     return result;

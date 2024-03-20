@@ -6,10 +6,14 @@ export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comme
 export type LocationInfo = { uri: string } & Range;
 
 export function isPositionInLocation(position: Position, location: LocationInfo): boolean {
-    return location.start.line <= position.line
-        && position.line <= location.end.line
-        && location.start.character <= position.character
-        && position.character <= location.end.character;
+    if (location.start.line && location.start.character <= position.character) return true;
+
+    if (location.start.line < position.line
+        && position.line < location.end.line) return true;
+
+    if (location.end.line && position.character <= location.end.character) return true;
+
+    return false;
 }
 
 export interface HighlightInfo {
