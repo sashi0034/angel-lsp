@@ -89,7 +89,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
                 parentScope: parentScope,
                 childScopes: [],
                 symbolList: [],
-                completionCandidates: [],
+                missingCompletions: [],
             };
             scopeIterator.childScopes.push(newScope);
             scopeIterator = newScope;
@@ -116,7 +116,7 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
-        completionCandidates: [],
+        missingCompletions: [],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
@@ -150,7 +150,7 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
-        completionCandidates: [],
+        missingCompletions: [],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
@@ -473,7 +473,7 @@ function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
         analyzeFuncCall(classScope, exprPostOp.member);
     } else if ('missingRange' in exprPostOp.member) {
-        scope.completionCandidates.push({
+        scope.missingCompletions.push({
             complementKind: 'Type',
             complementRange: exprPostOp.member.missingRange,
             targetType: exprValue
@@ -578,7 +578,7 @@ export function analyzeFromParsed(ast: NodeScript) {
         parentScope: undefined,
         childScopes: [],
         symbolList: [],
-        completionCandidates: [],
+        missingCompletions: [],
     };
 
     const queue: AnalyzeQueue = {

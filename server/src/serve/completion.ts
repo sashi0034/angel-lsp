@@ -1,24 +1,83 @@
-import {Position, URI} from "vscode-languageserver";
-import {SymbolicObject, SymbolScope} from "../compile/symbolics";
+import {Position} from "vscode-languageserver";
+import {
+    collectParentScopes,
+    ComplementCandidate,
+    findClassScopeWithParent,
+    SymbolicObject,
+    SymbolScope
+} from "../compile/symbolics";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation} from "../compile/nodes";
-import {isPositionInLocation} from "../compile/token";
+import {isPositionInLocationExclusive, isPositionInLocationInclusive} from "../compile/token";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    const scopeList = findIncludedScopes(diagnosedScope, caret);
-    for (const scope of scopeList) {
-        for (const symbol of scope.symbolList) {
-            const declareToken = symbol.declaredPlace;
-            items.push({
-                label: declareToken.text,
-                kind: symbolToCompletionKind(symbol),
-            });
-        }
+    const targetScope = findIncludedScopes(diagnosedScope, caret);
+
+    // スコープ内に優先的に補完する対象があるなら、それについての補完候補を返す
+    const primeCompletion = checkMissingCompletionInScope(targetScope, caret);
+    if (primeCompletion !== undefined) return primeCompletion;
+
+    // 自身と親スコープにあるシンボルを補完候補として返す
+    for (const scope of [...collectParentScopes(targetScope), targetScope]) {
+        items.push(...getCompletionSymbolsInScope(scope));
     }
 
     return items;
+}
+
+function getCompletionSymbolsInScope(scope: SymbolScope) {
+    const items: CompletionItem[] = [];
+    for (const symbol of scope.symbolList) {
+        const declareToken = symbol.declaredPlace;
+        items.push({
+            label: declareToken.text,
+            kind: symbolToCompletionKind(symbol),
+        });
+    }
+    return items;
+}
+
+function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
+    for (const child of scope.childScopes) {
+        if (child.ownerNode === undefined || 'scopeRange' in child.ownerNode === false) continue;
+
+        const location = getNodeLocation(child.ownerNode.scopeRange);
+        if (isPositionInLocationInclusive(caret, location)) {
+            const found = findIncludedScopes(child, caret);
+            if (found !== undefined) return found;
+        }
+    }
+
+    return scope;
+}
+
+function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
+    if (scope.missingCompletions.length === 0) return;
+
+    for (const missing of scope.missingCompletions) {
+        // スコープ内で優先的に補完する対象がカーソル位置にあるかを調べる
+        const location = getNodeLocation(missing.complementRange);
+        if (isPositionInLocationExclusive(caret, location)) {
+            // 優先的に補完する対象を返す
+            return searchMissingCompletion(scope, missing);
+        }
+    }
+
+    return undefined;
+}
+
+function searchMissingCompletion(scope: SymbolScope, completion: ComplementCandidate) {
+    if (completion.complementKind === 'Type') {
+        // 補完対象の型が属するスコープを探す
+        const typeScope = findClassScopeWithParent(scope, completion.targetType.declaredPlace.text);
+        if (typeScope === undefined) return [];
+
+        // スコープ内の補完候補を返す
+        return getCompletionSymbolsInScope(typeScope);
+    }
+    return undefined;
 }
 
 function symbolToCompletionKind(symbol: SymbolicObject) {
@@ -35,26 +94,3 @@ function symbolToCompletionKind(symbol: SymbolicObject) {
         return CompletionItemKind.Text;
     }
 }
-
-function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope[] {
-    const result: SymbolScope[] = [];
-
-    for (const child of scope.childScopes) {
-        if (child.ownerNode === undefined || 'scopeRange' in child.ownerNode === false) continue;
-
-        const location = getNodeLocation(child.ownerNode.scopeRange);
-        if (isPositionInLocation(caret, location)) {
-            const found = findIncludedScopes(child, caret);
-            result.push(...found);
-        }
-    }
-
-    if (scope.ownerNode === undefined
-        || ('scopeRange' in scope.ownerNode && isPositionInLocation(caret, getNodeLocation(scope.ownerNode.scopeRange)))
-    ) {
-        result.push(scope);
-    }
-
-    return result;
-}
-

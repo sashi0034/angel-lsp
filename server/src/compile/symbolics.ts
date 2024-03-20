@@ -31,7 +31,7 @@ export interface SymbolScope {
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
-    completionCandidates: ComplementCandidate[];
+    missingCompletions: ComplementCandidate[];
 }
 
 export interface DeducedType {
@@ -129,3 +129,14 @@ export function findGlobalScope(scope: SymbolScope): SymbolScope {
     if (scope.parentScope === undefined) return scope;
     return findGlobalScope(scope.parentScope);
 }
+
+export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
+    const result: SymbolScope[] = [];
+    let current = scope;
+    while (current.parentScope !== undefined) {
+        result.push(current.parentScope);
+        current = current.parentScope;
+    }
+    return result;
+}
+
