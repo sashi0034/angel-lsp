@@ -3,25 +3,25 @@ import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
-export interface SymbolicType {
-    symbolKind: 'type';
+export interface SymbolicBase {
+    symbolKind: 'type' | 'function' | 'variable';
     declaredPlace: EssentialToken;
     usageList: EssentialToken[];
+}
+
+export interface SymbolicType extends SymbolicBase {
+    symbolKind: 'type';
     sourceNode: NodeEnum | NodeClass | 'bool' | 'number' | 'void';
 }
 
-export interface SymbolicFunction {
+export interface SymbolicFunction extends SymbolicBase {
     symbolKind: 'function';
-    declaredPlace: EssentialToken;
-    usageList: EssentialToken[];
     sourceNode: NodeFunc;
 }
 
-export interface SymbolicVariable {
+export interface SymbolicVariable extends SymbolicBase {
     symbolKind: 'variable';
     type: SymbolicType | undefined;
-    declaredPlace: EssentialToken;
-    usageList: EssentialToken[];
 }
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;

@@ -1,5 +1,5 @@
 import {Position, URI} from "vscode-languageserver";
-import {SymbolScope} from "../compile/symbolics";
+import {SymbolicObject, SymbolScope} from "../compile/symbolics";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation} from "../compile/nodes";
 import {isPositionInLocation} from "../compile/token";
@@ -13,7 +13,7 @@ export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Positi
             const declareToken = symbol.declaredPlace;
             items.push({
                 label: declareToken.text,
-                kind: CompletionItemKind.Variable, // FIXME
+                kind: symbolToCompletionKind(symbol),
             });
         }
     }
@@ -21,7 +21,22 @@ export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Positi
     return items;
 }
 
-export function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope[] {
+function symbolToCompletionKind(symbol: SymbolicObject) {
+    switch (symbol.symbolKind) {
+    case 'type':
+        if (typeof symbol.sourceNode === 'string') return CompletionItemKind.Keyword;
+        if (symbol.sourceNode.nodeName === 'ENUM') return CompletionItemKind.Enum;
+        return CompletionItemKind.Class;
+    case 'function':
+        return CompletionItemKind.Function;
+    case 'variable':
+        return CompletionItemKind.Variable;
+    default:
+        return CompletionItemKind.Text;
+    }
+}
+
+function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope[] {
     const result: SymbolScope[] = [];
 
     for (const child of scope.childScopes) {
