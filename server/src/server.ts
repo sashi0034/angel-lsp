@@ -26,9 +26,10 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedScope, startDiagnose} from "./serve/diagnoser";
+import {getDiagnosedResult, startDiagnose} from "./serve/diagnose";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
+import {buildSemanticTokens} from "./serve/semantiTokens";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -168,26 +169,14 @@ documents.onDidClose(e => {
 //     } satisfies DocumentDiagnosticReport;
 // });
 
-connection.languages.semanticTokens.on(async (params) => {
-    diagnostic.clear();
-    const document = documents.get(params.textDocument.uri);
-
-    if (document === undefined) return new SemanticTokensBuilder().build();
-
-    const built = startDiagnose(document.getText(), document.uri);
-
-    await connection.sendDiagnostics({
-        uri: document.uri,
-        diagnostics: diagnostic.get()
-    });
-
-    return built;
+connection.languages.semanticTokens.on((params) => {
+    return buildSemanticTokens(getDiagnosedResult().tokenizedTokens);
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const diagnosedScope = getDiagnosedScope();
+    const diagnosedScope = getDiagnosedResult().analyzedScope;
     if (diagnosedScope === undefined) return;
     const caret = params.position;
     const jumping = jumpDefinition(diagnosedScope, caret);
@@ -204,8 +193,8 @@ connection.onDefinition((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    // いらない?
-    // validateTextDocument(change.document);
+    diagnostic.clear();
+    startDiagnose(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -220,7 +209,7 @@ connection.onCompletion(
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const diagnosedScope = getDiagnosedScope();
+        const diagnosedScope = getDiagnosedResult().analyzedScope;
         if (diagnosedScope === undefined) return [];
         return searchCompletionItems(diagnosedScope, documentPosition.position);
 

@@ -5,35 +5,39 @@ import {tokenize} from "../compile/tokenizer";
 import {parseFromTokens} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
-import {SymbolScope} from "../compile/symbolics";
+import {createSymbolScope, SymbolScope} from "../compile/symbolics";
 import {SemanticTokens} from "vscode-languageserver-protocol";
 import {ParsingToken} from "../compile/parsing";
 
-// TODO: 複数ファイルに対応
-let s_diagnosedScope: SymbolScope | undefined = undefined;
-
-export function getDiagnosedScope() {
-    return s_diagnosedScope;
+interface DiagnoseResult {
+    tokenizedTokens: ProgramToken[];
+    analyzedScope: SymbolScope;
 }
 
-export function startDiagnose(document: string, uri: URI): SemanticTokens {
-    const builder = new SemanticTokensBuilder();
+// TODO: 複数ファイルに対応、まじで
+const s_diagnosedResult: DiagnoseResult = {
+    tokenizedTokens: [],
+    analyzedScope: createSymbolScope(undefined, undefined)
+};
+
+export function getDiagnosedResult() {
+    return s_diagnosedResult;
+}
+
+export function startDiagnose(document: string, uri: URI) {
     profiler.restart();
-    const tokens = tokenize(document, uri);
+    const tokenizedTokens = tokenize(document, uri);
     profiler.stamp("tokenizer");
     // console.log(tokens);
-    const parsed = parseFromTokens(filterTokens(tokens));
+    const parsed = parseFromTokens(filterTokens(tokenizedTokens));
     profiler.stamp("parser");
     // console.log(parsed);
-    s_diagnosedScope = analyzeFromParsed(parsed);
+    const analyzeScope = analyzeFromParsed(parsed);
     profiler.stamp("analyzer");
     // console.log(analyzed);
 
-    tokens.forEach((token, i) => {
-        pushTokenToBuilder(builder, token);
-    });
-
-    return builder.build();
+    s_diagnosedResult.tokenizedTokens = tokenizedTokens;
+    s_diagnosedResult.analyzedScope = analyzeScope;
 }
 
 function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
@@ -70,29 +74,3 @@ function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
     return actualTokens;
 }
 
-function pushTokenToBuilder(builder: SemanticTokensBuilder, token: ProgramToken) {
-    builder.push(
-        token.location.start.line,
-        token.location.start.character,
-        token.text.length,
-        token.highlight.token,
-        token.highlight.modifier);
-
-    if (token.location.start.line === token.location.end.line) return;
-
-    // 複数行のトークンは行分割
-    for (let i = token.location.start.line + 1; i < token.location.end.line; i++) {
-        builder.push(
-            i,
-            0,
-            token.text.length,
-            token.highlight.token,
-            token.highlight.modifier);
-    }
-    builder.push(
-        token.location.end.line,
-        0,
-        token.location.end.character,
-        token.highlight.token,
-        token.highlight.modifier);
-}

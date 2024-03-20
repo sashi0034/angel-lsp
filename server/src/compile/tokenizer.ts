@@ -228,7 +228,7 @@ class UnknownBuffer {
     }
 }
 
-export function tokenize(str: string, uri: URI) {
+export function tokenize(str: string, uri: URI): ProgramToken[] {
     const tokens: ProgramToken[] = [];
     const reading = new ReadingState(str);
     const unknownBuffer = new UnknownBuffer();

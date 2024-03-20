@@ -26,12 +26,24 @@ export interface SymbolicVariable extends SymbolicBase {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
+type SymbolOwnerNode = NodeClass | NodeFunc | EssentialToken;
+
 export interface SymbolScope {
-    ownerNode: NodeClass | NodeFunc | EssentialToken | undefined;
+    ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
     missingCompletions: ComplementCandidate[];
+}
+
+export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined): SymbolScope {
+    return {
+        ownerNode: ownerNode,
+        parentScope: parentScope,
+        childScopes: [],
+        symbolList: [],
+        missingCompletions: [],
+    };
 }
 
 export interface DeducedType {

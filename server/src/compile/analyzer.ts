@@ -35,7 +35,7 @@ import {
 import {
     builtinBoolType,
     builtinNumberType,
-    builtinVoidType,
+    builtinVoidType, createSymbolScope,
     DeducedType,
     findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
     findSymbolicFunctionWithParent,
@@ -84,13 +84,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
         const nextNamespace = namespace_.namespaceList[i];
         const existing = findNamespaceScope(parentScope, nextNamespace.text);
         if (existing === undefined) {
-            const newScope: SymbolScope = {
-                ownerNode: nextNamespace,
-                parentScope: parentScope,
-                childScopes: [],
-                symbolList: [],
-                missingCompletions: [],
-            };
+            const newScope: SymbolScope = createSymbolScope(nextNamespace, parentScope);
             scopeIterator.childScopes.push(newScope);
             scopeIterator = newScope;
         } else {
@@ -111,13 +105,9 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
         usageList: [],
         sourceNode: class_,
     };
-    const scope: SymbolScope = {
-        ownerNode: class_,
-        parentScope: parentScope,
-        childScopes: [],
-        symbolList: [symbol],
-        missingCompletions: [],
-    };
+    const scope: SymbolScope = createSymbolScope(class_, parentScope);
+    scope.symbolList.push(symbol);
+
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
     queue.classQueue.push({scope, node: class_});
@@ -145,13 +135,9 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
         usageList: [],
         sourceNode: func,
     };
-    const scope: SymbolScope = {
-        ownerNode: func,
-        parentScope: parentScope,
-        childScopes: [],
-        symbolList: [symbol],
-        missingCompletions: [],
-    };
+    const scope: SymbolScope = createSymbolScope(func, parentScope);
+    scope.symbolList.push(symbol);
+
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
     queue.funcQueue.push({scope, node: func});
@@ -573,13 +559,7 @@ export function analyzeCONDITION(scope: SymbolScope, condition: NodeCondition): 
 }
 
 export function analyzeFromParsed(ast: NodeScript) {
-    const globalScope: SymbolScope = {
-        ownerNode: undefined,
-        parentScope: undefined,
-        childScopes: [],
-        symbolList: [],
-        missingCompletions: [],
-    };
+    const globalScope: SymbolScope = createSymbolScope(undefined, undefined);
 
     const queue: AnalyzeQueue = {
         classQueue: [],
