@@ -17,6 +17,10 @@ export function getNodeLocation(range: NodesRange): LocationInfo {
     };
 }
 
+export interface MissingIdentifier {
+    missingRange: NodesRange;
+}
+
 export interface EntityModifier {
     isShared: boolean,
     isExternal: boolean
@@ -84,7 +88,7 @@ export interface NodeVar extends NodesBase {
     type: NodeType,
     variables: {
         identifier: EssentialToken,
-        initializer: NodeEXPR | NodeARGLIST | undefined
+        initializer: NodeEXPR | NodeArgList | undefined
     }[];
 }
 
@@ -174,7 +178,7 @@ export type NodeStatement =
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 export interface NodeSWITCH extends NodesBase {
     nodeName: 'SWITCH'
-    assign: NodeASSIGN,
+    assign: NodeAssign,
     cases: NodeCASE[]
 }
 
@@ -188,14 +192,14 @@ export interface NodeFOR extends NodesBase {
     nodeName: 'FOR'
     initial: NodeVar | NodeEXPRSTAT,
     condition: NodeEXPRSTAT,
-    incrementList: NodeASSIGN[],
+    incrementList: NodeAssign[],
     statement: NodeStatement
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 export interface NodeWHILE extends NodesBase {
     nodeName: 'WHILE'
-    assign: NodeASSIGN,
+    assign: NodeAssign,
     statement: NodeStatement
 }
 
@@ -203,13 +207,13 @@ export interface NodeWHILE extends NodesBase {
 export interface NodeDOWHILE extends NodesBase {
     nodeName: 'DOWHILE'
     statement: NodeStatement,
-    assign: NodeASSIGN
+    assign: NodeAssign
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 export interface NodeIF extends NodesBase {
     nodeName: 'IF'
-    condition: NodeASSIGN,
+    condition: NodeAssign,
     ts: NodeStatement,
     fs: NodeStatement | undefined
 }
@@ -222,7 +226,7 @@ export interface NodeCONTINUE extends NodesBase {
 // EXPRSTAT      ::= [ASSIGN] ';'
 export type NodeEXPRSTAT = {
     nodeName: 'EXPRSTAT',
-    assign: NodeASSIGN | undefined
+    assign: NodeAssign | undefined
 };
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
@@ -230,7 +234,7 @@ export type NodeEXPRSTAT = {
 // RETURN        ::= 'return' [ASSIGN] ';'
 export interface NodeRETURN extends NodesBase {
     nodeName: 'RETURN';
-    assign: NodeASSIGN;
+    assign: NodeAssign;
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
@@ -268,85 +272,85 @@ export interface NodeEXPRTERM2 extends NodesBase {
     exprTerm: 2,
     preOp: EssentialToken | undefined,
     value: NodeEXPRVALUE,
-    postOp: NodeEXPRPOSTOP | undefined
+    postOp: NodeExprPostOp | undefined
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type  NodeEXPRVALUE =
-    NodeCONSTRUCTCALL
-    | NodeFUNCCALL
+    NodeConstructCall
+    | NodeFuncCall
     | NodeVarAccess
-    | NodeCAST
-    | NodeLITERAL
-    | NodeASSIGN
-    | NodeLAMBDA;
+    | NodeCast
+    | NodeLiteral
+    | NodeAssign
+    | NodeLambda;
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-export interface NodeCONSTRUCTCALL extends NodesBase {
+export interface NodeConstructCall extends NodesBase {
     nodeName: 'CONSTRUCTCALL';
     type: NodeType;
-    argList: NodeARGLIST;
+    argList: NodeArgList;
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-export type NodeEXPRPOSTOP = NodeEXPRPOSTOP1 | NodeEXPRPOSTOP2 | NodeEXPRPOSTOP3 | NodeEXPRPOSTOP4;
+export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3 | NodeExprPostOp4;
 
 // ('.' (FUNCCALL | IDENTIFIER))
-export interface NodeEXPRPOSTOP1 extends NodesBase {
+export interface NodeExprPostOp1 extends NodesBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 1;
-    member: NodeFUNCCALL | EssentialToken;
+    member: NodeFuncCall | EssentialToken | MissingIdentifier;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
-export interface NodeEXPRPOSTOP2 extends NodesBase {
+export interface NodeExprPostOp2 extends NodesBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 2;
-    indexes: { identifier: EssentialToken | undefined, assign: NodeASSIGN }[];
+    indexes: { identifier: EssentialToken | undefined, assign: NodeAssign }[];
 }
 
 // ARGLIST
-export interface NodeEXPRPOSTOP3 extends NodesBase {
+export interface NodeExprPostOp3 extends NodesBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 3;
-    args: NodeARGLIST;
+    args: NodeArgList;
 }
 
 // ++ | --
-export interface NodeEXPRPOSTOP4 extends NodesBase {
+export interface NodeExprPostOp4 extends NodesBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 4;
     operator: '++' | '--';
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-export interface NodeCAST extends NodesBase {
+export interface NodeCast extends NodesBase {
     nodeName: 'CAST';
     type: NodeType;
-    assign: NodeASSIGN;
+    assign: NodeAssign;
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-export interface NodeLAMBDA extends NodesBase {
+export interface NodeLambda extends NodesBase {
     nodeName: 'LAMBDA';
     params: { type: NodeType | undefined, typeMod: TypeModifier | undefined, identifier: EssentialToken | undefined }[],
     statBlock: NodeStatBlock
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-export interface NodeLITERAL extends NodesBase {
+export interface NodeLiteral extends NodesBase {
     nodeName: 'LITERAL';
     value: EssentialToken;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-export interface NodeFUNCCALL extends NodesBase {
+export interface NodeFuncCall extends NodesBase {
     nodeName: 'FUNCCALL'
     scope: NodeScope | undefined,
     identifier: EssentialToken,
-    argList: NodeARGLIST
+    argList: NodeArgList
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
@@ -357,32 +361,32 @@ export interface NodeVarAccess extends NodesBase {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-export interface NodeARGLIST extends NodesBase {
+export interface NodeArgList extends NodesBase {
     nodeName: 'ARGLIST';
     args: DeclaredArgument[];
 }
 
 export interface DeclaredArgument {
     identifier: EssentialToken | undefined,
-    assign: NodeASSIGN
+    assign: NodeAssign
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-export interface NodeASSIGN extends NodesBase {
+export interface NodeAssign extends NodesBase {
     nodeName: 'ASSIGN';
-    condition: NodeCONDITION;
+    condition: NodeCondition;
     tail: {
         op: EssentialToken
-        assign: NodeASSIGN
+        assign: NodeAssign
     } | undefined;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export interface NodeCONDITION extends NodesBase {
+export interface NodeCondition extends NodesBase {
     nodeName: 'CONDITION'
     expr: NodeEXPR,
     ternary: {
-        ta: NodeASSIGN,
-        fa: NodeASSIGN
+        ta: NodeAssign,
+        fa: NodeAssign
     } | undefined
 }

@@ -2,15 +2,15 @@
 
 import {
     getNodeLocation,
-    NodeARGLIST,
-    NodeASSIGN,
+    NodeArgList,
+    NodeAssign,
     NodeCASE,
     NodeClass,
-    NodeCONDITION,
+    NodeCondition,
     NodeDOWHILE,
     NodeEXPR,
-    NodeEXPRPOSTOP,
-    NodeEXPRPOSTOP1,
+    NodeExprPostOp,
+    NodeExprPostOp1,
     NodeEXPRSTAT,
     NodeEXPRTERM,
     NodeEXPRTERM1,
@@ -18,9 +18,9 @@ import {
     NodeEXPRVALUE,
     NodeFOR,
     NodeFunc,
-    NodeFUNCCALL,
+    NodeFuncCall,
     NodeIF,
-    NodeLITERAL, NodeNamespace,
+    NodeLiteral, NodeNamespace,
     NodeParamList,
     NodeRETURN, NodeScope,
     NodeScript,
@@ -89,6 +89,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
                 parentScope: parentScope,
                 childScopes: [],
                 symbolList: [],
+                completionCandidates: [],
             };
             scopeIterator.childScopes.push(newScope);
             scopeIterator = newScope;
@@ -115,6 +116,7 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
+        completionCandidates: [],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
@@ -148,6 +150,7 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
         parentScope: parentScope,
         childScopes: [],
         symbolList: [symbol],
+        completionCandidates: [],
     };
     parentScope.childScopes.push(scope);
     parentScope.symbolList.push(symbol);
@@ -263,7 +266,7 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
+function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
     let scopeIterator = symbolScope;
     if (nodeScope.isGlobal) {
         scopeIterator = findGlobalScope(symbolScope);
@@ -272,7 +275,7 @@ function analyzeSCOPE(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         const found = findNamespaceScope(scopeIterator, nextScope.text);
         if (found === undefined) {
             if (nodeScope.isGlobal === false && symbolScope.parentScope !== undefined) {
-                return analyzeSCOPE(symbolScope.parentScope, nodeScope);
+                return analyzeScope(symbolScope.parentScope, nodeScope);
             } else {
                 diagnostic.addError(nextScope.location, `Undefined namespace: ${nextScope.text}`);
                 return undefined;
@@ -427,7 +430,7 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Deduced
     case 'CONSTRUCTCALL':
         break;
     case 'FUNCCALL':
-        return analyzeFUNCCALL(scope, exprValue);
+        return analyzeFuncCall(scope, exprValue);
     case 'VARACCESS':
         return analyzeVARACCESS(scope, exprValue);
     case 'CAST':
@@ -449,13 +452,13 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Deduced
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP, exprValue: SymbolicType) {
+function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: SymbolicType) {
     if (exprPostOp.postOp === 1) {
         return analyzeEXPRPOSTOP1(scope, exprPostOp, exprValue);
     }
 }
 
-function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exprValue: SymbolicType) {
+function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
     if ('nodeName' in exprPostOp.member) {
         if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'CLASS') {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
@@ -468,8 +471,13 @@ function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exp
             return undefined;
         }
 
-        analyzeFUNCCALL(classScope, exprPostOp.member);
-    } else {
+        analyzeFuncCall(classScope, exprPostOp.member);
+    } else if ('missingRange' in exprPostOp.member) {
+        scope.completionCandidates.push({
+            complementKind: 'Type',
+            complementRange: exprPostOp.member.missingRange,
+            targetType: exprValue
+        });
         // TODO
     }
 }
@@ -477,7 +485,7 @@ function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeEXPRPOSTOP1, exp
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-function analyzeLITERAL(scope: SymbolScope, literal: NodeLITERAL): DeducedType | undefined {
+function analyzeLITERAL(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
     if (literal.value.kind === 'number') {
         return {symbol: builtinNumberType};
     }
@@ -490,9 +498,9 @@ function analyzeLITERAL(scope: SymbolScope, literal: NodeLITERAL): DeducedType |
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): DeducedType | undefined {
+function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedType | undefined {
     if (funcCall.scope !== undefined) {
-        const namespaceScope = analyzeSCOPE(scope, funcCall.scope);
+        const namespaceScope = analyzeScope(scope, funcCall.scope);
         if (namespaceScope === undefined) return undefined;
         scope = namespaceScope;
     }
@@ -504,7 +512,7 @@ function analyzeFUNCCALL(scope: SymbolScope, funcCall: NodeFUNCCALL): DeducedTyp
     return analyzeFunctionCall(scope, funcCall, calleeFunc);
 }
 
-function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFUNCCALL, calleeFunc: SymbolicFunction) {
+function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
     const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
     calleeFunc.usageList.push(funcCall.identifier);
@@ -537,7 +545,7 @@ function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function analyzeARGLIST(scope: SymbolScope, argList: NodeARGLIST): (DeducedType | undefined)[] {
+function analyzeARGLIST(scope: SymbolScope, argList: NodeArgList): (DeducedType | undefined)[] {
     const types: (DeducedType | undefined)[] = [];
     for (const arg of argList.args) {
         types.push(analyzeASSIGN(scope, arg.assign));
@@ -546,7 +554,7 @@ function analyzeARGLIST(scope: SymbolScope, argList: NodeARGLIST): (DeducedType 
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN): DeducedType | undefined {
+function analyzeASSIGN(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
     const lhs = analyzeCONDITION(scope, assign.condition);
     if (assign.tail === undefined) return lhs;
     const rhs = analyzeASSIGN(scope, assign.tail.assign);
@@ -555,7 +563,7 @@ function analyzeASSIGN(scope: SymbolScope, assign: NodeASSIGN): DeducedType | un
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export function analyzeCONDITION(scope: SymbolScope, condition: NodeCONDITION): DeducedType | undefined {
+export function analyzeCONDITION(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
     const exprType = analyzeEXPR(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
     const ta = analyzeASSIGN(scope, condition.ternary.ta);
@@ -570,6 +578,7 @@ export function analyzeFromParsed(ast: NodeScript) {
         parentScope: undefined,
         childScopes: [],
         symbolList: [],
+        completionCandidates: [],
     };
 
     const queue: AnalyzeQueue = {

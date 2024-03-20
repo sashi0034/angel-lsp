@@ -1,5 +1,5 @@
 import {dummyToken, EssentialToken} from "./token";
-import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, NodeType} from "./nodes";
+import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, NodesRange, NodeType} from "./nodes";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
@@ -31,11 +31,24 @@ export interface SymbolScope {
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
+    completionCandidates: ComplementCandidate[];
 }
 
 export interface DeducedType {
     symbol: SymbolicType;
 }
+
+export interface ComplementBase {
+    complementKind: 'Type';
+    complementRange: NodesRange;
+}
+
+export interface ComplementType extends ComplementBase {
+    complementKind: 'Type';
+    targetType: SymbolicType;
+}
+
+export type ComplementCandidate = ComplementType;
 
 function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
     return {
