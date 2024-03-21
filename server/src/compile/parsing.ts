@@ -8,6 +8,7 @@ export type TriedParse<T> = 'mismatch' | 'pending' | T;
 
 export interface ParsingToken extends ProgramToken {
     index: number;
+    next: ParsingToken | undefined;
 }
 
 export class ParsingState {

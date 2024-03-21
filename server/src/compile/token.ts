@@ -5,22 +5,22 @@ export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comme
 
 export type LocationInfo = { uri: string } & Range;
 
-export function isPositionInLocation(position: Position, location: LocationInfo): boolean {
-    if (location.start.line === position.line
-        && position.line < location.end.line
-        && location.start.character <= position.character) return true;
+export function isPositionInRange(position: Position, range: Range): boolean {
+    if (range.start.line === position.line
+        && position.line < range.end.line
+        && range.start.character <= position.character) return true;
 
-    if (location.start.line < position.line
-        && position.line < location.end.line) return true;
+    if (range.start.line < position.line
+        && position.line < range.end.line) return true;
 
-    if (location.start.line < position.line
-        && position.line === location.end.line
-        && position.character <= location.end.character) return true;
+    if (range.start.line < position.line
+        && position.line === range.end.line
+        && position.character <= range.end.character) return true;
 
-    if (location.start.line === position.line
-        && position.line === location.end.line
-        && location.start.character <= position.character
-        && position.character <= location.end.character) return true;
+    if (range.start.line === position.line
+        && position.line === range.end.line
+        && range.start.character <= position.character
+        && position.character <= range.end.character) return true;
 
     return false;
 }

@@ -8,7 +8,7 @@ import {
 } from "../compile/symbolics";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation} from "../compile/nodes";
-import {isPositionInLocation} from "../compile/token";
+import {isPositionInRange} from "../compile/token";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
     const items: CompletionItem[] = [];
@@ -44,7 +44,7 @@ function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
         if (child.ownerNode === undefined || 'scopeRange' in child.ownerNode === false) continue;
 
         const location = getNodeLocation(child.ownerNode.scopeRange);
-        if (isPositionInLocation(caret, location)) {
+        if (isPositionInRange(caret, location)) {
             const found = findIncludedScopes(child, caret);
             if (found !== undefined) return found;
         }
@@ -58,8 +58,8 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 
     for (const missing of scope.completionHints) {
         // スコープ内で優先的に補完する対象がカーソル位置にあるかを調べる
-        const location = getNodeLocation(missing.complementRange);
-        if (isPositionInLocation(caret, location)) {
+        const location = missing.complementRange;
+        if (isPositionInRange(caret, location)) {
             // 優先的に補完する対象を返す
             console.log(location);
             console.log(caret);

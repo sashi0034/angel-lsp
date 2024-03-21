@@ -1032,7 +1032,7 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
             nodeName: 'EXPRPOSTOP',
             nodeRange: {start: rangeStart, end: parsing.prev()},
             postOp: 1,
-            member: {missingRange: {start: rangeStart, end: parsing.next()}}
+            member: undefined
         };
     }
     parsing.confirm(HighlightTokenKind.Variable);

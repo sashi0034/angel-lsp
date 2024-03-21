@@ -1,5 +1,6 @@
-import {dummyToken, EssentialToken} from "./token";
+import {dummyToken, EssentialToken, LocationInfo} from "./token";
 import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, NodesRange, NodeType} from "./nodes";
+import {Range} from "vscode-languageserver";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
@@ -52,7 +53,7 @@ export interface DeducedType {
 
 export interface ComplementBase {
     complementKind: 'Type';
-    complementRange: NodesRange;
+    complementRange: Range;
 }
 
 export interface ComplementType extends ComplementBase {

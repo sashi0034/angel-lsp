@@ -42,10 +42,11 @@ export function startDiagnose(document: string, uri: URI) {
 
 function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
     // コメント除去
-    const actualTokens = tokens.filter(t => t.kind !== 'comment').map(token => {
+    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
         return {
             ...token,
-            index: -1
+            index: -1,
+            next: undefined
         };
     });
 
@@ -62,7 +63,8 @@ function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
                     end: actualTokens[i].location.end
                 },
                 highlight: actualTokens[i - 1].highlight,
-                index: -1
+                index: -1,
+                next: undefined
             };
             actualTokens.splice(i, 1);
         }
@@ -70,7 +72,7 @@ function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
 
     for (let i = 0; i < actualTokens.length; i++) {
         actualTokens[i].index = i;
+        actualTokens[i].next = i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined;
     }
     return actualTokens;
 }
-

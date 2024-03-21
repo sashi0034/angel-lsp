@@ -1,12 +1,13 @@
 import {EssentialToken, LocationInfo} from "./token";
+import {ParsingToken} from "./parsing";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
 export interface NodesRange {
-    start: EssentialToken,
-    end: EssentialToken
+    start: EssentialToken | ParsingToken;
+    end: EssentialToken | ParsingToken;
 }
 
 export function getNodeLocation(range: NodesRange): LocationInfo {
@@ -17,9 +18,9 @@ export function getNodeLocation(range: NodesRange): LocationInfo {
     };
 }
 
-export interface MissingIdentifier {
-    missingRange: NodesRange;
-}
+// export interface MissingIdentifier {
+//     missingRange: NodesRange;
+// }
 
 export interface EntityModifier {
     isShared: boolean,
@@ -301,7 +302,7 @@ export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3
 export interface NodeExprPostOp1 extends NodesBase {
     nodeName: 'EXPRPOSTOP';
     postOp: 1;
-    member: NodeFuncCall | EssentialToken | MissingIdentifier;
+    member: NodeFuncCall | EssentialToken | undefined;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')

@@ -445,14 +445,27 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 }
 
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
+    const complementRange = getNodeLocation(exprPostOp.nodeRange);
+
+    // メンバが存在しない場合は、次のトークンまでを補完範囲とする
+    if (exprPostOp.member === undefined
+        && 'next' in exprPostOp.nodeRange.end
+        && exprPostOp.nodeRange.end.next !== undefined
+    ) {
+        complementRange.end = exprPostOp.nodeRange.end.next.location.start;
+    }
+
     // クラスメンバ補完
     scope.completionHints.push({
         complementKind: 'Type',
-        complementRange: exprPostOp.nodeRange,
+        complementRange: complementRange,
         targetType: exprValue
     });
 
+    if (exprPostOp.member === undefined) return undefined;
+
     if ('nodeName' in exprPostOp.member) {
+        // メソッド診断
         if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'CLASS') {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
@@ -464,8 +477,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        analyzeFuncCall(classScope, exprPostOp.member);
+        return analyzeFuncCall(classScope, exprPostOp.member);
     } else {
+        // フィールド診断
         // TODO
     }
 }
