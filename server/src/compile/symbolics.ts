@@ -52,7 +52,7 @@ export interface DeducedType {
 }
 
 export interface ComplementBase {
-    complementKind: 'Type';
+    complementKind: 'Type' | 'Namespace';
     complementRange: Range;
 }
 
@@ -61,7 +61,12 @@ export interface ComplementType extends ComplementBase {
     targetType: SymbolicType;
 }
 
-export type ComplementHints = ComplementType;
+export interface CompletionNamespace extends ComplementBase {
+    complementKind: 'Namespace';
+    targetNamespace: EssentialToken[];
+}
+
+export type ComplementHints = ComplementType | CompletionNamespace;
 
 function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
     return {

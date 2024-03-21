@@ -536,6 +536,10 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
+    if (varAccess.identifier === undefined) {
+        return undefined;
+    }
+
     const token = varAccess.identifier;
     const declared = findSymbolicVariableWithParent(scope, token.text);
     if (declared === undefined) {

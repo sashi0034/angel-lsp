@@ -357,8 +357,8 @@ export interface NodeFuncCall extends NodesBase {
 // VARACCESS     ::= SCOPE IDENTIFIER
 export interface NodeVarAccess extends NodesBase {
     nodeName: 'VARACCESS';
-    scope: NodeScope | undefined,
-    identifier: EssentialToken;
+    scope: NodeScope | undefined;
+    identifier: EssentialToken | undefined;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'

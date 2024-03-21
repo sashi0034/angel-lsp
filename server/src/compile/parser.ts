@@ -305,7 +305,7 @@ function parseVAR(parsing: ParsingState): NodeVar | undefined {
             }
             variables.push({identifier: identifier, initializer: expr});
         } else {
-            const argList = parseARGLIST(parsing);
+            const argList = parseArgList(parsing);
             if (parsing !== undefined) {
                 variables.push({identifier: identifier, initializer: argList});
             }
@@ -420,7 +420,7 @@ function parseTYPE(parsing: ParsingState): NodeType | undefined {
         parsing.confirm(HighlightTokenKind.Keyword);
         isConst = true;
     }
-    const scope = parseSCOPE(parsing);
+    const scope = parseScope(parsing);
     const datatype = parseDATATYPE(parsing);
     if (datatype === undefined) {
         parsing.backtrack(rangeStart);
@@ -473,7 +473,7 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function parseSCOPE(parsing: ParsingState): NodeScope | undefined {
+function parseScope(parsing: ParsingState): NodeScope | undefined {
     const rangeStart = parsing.next();
     let isGlobal = false;
     if (parsing.next().text === '::') {
@@ -965,7 +965,7 @@ function parseConstructCall(parsing: ParsingState): NodeConstructCall | undefine
     const type = parseTYPE(parsing);
     if (type === undefined) return undefined;
 
-    const argList = parseARGLIST(parsing);
+    const argList = parseArgList(parsing);
     if (argList === undefined) {
         parsing.backtrack(rangeStart);
         return undefined;
@@ -991,7 +991,7 @@ function parseExprPostOp(parsing: ParsingState): NodeExprPostOp | undefined {
     const exprPostOp2 = parseExprPostOp2(parsing);
     if (exprPostOp2 !== undefined) return exprPostOp2;
 
-    const argList = parseARGLIST(parsing);
+    const argList = parseArgList(parsing);
     if (argList !== undefined) return {
         nodeName: 'EXPRPOSTOP',
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1179,14 +1179,14 @@ function parseLITERAL(parsing: ParsingState): NodeLiteral | undefined {
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function parseFuncCall(parsing: ParsingState): NodeFuncCall | undefined {
     const rangeStart = parsing.next();
-    const scope = parseSCOPE(parsing);
+    const scope = parseScope(parsing);
     const identifier = parsing.next();
     if (identifier.kind !== 'identifier') {
         parsing.backtrack(rangeStart);
         return undefined;
     }
     parsing.confirm(HighlightTokenKind.Function);
-    const argList = parseARGLIST(parsing);
+    const argList = parseArgList(parsing);
     if (argList === undefined) {
         parsing.backtrack(rangeStart);
         return undefined;
@@ -1203,13 +1203,18 @@ function parseFuncCall(parsing: ParsingState): NodeFuncCall | undefined {
 // VARACCESS     ::= SCOPE IDENTIFIER
 function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
     const rangeStart = parsing.next();
-    const scope = parseSCOPE(parsing);
+    const scope = parseScope(parsing);
     const next = parsing.next();
     if (next.kind !== 'identifier') {
         if (scope !== undefined) {
             diagnostic.addError(parsing.next().location, "Expected identifier");
         }
-        return undefined;
+        return {
+            nodeName: 'VARACCESS',
+            nodeRange: {start: rangeStart, end: parsing.prev()},
+            scope: scope,
+            identifier: undefined
+        };
     }
     const isBuiltin: boolean = next.text === 'this';
     parsing.confirm(isBuiltin ? HighlightTokenKind.Builtin : HighlightTokenKind.Variable);
@@ -1222,7 +1227,7 @@ function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function parseARGLIST(parsing: ParsingState): NodeArgList | undefined {
+function parseArgList(parsing: ParsingState): NodeArgList | undefined {
     if (parsing.next().text !== '(') return undefined;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
