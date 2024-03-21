@@ -69,10 +69,10 @@ connection.onInitialize((params: InitializeParams) => {
                 resolveProvider: true,
                 triggerCharacters: [' ', '.', ':', '(', '[']
             },
-            // diagnosticProvider: {
-            //     interFileDependencies: false,
-            //     workspaceDiagnostics: false
-            // },
+            diagnosticProvider: {
+                interFileDependencies: false,
+                workspaceDiagnostics: false
+            },
             semanticTokensProvider: {
                 legend: {
                     tokenTypes: highlightTokens,
@@ -154,20 +154,12 @@ documents.onDidClose(e => {
     documentSettings.delete(e.document.uri);
 });
 
-// connection.languages.diagnostics.on(async (params) => {
-//     if (diagnostic.isPending()) {
-//         return {
-//             kind: DocumentDiagnosticReportKind.Unchanged,
-//             resultId: 'pending'
-//         } satisfies DocumentDiagnosticReport;
-//     }
-//     const document = documents.get(params.textDocument.uri);
-//     const items = document !== undefined ? await diagnostic.getAsync() : [];
-//     return {
-//         kind: DocumentDiagnosticReportKind.Full,
-//         items: items
-//     } satisfies DocumentDiagnosticReport;
-// });
+connection.languages.diagnostics.on(async (params) => {
+    return {
+        kind: DocumentDiagnosticReportKind.Full,
+        items: diagnostic.get()
+    } satisfies DocumentDiagnosticReport;
+});
 
 connection.languages.semanticTokens.on((params) => {
     return buildSemanticTokens(getDiagnosedResult().tokenizedTokens);
