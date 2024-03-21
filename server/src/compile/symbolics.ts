@@ -33,7 +33,7 @@ export interface SymbolScope {
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
-    missingCompletions: ComplementCandidate[];
+    completionHints: ComplementHints[];
 }
 
 export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined): SymbolScope {
@@ -42,7 +42,7 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
         parentScope: parentScope,
         childScopes: [],
         symbolList: [],
-        missingCompletions: [],
+        completionHints: [],
     };
 }
 
@@ -60,7 +60,7 @@ export interface ComplementType extends ComplementBase {
     targetType: SymbolicType;
 }
 
-export type ComplementCandidate = ComplementType;
+export type ComplementHints = ComplementType;
 
 function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
     return {

@@ -19,7 +19,7 @@ import {
     NodeExprPostOp2,
     NodeEXPRSTAT,
     NodeEXPRTERM2,
-    NodeEXPRVALUE,
+    NodeExprValue,
     NodeFOR,
     NodeFunc,
     NodeFuncCall,
@@ -924,7 +924,7 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseEXPRVALUE(parsing: ParsingState): TriedParse<NodeEXPRVALUE> {
+function parseEXPRVALUE(parsing: ParsingState): TriedParse<NodeExprValue> {
     const lambda = parseLAMBDA(parsing);
     if (lambda === 'pending') return 'pending';
     if (lambda !== 'mismatch') return lambda;

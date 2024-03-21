@@ -15,7 +15,7 @@ import {
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2,
-    NodeEXPRVALUE,
+    NodeExprValue,
     NodeFOR,
     NodeFunc,
     NodeFuncCall,
@@ -405,13 +405,13 @@ function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM): DeducedType | u
 function analyzeEXPRTERM2(scope: SymbolScope, exprTerm: NodeEXPRTERM2) {
     const exprValue = analyzeEXPRVALUE(scope, exprTerm.value);
     if (exprTerm.postOp !== undefined && exprValue !== undefined) {
-        analyzeEXPRPOSTOP(scope, exprTerm.postOp, exprValue.symbol);
+        analyzeExprPostOp(scope, exprTerm.postOp, exprValue.symbol);
     }
     return exprValue;
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): DeducedType | undefined {
+function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeExprValue): DeducedType | undefined {
     switch (exprValue.nodeName) {
     case 'CONSTRUCTCALL':
         break;
@@ -438,13 +438,20 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeEXPRVALUE): Deduced
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeEXPRPOSTOP(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: SymbolicType) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: SymbolicType) {
     if (exprPostOp.postOp === 1) {
-        return analyzeEXPRPOSTOP1(scope, exprPostOp, exprValue);
+        return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     }
 }
 
-function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
+function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
+    // クラスメンバ補完
+    scope.completionHints.push({
+        complementKind: 'Type',
+        complementRange: exprPostOp.nodeRange,
+        targetType: exprValue
+    });
+
     if ('nodeName' in exprPostOp.member) {
         if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'CLASS') {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
@@ -458,12 +465,7 @@ function analyzeEXPRPOSTOP1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         }
 
         analyzeFuncCall(classScope, exprPostOp.member);
-    } else if ('missingRange' in exprPostOp.member) {
-        scope.missingCompletions.push({
-            complementKind: 'Type',
-            complementRange: exprPostOp.member.missingRange,
-            targetType: exprValue
-        });
+    } else {
         // TODO
     }
 }

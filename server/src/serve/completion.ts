@@ -1,14 +1,14 @@
 import {Position} from "vscode-languageserver";
 import {
     collectParentScopes,
-    ComplementCandidate,
+    ComplementHints,
     findClassScopeWithParent,
     SymbolicObject,
     SymbolScope
 } from "../compile/symbolics";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation} from "../compile/nodes";
-import {isPositionInLocationExclusive, isPositionInLocationInclusive} from "../compile/token";
+import {isPositionInLocation} from "../compile/token";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
     const items: CompletionItem[] = [];
@@ -44,7 +44,7 @@ function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
         if (child.ownerNode === undefined || 'scopeRange' in child.ownerNode === false) continue;
 
         const location = getNodeLocation(child.ownerNode.scopeRange);
-        if (isPositionInLocationInclusive(caret, location)) {
+        if (isPositionInLocation(caret, location)) {
             const found = findIncludedScopes(child, caret);
             if (found !== undefined) return found;
         }
@@ -54,13 +54,15 @@ function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
 }
 
 function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
-    if (scope.missingCompletions.length === 0) return;
+    if (scope.completionHints.length === 0) return;
 
-    for (const missing of scope.missingCompletions) {
+    for (const missing of scope.completionHints) {
         // スコープ内で優先的に補完する対象がカーソル位置にあるかを調べる
         const location = getNodeLocation(missing.complementRange);
-        if (isPositionInLocationExclusive(caret, location)) {
+        if (isPositionInLocation(caret, location)) {
             // 優先的に補完する対象を返す
+            console.log(location);
+            console.log(caret);
             return searchMissingCompletion(scope, missing);
         }
     }
@@ -68,7 +70,7 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
     return undefined;
 }
 
-function searchMissingCompletion(scope: SymbolScope, completion: ComplementCandidate) {
+function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
     if (completion.complementKind === 'Type') {
         // 補完対象の型が属するスコープを探す
         const typeScope = findClassScopeWithParent(scope, completion.targetType.declaredPlace.text);

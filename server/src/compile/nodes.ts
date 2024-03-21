@@ -271,12 +271,12 @@ export interface NodeEXPRTERM2 extends NodesBase {
     nodeName: 'EXPRTERM'
     exprTerm: 2,
     preOp: EssentialToken | undefined,
-    value: NodeEXPRVALUE,
+    value: NodeExprValue,
     postOp: NodeExprPostOp | undefined
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-export type  NodeEXPRVALUE =
+export type  NodeExprValue =
     NodeConstructCall
     | NodeFuncCall
     | NodeVarAccess
