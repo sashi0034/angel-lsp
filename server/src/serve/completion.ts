@@ -61,8 +61,6 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
         const location = missing.complementRange;
         if (isPositionInRange(caret, location)) {
             // 優先的に補完する対象を返す
-            console.log(location);
-            console.log(caret);
             return searchMissingCompletion(scope, missing);
         }
     }

@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    getNextTokenIfExist,
     getNodeLocation,
     NodeArgList,
     NodeAssign,
@@ -160,7 +161,7 @@ function analyzeFUNC(scope: SymbolScope, ast: NodeFunc) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function analyzeVAR(scope: SymbolScope, ast: NodeVar) {
+function analyzeVar(scope: SymbolScope, ast: NodeVar) {
     const type = analyzeTYPE(scope, ast.type);
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
@@ -188,7 +189,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVar) {
 function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeStatBlock) {
     for (const statement of ast.statements) {
         if (statement.nodeName === 'VAR') {
-            analyzeVAR(scope, statement);
+            analyzeVar(scope, statement);
         } else {
             analyzeSTATEMENT(scope, statement as NodeStatement);
         }
@@ -215,6 +216,7 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodeParamList) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeTYPE(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
+    if (ast.scope !== undefined) analyzeScope(scope, ast.scope);
     const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
     if (found !== undefined) {
         found.usageList.push(ast.datatype.identifier);
@@ -258,18 +260,35 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
     if (nodeScope.isGlobal) {
         scopeIterator = findGlobalScope(symbolScope);
     }
-    for (const nextScope of nodeScope.namespaceList) {
-        const found = findNamespaceScope(scopeIterator, nextScope.text);
-        if (found === undefined) {
-            if (nodeScope.isGlobal === false && symbolScope.parentScope !== undefined) {
-                return analyzeScope(symbolScope.parentScope, nodeScope);
+    for (let i = 0; i < nodeScope.namespaceList.length; i++) {
+        const nextNamespace = nodeScope.namespaceList[i];
+
+        // 名前空間に対応するスコープを探す
+        let found: SymbolScope | undefined = undefined;
+        for (; ;) {
+            found = findNamespaceScope(scopeIterator, nextNamespace.text);
+            if (found !== undefined) break;
+            if (i == 0 && scopeIterator.parentScope !== undefined) {
+                // グローバルスコープでないなら、上の階層を更に探索
+                scopeIterator = scopeIterator.parentScope;
             } else {
-                diagnostic.addError(nextScope.location, `Undefined namespace: ${nextScope.text}`);
+                diagnostic.addError(nextNamespace.location, `Undefined namespace: ${nextNamespace.text}`);
                 return undefined;
             }
-        } else {
-            scopeIterator = found;
         }
+
+        // スコープを更新
+        scopeIterator = found;
+
+        // 名前空間に対する補完を行う
+        const complementRange: Range = {start: nextNamespace.location.start, end: nextNamespace.location.end};
+        complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextNamespace)).location.start;
+        symbolScope.completionHints.push({
+            complementKind: 'Namespace',
+            complementRange: complementRange,
+            namespaceList: nodeScope.namespaceList.slice(0, i + 1)
+        });
+
     }
 
     return scopeIterator;
@@ -329,7 +348,7 @@ function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
-    if (ast.initial.nodeName === 'VAR') analyzeVAR(scope, ast.initial);
+    if (ast.initial.nodeName === 'VAR') analyzeVar(scope, ast.initial);
     else analyzeEXPRSTAT(scope, ast.initial);
 
     analyzeEXPRSTAT(scope, ast.condition);
@@ -450,7 +469,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     // メンバが存在しない場合は、次のトークンまでを補完範囲とする
     if (exprPostOp.member === undefined) {
-        extendComplementToNextToken(complementRange, exprPostOp.nodeRange);
+        complementRange.end = getNextTokenIfExist(exprPostOp.nodeRange.end).location.start;
     }
 
     // クラスメンバ補完
@@ -479,14 +498,6 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     } else {
         // フィールド診断
         // TODO
-    }
-}
-
-function extendComplementToNextToken(complementRange: Range, nodeRange: NodesRange) {
-    if ('next' in nodeRange.end
-        && nodeRange.end.next !== undefined
-    ) {
-        complementRange.end = nodeRange.end.next.location.start;
     }
 }
 
@@ -542,18 +553,13 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
+    if (varAccess.scope !== undefined) {
+        const namespaceScope = analyzeScope(scope, varAccess.scope);
+        if (namespaceScope === undefined) return undefined;
+        scope = namespaceScope;
+    }
+
     if (varAccess.identifier === undefined) {
-        if (varAccess.scope === undefined) return undefined;
-
-        // 名前空間に対する補完を行う
-        const complementRange = getNodeLocation(varAccess.nodeRange);
-        extendComplementToNextToken(complementRange, varAccess.nodeRange);
-
-        scope.completionHints.push({
-            complementKind: 'Namespace',
-            complementRange: complementRange,
-            namespaceList: varAccess.scope.namespaceList
-        });
         return undefined;
     }
 

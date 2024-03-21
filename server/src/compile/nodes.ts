@@ -10,6 +10,11 @@ export interface NodesRange {
     end: EssentialToken | ParsingToken;
 }
 
+export function getNextTokenIfExist(token: EssentialToken | ParsingToken): EssentialToken | ParsingToken {
+    if ('next' in token && token.next !== undefined) return token.next;
+    return token;
+}
+
 export function getNodeLocation(range: NodesRange): LocationInfo {
     return {
         uri: range.start.location.uri,
