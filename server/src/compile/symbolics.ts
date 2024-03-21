@@ -63,7 +63,7 @@ export interface ComplementType extends ComplementBase {
 
 export interface CompletionNamespace extends ComplementBase {
     complementKind: 'Namespace';
-    targetNamespace: EssentialToken[];
+    namespaceList: EssentialToken[];
 }
 
 export type ComplementHints = ComplementType | CompletionNamespace;

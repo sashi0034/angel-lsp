@@ -905,7 +905,7 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
         parsing.confirm(HighlightTokenKind.Operator);
     }
 
-    const exprValue = parseEXPRVALUE(parsing);
+    const exprValue = parseExprValue(parsing);
     if (exprValue === 'mismatch') parsing.backtrack(rangeStart);
     if (exprValue === 'mismatch' || exprValue === 'pending') {
         return undefined;
@@ -924,7 +924,7 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseEXPRVALUE(parsing: ParsingState): TriedParse<NodeExprValue> {
+function parseExprValue(parsing: ParsingState): TriedParse<NodeExprValue> {
     const lambda = parseLAMBDA(parsing);
     if (lambda === 'pending') return 'pending';
     if (lambda !== 'mismatch') return lambda;
@@ -1206,9 +1206,9 @@ function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
     const scope = parseScope(parsing);
     const next = parsing.next();
     if (next.kind !== 'identifier') {
-        if (scope !== undefined) {
-            diagnostic.addError(parsing.next().location, "Expected identifier");
-        }
+        if (scope === undefined) return undefined;
+        diagnostic.addError(parsing.next().location, "Expected identifier");
+
         return {
             nodeName: 'VARACCESS',
             nodeRange: {start: rangeStart, end: parsing.prev()},

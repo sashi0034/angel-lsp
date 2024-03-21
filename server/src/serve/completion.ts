@@ -2,7 +2,7 @@ import {Position} from "vscode-languageserver";
 import {
     collectParentScopes,
     ComplementHints,
-    findClassScopeWithParent,
+    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
     SymbolicObject,
     SymbolScope
 } from "../compile/symbolics";
@@ -78,6 +78,16 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
 
         // スコープ内の補完候補を返す
         return getCompletionSymbolsInScope(typeScope);
+    } else if (completion.complementKind === 'Namespace') {
+        // 補完対象の名前空間が属するスコープを探す
+        const namespaceList = completion.namespaceList;
+        if (namespaceList.length === 0) return [];
+
+        const namespaceScope = findNamespaceScope(findGlobalScope(scope), namespaceList[0].text);
+        if (namespaceScope === undefined) return [];
+
+        // スコープ内の補完候補を返す
+        return getCompletionSymbolsInScope(namespaceScope);
     }
     return undefined;
 }

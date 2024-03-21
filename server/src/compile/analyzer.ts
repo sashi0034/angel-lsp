@@ -23,7 +23,7 @@ import {
     NodeLiteral, NodeNamespace,
     NodeParamList,
     NodeRETURN, NodeScope,
-    NodeScript,
+    NodeScript, NodesRange,
     NodeStatBlock,
     NodeStatement,
     NodeSWITCH,
@@ -47,6 +47,7 @@ import {
     SymbolScope
 } from "./symbolics";
 import {diagnostic} from "../code/diagnostic";
+import {Range} from "vscode-languageserver";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeClass }[],
@@ -165,7 +166,7 @@ function analyzeVAR(scope: SymbolScope, ast: NodeVar) {
         const initializer = var_.initializer;
         if (initializer !== undefined) {
             if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
-            if (initializer.nodeName === 'ARGLIST') analyzeARGLIST(scope, initializer);
+            if (initializer.nodeName === 'ARGLIST') analyzeArgList(scope, initializer);
         }
         const variable: SymbolicVariable = {
             symbolKind: 'variable',
@@ -318,7 +319,7 @@ function analyzeSTATEMENT(scope: SymbolScope, ast: NodeStatement) {
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
-    analyzeASSIGN(scope, ast.assign);
+    analyzeAssign(scope, ast.assign);
     for (const c of ast.cases) {
         analyzeCASE(scope, c);
     }
@@ -334,7 +335,7 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
     analyzeEXPRSTAT(scope, ast.condition);
 
     for (const inc of ast.incrementList) {
-        analyzeASSIGN(scope, inc);
+        analyzeAssign(scope, inc);
     }
 
     analyzeSTATEMENT(scope, ast.statement);
@@ -342,19 +343,19 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWHILE(scope: SymbolScope, ast: NodeWHILE) {
-    analyzeASSIGN(scope, ast.assign);
+    analyzeAssign(scope, ast.assign);
     analyzeSTATEMENT(scope, ast.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function analyzeDOWHILE(scope: SymbolScope, ast: NodeDOWHILE) {
     analyzeSTATEMENT(scope, ast.statement);
-    analyzeASSIGN(scope, ast.assign);
+    analyzeAssign(scope, ast.assign);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIF(scope: SymbolScope, ast: NodeIF) {
-    analyzeASSIGN(scope, ast.condition);
+    analyzeAssign(scope, ast.condition);
     analyzeSTATEMENT(scope, ast.ts);
     if (ast.fs !== undefined) analyzeSTATEMENT(scope, ast.fs);
 }
@@ -363,14 +364,14 @@ function analyzeIF(scope: SymbolScope, ast: NodeIF) {
 
 // EXPRSTAT      ::= [ASSIGN] ';'
 function analyzeEXPRSTAT(scope: SymbolScope, ast: NodeEXPRSTAT) {
-    if (ast.assign !== undefined) analyzeASSIGN(scope, ast.assign);
+    if (ast.assign !== undefined) analyzeAssign(scope, ast.assign);
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function analyzeRETURN(scope: SymbolScope, ast: NodeRETURN) {
-    analyzeASSIGN(scope, ast.assign);
+    analyzeAssign(scope, ast.assign);
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
@@ -418,13 +419,13 @@ function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeExprValue): Deduced
     case 'FUNCCALL':
         return analyzeFuncCall(scope, exprValue);
     case 'VARACCESS':
-        return analyzeVARACCESS(scope, exprValue);
+        return analyzeVarAccess(scope, exprValue);
     case 'CAST':
         break;
     case 'LITERAL':
         return analyzeLITERAL(scope, exprValue);
     case 'ASSIGN':
-        analyzeASSIGN(scope, exprValue);
+        analyzeAssign(scope, exprValue);
         break;
     case 'LAMBDA':
         break;
@@ -448,11 +449,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const complementRange = getNodeLocation(exprPostOp.nodeRange);
 
     // メンバが存在しない場合は、次のトークンまでを補完範囲とする
-    if (exprPostOp.member === undefined
-        && 'next' in exprPostOp.nodeRange.end
-        && exprPostOp.nodeRange.end.next !== undefined
-    ) {
-        complementRange.end = exprPostOp.nodeRange.end.next.location.start;
+    if (exprPostOp.member === undefined) {
+        extendComplementToNextToken(complementRange, exprPostOp.nodeRange);
     }
 
     // クラスメンバ補完
@@ -481,6 +479,14 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     } else {
         // フィールド診断
         // TODO
+    }
+}
+
+function extendComplementToNextToken(complementRange: Range, nodeRange: NodesRange) {
+    if ('next' in nodeRange.end
+        && nodeRange.end.next !== undefined
+    ) {
+        complementRange.end = nodeRange.end.next.location.start;
     }
 }
 
@@ -518,7 +524,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
     const head = calleeFunc.sourceNode.head;
     const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
     calleeFunc.usageList.push(funcCall.identifier);
-    const argTypes = analyzeARGLIST(scope, funcCall.argList);
+    const argTypes = analyzeArgList(scope, funcCall.argList);
     if (argTypes.length === calleeFunc.sourceNode.paramList.length) {
         for (let i = 0; i < argTypes.length; i++) {
             const actualType = argTypes[i];
@@ -535,8 +541,19 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
+function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
     if (varAccess.identifier === undefined) {
+        if (varAccess.scope === undefined) return undefined;
+
+        // 名前空間に対する補完を行う
+        const complementRange = getNodeLocation(varAccess.nodeRange);
+        extendComplementToNextToken(complementRange, varAccess.nodeRange);
+
+        scope.completionHints.push({
+            complementKind: 'Namespace',
+            complementRange: complementRange,
+            namespaceList: varAccess.scope.namespaceList
+        });
         return undefined;
     }
 
@@ -551,29 +568,29 @@ function analyzeVARACCESS(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function analyzeARGLIST(scope: SymbolScope, argList: NodeArgList): (DeducedType | undefined)[] {
+function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType | undefined)[] {
     const types: (DeducedType | undefined)[] = [];
     for (const arg of argList.args) {
-        types.push(analyzeASSIGN(scope, arg.assign));
+        types.push(analyzeAssign(scope, arg.assign));
     }
     return types;
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function analyzeASSIGN(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
-    const lhs = analyzeCONDITION(scope, assign.condition);
+function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
+    const lhs = analyzeCondition(scope, assign.condition);
     if (assign.tail === undefined) return lhs;
-    const rhs = analyzeASSIGN(scope, assign.tail.assign);
+    const rhs = analyzeAssign(scope, assign.tail.assign);
     // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
     return lhs;
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export function analyzeCONDITION(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
+export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
     const exprType = analyzeEXPR(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
-    const ta = analyzeASSIGN(scope, condition.ternary.ta);
-    const fa = analyzeASSIGN(scope, condition.ternary.fa);
+    const ta = analyzeAssign(scope, condition.ternary.ta);
+    const fa = analyzeAssign(scope, condition.ternary.fa);
     // if (ta !== undefined && fa !== undefined) checkTypeMatch(ta, fa);
     return ta;
 }
