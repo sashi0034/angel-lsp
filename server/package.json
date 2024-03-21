@@ -1,8 +1,8 @@
 {
-	"name": "lsp-sample-server",
-	"description": "Example implementation of a language server in node.",
+	"name": "angel-lsp",
+	"description": "AngelScript Language Server for VisualStudioCode",
 	"version": "1.0.0",
-	"author": "Microsoft Corporation",
+	"author": "sashi0034",
 	"license": "MIT",
 	"engines": {
 		"node": "*"

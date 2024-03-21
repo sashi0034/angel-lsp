@@ -6,6 +6,11 @@
     <TypeScriptCodeStyleSettings version="0">
       <option name="FORCE_SEMICOLON_STYLE" value="true" />
     </TypeScriptCodeStyleSettings>
+    <codeStyleSettings language="JSON">
+      <indentOptions>
+        <option name="INDENT_SIZE" value="4" />
+      </indentOptions>
+    </codeStyleSettings>
     <codeStyleSettings language="TypeScript">
       <option name="KEEP_BLANK_LINES_IN_CODE" value="1" />
       <option name="INDENT_CASE_FROM_SWITCH" value="false" />
