@@ -571,7 +571,7 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     if (while_ === 'pending') return 'pending';
     if (while_ !== 'mismatch') return while_;
 
-    const return_ = parseRETURN(parsing);
+    const return_ = parseReturn(parsing);
     if (return_ === 'pending') return 'pending';
     if (return_ !== 'mismatch') return return_;
 
@@ -803,7 +803,7 @@ function parseEXPRSTAT(parsing: ParsingState): NodeEXPRSTAT | undefined {
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function parseRETURN(parsing: ParsingState): TriedParse<NodeRETURN> {
+function parseReturn(parsing: ParsingState): TriedParse<NodeRETURN> {
     if (parsing.next().text !== 'return') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();

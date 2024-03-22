@@ -86,7 +86,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
         const nextNamespace = namespace_.namespaceList[i];
         const existing = findNamespaceScope(parentScope, nextNamespace.text);
         if (existing === undefined) {
-            const newScope: SymbolScope = createSymbolScope(nextNamespace, parentScope);
+            const newScope: SymbolScope = createSymbolScope(nextNamespace.text, parentScope);
             scopeIterator.childScopes.push(newScope);
             scopeIterator = newScope;
         } else {

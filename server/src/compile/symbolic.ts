@@ -27,7 +27,17 @@ export interface SymbolicVariable extends SymbolicBase {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
-type SymbolOwnerNode = NodeClass | NodeFunc | EssentialToken;
+type NamespaceString = string;
+
+type SymbolOwnerNode = NodeClass | NodeFunc | NamespaceString;
+
+export function isOwnerNodeNamespace(node: SymbolOwnerNode | undefined): node is NamespaceString {
+    return node !== undefined && typeof node === "string";
+}
+
+export function isOwnerNodeExistence(node: SymbolOwnerNode | undefined): node is NodeClass | NodeFunc {
+    return node !== undefined && typeof node !== "string";
+}
 
 export interface SymbolScope {
     ownerNode: SymbolOwnerNode | undefined;
@@ -115,8 +125,7 @@ function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: Symb
 
 export function findClassScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
-        if (child.ownerNode === undefined) continue;
-        if ('nodeName' in child.ownerNode === false) continue;
+        if (isOwnerNodeExistence(child.ownerNode) === false) continue;
         if (child.ownerNode.nodeName !== 'Class') continue;
         if (child.ownerNode.identifier.text === identifier) return child;
     }
@@ -126,18 +135,16 @@ export function findClassScopeWithParent(scope: SymbolScope, identifier: string)
 
 export function findNamespaceScope(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
-        if (child.ownerNode === undefined) continue;
-        if ('nodeName' in child.ownerNode) continue;
-        if (child.ownerNode.text === identifier) return child;
+        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
+        if (child.ownerNode === identifier) return child;
     }
     return undefined;
 }
 
 export function findNamespaceScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
-        if (child.ownerNode === undefined) continue;
-        if ('nodeName' in child.ownerNode) continue;
-        if (child.ownerNode.text === identifier) return child;
+        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
+        if (child.ownerNode === identifier) return child;
     }
     if (scope.parentScope === undefined) return undefined;
     return findClassScopeWithParent(scope.parentScope, identifier);

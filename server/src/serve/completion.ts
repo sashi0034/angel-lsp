@@ -2,7 +2,7 @@ import {Position} from "vscode-languageserver";
 import {
     collectParentScopes,
     ComplementHints,
-    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
+    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent, isOwnerNodeExistence,
     SymbolicObject,
     SymbolScope
 } from "../compile/symbolic";
@@ -41,7 +41,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope) {
 
 function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
     for (const child of scope.childScopes) {
-        if (child.ownerNode === undefined || 'scopeRange' in child.ownerNode === false) continue;
+        if (isOwnerNodeExistence(child.ownerNode) === false) continue;
 
         const location = getNodeLocation(child.ownerNode.scopeRange);
         if (isPositionInRange(caret, location)) {
