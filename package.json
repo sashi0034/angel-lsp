@@ -46,7 +46,7 @@
         },
         "iconThemes": [
             {
-                "id": "angelScriptIcon",
+                "id": "angel-script-icon",
                 "label": "AngelScript Icon",
                 "path": "./icons/icons-theme.json"
             }
