@@ -8,30 +8,30 @@ import {
     NodeCASE,
     NodeClass,
     NodeCondition,
-    NodeDOWHILE,
+    NodeDoWhile,
     NodeEXPR,
     NodeExprPostOp,
     NodeExprPostOp1,
-    NodeEXPRSTAT,
+    NodeExprStat,
     NodeEXPRTERM,
     NodeEXPRTERM1,
     NodeEXPRTERM2,
     NodeExprValue,
-    NodeFOR,
+    NodeFor,
     NodeFunc,
     NodeFuncCall,
-    NodeIF,
+    NodeIf,
     NodeLiteral, NodeNamespace,
     NodeParamList,
-    NodeRETURN, NodeScope,
+    NodeReturn, NodeScope,
     NodeScript, ParsedRange,
     NodeStatBlock,
     NodeStatement,
-    NodeSWITCH,
+    NodeSwitch,
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeWHILE
+    NodeWhile
 } from "./nodes";
 import {
     builtinBoolType,
@@ -104,7 +104,6 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
     const symbol: SymbolicType = {
         symbolKind: 'type',
         declaredPlace: class_.identifier,
-        usageList: [],
         sourceNode: class_,
     };
     const scope: SymbolScope = createSymbolScope(class_, parentScope);
@@ -134,7 +133,6 @@ function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
     const symbol: SymbolicFunction = {
         symbolKind: 'function',
         declaredPlace: func.identifier,
-        usageList: [],
         sourceNode: func,
     };
     const scope: SymbolScope = createSymbolScope(func, parentScope);
@@ -173,7 +171,6 @@ function analyzeVar(scope: SymbolScope, ast: NodeVar) {
             symbolKind: 'variable',
             type: type?.symbol,
             declaredPlace: var_.identifier,
-            usageList: [],
         };
         scope.symbolList.push(variable);
     }
@@ -207,7 +204,6 @@ function analyzePARAMLIST(scope: SymbolScope, ast: NodeParamList) {
             symbolKind: 'variable',
             type: type?.symbol,
             declaredPlace: param.identifier,
-            usageList: [],
         });
     }
 }
@@ -219,7 +215,10 @@ function analyzeTYPE(scope: SymbolScope, ast: NodeType): DeducedType | undefined
     if (ast.scope !== undefined) analyzeScope(scope, ast.scope);
     const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
     if (found !== undefined) {
-        found.usageList.push(ast.datatype.identifier);
+        scope.referencedList.push({
+            declaredSymbol: found,
+            referencedToken: ast.datatype.identifier
+        });
         return {symbol: found};
     }
     diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text}`);
@@ -337,7 +336,7 @@ function analyzeSTATEMENT(scope: SymbolScope, ast: NodeStatement) {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
+function analyzeSWITCH(scope: SymbolScope, ast: NodeSwitch) {
     analyzeAssign(scope, ast.assign);
     for (const c of ast.cases) {
         analyzeCASE(scope, c);
@@ -347,7 +346,7 @@ function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
 // BREAK         ::= 'break' ';'
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
+function analyzeFOR(scope: SymbolScope, ast: NodeFor) {
     if (ast.initial.nodeName === 'Var') analyzeVar(scope, ast.initial);
     else analyzeEXPRSTAT(scope, ast.initial);
 
@@ -361,19 +360,19 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function analyzeWHILE(scope: SymbolScope, ast: NodeWHILE) {
+function analyzeWHILE(scope: SymbolScope, ast: NodeWhile) {
     analyzeAssign(scope, ast.assign);
     analyzeSTATEMENT(scope, ast.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function analyzeDOWHILE(scope: SymbolScope, ast: NodeDOWHILE) {
+function analyzeDOWHILE(scope: SymbolScope, ast: NodeDoWhile) {
     analyzeSTATEMENT(scope, ast.statement);
     analyzeAssign(scope, ast.assign);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function analyzeIF(scope: SymbolScope, ast: NodeIF) {
+function analyzeIF(scope: SymbolScope, ast: NodeIf) {
     analyzeAssign(scope, ast.condition);
     analyzeSTATEMENT(scope, ast.ts);
     if (ast.fs !== undefined) analyzeSTATEMENT(scope, ast.fs);
@@ -382,14 +381,14 @@ function analyzeIF(scope: SymbolScope, ast: NodeIF) {
 // CONTINUE      ::= 'continue' ';'
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function analyzeEXPRSTAT(scope: SymbolScope, ast: NodeEXPRSTAT) {
+function analyzeEXPRSTAT(scope: SymbolScope, ast: NodeExprStat) {
     if (ast.assign !== undefined) analyzeAssign(scope, ast.assign);
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function analyzeRETURN(scope: SymbolScope, ast: NodeRETURN) {
+function analyzeRETURN(scope: SymbolScope, ast: NodeReturn) {
     analyzeAssign(scope, ast.assign);
 }
 
@@ -534,7 +533,10 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
     const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
-    calleeFunc.usageList.push(funcCall.identifier);
+    scope.referencedList.push({
+        declaredSymbol: calleeFunc,
+        referencedToken: funcCall.identifier
+    });
     const argTypes = analyzeArgList(scope, funcCall.argList);
     if (argTypes.length === calleeFunc.sourceNode.paramList.length) {
         for (let i = 0; i < argTypes.length; i++) {
@@ -569,7 +571,10 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
         diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
         return undefined;
     }
-    declared.usageList.push(token);
+    scope.referencedList.push({
+        declaredSymbol: declared,
+        referencedToken: token
+    });
     return declared.type === undefined ? undefined : {symbol: declared.type};
 }
 

@@ -60,6 +60,7 @@ connection.onInitialize((params: InitializeParams) => {
             textDocumentSync: TextDocumentSyncKind.Incremental,
             definitionProvider: true, // TODO
             declarationProvider: true, // TODO
+            referencesProvider: true, // TODO
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
@@ -164,10 +165,10 @@ connection.languages.semanticTokens.on((params) => {
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const diagnosedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
-    if (diagnosedScope === undefined) return;
+    const analyzedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
+    if (analyzedScope === undefined) return;
     const caret = params.position;
-    const jumping = jumpDefinition(diagnosedScope, caret);
+    const jumping = jumpDefinition(analyzedScope, caret);
     if (jumping === null) return;
     return {
         uri: jumping.location.uri,

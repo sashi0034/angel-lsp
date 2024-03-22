@@ -30,17 +30,17 @@ export interface HighlightInfo {
     modifier: HighlightModifierKind;
 }
 
-export interface EssentialToken {
+export interface PlainToken {
     kind: TokenKind;
     text: string;
     location: LocationInfo;
 }
 
-export interface TokenizedToken extends EssentialToken {
+export interface TokenizedToken extends PlainToken {
     highlight: HighlightInfo;
 }
 
-export const dummyToken: EssentialToken = {
+export const dummyToken: PlainToken = {
     kind: 'reserved',
     text: '',
     location: {

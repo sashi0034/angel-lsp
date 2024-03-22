@@ -1,4 +1,4 @@
-import {dummyToken, EssentialToken, LocationInfo} from "./token";
+import {dummyToken, PlainToken, LocationInfo} from "./token";
 import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, ParsedRange, NodeType} from "./nodes";
 import {Range} from "vscode-languageserver";
 
@@ -6,8 +6,7 @@ export type SymbolKind = 'type' | 'function' | 'variable';
 
 export interface SymbolicBase {
     symbolKind: 'type' | 'function' | 'variable';
-    declaredPlace: EssentialToken;
-    usageList: EssentialToken[];
+    declaredPlace: PlainToken;
 }
 
 export interface SymbolicType extends SymbolicBase {
@@ -39,11 +38,17 @@ export function isOwnerNodeExistence(node: SymbolOwnerNode | undefined): node is
     return node !== undefined && typeof node !== "string";
 }
 
+export interface ReferencedSymbolInfo {
+    declaredSymbol: SymbolicBase;
+    referencedToken: PlainToken;
+}
+
 export interface SymbolScope {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
     symbolList: SymbolicObject[];
+    referencedList: ReferencedSymbolInfo[];
     completionHints: ComplementHints[];
 }
 
@@ -53,6 +58,7 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
         parentScope: parentScope,
         childScopes: [],
         symbolList: [],
+        referencedList: [],
         completionHints: [],
     };
 }
@@ -73,7 +79,7 @@ export interface ComplementType extends ComplementBase {
 
 export interface CompletionNamespace extends ComplementBase {
     complementKind: 'Namespace';
-    namespaceList: EssentialToken[];
+    namespaceList: PlainToken[];
 }
 
 export type ComplementHints = ComplementType | CompletionNamespace;
@@ -82,7 +88,6 @@ function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
     return {
         symbolKind: 'type',
         declaredPlace: dummyToken,
-        usageList: [],
         sourceNode: name,
     } as const;
 }
@@ -93,7 +98,7 @@ export const builtinBoolType: SymbolicType = createBuiltinType('bool');
 
 export const builtinVoidType: SymbolicType = createBuiltinType('void');
 
-export function findSymbolicTypeWithParent(scope: SymbolScope, token: EssentialToken): SymbolicType | undefined {
+export function findSymbolicTypeWithParent(scope: SymbolScope, token: PlainToken): SymbolicType | undefined {
     const tokenText = token.text;
     if (token.kind === 'reserved') {
         if ((tokenText === 'bool')) return builtinBoolType;

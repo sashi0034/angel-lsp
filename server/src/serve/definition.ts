@@ -1,24 +1,19 @@
 import {SymbolScope} from "../compile/symbolic";
 import {Position} from "vscode-languageserver";
-import {EssentialToken} from "../compile/token";
+import {isPositionInRange, PlainToken} from "../compile/token";
 
-export function jumpDefinition(scope: SymbolScope, caret: Position): EssentialToken | null {
-    for (const symbol of scope.symbolList) {
-        // スコープ内のシンボルを検索
-        for (const usage of symbol.usageList) {
-            // そのシンボルの使用箇所を検索
-            const usedPos = usage.location.start;
-            if (usedPos.line === caret.line
-                && usedPos.character <= caret.character
-                && caret.character <= usedPos.character + usage.text.length
-            ) {
-                // 使用箇所であれば宣言箇所を返す
-                return symbol.declaredPlace;
-            }
+export function jumpDefinition(analyzedScope: SymbolScope, caret: Position): PlainToken | null {
+    for (const reference of analyzedScope.referencedList) {
+        // スコープ内の参照箇所を検索
+        const referencedLocation = reference.referencedToken.location;
+        if (isPositionInRange(caret, referencedLocation)) {
+            // 参照箇所がカーソル位置上なら定義箇所を返す
+            return reference.declaredSymbol.declaredPlace;
         }
     }
 
-    for (const child of scope.childScopes) {
+    // 現在のスコープで見つからないときは子スコープを探索
+    for (const child of analyzedScope.childScopes) {
         const jumping = jumpDefinition(child, caret);
         if (jumping !== null) return jumping;
     }

@@ -6,37 +6,37 @@ import {
     AccessModifier, EntityModifier,
     NodeArgList,
     NodeAssign,
-    NodeBREAK,
+    NodeBreak,
     NodeCASE, NodeCast,
     NodeClass,
     NodeCondition, NodeConstructCall,
-    NodeCONTINUE,
+    NodeContinue,
     NodeDATATYPE,
-    NodeDOWHILE,
+    NodeDoWhile,
     NodeEXPR,
     NodeExprPostOp,
     NodeExprPostOp1,
     NodeExprPostOp2,
-    NodeEXPRSTAT,
+    NodeExprStat,
     NodeEXPRTERM2,
     NodeExprValue,
-    NodeFOR,
+    NodeFor,
     NodeFunc,
     NodeFuncCall,
     NodeFuncDef,
-    NodeIF, NodeLambda, NodeLiteral, NodeNamespace,
+    NodeIf, NodeLambda, NodeLiteral, NodeNamespace,
     NodeParamList,
-    NodeRETURN,
+    NodeReturn,
     NodeScope,
     NodeScript,
     NodeStatBlock,
     NodeStatement,
-    NodeSWITCH,
+    NodeSwitch,
     NodeType,
     NodeVar,
     NodeVarAccess,
     NodeVirtProp,
-    NodeWHILE, TypeModifier
+    NodeWhile, TypeModifier
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightTokenKind} from "../code/highlight";
@@ -599,7 +599,7 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function parseSWITCH(parsing: ParsingState): TriedParse<NodeSWITCH> {
+function parseSWITCH(parsing: ParsingState): TriedParse<NodeSwitch> {
     if (parsing.next().text !== 'switch') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
@@ -630,7 +630,7 @@ function parseSWITCH(parsing: ParsingState): TriedParse<NodeSWITCH> {
 }
 
 // BREAK         ::= 'break' ';'
-function parseBREAK(parsing: ParsingState): NodeBREAK | undefined {
+function parseBREAK(parsing: ParsingState): NodeBreak | undefined {
     if (parsing.next().text !== 'break') return undefined;
     const rangeStart = parsing.next();
     parsing.step();
@@ -639,13 +639,13 @@ function parseBREAK(parsing: ParsingState): NodeBREAK | undefined {
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function parseFOR(parsing: ParsingState): TriedParse<NodeFOR> {
+function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
     if (parsing.next().text !== 'for') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
 
-    const initial: NodeEXPRSTAT | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVAR(parsing);
+    const initial: NodeExprStat | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVAR(parsing);
     if (initial === undefined) {
         diagnostic.addError(parsing.next().location, "Expected initial expression or variable declaration");
         return 'pending';
@@ -684,7 +684,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFOR> {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function parseWHILE(parsing: ParsingState): TriedParse<NodeWHILE> {
+function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
     if (parsing.next().text !== 'while') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
@@ -710,7 +710,7 @@ function parseWHILE(parsing: ParsingState): TriedParse<NodeWHILE> {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDOWHILE> {
+function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDoWhile> {
     if (parsing.next().text !== 'do') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
@@ -737,7 +737,7 @@ function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDOWHILE> {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function parseIF(parsing: ParsingState): TriedParse<NodeIF> {
+function parseIF(parsing: ParsingState): TriedParse<NodeIf> {
     if (parsing.next().text !== 'if') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
@@ -774,7 +774,7 @@ function parseIF(parsing: ParsingState): TriedParse<NodeIF> {
 }
 
 // CONTINUE      ::= 'continue' ';'
-function parseCONTINUE(parsing: ParsingState): NodeCONTINUE | undefined {
+function parseCONTINUE(parsing: ParsingState): NodeContinue | undefined {
     if (parsing.next().text !== 'continue') return undefined;
     const rangeStart = parsing.next();
     parsing.step();
@@ -783,7 +783,7 @@ function parseCONTINUE(parsing: ParsingState): NodeCONTINUE | undefined {
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function parseEXPRSTAT(parsing: ParsingState): NodeEXPRSTAT | undefined {
+function parseEXPRSTAT(parsing: ParsingState): NodeExprStat | undefined {
     if (parsing.next().text === ';') {
         parsing.confirm(HighlightTokenKind.Operator);
         return {
@@ -803,7 +803,7 @@ function parseEXPRSTAT(parsing: ParsingState): NodeEXPRSTAT | undefined {
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function parseReturn(parsing: ParsingState): TriedParse<NodeRETURN> {
+function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {
     if (parsing.next().text !== 'return') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.step();
