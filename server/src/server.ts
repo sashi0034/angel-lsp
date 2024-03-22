@@ -26,7 +26,7 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedResult, serveDiagnose} from "./serve/serveDiagnose";
+import {getDiagnosedResult, serveDiagnose} from "./serve/diagnose";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";

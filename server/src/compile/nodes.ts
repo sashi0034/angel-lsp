@@ -1,5 +1,5 @@
-import {EssentialToken, LocationInfo} from "./asToken";
-import {ParsingToken} from "./asParsing";
+import {EssentialToken, LocationInfo} from "./token";
+import {ParsingToken} from "./parsing";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 

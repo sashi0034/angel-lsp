@@ -1,13 +1,13 @@
 import {SemanticTokensBuilder} from "vscode-languageserver/node";
-import {ProgramToken} from "../compile/asToken";
+import {ProgramToken} from "../compile/token";
 import {profiler} from "../debug/profiler";
-import {asTokenize} from "../compile/asTokenizer";
-import {asParse} from "../compile/asParser";
-import {asAnalyze} from "../compile/asAnalyzer";
+import {tokenize} from "../compile/tokenizer";
+import {parseFromTokenized} from "../compile/parser";
+import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
-import {createSymbolScope, SymbolScope} from "../compile/asSymbolic";
+import {createSymbolScope, SymbolScope} from "../compile/symbolic";
 import {SemanticTokens} from "vscode-languageserver-protocol";
-import {ParsingToken} from "../compile/asParsing";
+import {ParsingToken} from "../compile/parsing";
 
 interface DiagnoseResult {
     tokenizedTokens: ProgramToken[];
@@ -26,13 +26,13 @@ export function getDiagnosedResult() {
 
 export function serveDiagnose(document: string, uri: URI) {
     profiler.restart();
-    const tokenizedTokens = asTokenize(document, uri);
+    const tokenizedTokens = tokenize(document, uri);
     profiler.stamp("tokenizer");
     // console.log(tokens);
-    const parsed = asParse(filterTokens(tokenizedTokens));
+    const parsed = parseFromTokenized(filterTokens(tokenizedTokens));
     profiler.stamp("parser");
     // console.log(parsed);
-    const analyzeScope = asAnalyze(parsed);
+    const analyzeScope = analyzeFromParsed(parsed);
     profiler.stamp("analyzer");
     // console.log(analyzed);
 

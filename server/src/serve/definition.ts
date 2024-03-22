@@ -1,6 +1,6 @@
-import {SymbolScope} from "../compile/asSymbolic";
+import {SymbolScope} from "../compile/symbolic";
 import {Position} from "vscode-languageserver";
-import {EssentialToken} from "../compile/asToken";
+import {EssentialToken} from "../compile/token";
 
 export function jumpDefinition(scope: SymbolScope, caret: Position): EssentialToken | null {
     for (const symbol of scope.symbolList) {
