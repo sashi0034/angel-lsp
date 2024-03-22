@@ -1,21 +1,21 @@
 import {EssentialToken, LocationInfo} from "./token";
-import {ParsingToken} from "./parsing";
+import {ParsedToken} from "./parsing";
 
 export type AccessModifier = 'public' | 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
-export interface NodesRange {
-    start: EssentialToken | ParsingToken;
-    end: EssentialToken | ParsingToken;
+export interface ParsedRange {
+    start: ParsedToken;
+    end: ParsedToken;
 }
 
-export function getNextTokenIfExist(token: EssentialToken | ParsingToken): EssentialToken | ParsingToken {
+export function getNextTokenIfExist(token: EssentialToken | ParsedToken): EssentialToken | ParsedToken {
     if ('next' in token && token.next !== undefined) return token.next;
     return token;
 }
 
-export function getNodeLocation(range: NodesRange): LocationInfo {
+export function getNodeLocation(range: ParsedRange): LocationInfo {
     return {
         uri: range.start.location.uri,
         start: range.start.location.start,
@@ -103,7 +103,7 @@ export type NodeNames =
 
 export interface NodesBase {
     nodeName: NodeNames;
-    nodeRange: NodesRange;
+    nodeRange: ParsedRange;
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -125,7 +125,7 @@ export interface NodeEnum extends NodesBase {
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeClass extends NodesBase {
     nodeName: 'Class';
-    scopeRange: NodesRange;
+    scopeRange: ParsedRange;
     identifier: EssentialToken;
     baseList: EssentialToken[];
     memberList: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[];
@@ -136,7 +136,7 @@ export interface NodeClass extends NodesBase {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export interface NodeFunc extends NodesBase {
     nodeName: 'Func';
-    scopeRange: NodesRange;
+    scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     accessor: AccessModifier;
     head: { returnType: NodeType; isRef: boolean; } | '~';

@@ -1,5 +1,5 @@
 import {SemanticTokensBuilder} from "vscode-languageserver/node";
-import {ProgramToken} from "../compile/token";
+import {TokenizedToken} from "../compile/token";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
@@ -7,10 +7,10 @@ import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
 import {createSymbolScope, SymbolScope} from "../compile/symbolic";
 import {SemanticTokens} from "vscode-languageserver-protocol";
-import {ParsingToken} from "../compile/parsing";
+import {ParsedToken} from "../compile/parsing";
 
 interface DiagnoseResult {
-    tokenizedTokens: ProgramToken[];
+    tokenizedTokens: TokenizedToken[];
     analyzedScope: SymbolScope;
 }
 
@@ -52,9 +52,9 @@ export function startDiagnose(document: string, uri: URI) {
     };
 }
 
-function filterTokens(tokens: ProgramToken[]): ParsingToken[] {
+function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
     // コメント除去
-    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
+    const actualTokens: ParsedToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
         return {
             ...token,
             index: -1,

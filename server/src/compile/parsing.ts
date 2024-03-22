@@ -1,4 +1,4 @@
-import {ProgramToken} from "./token";
+import {TokenizedToken} from "./token";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 
@@ -6,19 +6,19 @@ export type TriedParse<T> = 'mismatch' | 'pending' | T;
 
 // 診断メッセージは pending 発生時に発行する
 
-export interface ParsingToken extends ProgramToken {
+export interface ParsedToken extends TokenizedToken {
     index: number;
-    next: ParsingToken | undefined;
+    next: ParsedToken | undefined;
 }
 
 export class ParsingState {
     public constructor(
-        private tokens: ParsingToken[],
+        private tokens: ParsedToken[],
         private cursorIndex: number = 0
     ) {
     }
 
-    public backtrack(token: ParsingToken) {
+    public backtrack(token: ParsedToken) {
         this.cursorIndex = token.index;
     }
 
@@ -26,12 +26,12 @@ export class ParsingState {
         return this.cursorIndex >= this.tokens.length;
     }
 
-    public next(step: number = 0): ParsingToken {
+    public next(step: number = 0): ParsedToken {
         if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
         return this.tokens[this.cursorIndex + step];
     }
 
-    public prev(): ParsingToken {
+    public prev(): ParsedToken {
         if (this.cursorIndex <= 0) return this.tokens[0];
         return this.tokens[this.cursorIndex - 1];
     }

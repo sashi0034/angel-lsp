@@ -36,7 +36,7 @@ export interface EssentialToken {
     location: LocationInfo;
 }
 
-export interface ProgramToken extends EssentialToken {
+export interface TokenizedToken extends EssentialToken {
     highlight: HighlightInfo;
 }
 

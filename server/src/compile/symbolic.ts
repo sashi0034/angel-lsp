@@ -1,5 +1,5 @@
 import {dummyToken, EssentialToken, LocationInfo} from "./token";
-import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, NodesRange, NodeType} from "./nodes";
+import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, ParsedRange, NodeType} from "./nodes";
 import {Range} from "vscode-languageserver";
 
 export type SymbolKind = 'type' | 'function' | 'variable';

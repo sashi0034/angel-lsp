@@ -24,7 +24,7 @@ import {
     NodeLiteral, NodeNamespace,
     NodeParamList,
     NodeRETURN, NodeScope,
-    NodeScript, NodesRange,
+    NodeScript, ParsedRange,
     NodeStatBlock,
     NodeStatement,
     NodeSWITCH,
