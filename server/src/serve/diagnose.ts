@@ -14,30 +14,42 @@ interface DiagnoseResult {
     analyzedScope: SymbolScope;
 }
 
-// TODO: 複数ファイルに対応、まじで
-const s_diagnosedResult: DiagnoseResult = {
+const s_diagnosedResults: { [uri: string]: DiagnoseResult } = {};
+
+const emptyResult: DiagnoseResult = {
     tokenizedTokens: [],
     analyzedScope: createSymbolScope(undefined, undefined)
-};
+} as const;
 
-export function getDiagnosedResult() {
-    return s_diagnosedResult;
+export function getDiagnosedResult(uri: string): DiagnoseResult {
+    const result = s_diagnosedResults[uri];
+    if (result === undefined) return emptyResult;
+    return result;
 }
 
-export function serveDiagnose(document: string, uri: URI) {
+export function startDiagnose(document: string, uri: URI) {
     profiler.restart();
+
+    // 字句解析
     const tokenizedTokens = tokenize(document, uri);
     profiler.stamp("tokenizer");
     // console.log(tokens);
+
+    // 構文解析
     const parsed = parseFromTokenized(filterTokens(tokenizedTokens));
     profiler.stamp("parser");
     // console.log(parsed);
+
+    // 型解析
     const analyzeScope = analyzeFromParsed(parsed);
     profiler.stamp("analyzer");
     // console.log(analyzed);
 
-    s_diagnosedResult.tokenizedTokens = tokenizedTokens;
-    s_diagnosedResult.analyzedScope = analyzeScope;
+    // 解析結果をキャッシュ
+    s_diagnosedResults[uri] = {
+        tokenizedTokens: tokenizedTokens,
+        analyzedScope: analyzeScope
+    };
 }
 
 function filterTokens(tokens: ProgramToken[]): ParsingToken[] {

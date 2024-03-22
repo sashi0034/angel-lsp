@@ -1,7 +1,3 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
 import {
     createConnection,
     TextDocuments,
@@ -26,7 +22,7 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedResult, serveDiagnose} from "./serve/diagnose";
+import {getDiagnosedResult, startDiagnose} from "./serve/diagnose";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
@@ -162,13 +158,13 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return buildSemanticTokens(getDiagnosedResult().tokenizedTokens);
+    return buildSemanticTokens(getDiagnosedResult(params.textDocument.uri).tokenizedTokens);
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const diagnosedScope = getDiagnosedResult().analyzedScope;
+    const diagnosedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
     if (diagnosedScope === undefined) return;
     const caret = params.position;
     const jumping = jumpDefinition(diagnosedScope, caret);
@@ -186,7 +182,7 @@ connection.onDefinition((params) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
     diagnostic.clear();
-    serveDiagnose(change.document.getText(), change.document.uri);
+    startDiagnose(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -196,14 +192,14 @@ connection.onDidChangeWatchedFiles(_change => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-    (documentPosition: TextDocumentPositionParams): CompletionItem[] => {
+    (params: TextDocumentPositionParams): CompletionItem[] => {
         // The pass parameter contains the position of the text document in
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const diagnosedScope = getDiagnosedResult().analyzedScope;
+        const diagnosedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return searchCompletionItems(diagnosedScope, documentPosition.position);
+        return searchCompletionItems(diagnosedScope, params.position);
 
         // return [
         //     {
