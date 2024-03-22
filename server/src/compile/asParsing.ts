@@ -1,4 +1,4 @@
-import {ProgramToken} from "./token";
+import {ProgramToken} from "./asToken";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 

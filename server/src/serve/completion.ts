@@ -5,10 +5,10 @@ import {
     findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
     SymbolicObject,
     SymbolScope
-} from "../compile/symbolics";
+} from "../compile/asSymbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {getNodeLocation} from "../compile/nodes";
-import {isPositionInRange} from "../compile/token";
+import {getNodeLocation} from "../compile/asNodes";
+import {isPositionInRange} from "../compile/asToken";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
     const items: CompletionItem[] = [];

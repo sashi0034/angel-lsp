@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import {ProgramToken} from "./token";
+import {ProgramToken} from "./asToken";
 import {
     AccessModifier, EntityModifier,
     NodeArgList,
@@ -37,10 +37,10 @@ import {
     NodeVarAccess,
     NodeVirtProp,
     NodeWHILE, TypeModifier
-} from "./nodes";
+} from "./asNodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParsingState, ParsingToken, TriedParse} from "./parsing";
+import {ParsingState, ParsingToken, TriedParse} from "./asParsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(parsing: ParsingState): NodeScript {
@@ -1343,7 +1343,7 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokens(tokens: ParsingToken[]): NodeScript {
+export function asParse(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {

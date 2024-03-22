@@ -32,7 +32,7 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWHILE
-} from "./nodes";
+} from "./asNodes";
 import {
     builtinBoolType,
     builtinNumberType,
@@ -46,7 +46,7 @@ import {
     SymbolicType,
     SymbolicVariable,
     SymbolScope
-} from "./symbolics";
+} from "./asSymbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
 
@@ -601,7 +601,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     return ta;
 }
 
-export function analyzeFromParsed(ast: NodeScript) {
+export function asAnalyze(ast: NodeScript) {
     const globalScope: SymbolScope = createSymbolScope(undefined, undefined);
 
     const queue: AnalyzeQueue = {

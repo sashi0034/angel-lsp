@@ -26,7 +26,7 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedResult, startDiagnose} from "./serve/diagnose";
+import {getDiagnosedResult, serveDiagnose} from "./serve/serveDiagnose";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
@@ -186,7 +186,7 @@ connection.onDefinition((params) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
     diagnostic.clear();
-    startDiagnose(change.document.getText(), change.document.uri);
+    serveDiagnose(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
