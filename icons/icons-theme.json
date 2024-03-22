@@ -11,6 +11,6 @@
         "as": "AngelScript"
     },
     "fileNames": {
-        "AngelPredefined.txt": "AngelPredefined"
+        "as.predefined": "AngelPredefined"
     }
 }
