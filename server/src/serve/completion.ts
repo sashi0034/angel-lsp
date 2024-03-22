@@ -94,7 +94,7 @@ function symbolToCompletionKind(symbol: SymbolicObject) {
     switch (symbol.symbolKind) {
     case 'type':
         if (typeof symbol.sourceNode === 'string') return CompletionItemKind.Keyword;
-        if (symbol.sourceNode.nodeName === 'ENUM') return CompletionItemKind.Enum;
+        if (symbol.sourceNode.nodeName === 'Enum') return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     case 'function':
         return CompletionItemKind.Function;

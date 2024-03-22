@@ -117,7 +117,7 @@ export function findClassScopeWithParent(scope: SymbolScope, identifier: string)
     for (const child of scope.childScopes) {
         if (child.ownerNode === undefined) continue;
         if ('nodeName' in child.ownerNode === false) continue;
-        if (child.ownerNode.nodeName !== 'CLASS') continue;
+        if (child.ownerNode.nodeName !== 'Class') continue;
         if (child.ownerNode.identifier.text === identifier) return child;
     }
     if (scope.parentScope === undefined) return undefined;

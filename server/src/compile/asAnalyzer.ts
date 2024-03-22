@@ -60,11 +60,11 @@ function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
     // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
-        if (nodeName === 'CLASS') {
+        if (nodeName === 'Class') {
             forwardCLASS(queue, parentScope, statement);
-        } else if (nodeName === 'FUNC') {
+        } else if (nodeName === 'Func') {
             forwardFUNC(queue, parentScope, statement);
-        } else if (nodeName === 'NAMESPACE') {
+        } else if (nodeName === 'Namespace') {
             forwardNAMESPACE(queue, parentScope, statement);
         }
     }
@@ -115,11 +115,11 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
     queue.classQueue.push({scope, node: class_});
 
     for (const member of class_.memberList) {
-        if (member.nodeName === 'VIRTPROP') {
+        if (member.nodeName === 'VirtProp') {
             // TODO
-        } else if (member.nodeName === 'FUNC') {
+        } else if (member.nodeName === 'Func') {
             forwardFUNC(queue, scope, member);
-        } else if (member.nodeName === 'VAR') {
+        } else if (member.nodeName === 'Var') {
             // TODO
         }
     }
@@ -166,8 +166,8 @@ function analyzeVar(scope: SymbolScope, ast: NodeVar) {
     for (const var_ of ast.variables) {
         const initializer = var_.initializer;
         if (initializer !== undefined) {
-            if (initializer.nodeName === 'EXPR') analyzeEXPR(scope, initializer);
-            if (initializer.nodeName === 'ARGLIST') analyzeArgList(scope, initializer);
+            if (initializer.nodeName === 'Expr') analyzeEXPR(scope, initializer);
+            if (initializer.nodeName === 'ArgList') analyzeArgList(scope, initializer);
         }
         const variable: SymbolicVariable = {
             symbolKind: 'variable',
@@ -188,7 +188,7 @@ function analyzeVar(scope: SymbolScope, ast: NodeVar) {
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeSTATBLOCK(scope: SymbolScope, ast: NodeStatBlock) {
     for (const statement of ast.statements) {
-        if (statement.nodeName === 'VAR') {
+        if (statement.nodeName === 'Var') {
             analyzeVar(scope, statement);
         } else {
             analyzeSTATEMENT(scope, statement as NodeStatement);
@@ -239,8 +239,8 @@ function isTypeMatch(src: DeducedType, dest: DeducedType) {
         return destType.sourceNode === 'bool';
     }
     // TODO : 継承などに対応
-    if (srcNode.nodeName === 'CLASS') {
-        if (typeof (destType.sourceNode) === 'string' || destType.sourceNode.nodeName !== 'CLASS') {
+    if (srcNode.nodeName === 'Class') {
+        if (typeof (destType.sourceNode) === 'string' || destType.sourceNode.nodeName !== 'Class') {
             return false;
         }
         return srcNode.identifier.text === destType.sourceNode.identifier.text;
@@ -301,35 +301,35 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeSTATEMENT(scope: SymbolScope, ast: NodeStatement) {
     switch (ast.nodeName) {
-    case 'IF':
+    case 'If':
         analyzeIF(scope, ast);
         break;
-    case 'FOR':
+    case 'For':
         analyzeFOR(scope, ast);
         break;
-    case 'WHILE':
+    case 'While':
         analyzeWHILE(scope, ast);
         break;
-    case 'RETURN':
+    case 'Return':
         analyzeRETURN(scope, ast);
         break;
-    case 'STATBLOCK':
+    case 'StatBlock':
         analyzeSTATBLOCK(scope, ast);
         break;
-    case 'BREAK':
+    case 'Break':
         break;
-    case 'CONTINUE':
+    case 'Continue':
         break;
-    case 'DOWHILE':
+    case 'DoWhile':
         analyzeDOWHILE(scope, ast);
         break;
-    case 'SWITCH':
+    case 'Switch':
         analyzeSWITCH(scope, ast);
         break;
-    case 'EXPRSTAT':
+    case 'ExprStat':
         analyzeEXPRSTAT(scope, ast);
         break;
-        // case 'TRY':
+        // case 'Try':
         //     break;
     default:
         break;
@@ -348,7 +348,7 @@ function analyzeSWITCH(scope: SymbolScope, ast: NodeSWITCH) {
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFOR(scope: SymbolScope, ast: NodeFOR) {
-    if (ast.initial.nodeName === 'VAR') analyzeVar(scope, ast.initial);
+    if (ast.initial.nodeName === 'Var') analyzeVar(scope, ast.initial);
     else analyzeEXPRSTAT(scope, ast.initial);
 
     analyzeEXPRSTAT(scope, ast.condition);
@@ -433,20 +433,20 @@ function analyzeEXPRTERM2(scope: SymbolScope, exprTerm: NodeEXPRTERM2) {
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeEXPRVALUE(scope: SymbolScope, exprValue: NodeExprValue): DeducedType | undefined {
     switch (exprValue.nodeName) {
-    case 'CONSTRUCTCALL':
+    case 'ConstructCall':
         break;
-    case 'FUNCCALL':
+    case 'FuncCall':
         return analyzeFuncCall(scope, exprValue);
-    case 'VARACCESS':
+    case 'VarAccess':
         return analyzeVarAccess(scope, exprValue);
-    case 'CAST':
+    case 'Cast':
         break;
-    case 'LITERAL':
+    case 'Literal':
         return analyzeLITERAL(scope, exprValue);
-    case 'ASSIGN':
+    case 'Assign':
         analyzeAssign(scope, exprValue);
         break;
-    case 'LAMBDA':
+    case 'Lambda':
         break;
     default:
         break;
@@ -483,7 +483,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if ('nodeName' in exprPostOp.member) {
         // メソッド診断
-        if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'CLASS') {
+        if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== 'Class') {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
         }

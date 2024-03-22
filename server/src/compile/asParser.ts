@@ -110,7 +110,7 @@ function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
     const script = parseSCRIPT(parsing);
     parsing.expect('}', HighlightTokenKind.Operator);
     return {
-        nodeName: 'NAMESPACE',
+        nodeName: 'Namespace',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         namespaceList: namespaces,
         script: script
@@ -192,7 +192,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
         parsing.step();
     }
     return {
-        nodeName: 'CLASS',
+        nodeName: 'Class',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scopeRange: {start: scopeStart, end: scopeEnd},
         identifier: identifier,
@@ -231,13 +231,13 @@ function parseFunc(parsing: ParsingState): NodeFunc | undefined {
     }
     let statBlock = parseStatBlock(parsing);
     if (statBlock === undefined) statBlock = {
-        nodeName: 'STATBLOCK',
+        nodeName: 'StatBlock',
         nodeRange: {start: parsing.next(), end: parsing.next()},
         statements: []
     };
 
     return {
-        nodeName: 'FUNC',
+        nodeName: 'Func',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scopeRange: statBlock.nodeRange,
         entity: entity,
@@ -325,7 +325,7 @@ function parseVAR(parsing: ParsingState): NodeVar | undefined {
     }
 
     return {
-        nodeName: 'VAR',
+        nodeName: 'Var',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         accessor: accessor,
         type: type,
@@ -364,7 +364,7 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
     }
     parsing.expect('}', HighlightTokenKind.Keyword);
     return {
-        nodeName: 'STATBLOCK',
+        nodeName: 'StatBlock',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         statements: statements
     };
@@ -428,7 +428,7 @@ function parseTYPE(parsing: ParsingState): NodeType | undefined {
     }
     const generics = parseTypeParameters(parsing) ?? [];
     return {
-        nodeName: 'TYPE',
+        nodeName: 'Type',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isConst: isConst,
         scope: scope,
@@ -501,7 +501,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
             }
             parsing.confirm(HighlightTokenKind.Operator);
             return {
-                nodeName: 'SCOPE',
+                nodeName: 'Scope',
                 nodeRange: {start: rangeStart, end: parsing.prev()},
                 isGlobal: isGlobal,
                 namespaceList: namespaces,
@@ -514,7 +514,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         return undefined;
     }
     return {
-        nodeName: 'SCOPE',
+        nodeName: 'Scope',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isGlobal: isGlobal,
         namespaceList: namespaces,
@@ -529,7 +529,7 @@ function parseDATATYPE(parsing: ParsingState): NodeDATATYPE | undefined {
     if (parsing.next().kind === 'identifier') {
         parsing.confirm(HighlightTokenKind.Type);
         return {
-            nodeName: 'DATATYPE',
+            nodeName: 'DataType',
             nodeRange: {start: next, end: next},
             identifier: next
         };
@@ -537,7 +537,7 @@ function parseDATATYPE(parsing: ParsingState): NodeDATATYPE | undefined {
 
     const primtype = parsePRIMTYPE(parsing);
     if (primtype !== undefined) return {
-        nodeName: 'DATATYPE',
+        nodeName: 'DataType',
         nodeRange: {start: next, end: next},
         identifier: primtype
     };
@@ -622,7 +622,7 @@ function parseSWITCH(parsing: ParsingState): TriedParse<NodeSWITCH> {
     }
     parsing.expect('}', HighlightTokenKind.Operator);
     return {
-        nodeName: 'SWITCH',
+        nodeName: 'Switch',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign,
         cases: cases
@@ -635,7 +635,7 @@ function parseBREAK(parsing: ParsingState): NodeBREAK | undefined {
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect(';', HighlightTokenKind.Operator);
-    return {nodeName: 'BREAK', nodeRange: {start: rangeStart, end: parsing.prev()}};
+    return {nodeName: 'Break', nodeRange: {start: rangeStart, end: parsing.prev()}};
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
@@ -674,7 +674,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFOR> {
     if (statement === 'mismatch' || statement === 'pending') return 'pending';
 
     return {
-        nodeName: 'FOR',
+        nodeName: 'For',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         initial: initial,
         condition: condition,
@@ -702,7 +702,7 @@ function parseWHILE(parsing: ParsingState): TriedParse<NodeWHILE> {
     }
 
     return {
-        nodeName: 'WHILE',
+        nodeName: 'While',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign,
         statement: statement
@@ -729,7 +729,7 @@ function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDOWHILE> {
     parsing.expect(')', HighlightTokenKind.Operator);
     parsing.expect(';', HighlightTokenKind.Operator);
     return {
-        nodeName: 'DOWHILE',
+        nodeName: 'DoWhile',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         statement: statement,
         assign: assign
@@ -756,7 +756,7 @@ function parseIF(parsing: ParsingState): TriedParse<NodeIF> {
         if (fs === 'mismatch' || fs === 'pending') {
             diagnostic.addError(parsing.next().location, "Expected statement");
             return {
-                nodeName: 'IF',
+                nodeName: 'If',
                 nodeRange: {start: rangeStart, end: parsing.prev()},
                 condition: assign,
                 ts: ts,
@@ -765,7 +765,7 @@ function parseIF(parsing: ParsingState): TriedParse<NodeIF> {
         }
     }
     return {
-        nodeName: 'IF',
+        nodeName: 'If',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         condition: assign,
         ts: ts,
@@ -779,7 +779,7 @@ function parseCONTINUE(parsing: ParsingState): NodeCONTINUE | undefined {
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect(';', HighlightTokenKind.Operator);
-    return {nodeName: 'CONTINUE', nodeRange: {start: rangeStart, end: parsing.prev()}};
+    return {nodeName: 'Continue', nodeRange: {start: rangeStart, end: parsing.prev()}};
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
@@ -787,7 +787,7 @@ function parseEXPRSTAT(parsing: ParsingState): NodeEXPRSTAT | undefined {
     if (parsing.next().text === ';') {
         parsing.confirm(HighlightTokenKind.Operator);
         return {
-            nodeName: "EXPRSTAT",
+            nodeName: 'ExprStat',
             assign: undefined
         };
     }
@@ -795,7 +795,7 @@ function parseEXPRSTAT(parsing: ParsingState): NodeEXPRSTAT | undefined {
     if (assign === undefined) return undefined;
     parsing.expect(';', HighlightTokenKind.Operator);
     return {
-        nodeName: "EXPRSTAT",
+        nodeName: 'ExprStat',
         assign: assign
     };
 }
@@ -814,7 +814,7 @@ function parseRETURN(parsing: ParsingState): TriedParse<NodeRETURN> {
     }
     parsing.expect(';', HighlightTokenKind.Operator);
     return {
-        nodeName: 'RETURN',
+        nodeName: 'Return',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign
     };
@@ -845,7 +845,7 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
         statements.push(statement);
     }
     return {
-        nodeName: 'CASE',
+        nodeName: 'Case',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         expr: expr,
         statementList: statements
@@ -859,7 +859,7 @@ function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
     if (exprTerm === undefined) return undefined;
     const exprOp = parseEXPROP(parsing);
     if (exprOp === undefined) return {
-        nodeName: 'EXPR',
+        nodeName: 'Expr',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         head: exprTerm,
         tail: undefined
@@ -868,14 +868,14 @@ function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
     if (tail === undefined) {
         diagnostic.addError(parsing.next().location, "Expected expression");
         return {
-            nodeName: 'EXPR',
+            nodeName: 'Expr',
             nodeRange: {start: rangeStart, end: parsing.prev()},
             head: exprTerm,
             tail: undefined
         };
     }
     return {
-        nodeName: 'EXPR',
+        nodeName: 'Expr',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         head: exprTerm,
         tail: {
@@ -914,7 +914,7 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
     const postOp = parseExprPostOp(parsing);
 
     return {
-        nodeName: 'EXPRTERM',
+        nodeName: 'ExprTerm',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         exprTerm: 2,
         preOp: pre,
@@ -972,7 +972,7 @@ function parseConstructCall(parsing: ParsingState): NodeConstructCall | undefine
     }
 
     return {
-        nodeName: 'CONSTRUCTCALL',
+        nodeName: 'ConstructCall',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         type: type,
         argList: argList
@@ -993,7 +993,7 @@ function parseExprPostOp(parsing: ParsingState): NodeExprPostOp | undefined {
 
     const argList = parseArgList(parsing);
     if (argList !== undefined) return {
-        nodeName: 'EXPRPOSTOP',
+        nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         postOp: 3,
         args: argList
@@ -1003,7 +1003,7 @@ function parseExprPostOp(parsing: ParsingState): NodeExprPostOp | undefined {
     if (maybeOperator === '++' || maybeOperator === '--') {
         parsing.confirm(HighlightTokenKind.Operator);
         return {
-            nodeName: 'EXPRPOSTOP',
+            nodeName: 'ExprPostOp',
             nodeRange: {start: rangeStart, end: parsing.prev()},
             postOp: 4,
             operator: maybeOperator
@@ -1020,7 +1020,7 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
     parsing.confirm(HighlightTokenKind.Operator);
     const funcCall = parseFuncCall(parsing);
     if (funcCall !== undefined) return {
-        nodeName: 'EXPRPOSTOP',
+        nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         postOp: 1,
         member: funcCall,
@@ -1029,7 +1029,7 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
     if (identifier.kind !== 'identifier') {
         diagnostic.addError(parsing.next().location, "Expected identifier");
         return {
-            nodeName: 'EXPRPOSTOP',
+            nodeName: 'ExprPostOp',
             nodeRange: {start: rangeStart, end: parsing.prev()},
             postOp: 1,
             member: undefined
@@ -1037,7 +1037,7 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
     }
     parsing.confirm(HighlightTokenKind.Variable);
     return {
-        nodeName: 'EXPRPOSTOP',
+        nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         postOp: 1,
         member: identifier
@@ -1075,7 +1075,7 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
         indexes.push({identifier: identifier, assign: assign});
     }
     return {
-        nodeName: 'EXPRPOSTOP',
+        nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         postOp: 2,
         indexes: indexes
@@ -1102,7 +1102,7 @@ function parseCAST(parsing: ParsingState): TriedParse<NodeCast> {
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     return {
-        nodeName: 'CAST',
+        nodeName: 'Cast',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         type: type,
         assign: assign
@@ -1151,7 +1151,7 @@ const parseLAMBDA = (parsing: ParsingState): TriedParse<NodeLambda> => {
         return 'pending';
     }
     return {
-        nodeName: 'LAMBDA',
+        nodeName: 'Lambda',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         params: params,
         statBlock: statBlock
@@ -1163,15 +1163,15 @@ function parseLITERAL(parsing: ParsingState): NodeLiteral | undefined {
     const next = parsing.next();
     if (next.kind === 'number') {
         parsing.confirm(HighlightTokenKind.Number);
-        return {nodeName: 'LITERAL', nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: 'Literal', nodeRange: {start: next, end: next}, value: next};
     }
     if (next.kind === 'string') {
         parsing.confirm(HighlightTokenKind.String);
-        return {nodeName: 'LITERAL', nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: 'Literal', nodeRange: {start: next, end: next}, value: next};
     }
     if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
         parsing.confirm(HighlightTokenKind.Builtin);
-        return {nodeName: 'LITERAL', nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: 'Literal', nodeRange: {start: next, end: next}, value: next};
     }
     return undefined;
 }
@@ -1192,7 +1192,7 @@ function parseFuncCall(parsing: ParsingState): NodeFuncCall | undefined {
         return undefined;
     }
     return {
-        nodeName: 'FUNCCALL',
+        nodeName: 'FuncCall',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scope: scope,
         identifier: identifier,
@@ -1210,7 +1210,7 @@ function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
         diagnostic.addError(parsing.next().location, "Expected identifier");
 
         return {
-            nodeName: 'VARACCESS',
+            nodeName: 'VarAccess',
             nodeRange: {start: rangeStart, end: parsing.prev()},
             scope: scope,
             identifier: undefined
@@ -1219,7 +1219,7 @@ function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
     const isBuiltin: boolean = next.text === 'this';
     parsing.confirm(isBuiltin ? HighlightTokenKind.Builtin : HighlightTokenKind.Variable);
     return {
-        nodeName: 'VARACCESS',
+        nodeName: 'VarAccess',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scope: scope,
         identifier: next
@@ -1255,7 +1255,7 @@ function parseArgList(parsing: ParsingState): NodeArgList | undefined {
         args.push({identifier: identifier, assign: assign});
     }
     return {
-        nodeName: 'ARGLIST',
+        nodeName: 'ArgList',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         args: args
     };
@@ -1268,7 +1268,7 @@ function parseASSIGN(parsing: ParsingState): NodeAssign | undefined {
     if (condition === undefined) return undefined;
     const op = parseASSIGNOP(parsing);
     const result: NodeAssign = {
-        nodeName: 'ASSIGN',
+        nodeName: 'Assign',
         nodeRange: {start: rangeStart, end: rangeStart},
         condition: condition,
         tail: undefined
@@ -1287,7 +1287,7 @@ function parseCONDITION(parsing: ParsingState): NodeCondition | undefined {
     const expr = parseEXPR(parsing);
     if (expr === undefined) return undefined;
     const result: NodeCondition = {
-        nodeName: 'CONDITION',
+        nodeName: 'Condition',
         nodeRange: {start: rangeStart, end: rangeStart},
         expr: expr,
         ternary: undefined
