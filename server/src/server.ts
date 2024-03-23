@@ -26,6 +26,7 @@ import {getDiagnosedResult, startDiagnose} from "./serve/diagnose";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
+import {pathToFileURL} from "node:url";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -171,7 +172,7 @@ connection.onDefinition((params) => {
     const jumping = jumpDefinition(analyzedScope, caret);
     if (jumping === null) return;
     return {
-        uri: jumping.location.path,
+        uri: pathToFileURL(jumping.location.path).toString(),
         range: {
             start: jumping.location.start,
             end: jumping.location.end
