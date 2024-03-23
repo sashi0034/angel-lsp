@@ -1,12 +1,13 @@
-import {dummyToken, PlainToken, LocationInfo} from "./token";
+import {LocationInfo} from "./token";
 import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, ParsedRange, NodeType} from "./nodes";
 import {Range} from "vscode-languageserver";
+import {dummyToken, ParsingToken} from "./parsing";
 
 export type SymbolKind = 'type' | 'function' | 'variable';
 
 export interface SymbolicBase {
     symbolKind: 'type' | 'function' | 'variable';
-    declaredPlace: PlainToken;
+    declaredPlace: ParsingToken;
 }
 
 export interface SymbolicType extends SymbolicBase {
@@ -40,7 +41,7 @@ export function isOwnerNodeExistence(node: SymbolOwnerNode | undefined): node is
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;
-    referencedToken: PlainToken;
+    referencedToken: ParsingToken;
 }
 
 export interface SymbolScope {
@@ -79,7 +80,7 @@ export interface ComplementType extends ComplementBase {
 
 export interface CompletionNamespace extends ComplementBase {
     complementKind: 'Namespace';
-    namespaceList: PlainToken[];
+    namespaceList: ParsingToken[];
 }
 
 export type ComplementHints = ComplementType | CompletionNamespace;
@@ -98,7 +99,7 @@ export const builtinBoolType: SymbolicType = createBuiltinType('bool');
 
 export const builtinVoidType: SymbolicType = createBuiltinType('void');
 
-export function findSymbolicTypeWithParent(scope: SymbolScope, token: PlainToken): SymbolicType | undefined {
+export function findSymbolicTypeWithParent(scope: SymbolScope, token: ParsingToken): SymbolicType | undefined {
     const tokenText = token.text;
     if (token.kind === 'reserved') {
         if ((tokenText === 'bool')) return builtinBoolType;

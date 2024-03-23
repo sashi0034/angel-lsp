@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-import {TokenizedToken} from "./token";
+import {TokenizingToken} from "./token";
 import {
     AccessModifier, EntityModifier,
     NodeArgList,
@@ -40,7 +40,7 @@ import {
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParsingState, ParsedToken, TriedParse} from "./parsing";
+import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseSCRIPT(parsing: ParsingState): NodeScript {
@@ -82,7 +82,7 @@ function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
 
-    const namespaces: TokenizedToken[] = [];
+    const namespaces: ParsingToken[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '{') {
             if (namespaces.length === 0) {
@@ -148,7 +148,7 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
         return 'pending';
     }
     parsing.confirm(HighlightTokenKind.Class);
-    const baseList: TokenizedToken[] = [];
+    const baseList: ParsingToken[] = [];
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightTokenKind.Operator);
         while (parsing.isEnd() === false) {
@@ -275,7 +275,7 @@ function parseVAR(parsing: ParsingState): NodeVar | undefined {
         return undefined;
     }
     const variables: {
-        identifier: TokenizedToken,
+        identifier: ParsingToken,
         initializer: NodeEXPR | NodeArgList | undefined
     }[] = [];
     while (parsing.isEnd() === false) {
@@ -480,7 +480,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         parsing.confirm(HighlightTokenKind.Operator);
         isGlobal = true;
     }
-    const namespaces: TokenizedToken[] = [];
+    const namespaces: ParsingToken[] = [];
     while (parsing.isEnd() === false) {
         const identifier = parsing.next(0);
         if (identifier.kind !== 'identifier') {
@@ -1049,7 +1049,7 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
     if (parsing.next().text !== '[') return undefined;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
-    const indexes: { identifier: TokenizedToken | undefined, assign: NodeAssign }[] = [];
+    const indexes: { identifier: ParsingToken | undefined, assign: NodeAssign }[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ']') {
             if (indexes.length === 0) {
@@ -1118,7 +1118,7 @@ const parseLAMBDA = (parsing: ParsingState): TriedParse<NodeLambda> => {
     const params: {
         type: NodeType | undefined,
         typeMod: TypeModifier | undefined,
-        identifier: TokenizedToken | undefined
+        identifier: ParsingToken | undefined
     }[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ')') {
@@ -1138,7 +1138,7 @@ const parseLAMBDA = (parsing: ParsingState): TriedParse<NodeLambda> => {
         const type = parseTYPE(parsing);
         const typeMod = type !== undefined ? parseTYPEMOD(parsing) : undefined;
 
-        let identifier: TokenizedToken | undefined = undefined;
+        let identifier: ParsingToken | undefined = undefined;
         if (parsing.next().kind === 'identifier') {
             identifier = parsing.next();
             parsing.confirm(HighlightTokenKind.Parameter);
@@ -1231,7 +1231,7 @@ function parseArgList(parsing: ParsingState): NodeArgList | undefined {
     if (parsing.next().text !== '(') return undefined;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
-    const args: { identifier: TokenizedToken | undefined, assign: NodeAssign }[] = [];
+    const args: { identifier: ParsingToken | undefined, assign: NodeAssign }[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ')') {
             parsing.confirm(HighlightTokenKind.Operator);
@@ -1343,7 +1343,7 @@ const assignOpSet = new Set([
     '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
 ]);
 
-export function parseFromTokenized(tokens: ParsedToken[]): NodeScript {
+export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {

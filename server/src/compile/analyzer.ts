@@ -63,7 +63,7 @@ function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
         if (nodeName === 'Class') {
             forwardCLASS(queue, parentScope, statement);
         } else if (nodeName === 'Func') {
-            forwardFUNC(queue, parentScope, statement);
+            forwardFunc(queue, parentScope, statement);
         } else if (nodeName === 'Namespace') {
             forwardNAMESPACE(queue, parentScope, statement);
         }
@@ -117,18 +117,17 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
         if (member.nodeName === 'VirtProp') {
             // TODO
         } else if (member.nodeName === 'Func') {
-            forwardFUNC(queue, scope, member);
+            forwardFunc(queue, scope, member);
         } else if (member.nodeName === 'Var') {
             // TODO
         }
     }
-
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function forwardFUNC(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
+function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
     if (func.head === '~') return;
     const symbol: SymbolicFunction = {
         symbolKind: 'function',

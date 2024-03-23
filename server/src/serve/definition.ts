@@ -1,8 +1,9 @@
 import {SymbolScope} from "../compile/symbolic";
 import {Position} from "vscode-languageserver";
-import {isPositionInRange, PlainToken} from "../compile/token";
+import {isPositionInRange} from "../compile/token";
+import {ParsingToken} from "../compile/parsing";
 
-export function jumpDefinition(analyzedScope: SymbolScope, caret: Position): PlainToken | null {
+export function jumpDefinition(analyzedScope: SymbolScope, caret: Position): ParsingToken | null {
     for (const reference of analyzedScope.referencedList) {
         // スコープ内の参照箇所を検索
         const referencedLocation = reference.referencedToken.location;

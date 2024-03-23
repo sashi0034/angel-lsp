@@ -1,15 +1,15 @@
-import {TokenizedToken} from "../compile/token";
+import {TokenizingToken} from "../compile/token";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
 import {createSymbolScope, SymbolScope} from "../compile/symbolic";
-import {ParsedToken} from "../compile/parsing";
+import {ParsingToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
 
 interface DiagnoseResult {
-    tokenizedTokens: TokenizedToken[];
+    tokenizedTokens: TokenizingToken[];
     analyzedScope: SymbolScope;
 }
 
@@ -54,9 +54,9 @@ export function startDiagnose(document: string, uri: URI) {
     };
 }
 
-function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
+function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
     // コメント除去
-    const actualTokens: ParsedToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
+    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
         return {
             ...token,
             index: -1,
@@ -81,7 +81,7 @@ function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
     return actualTokens;
 }
 
-function createConnectedStringTokenAt(actualTokens: ParsedToken[], index: number): ParsedToken {
+function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
     return {
         kind: 'string',
         text: actualTokens[index].text + actualTokens[index + 1].text,
