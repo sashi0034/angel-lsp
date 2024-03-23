@@ -3,7 +3,7 @@ import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
 export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
 
-export type LocationInfo = { uri: string } & Range;
+export type LocationInfo = { path: string } & Range;
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     if (range.start.line === position.line
@@ -44,7 +44,7 @@ export const dummyToken: PlainToken = {
     kind: 'reserved',
     text: '',
     location: {
-        uri: '',
+        path: '',
         start: {line: 0, character: 0},
         end: {line: 0, character: 0},
     },

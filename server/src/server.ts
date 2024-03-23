@@ -171,7 +171,7 @@ connection.onDefinition((params) => {
     const jumping = jumpDefinition(analyzedScope, caret);
     if (jumping === null) return;
     return {
-        uri: jumping.location.uri,
+        uri: jumping.location.path,
         range: {
             start: jumping.location.start,
             end: jumping.location.end

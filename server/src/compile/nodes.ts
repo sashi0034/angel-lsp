@@ -17,7 +17,7 @@ export function getNextTokenIfExist(token: PlainToken | ParsedToken): PlainToken
 
 export function getNodeLocation(range: ParsedRange): LocationInfo {
     return {
-        uri: range.start.location.uri,
+        path: range.start.location.path,
         start: range.start.location.start,
         end: range.end.location.end
     };

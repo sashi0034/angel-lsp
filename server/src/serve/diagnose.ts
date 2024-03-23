@@ -8,6 +8,7 @@ import {URI} from "vscode-languageserver";
 import {createSymbolScope, SymbolScope} from "../compile/symbolic";
 import {SemanticTokens} from "vscode-languageserver-protocol";
 import {ParsedToken} from "../compile/parsing";
+import {fileURLToPath} from 'url';
 
 interface DiagnoseResult {
     tokenizedTokens: TokenizedToken[];
@@ -28,10 +29,13 @@ export function getDiagnosedResult(uri: string): DiagnoseResult {
 }
 
 export function startDiagnose(document: string, uri: URI) {
+    const fullPath = fileURLToPath(uri);
+
+    // const content = findFileInCurrentDirectory('as.predefined');
     profiler.restart();
 
     // 字句解析
-    const tokenizedTokens = tokenize(document, uri);
+    const tokenizedTokens = tokenize(document, fullPath);
     profiler.stamp("tokenizer");
     // console.log(tokens);
 
@@ -70,7 +74,7 @@ function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
                 kind: 'string',
                 text: actualTokens[i - 1].text + actualTokens[i].text,
                 location: {
-                    uri: actualTokens[i - 1].location.uri,
+                    path: actualTokens[i - 1].location.path,
                     start: actualTokens[i - 1].location.start,
                     end: actualTokens[i].location.end
                 },
