@@ -1,4 +1,3 @@
-import {SemanticTokensBuilder} from "vscode-languageserver/node";
 import {TokenizedToken} from "../compile/token";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
@@ -6,7 +5,6 @@ import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
 import {createSymbolScope, SymbolScope} from "../compile/symbolic";
-import {SemanticTokens} from "vscode-languageserver-protocol";
 import {ParsedToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
 
@@ -68,22 +66,12 @@ function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
 
     // 連続する文字列の結合
     for (let i = actualTokens.length - 1; i >= 1; i--) {
-        if (actualTokens[i].kind === 'string' && actualTokens[i - 1].kind === 'string') {
-            // 結合した要素を新規生成
-            actualTokens[i - 1] = {
-                kind: 'string',
-                text: actualTokens[i - 1].text + actualTokens[i].text,
-                location: {
-                    path: actualTokens[i - 1].location.path,
-                    start: actualTokens[i - 1].location.start,
-                    end: actualTokens[i].location.end
-                },
-                highlight: actualTokens[i - 1].highlight,
-                index: -1,
-                next: undefined
-            };
-            actualTokens.splice(i, 1);
-        }
+        const isContinuousString = actualTokens[i].kind === 'string' && actualTokens[i - 1].kind === 'string';
+        if (isContinuousString === false) continue;
+
+        // 結合した要素を新規生成
+        actualTokens[i - 1] = createConnectedStringTokenAt(actualTokens, i);
+        actualTokens.splice(i, 1);
     }
 
     for (let i = 0; i < actualTokens.length; i++) {
@@ -91,4 +79,19 @@ function filterTokens(tokens: TokenizedToken[]): ParsedToken[] {
         actualTokens[i].next = i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined;
     }
     return actualTokens;
+}
+
+function createConnectedStringTokenAt(actualTokens: ParsedToken[], index: number): ParsedToken {
+    return {
+        kind: 'string',
+        text: actualTokens[index].text + actualTokens[index + 1].text,
+        location: {
+            path: actualTokens[index].location.path,
+            start: actualTokens[index].location.start,
+            end: actualTokens[index + 1].location.end
+        },
+        highlight: actualTokens[index].highlight,
+        index: -1,
+        next: undefined
+    };
 }
