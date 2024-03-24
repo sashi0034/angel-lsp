@@ -22,7 +22,7 @@ import {
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedResult, startDiagnose} from "./serve/diagnose";
+import {getDiagnosedResultFromUri, diagnoseFile} from "./serve/diagnoseFile";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
@@ -160,16 +160,16 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return buildSemanticTokens(getDiagnosedResult(params.textDocument.uri).tokenizedTokens);
+    return buildSemanticTokens(getDiagnosedResultFromUri(params.textDocument.uri).tokenizedTokens);
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const analyzedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getDiagnosedResultFromUri(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return;
     const caret = params.position;
-    const jumping = jumpDefinition(analyzedScope, caret);
+    const jumping = jumpDefinition(analyzedScope.fullScope, caret);
     if (jumping === null) return;
     return {
         uri: pathToFileURL(jumping.location.path).toString(),
@@ -183,8 +183,8 @@ connection.onDefinition((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    diagnostic.clear();
-    startDiagnose(change.document.getText(), change.document.uri);
+    // diagnostic.clear();
+    diagnoseFile(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -199,9 +199,9 @@ connection.onCompletion(
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const diagnosedScope = getDiagnosedResult(params.textDocument.uri).analyzedScope;
+        const diagnosedScope = getDiagnosedResultFromUri(params.textDocument.uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return searchCompletionItems(diagnosedScope, params.position);
+        return searchCompletionItems(diagnosedScope.fullScope, params.position);
 
         // return [
         //     {

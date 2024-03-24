@@ -228,7 +228,7 @@ class UnknownBuffer {
     }
 }
 
-export function tokenize(str: string, fullPath: string): TokenizingToken[] {
+export function tokenize(str: string, path: string): TokenizingToken[] {
     const tokens: TokenizingToken[] = [];
     const reading = new ReadingState(str);
     const unknownBuffer = new UnknownBuffer();
@@ -244,7 +244,7 @@ export function tokenize(str: string, fullPath: string): TokenizingToken[] {
         const location = {
             start: reading.copyHead(),
             end: reading.copyHead(),
-            path: fullPath
+            path: path
         };
 
         // コメント

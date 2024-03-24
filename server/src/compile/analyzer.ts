@@ -34,6 +34,7 @@ import {
     NodeWhile
 } from "./nodes";
 import {
+    AnalyzedScope, copySymbolsInScope,
     builtinBoolType,
     builtinNumberType,
     builtinVoidType, createSymbolScope,
@@ -56,7 +57,7 @@ type AnalyzeQueue = {
 };
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeScript) {
+function forwardScript(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeScript) {
     // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -70,7 +71,7 @@ function forwardSCRIPT(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
     }
 }
 
-function analyzeSCRIPT(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeScript) {
+function analyzeScript(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeScript) {
     // 実装分析
     for (const func of queue.funcQueue) {
         analyzeFUNC(func.scope, func.node);
@@ -94,7 +95,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
         }
     }
 
-    forwardSCRIPT(queue, scopeIterator, namespace_.script);
+    forwardScript(queue, scopeIterator, namespace_.script);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -605,17 +606,24 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     return ta;
 }
 
-export function analyzeFromParsed(ast: NodeScript) {
+export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {
     const globalScope: SymbolScope = createSymbolScope(undefined, undefined);
+
+    for (const included of includedScopes) {
+        // インクルードされたスコープのシンボルをコピー
+        copySymbolsInScope(included.pureScope, globalScope);
+    }
 
     const queue: AnalyzeQueue = {
         classQueue: [],
         funcQueue: [],
     };
 
-    forwardSCRIPT(queue, globalScope, ast);
+    // 宣言されたシンボルを収集
+    forwardScript(queue, globalScope, ast);
 
-    analyzeSCRIPT(queue, globalScope, ast);
+    // スコープの中身を解析
+    analyzeScript(queue, globalScope, ast);
 
-    return globalScope;
+    return new AnalyzedScope(path, globalScope);
 }

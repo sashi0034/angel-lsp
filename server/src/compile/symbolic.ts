@@ -64,6 +64,52 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
     };
 }
 
+export class AnalyzedScope {
+    public readonly path: string;
+    public readonly fullScope: SymbolScope; // 他モジュールのシンボルも含む
+
+    private pureBuffer: SymbolScope | undefined; // 自身のモジュールのみ含む
+
+    public constructor(path: string, full: SymbolScope) {
+        this.path = path;
+        this.fullScope = full;
+    }
+
+    public get pureScope(): SymbolScope {
+        if (this.pureBuffer === undefined) {
+            this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope);
+            copyOriginalSymbolsInScope(this.path, this.fullScope, this.pureBuffer);
+        }
+        return this.pureBuffer;
+    }
+}
+
+function copyOriginalSymbolsInScope(srcPath: string, srcScope: SymbolScope, destScope: SymbolScope) {
+    // 宣言ファイルが同じシンボルを収集
+    destScope.symbolList.push(...srcScope.symbolList.filter(symbol => symbol.declaredPlace.location.path === srcPath));
+
+    for (const child of srcScope.childScopes) {
+        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
+
+        // 名前空間のスコープを挿入
+        const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
+        copyOriginalSymbolsInScope(srcPath, child, namespaceScope);
+    }
+}
+
+export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope) {
+    // 対象元から対象先のスコープへ全シンボルをコピー
+    destScope.symbolList.push(...srcScope.symbolList);
+
+    for (const child of srcScope.childScopes) {
+        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
+
+        // 名前空間のスコープを挿入
+        const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
+        copySymbolsInScope(child, namespaceScope);
+    }
+}
+
 export interface DeducedType {
     symbol: SymbolicType;
 }
@@ -147,6 +193,14 @@ export function findNamespaceScope(scope: SymbolScope, identifier: string): Symb
     return undefined;
 }
 
+export function findNamespaceScopeOrCreate(scope: SymbolScope, identifier: string): SymbolScope {
+    const namespaceScope = findNamespaceScope(scope, identifier);
+    if (namespaceScope !== undefined) return namespaceScope;
+    const newScope = createSymbolScope(identifier, scope);
+    scope.childScopes.push(newScope);
+    return newScope;
+}
+
 export function findNamespaceScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
         if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
@@ -170,4 +224,3 @@ export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     }
     return result;
 }
-

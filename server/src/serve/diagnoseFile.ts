@@ -4,54 +4,81 @@ import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
-import {createSymbolScope, SymbolScope} from "../compile/symbolic";
+import {AnalyzedScope, createSymbolScope} from "../compile/symbolic";
 import {ParsingToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
+import {findFileInCurrentDirectory} from "../utils/findFile";
+import {diagnostic} from '../code/diagnostic';
 
 interface DiagnoseResult {
     tokenizedTokens: TokenizingToken[];
-    analyzedScope: SymbolScope;
+    analyzedScope: AnalyzedScope;
 }
 
-const s_diagnosedResults: { [uri: string]: DiagnoseResult } = {};
+const s_diagnosedResults: { [path: string]: DiagnoseResult } = {};
+
+let s_predefinedPath = '';
 
 const emptyResult: DiagnoseResult = {
     tokenizedTokens: [],
-    analyzedScope: createSymbolScope(undefined, undefined)
+    analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
 } as const;
 
-export function getDiagnosedResult(uri: string): DiagnoseResult {
-    const result = s_diagnosedResults[uri];
+export function getDiagnosedResultFromUri(uri: string): DiagnoseResult {
+    const result = s_diagnosedResults[fileURLToPath(uri)];
     if (result === undefined) return emptyResult;
     return result;
 }
 
-export function startDiagnose(document: string, uri: URI) {
-    const fullPath = fileURLToPath(uri);
+export function diagnoseFile(document: string, uri: URI) {
+    const path = fileURLToPath(uri);
 
-    // const content = findFileInCurrentDirectory('as.predefined');
+    // 事前定義ファイルの読み込み
+    checkDiagnosedPredefined();
+
+    // 解析結果をキャッシュ
+    s_diagnosedResults[path] = diagnoseInternal(document, path);
+}
+
+function checkDiagnosedPredefined() {
+    if (s_diagnosedResults[s_predefinedPath] !== undefined) return;
+
+    const predefined = findFileInCurrentDirectory('as.predefined');
+    if (predefined === undefined) return;
+
+    s_diagnosedResults[predefined.fullPath] = diagnoseInternal(predefined.content, predefined.fullPath);
+    s_predefinedPath = predefined.fullPath;
+}
+
+function diagnoseInternal(document: string, path: string): DiagnoseResult {
+    diagnostic.clear();
+
     profiler.restart();
 
     // 字句解析
-    const tokenizedTokens = tokenize(document, fullPath);
+    const tokenizedTokens = tokenize(document, path);
     profiler.stamp("tokenizer");
-    // console.log(tokens);
 
     // 構文解析
     const parsed = parseFromTokenized(filterTokens(tokenizedTokens));
     profiler.stamp("parser");
-    // console.log(parsed);
 
     // 型解析
-    const analyzeScope = analyzeFromParsed(parsed);
-    profiler.stamp("analyzer");
-    // console.log(analyzed);
+    const includedScopes = getIncludedScope();
 
-    // 解析結果をキャッシュ
-    s_diagnosedResults[uri] = {
-        tokenizedTokens: tokenizedTokens,
-        analyzedScope: analyzeScope
-    };
+    const analyzedScope = analyzeFromParsed(parsed, path, includedScopes);
+    profiler.stamp("analyzer");
+
+    return {tokenizedTokens: tokenizedTokens, analyzedScope: analyzedScope};
+}
+
+function getIncludedScope() {
+    const includedScopes = []; // TODO: #include 対応
+
+    // 事前定義ファイルの読み込み
+    const predefinedResult = s_diagnosedResults[s_predefinedPath];
+    if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
+    return includedScopes;
 }
 
 function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
