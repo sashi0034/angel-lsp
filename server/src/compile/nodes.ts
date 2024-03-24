@@ -1,7 +1,7 @@
 import {LocationInfo} from "./token";
 import {ParsingToken} from "./parsing";
 
-export type AccessModifier = 'public' | 'private' | 'protected';
+export type AccessModifier = 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
@@ -150,7 +150,7 @@ export interface NodeFunc extends NodesBase {
     nodeName: 'Func';
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
-    accessor: AccessModifier;
+    accessor: AccessModifier | undefined;
     head: { returnType: NodeType; isRef: boolean; } | '~';
     identifier: ParsingToken;
     paramList: NodeParamList;
@@ -164,7 +164,7 @@ export interface NodeFunc extends NodesBase {
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 export interface NodeVar extends NodesBase {
     nodeName: 'Var'
-    accessor: AccessModifier,
+    accessor: AccessModifier | undefined,
     type: NodeType,
     variables: {
         identifier: ParsingToken,

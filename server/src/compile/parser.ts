@@ -46,8 +46,12 @@ function parseScript(parsing: ParsingState): NodeScript {
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
         const entityModifier = parseEntityModifier(parsing);
+        const accessor = parseAccessModifier(parsing);
+        if (accessor !== undefined) {
+            diagnostic.addError(parsing.next().location, "Unexpected Accessor 🪗");
+        }
 
-        const func = parseFunc(parsing, entityModifier);
+        const func = parseFunc(parsing, entityModifier, accessor);
         if (func !== undefined) {
             script.push(func);
             continue;
@@ -120,6 +124,7 @@ function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
+// {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined {
     let modifier: EntityModifier | undefined = undefined;
     while (parsing.isEnd() === false) {
@@ -178,13 +183,14 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
         }
 
         const entityModifier = parseEntityModifier(parsing);
+        const accessor = parseAccessModifier(parsing);
 
-        const func = parseFunc(parsing, entityModifier);
+        const func = parseFunc(parsing, entityModifier, accessor);
         if (func !== undefined) {
             members.push(func);
             continue;
         }
-        const var_ = parseVAR(parsing);
+        const var_ = parseVar(parsing, accessor);
         if (var_ !== undefined) {
             members.push(var_);
             continue;
@@ -205,9 +211,12 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFunc(parsing: ParsingState, entityModifier: EntityModifier | undefined): NodeFunc | undefined {
+function parseFunc(
+    parsing: ParsingState,
+    entityModifier: EntityModifier | undefined,
+    accessor: AccessModifier | undefined,
+): NodeFunc | undefined {
     const rangeStart = parsing.next();
-    const accessor = parseAccessModifier(parsing);
     let head: { returnType: NodeType; isRef: boolean; } | '~';
     if (parsing.next().text === '~') {
         parsing.confirm(HighlightTokenKind.Operator);
@@ -252,22 +261,20 @@ function parseFunc(parsing: ParsingState, entityModifier: EntityModifier | undef
 }
 
 // ['private' | 'protected']
-function parseAccessModifier(parsing: ParsingState): AccessModifier {
+function parseAccessModifier(parsing: ParsingState): AccessModifier | undefined {
     const next = parsing.next().text;
     if (next === 'private' || next === 'protected') {
         parsing.confirm(HighlightTokenKind.Builtin);
         return next;
     }
-    return 'public';
+    return undefined;
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
-// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function parseVAR(parsing: ParsingState): NodeVar | undefined {
+// VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
+function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): NodeVar | undefined {
     const rangeStart = parsing.next();
-
-    const accessor: AccessModifier = parseAccessModifier(parsing);
 
     const type = parseTYPE(parsing);
     if (type === undefined) {
@@ -347,7 +354,7 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
     const statements: (NodeVar | NodeStatement)[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
-        const var_ = parseVAR(parsing);
+        const var_ = parseVar(parsing, undefined);
         if (var_ !== undefined) {
             statements.push(var_);
             continue;
@@ -645,7 +652,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
 
-    const initial: NodeExprStat | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVAR(parsing);
+    const initial: NodeExprStat | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVar(parsing, undefined);
     if (initial === undefined) {
         diagnostic.addError(parsing.next().location, "Expected initial expression or variable declaration");
         return 'pending';
