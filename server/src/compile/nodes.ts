@@ -23,20 +23,32 @@ export function getNodeLocation(range: ParsedRange): LocationInfo {
     };
 }
 
-// export interface MissingIdentifier {
-//     missingRange: NodesRange;
-// }
-
 export interface EntityModifier {
     isShared: boolean,
-    isExternal: boolean
-}
-
-export interface ClassModifier {
-    isShared: boolean,
+    isExternal: boolean,
     isAbstract: boolean,
     isFinal: boolean,
-    isExternal: boolean
+}
+
+export function setEntityModifier(modifier: EntityModifier, token: string) {
+    switch (token) {
+    case 'shared':
+        modifier.isShared = true;
+        break;
+    case 'external':
+        modifier.isExternal = true;
+        break;
+    case 'abstract':
+        modifier.isAbstract = true;
+        break;
+    case 'final':
+        modifier.isFinal = true;
+        break;
+    }
+}
+
+export function isEntityModifierForClass(modifier: EntityModifier) {
+    return modifier.isAbstract || modifier.isFinal;
 }
 
 export type NodeNames =

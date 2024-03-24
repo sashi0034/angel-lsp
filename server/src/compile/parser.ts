@@ -1,6 +1,5 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
-// FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 import {TokenizingToken} from "./token";
 import {
     AccessModifier, EntityModifier,
@@ -36,23 +35,25 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeVirtProp,
-    NodeWhile, TypeModifier
+    NodeWhile, setEntityModifier, TypeModifier
 } from "./nodes";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function parseSCRIPT(parsing: ParsingState): NodeScript {
+function parseScript(parsing: ParsingState): NodeScript {
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
-        const func = parseFunc(parsing);
+        const entityModifier = parseEntityModifier(parsing);
+
+        const func = parseFunc(parsing, entityModifier);
         if (func !== undefined) {
             script.push(func);
             continue;
         }
 
-        const class_ = parseCLASS(parsing);
+        const class_ = parseClass(parsing);
         if (class_ === 'pending') continue;
         if (class_ !== 'mismatch') {
             script.push(class_);
@@ -107,7 +108,7 @@ function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
         return 'pending';
     }
 
-    const script = parseSCRIPT(parsing);
+    const script = parseScript(parsing);
     parsing.expect('}', HighlightTokenKind.Operator);
     return {
         nodeName: 'Namespace',
@@ -123,14 +124,11 @@ function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined 
     let modifier: EntityModifier | undefined = undefined;
     while (parsing.isEnd() === false) {
         const next = parsing.next().text;
-        if (next === 'shared' || next === 'external') {
-            if (modifier === undefined) {
-                modifier = {isShared: false, isExternal: false};
-            }
-            if (next === 'shared') modifier.isShared = true;
-            else if (next === 'external') modifier.isExternal = true;
-            parsing.confirm(HighlightTokenKind.Builtin);
-        } else break;
+        const isEntityToken = next === 'shared' || next === 'external' || next === 'abstract' || next === 'final';
+        if (isEntityToken === false) break;
+        if (modifier === undefined) modifier = {isShared: false, isExternal: false, isAbstract: false, isFinal: false};
+        setEntityModifier(modifier, next);
+        parsing.confirm(HighlightTokenKind.Builtin);
     }
 
     return modifier;
@@ -138,7 +136,7 @@ function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined 
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
+function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
     if (parsing.next().text !== 'class') return 'mismatch';
     parsing.confirm(HighlightTokenKind.Builtin);
@@ -178,7 +176,10 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
             parsing.confirm(HighlightTokenKind.Operator);
             break;
         }
-        const func = parseFunc(parsing);
+
+        const entityModifier = parseEntityModifier(parsing);
+
+        const func = parseFunc(parsing, entityModifier);
         if (func !== undefined) {
             members.push(func);
             continue;
@@ -204,9 +205,8 @@ function parseCLASS(parsing: ParsingState): TriedParse<NodeClass> {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFunc(parsing: ParsingState): NodeFunc | undefined {
+function parseFunc(parsing: ParsingState, entityModifier: EntityModifier | undefined): NodeFunc | undefined {
     const rangeStart = parsing.next();
-    const entity = parseEntityModifier(parsing);
     const accessor = parseAccessModifier(parsing);
     let head: { returnType: NodeType; isRef: boolean; } | '~';
     if (parsing.next().text === '~') {
@@ -240,7 +240,7 @@ function parseFunc(parsing: ParsingState): NodeFunc | undefined {
         nodeName: 'Func',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scopeRange: statBlock.nodeRange,
-        entity: entity,
+        entity: entityModifier,
         accessor: accessor,
         head: head,
         identifier: identifier,
@@ -1347,7 +1347,7 @@ export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
-        script.push(...parseSCRIPT(parsing));
+        script.push(...parseScript(parsing));
         if (parsing.isEnd() === false) {
             diagnostic.addError(parsing.next().location, "Unexpected token ⚠️");
             parsing.step();
