@@ -238,7 +238,22 @@ function parseFunc(
         parsing.backtrack(rangeStart);
         return undefined;
     }
-    let statBlock = parseStatBlock(parsing);
+
+    let isConst = false;
+    if (parsing.next().text === 'const') {
+        parsing.confirm(HighlightTokenKind.Keyword);
+        isConst = true;
+    }
+
+    const statStart = parsing.next().text;
+    let statBlock: NodeStatBlock | undefined = undefined;
+    if (statStart === ';') {
+        parsing.confirm(HighlightTokenKind.Operator);
+    } else if (statStart === '{') {
+        statBlock = parseStatBlock(parsing);
+    } else {
+        diagnostic.addError(parsing.next().location, "Expected ';' or '{'");
+    }
     if (statBlock === undefined) statBlock = {
         nodeName: 'StatBlock',
         nodeRange: {start: parsing.next(), end: parsing.next()},
@@ -254,7 +269,7 @@ function parseFunc(
         head: head,
         identifier: identifier,
         paramList: paramList,
-        isConst: false,
+        isConst: isConst,
         funcAttr: undefined,
         statBlock: statBlock
     };
