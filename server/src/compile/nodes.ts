@@ -204,6 +204,7 @@ export type NodeParamList = DeclaredTypeIdentifier[];
 
 export interface DeclaredTypeIdentifier {
     type: NodeType,
+    modifier: TypeModifier | undefined,
     identifier: ParsingToken | undefined
 }
 
@@ -215,7 +216,7 @@ export interface NodeType extends NodesBase {
     isConst: boolean,
     scope: NodeScope | undefined,
     datatype: NodeDATATYPE,
-    genericList: NodeType[],
+    typeParameters: NodeType[],
     isArray: boolean,
     isRef: boolean,
 }
@@ -227,10 +228,7 @@ export interface NodeScope extends NodesBase {
     nodeName: 'Scope'
     isGlobal: boolean,
     namespaceList: ParsingToken[],
-    generic: {
-        className: ParsingToken,
-        types: NodeType[]
-    } | undefined
+    typeParameters: NodeType[]
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -443,7 +441,7 @@ export interface NodeVarAccess extends NodesBase {
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeArgList extends NodesBase {
     nodeName: 'ArgList';
-    args: DeclaredArgument[];
+    argList: DeclaredArgument[];
 }
 
 export interface DeclaredArgument {

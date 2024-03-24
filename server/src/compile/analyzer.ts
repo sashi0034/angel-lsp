@@ -544,7 +544,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
             const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.sourceNode.paramList[i].type.datatype.identifier);
             if (actualType === undefined || expectedType === undefined) continue;
             if (isTypeMatch(actualType, {symbol: expectedType}) === false) {
-                diagnostic.addError(getNodeLocation(funcCall.argList.args[i].assign.nodeRange), `Argument type mismatch: ${funcCall.identifier.text}`);
+                diagnostic.addError(getNodeLocation(funcCall.argList.argList[i].assign.nodeRange), `Argument type mismatch: ${funcCall.identifier.text}`);
             }
         }
     } else {
@@ -581,7 +581,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType | undefined)[] {
     const types: (DeducedType | undefined)[] = [];
-    for (const arg of argList.args) {
+    for (const arg of argList.argList) {
         types.push(analyzeAssign(scope, arg.assign));
     }
     return types;
