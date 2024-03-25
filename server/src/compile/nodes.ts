@@ -141,6 +141,7 @@ export interface NodeClass extends NodesBase {
     nodeName: 'Class';
     scopeRange: ParsedRange;
     identifier: ParsingToken;
+    typeParameters: NodeType[] | undefined;
     baseList: ParsingToken[];
     memberList: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[];
 }
@@ -218,7 +219,7 @@ export interface NodeType extends NodesBase {
     nodeName: 'Type'
     isConst: boolean,
     scope: NodeScope | undefined,
-    datatype: NodeDATATYPE,
+    datatype: NodeDataType,
     typeParameters: NodeType[],
     isArray: boolean,
     refModifier: ReferenceModifier | undefined,
@@ -235,7 +236,7 @@ export interface NodeScope extends NodesBase {
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-export interface NodeDATATYPE extends NodesBase {
+export interface NodeDataType extends NodesBase {
     nodeName: 'DataType';
     identifier: ParsingToken;
 }

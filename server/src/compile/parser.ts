@@ -10,7 +10,7 @@ import {
     NodeClass,
     NodeCondition, NodeConstructCall,
     NodeContinue,
-    NodeDATATYPE,
+    NodeDataType,
     NodeDoWhile,
     NodeExpr,
     NodeExprPostOp,
@@ -150,12 +150,16 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
     if (parsing.next().text !== 'class') return 'mismatch';
     parsing.confirm(HighlightTokenKind.Builtin);
+
     const identifier = parsing.next();
     if (identifier.kind !== 'identifier') {
         parsing.error("Expected identifier 💢");
         return 'pending';
     }
     parsing.confirm(HighlightTokenKind.Class);
+
+    const typeParameters = parseTypeParameters(parsing);
+
     const baseList: ParsingToken[] = [];
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightTokenKind.Operator);
@@ -208,6 +212,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scopeRange: {start: scopeStart, end: scopeEnd},
         identifier: identifier,
+        typeParameters: typeParameters,
         baseList: baseList,
         memberList: members
     };
@@ -585,11 +590,20 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-function parseDatatype(parsing: ParsingState): NodeDATATYPE | undefined {
+function parseDatatype(parsing: ParsingState): NodeDataType | undefined {
     // FIXME
     const next = parsing.next();
     if (parsing.next().kind === 'identifier') {
         parsing.confirm(HighlightTokenKind.Type);
+        return {
+            nodeName: 'DataType',
+            nodeRange: {start: next, end: next},
+            identifier: next
+        };
+    }
+
+    if (next.text === '?' || next.text === 'auto') {
+        parsing.confirm(HighlightTokenKind.Builtin);
         return {
             nodeName: 'DataType',
             nodeRange: {start: next, end: next},
