@@ -168,7 +168,7 @@ export interface NodeVar extends NodesBase {
     type: NodeType,
     variables: {
         identifier: ParsingToken,
-        initializer: NodeEXPR | NodeArgList | undefined
+        initializer: NodeExpr | NodeArgList | undefined
     }[];
 }
 
@@ -206,6 +206,7 @@ export interface DeclaredTypeIdentifier {
     type: NodeType,
     modifier: TypeModifier | undefined,
     identifier: ParsingToken | undefined
+    defaultExpr: NodeExpr | undefined
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
@@ -318,12 +319,12 @@ export interface NodeReturn extends NodesBase {
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 export interface NodeCASE extends NodesBase {
     nodeName: 'Case'
-    expr: NodeEXPR | undefined,
+    expr: NodeExpr | undefined,
     statementList: NodeStatement[]
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-export interface NodeEXPR extends NodesBase {
+export interface NodeExpr extends NodesBase {
     nodeName: 'Expr'
     head: NodeEXPRTERM,
     tail: DeclaredOpExpr | undefined
@@ -331,7 +332,7 @@ export interface NodeEXPR extends NodesBase {
 
 export interface DeclaredOpExpr {
     operator: ParsingToken,
-    expression: NodeEXPR
+    expression: NodeExpr
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
@@ -462,7 +463,7 @@ export interface NodeAssign extends NodesBase {
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 export interface NodeCondition extends NodesBase {
     nodeName: 'Condition'
-    expr: NodeEXPR,
+    expr: NodeExpr,
     ternary: {
         ta: NodeAssign,
         fa: NodeAssign

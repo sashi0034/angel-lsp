@@ -9,7 +9,7 @@ import {
     NodeClass,
     NodeCondition,
     NodeDoWhile,
-    NodeEXPR,
+    NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
     NodeExprStat,
@@ -249,7 +249,7 @@ function isTypeMatch(src: DeducedType, dest: DeducedType) {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-function analyzeINITLIST(scope: SymbolScope, ast: NodeEXPR) {
+function analyzeINITLIST(scope: SymbolScope, ast: NodeExpr) {
     // TODO
 }
 
@@ -401,7 +401,7 @@ function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeEXPR(scope: SymbolScope, ast: NodeEXPR): DeducedType | undefined {
+function analyzeEXPR(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined {
     const lhs = analyzeEXPRTERM(scope, ast.head);
     // TODO: 型チェック
     if (ast.tail !== undefined) {

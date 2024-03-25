@@ -12,7 +12,7 @@ import {
     NodeContinue,
     NodeDATATYPE,
     NodeDoWhile,
-    NodeEXPR,
+    NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
     NodeExprPostOp2,
@@ -297,7 +297,7 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
     }
     const variables: {
         identifier: ParsingToken,
-        initializer: NodeEXPR | NodeArgList | undefined
+        initializer: NodeExpr | NodeArgList | undefined
     }[] = [];
     while (parsing.isEnd() === false) {
         // 識別子
@@ -319,7 +319,7 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
             break;
         } else if (parsing.next().text === '=') {
             parsing.confirm(HighlightTokenKind.Operator);
-            const expr = parseEXPR(parsing);
+            const expr = parseExpr(parsing);
             if (expr === undefined) {
                 parsing.error("Expected expression 💢");
                 return undefined;
@@ -411,12 +411,19 @@ function parsePARAMLIST(parsing: ParsingState): NodeParamList | undefined {
 
         const typeMod = parseTypeMod(parsing);
 
+        let identifier: ParsingToken | undefined = undefined;
         if (parsing.next().kind === 'identifier') {
-            params.push({type: type, modifier: typeMod, identifier: parsing.next()});
-            parsing.step();
-        } else {
-            params.push({type: type, modifier: typeMod, identifier: undefined});
+            identifier = parsing.next();
+            parsing.confirm(HighlightTokenKind.Variable);
         }
+
+        let defaultExpr: NodeExpr | undefined = undefined;
+        if (parsing.next().text === '=') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            defaultExpr = parseExpr(parsing);
+            if (defaultExpr === undefined) parsing.error("Expected expression 💢");
+        }
+        params.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
     }
 
     parsing.expect(')', HighlightTokenKind.Operator);
@@ -852,7 +859,7 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
     let expr = undefined;
     if (parsing.next().text === 'case') {
         parsing.step();
-        expr = parseEXPR(parsing);
+        expr = parseExpr(parsing);
         if (expr === undefined) {
             parsing.error("Expected expression 💢");
             return 'pending';
@@ -879,7 +886,7 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
+function parseExpr(parsing: ParsingState): NodeExpr | undefined {
     const rangeStart = parsing.next();
     const exprTerm = parseEXPRTERM(parsing);
     if (exprTerm === undefined) return undefined;
@@ -890,7 +897,7 @@ function parseEXPR(parsing: ParsingState): NodeEXPR | undefined {
         head: exprTerm,
         tail: undefined
     };
-    const tail = parseEXPR(parsing);
+    const tail = parseExpr(parsing);
     if (tail === undefined) {
         parsing.error("Expected expression 💢");
         return {
@@ -1310,7 +1317,7 @@ function parseAssign(parsing: ParsingState): NodeAssign | undefined {
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 function parseCONDITION(parsing: ParsingState): NodeCondition | undefined {
     const rangeStart = parsing.next();
-    const expr = parseEXPR(parsing);
+    const expr = parseExpr(parsing);
     if (expr === undefined) return undefined;
     const result: NodeCondition = {
         nodeName: 'Condition',
