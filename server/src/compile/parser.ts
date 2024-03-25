@@ -38,7 +38,7 @@ import {
     NodeWhile, ReferenceModifier, setEntityModifier, TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParsingState, ParsingToken, TriedParse} from "./parsing";
+import {ParseFailure, ParsingState, ParsingToken, TriedParse} from "./parsing";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {
@@ -52,15 +52,15 @@ function parseScript(parsing: ParsingState): NodeScript {
         const entityModifier = parseEntityModifier(parsing);
 
         const parsedClass = parseClass(parsing, entityModifier);
-        if (parsedClass === 'pending') continue;
-        if (parsedClass !== 'mismatch') {
+        if (parsedClass === ParseFailure.Pending) continue;
+        if (parsedClass !== ParseFailure.Mismatch) {
             script.push(parsedClass);
             continue;
         }
 
         const parsedNamespace = parseNamespace(parsing);
-        if (parsedNamespace === 'pending') continue;
-        if (parsedNamespace !== 'mismatch') {
+        if (parsedNamespace === ParseFailure.Pending) continue;
+        if (parsedNamespace !== ParseFailure.Mismatch) {
             script.push(parsedNamespace);
             continue;
         }
@@ -86,7 +86,7 @@ function parseScript(parsing: ParsingState): NodeScript {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
-    if (parsing.next().text !== 'namespace') return 'mismatch';
+    if (parsing.next().text !== 'namespace') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
 
@@ -112,7 +112,7 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     }
 
     if (namespaces.length === 0) {
-        return 'pending';
+        return ParseFailure.Pending;
     }
 
     const script = parseScript(parsing);
@@ -152,13 +152,13 @@ function parseClass(
     entity: EntityModifier | undefined
 ): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
-    if (parsing.next().text !== 'class') return 'mismatch';
+    if (parsing.next().text !== 'class') return ParseFailure.Mismatch;
     parsing.confirm(HighlightTokenKind.Builtin);
 
     const identifier = parsing.next();
     if (identifier.kind !== 'identifier') {
         parsing.error("Expected identifier 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.confirm(HighlightTokenKind.Class);
 
@@ -392,10 +392,10 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
             continue;
         }
         const statement = parseSTATEMENT(parsing);
-        if (statement === 'pending') {
+        if (statement === ParseFailure.Pending) {
             continue;
         }
-        if (statement !== 'mismatch') {
+        if (statement !== ParseFailure.Mismatch) {
             statements.push(statement);
             continue;
         }
@@ -642,20 +642,20 @@ const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', '
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     const if_ = parseIF(parsing);
-    if (if_ === 'pending') return 'pending';
-    if (if_ !== 'mismatch') return if_;
+    if (if_ === ParseFailure.Pending) return ParseFailure.Pending;
+    if (if_ !== ParseFailure.Mismatch) return if_;
 
     const for_ = parseFOR(parsing);
-    if (for_ === 'pending') return 'pending';
-    if (for_ !== 'mismatch') return for_;
+    if (for_ === ParseFailure.Pending) return ParseFailure.Pending;
+    if (for_ !== ParseFailure.Mismatch) return for_;
 
     const while_ = parseWHILE(parsing);
-    if (while_ === 'pending') return 'pending';
-    if (while_ !== 'mismatch') return while_;
+    if (while_ === ParseFailure.Pending) return ParseFailure.Pending;
+    if (while_ !== ParseFailure.Mismatch) return while_;
 
     const return_ = parseReturn(parsing);
-    if (return_ === 'pending') return 'pending';
-    if (return_ !== 'mismatch') return return_;
+    if (return_ === ParseFailure.Pending) return ParseFailure.Pending;
+    if (return_ !== ParseFailure.Mismatch) return return_;
 
     const statBlock = parseStatBlock(parsing);
     if (statBlock !== undefined) return statBlock;
@@ -667,29 +667,29 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     if (continue_ !== undefined) return continue_;
 
     const dowhile = parseDOWHILE(parsing);
-    if (dowhile === 'pending') return 'pending';
-    if (dowhile !== 'mismatch') return dowhile;
+    if (dowhile === ParseFailure.Pending) return ParseFailure.Pending;
+    if (dowhile !== ParseFailure.Mismatch) return dowhile;
 
     const switch_ = parseSWITCH(parsing);
-    if (switch_ === 'pending') return 'pending';
-    if (switch_ !== 'mismatch') return switch_;
+    if (switch_ === ParseFailure.Pending) return ParseFailure.Pending;
+    if (switch_ !== ParseFailure.Mismatch) return switch_;
 
     const exprStat = parseExprStat(parsing);
     if (exprStat !== undefined) return exprStat;
 
-    return 'mismatch';
+    return ParseFailure.Mismatch;
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function parseSWITCH(parsing: ParsingState): TriedParse<NodeSwitch> {
-    if (parsing.next().text !== 'switch') return 'mismatch';
+    if (parsing.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     parsing.expect('{', HighlightTokenKind.Operator);
@@ -698,8 +698,8 @@ function parseSWITCH(parsing: ParsingState): TriedParse<NodeSwitch> {
     while (parsing.isEnd() === false) {
         if (parsing.isEnd() || parsing.next().text === '}') break;
         const case_ = parseCASE(parsing);
-        if (case_ === 'mismatch') break;
-        if (case_ === 'pending') continue;
+        if (case_ === ParseFailure.Mismatch) break;
+        if (case_ === ParseFailure.Pending) continue;
         cases.push(case_);
     }
     parsing.expect('}', HighlightTokenKind.Operator);
@@ -722,7 +722,7 @@ function parseBREAK(parsing: ParsingState): NodeBreak | undefined {
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
-    if (parsing.next().text !== 'for') return 'mismatch';
+    if (parsing.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
@@ -730,13 +730,13 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
     const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing, undefined);
     if (initial === undefined) {
         parsing.error("Expected initial expression or variable declaration 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
 
     const condition = parseExprStat(parsing);
     if (condition === undefined) {
         parsing.error("Expected condition expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
 
     const increment: NodeAssign[] = [];
@@ -753,7 +753,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
     parsing.expect(')', HighlightTokenKind.Operator);
 
     const statement = parseSTATEMENT(parsing);
-    if (statement === 'mismatch' || statement === 'pending') return 'pending';
+    if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) return ParseFailure.Pending;
 
     return {
         nodeName: 'For',
@@ -767,20 +767,20 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
-    if (parsing.next().text !== 'while') return 'mismatch';
+    if (parsing.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected condition expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     const statement = parseSTATEMENT(parsing);
-    if (statement === 'mismatch' || statement === 'pending') {
+    if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) {
         parsing.error("Expected statement 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
 
     return {
@@ -793,20 +793,20 @@ function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDoWhile> {
-    if (parsing.next().text !== 'do') return 'mismatch';
+    if (parsing.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     const statement = parseSTATEMENT(parsing);
-    if (statement === 'mismatch' || statement === 'pending') {
+    if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) {
         parsing.error("Expected statement 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect('while', HighlightTokenKind.Keyword);
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected condition expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     parsing.expect(';', HighlightTokenKind.Operator);
@@ -820,22 +820,22 @@ function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDoWhile> {
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function parseIF(parsing: ParsingState): TriedParse<NodeIf> {
-    if (parsing.next().text !== 'if') return 'mismatch';
+    if (parsing.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected condition expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     const ts = parseSTATEMENT(parsing);
-    if (ts === 'mismatch' || ts === 'pending') return 'pending';
+    if (ts === ParseFailure.Mismatch || ts === ParseFailure.Pending) return ParseFailure.Pending;
     let fs = undefined;
     if (parsing.next().text === 'else') {
         fs = parseSTATEMENT(parsing);
-        if (fs === 'mismatch' || fs === 'pending') {
+        if (fs === ParseFailure.Mismatch || fs === ParseFailure.Pending) {
             parsing.error("Expected statement 💢");
             return {
                 nodeName: 'If',
@@ -886,13 +886,13 @@ function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {
-    if (parsing.next().text !== 'return') return 'mismatch';
+    if (parsing.next().text !== 'return') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(';', HighlightTokenKind.Operator);
     return {
@@ -911,19 +911,19 @@ function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
         expr = parseExpr(parsing);
         if (expr === undefined) {
             parsing.error("Expected expression 💢");
-            return 'pending';
+            return ParseFailure.Pending;
         }
     } else if (parsing.next().text === 'default') {
         parsing.step();
     } else {
-        return 'mismatch';
+        return ParseFailure.Mismatch;
     }
     parsing.expect(':', HighlightTokenKind.Operator);
     const statements: NodeStatement[] = [];
     while (parsing.isEnd() === false) {
         const statement = parseSTATEMENT(parsing);
-        if (statement === 'mismatch') break;
-        if (statement === 'pending') continue;
+        if (statement === ParseFailure.Mismatch) break;
+        if (statement === ParseFailure.Pending) continue;
         statements.push(statement);
     }
     return {
@@ -988,8 +988,8 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
     }
 
     const exprValue = parseExprValue(parsing);
-    if (exprValue === 'mismatch') parsing.backtrack(rangeStart);
-    if (exprValue === 'mismatch' || exprValue === 'pending') {
+    if (exprValue === ParseFailure.Mismatch) parsing.backtrack(rangeStart);
+    if (exprValue === ParseFailure.Mismatch || exprValue === ParseFailure.Pending) {
         return undefined;
     }
 
@@ -1008,19 +1008,19 @@ function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parsing: ParsingState): TriedParse<NodeExprValue> {
     const lambda = parseLambda(parsing);
-    if (lambda === 'pending') return 'pending';
-    if (lambda !== 'mismatch') return lambda;
+    if (lambda === ParseFailure.Pending) return ParseFailure.Pending;
+    if (lambda !== ParseFailure.Mismatch) return lambda;
 
     const cast = parseCAST(parsing);
-    if (cast === 'pending') return 'pending';
-    if (cast !== 'mismatch') return cast;
+    if (cast === ParseFailure.Pending) return ParseFailure.Pending;
+    if (cast !== ParseFailure.Mismatch) return cast;
 
     if (parsing.next().text === '(') {
         parsing.confirm(HighlightTokenKind.Operator);
         const assign = parseAssign(parsing);
         if (assign === undefined) {
             parsing.error("Expected expression 💢");
-            return 'pending';
+            return ParseFailure.Pending;
         }
         parsing.expect(')', HighlightTokenKind.Operator);
         return assign;
@@ -1038,7 +1038,7 @@ function parseExprValue(parsing: ParsingState): TriedParse<NodeExprValue> {
     const varAccess = parseVarAccess(parsing);
     if (varAccess !== undefined) return varAccess;
 
-    return 'mismatch';
+    return ParseFailure.Mismatch;
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
@@ -1166,21 +1166,21 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function parseCAST(parsing: ParsingState): TriedParse<NodeCast> {
-    if (parsing.next().text !== 'cast') return 'mismatch';
+    if (parsing.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect('<', HighlightTokenKind.Operator);
     const type = parseType(parsing);
     if (type === undefined) {
         parsing.error("Expected type 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect('>', HighlightTokenKind.Operator);
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
         parsing.error("Expected expression 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
     return {
@@ -1193,7 +1193,7 @@ function parseCAST(parsing: ParsingState): TriedParse<NodeCast> {
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
-    if (parsing.next().text !== 'function') return 'mismatch';
+    if (parsing.next().text !== 'function') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect('(', HighlightTokenKind.Operator);
@@ -1230,7 +1230,7 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
     const statBlock = parseStatBlock(parsing);
     if (statBlock === undefined) {
         parsing.error("Expected statement block 💢");
-        return 'pending';
+        return ParseFailure.Pending;
     }
     return {
         nodeName: 'Lambda',

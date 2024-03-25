@@ -2,7 +2,12 @@ import {TokenizingToken} from "./token";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 
-export type TriedParse<T> = 'mismatch' | 'pending' | T;
+export enum ParseFailure {
+    Mismatch = 'mismatch',
+    Pending = 'pending',
+}
+
+export type TriedParse<T> = T | ParseFailure;
 
 // 診断メッセージは pending 発生時に発行する
 
