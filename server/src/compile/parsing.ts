@@ -53,29 +53,28 @@ export class ParsingState {
         this.cursorIndex++;
     }
 
-    public confirm(analyzeToken: HighlightTokenKind, analyzedModifier: HighlightModifierKind | undefined = undefined) {
+    public confirm(analyzeToken: HighlightTokenKind) {
         const next = this.next();
         next.highlight.token = analyzeToken;
-        if (analyzedModifier !== undefined) next.highlight.modifier = analyzedModifier;
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightTokenKind, analyzedModifier: HighlightModifierKind | undefined = undefined) {
+    public expect(word: string, analyzeToken: HighlightTokenKind) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file ❌");
             return false;
         }
-        if (this.next().kind !== "reserved") {
-            diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
+        const isExpectedWord = this.next().kind === "reserved" && this.next().text === word;
+        if (isExpectedWord === false) {
+            diagnostic.addError(this.next().location, `Expected 👉 ${word} 👈`);
             this.step();
             return false;
         }
-        if (this.next().text !== word) {
-            diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
-            this.step();
-            return false;
-        }
-        this.confirm(analyzeToken, analyzedModifier);
+        this.confirm(analyzeToken);
         return true;
+    }
+
+    public error(message: string) {
+        diagnostic.addError(this.next().location, message);
     }
 }
