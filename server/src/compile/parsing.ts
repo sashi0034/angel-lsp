@@ -67,10 +67,12 @@ export class ParsingState {
         }
         if (this.next().kind !== "reserved") {
             diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
+            this.step();
             return false;
         }
         if (this.next().text !== word) {
             diagnostic.addError(this.next().location, `Expected reserved word 👉 ${word} 👈`);
+            this.step();
             return false;
         }
         this.confirm(analyzeToken, analyzedModifier);
