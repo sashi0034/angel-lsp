@@ -1,17 +1,20 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
-import {TokenizingToken} from "./token";
 import {
-    AccessModifier, EntityModifier,
+    AccessModifier,
+    EntityModifier,
     NodeArgList,
     NodeAssign,
     NodeBreak,
-    NodeCASE, NodeCast,
+    NodeCASE,
+    NodeCast,
     NodeClass,
-    NodeCondition, NodeConstructCall,
+    NodeCondition,
+    NodeConstructCall,
     NodeContinue,
     NodeDataType,
-    NodeDoWhile, NodeEnum,
+    NodeDoWhile,
+    NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -23,7 +26,10 @@ import {
     NodeFunc,
     NodeFuncCall,
     NodeFuncDef,
-    NodeIf, NodeLambda, NodeLiteral, NodeNamespace,
+    NodeIf,
+    NodeLambda,
+    NodeLiteral,
+    NodeNamespace,
     NodeParamList,
     NodeReturn,
     NodeScope,
@@ -35,7 +41,10 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeVirtProp,
-    NodeWhile, ReferenceModifier, setEntityModifier, TypeModifier
+    NodeWhile,
+    ReferenceModifier,
+    setEntityModifier,
+    TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParseFailure, ParsingState, ParsingToken, TriedParse} from "./parsing";
@@ -102,12 +111,8 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
         if (namespaces.length > 0) {
             if (parsing.expect('::', HighlightTokenKind.Operator) === false) continue;
         }
-        const identifier = parsing.next();
-        if (identifier.kind !== 'identifier') {
-            parsing.error("Expected identifier 💢");
-            break;
-        }
-        parsing.confirm(HighlightTokenKind.Namespace);
+        const identifier = expectIdentifier(parsing, HighlightTokenKind.Namespace);
+        if (identifier === undefined) break;
         namespaces.push(identifier);
     }
 
@@ -125,10 +130,30 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     };
 }
 
+function expectIdentifier(parsing: ParsingState, kind: HighlightTokenKind): ParsingToken | undefined {
+    const identifier = parsing.next();
+    if (identifier.kind !== 'identifier') {
+        parsing.error("Expected identifier 💢");
+        return undefined;
+    }
+    parsing.confirm(kind);
+    return identifier;
+}
+
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-// function parseEnum(parsing: ParsingState): TriedParse<NodeEnum> {
-//
-// }
+function parseEnum(
+    parsing: ParsingState,
+    entity: EntityModifier | undefined
+): TriedParse<NodeEnum> {
+    if (parsing.next().text !== 'enum') return ParseFailure.Mismatch;
+    const rangeStart = parsing.next();
+    parsing.confirm(HighlightTokenKind.Builtin);
+    const identifier = expectIdentifier(parsing, HighlightTokenKind.Enum);
+    if (identifier === undefined) return ParseFailure.Pending;
+
+    // TODO
+    return ParseFailure.Pending;
+}
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined {
@@ -143,7 +168,6 @@ function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined 
     }
 
     return modifier;
-
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
@@ -155,12 +179,8 @@ function parseClass(
     if (parsing.next().text !== 'class') return ParseFailure.Mismatch;
     parsing.confirm(HighlightTokenKind.Builtin);
 
-    const identifier = parsing.next();
-    if (identifier.kind !== 'identifier') {
-        parsing.error("Expected identifier 💢");
-        return ParseFailure.Pending;
-    }
-    parsing.confirm(HighlightTokenKind.Class);
+    const identifier = expectIdentifier(parsing, HighlightTokenKind.Class);
+    if (identifier === undefined) return ParseFailure.Pending;
 
     const typeParameters = parseTypeParameters(parsing);
 
@@ -172,12 +192,9 @@ function parseClass(
             if (baseList.length > 0) {
                 if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
             }
-            if (parsing.next().kind !== 'identifier') {
-                parsing.error("Expected identifier 💢");
-                break;
-            }
-            baseList.push(parsing.next());
-            parsing.confirm(HighlightTokenKind.Type);
+            const identifier = expectIdentifier(parsing, HighlightTokenKind.Type);
+            if (identifier === undefined) break;
+            baseList.push(identifier);
         }
     }
     const scopeStart = parsing.next();
@@ -1107,9 +1124,8 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
         postOp: 1,
         member: funcCall,
     };
-    const identifier = parsing.next();
-    if (identifier.kind !== 'identifier') {
-        parsing.error("Expected identifier 💢");
+    const identifier = expectIdentifier(parsing, HighlightTokenKind.Variable);
+    if (identifier === undefined) {
         return {
             nodeName: 'ExprPostOp',
             nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1117,7 +1133,6 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
             member: undefined
         };
     }
-    parsing.confirm(HighlightTokenKind.Variable);
     return {
         nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1286,11 +1301,9 @@ function parseFuncCall(parsing: ParsingState): NodeFuncCall | undefined {
 function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
     const rangeStart = parsing.next();
     const scope = parseScope(parsing);
-    const next = parsing.next();
-    if (next.kind !== 'identifier') {
+    const next = expectIdentifier(parsing, HighlightTokenKind.Variable);
+    if (next === undefined) {
         if (scope === undefined) return undefined;
-        parsing.error("Expected identifier 💢");
-
         return {
             nodeName: 'VarAccess',
             nodeRange: {start: rangeStart, end: parsing.prev()},
