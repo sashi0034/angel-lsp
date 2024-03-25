@@ -44,34 +44,40 @@ import {ParsingState, ParsingToken, TriedParse} from "./parsing";
 function parseScript(parsing: ParsingState): NodeScript {
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
+        if (parsing.next().text === ';') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            continue;
+        }
+
+        const parsedClass = parseClass(parsing);
+        if (parsedClass === 'pending') continue;
+        if (parsedClass !== 'mismatch') {
+            script.push(parsedClass);
+            continue;
+        }
+
+        const parsedNamespace = parseNamespace(parsing);
+        if (parsedNamespace === 'pending') continue;
+        if (parsedNamespace !== 'mismatch') {
+            script.push(parsedNamespace);
+            continue;
+        }
+
         const entityModifier = parseEntityModifier(parsing);
         const accessor = parseAccessModifier(parsing);
         if (accessor !== undefined) {
             parsing.error("Unexpected Accessor 🪗");
         }
 
-        const func = parseFunc(parsing, entityModifier, accessor);
-        if (func !== undefined) {
-            script.push(func);
+        const parsedFunc = parseFunc(parsing, entityModifier, accessor);
+        if (parsedFunc !== undefined) {
+            script.push(parsedFunc);
             continue;
         }
 
-        const class_ = parseClass(parsing);
-        if (class_ === 'pending') continue;
-        if (class_ !== 'mismatch') {
-            script.push(class_);
-            continue;
-        }
-
-        const namespace_ = parseNAMESPACE(parsing);
-        if (namespace_ === 'pending') continue;
-        if (namespace_ !== 'mismatch') {
-            script.push(namespace_);
-            continue;
-        }
-
-        if (parsing.next().text === ';') {
-            parsing.confirm(HighlightTokenKind.Operator);
+        const parsedVar = parseVar(parsing, accessor);
+        if (parsedVar !== undefined) {
+            script.push(parsedVar);
             continue;
         }
 
@@ -81,7 +87,7 @@ function parseScript(parsing: ParsingState): NodeScript {
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function parseNAMESPACE(parsing: ParsingState): TriedParse<NodeNamespace> {
+function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     if (parsing.next().text !== 'namespace') return 'mismatch';
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
@@ -649,7 +655,7 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
     if (switch_ === 'pending') return 'pending';
     if (switch_ !== 'mismatch') return switch_;
 
-    const exprStat = parseEXPRSTAT(parsing);
+    const exprStat = parseExprStat(parsing);
     if (exprStat !== undefined) return exprStat;
 
     return 'mismatch';
@@ -702,13 +708,13 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
 
-    const initial: NodeExprStat | NodeVar | undefined = parseEXPRSTAT(parsing) ?? parseVar(parsing, undefined);
+    const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing, undefined);
     if (initial === undefined) {
         parsing.error("Expected initial expression or variable declaration 💢");
         return 'pending';
     }
 
-    const condition = parseEXPRSTAT(parsing);
+    const condition = parseExprStat(parsing);
     if (condition === undefined) {
         parsing.error("Expected condition expression 💢");
         return 'pending';
@@ -840,7 +846,7 @@ function parseCONTINUE(parsing: ParsingState): NodeContinue | undefined {
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function parseEXPRSTAT(parsing: ParsingState): NodeExprStat | undefined {
+function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
     if (parsing.next().text === ';') {
         parsing.confirm(HighlightTokenKind.Operator);
         return {
