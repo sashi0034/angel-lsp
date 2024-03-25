@@ -11,7 +11,7 @@ import {
     NodeCondition, NodeConstructCall,
     NodeContinue,
     NodeDataType,
-    NodeDoWhile,
+    NodeDoWhile, NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -49,7 +49,9 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
-        const parsedClass = parseClass(parsing);
+        const entityModifier = parseEntityModifier(parsing);
+
+        const parsedClass = parseClass(parsing, entityModifier);
         if (parsedClass === 'pending') continue;
         if (parsedClass !== 'mismatch') {
             script.push(parsedClass);
@@ -63,11 +65,7 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
-        const entityModifier = parseEntityModifier(parsing);
         const accessor = parseAccessModifier(parsing);
-        if (accessor !== undefined) {
-            parsing.error("Unexpected Accessor 🪗");
-        }
 
         const parsedFunc = parseFunc(parsing, entityModifier, accessor);
         if (parsedFunc !== undefined) {
@@ -128,6 +126,9 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// function parseEnum(parsing: ParsingState): TriedParse<NodeEnum> {
+//
+// }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined {
@@ -146,7 +147,10 @@ function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined 
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
+function parseClass(
+    parsing: ParsingState,
+    entity: EntityModifier | undefined
+): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
     if (parsing.next().text !== 'class') return 'mismatch';
     parsing.confirm(HighlightTokenKind.Builtin);
@@ -211,6 +215,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
         nodeName: 'Class',
         nodeRange: {start: rangeStart, end: parsing.prev()},
         scopeRange: {start: scopeStart, end: scopeEnd},
+        entity: entity,
         identifier: identifier,
         typeParameters: typeParameters,
         baseList: baseList,

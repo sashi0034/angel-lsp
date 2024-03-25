@@ -140,6 +140,7 @@ export interface NodeEnum extends NodesBase {
 export interface NodeClass extends NodesBase {
     nodeName: 'Class';
     scopeRange: ParsedRange;
+    entity: EntityModifier | undefined;
     identifier: ParsingToken;
     typeParameters: NodeType[] | undefined;
     baseList: ParsingToken[];
