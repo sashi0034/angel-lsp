@@ -35,7 +35,7 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeVirtProp,
-    NodeWhile, setEntityModifier, TypeModifier
+    NodeWhile, ReferenceModifier, setEntityModifier, TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingState, ParsingToken, TriedParse} from "./parsing";
@@ -238,11 +238,7 @@ function parseFunc(
         return undefined;
     }
 
-    let isConst = false;
-    if (parsing.next().text === 'const') {
-        parsing.confirm(HighlightTokenKind.Keyword);
-        isConst = true;
-    }
+    const isConst = parseConst(parsing);
 
     const statStart = parsing.next().text;
     let statBlock: NodeStatBlock | undefined = undefined;
@@ -272,6 +268,12 @@ function parseFunc(
         funcAttr: undefined,
         statBlock: statBlock
     };
+}
+
+function parseConst(parsing: ParsingState): boolean {
+    if (parsing.next().text !== 'const') return false;
+    parsing.confirm(HighlightTokenKind.Keyword);
+    return true;
 }
 
 // ['private' | 'protected']
@@ -446,11 +448,7 @@ function parseTypeMod(parsing: ParsingState): TypeModifier | undefined {
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseType(parsing: ParsingState): NodeType | undefined {
     const rangeStart = parsing.next();
-    let isConst = false;
-    if (parsing.next().text === 'const') {
-        parsing.confirm(HighlightTokenKind.Keyword);
-        isConst = true;
-    }
+    const isConst = parseConst(parsing);
     const scope = parseScope(parsing);
     const datatype = parseDatatype(parsing);
     if (datatype === undefined) {
@@ -458,6 +456,7 @@ function parseType(parsing: ParsingState): NodeType | undefined {
         return undefined;
     }
     const typeParameters = parseTypeParameters(parsing) ?? [];
+    const {isArray, refModifier} = parseTypeTail(parsing);
     return {
         nodeName: 'Type',
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -465,9 +464,34 @@ function parseType(parsing: ParsingState): NodeType | undefined {
         scope: scope,
         datatype: datatype,
         typeParameters: typeParameters,
-        isArray: false,
-        isRef: false
+        isArray: isArray,
+        refModifier: refModifier
     };
+}
+
+function parseTypeTail(parsing: ParsingState) {
+    let isArray = false;
+    let refModifier: ReferenceModifier | undefined = undefined;
+    while (parsing.isEnd() === false) {
+        const next = parsing.next().text;
+        if (next === '[') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            parsing.expect(']', HighlightTokenKind.Operator);
+            isArray = true;
+            continue;
+        } else if (next === '@') {
+            parsing.confirm(HighlightTokenKind.Builtin);
+            if (parsing.next().text === 'const') {
+                parsing.confirm(HighlightTokenKind.Keyword);
+                refModifier = '@const';
+            } else {
+                refModifier = '@';
+            }
+            continue;
+        }
+        break;
+    }
+    return {isArray, refModifier};
 }
 
 // '<' TYPE {',' TYPE} '>'

@@ -5,6 +5,8 @@ export type AccessModifier = 'private' | 'protected';
 
 export type TypeModifier = 'in' | 'out' | 'inout';
 
+export type ReferenceModifier = '@' | '@const';
+
 export interface ParsedRange {
     start: ParsingToken;
     end: ParsingToken;
@@ -219,7 +221,7 @@ export interface NodeType extends NodesBase {
     datatype: NodeDATATYPE,
     typeParameters: NodeType[],
     isArray: boolean,
-    isRef: boolean,
+    refModifier: ReferenceModifier | undefined,
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
