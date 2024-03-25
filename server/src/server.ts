@@ -20,7 +20,6 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
-import {diagnostic} from './code/diagnostic';
 import {jumpDefinition} from "./serve/definition";
 import {getDiagnosedResultFromUri, diagnoseFile} from "./serve/diagnoseFile";
 import {CompletionRequest} from "vscode-languageserver";
@@ -155,7 +154,7 @@ documents.onDidClose(e => {
 connection.languages.diagnostics.on(async (params) => {
     return {
         kind: DocumentDiagnosticReportKind.Full,
-        items: diagnostic.get()
+        items: getDiagnosedResultFromUri(params.textDocument.uri).diagnostics
     } satisfies DocumentDiagnosticReport;
 });
 
@@ -183,7 +182,6 @@ connection.onDefinition((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    // diagnostic.clear();
     diagnoseFile(change.document.getText(), change.document.uri);
 });
 

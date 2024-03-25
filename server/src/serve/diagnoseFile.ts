@@ -9,8 +9,10 @@ import {ParsingToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
 import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
+import {Diagnostic} from "vscode-languageserver/node";
 
 interface DiagnoseResult {
+    diagnostics: Diagnostic[];
     tokenizedTokens: TokenizingToken[];
     analyzedScope: AnalyzedScope;
 }
@@ -20,6 +22,7 @@ const s_diagnosedResults: { [path: string]: DiagnoseResult } = {};
 let s_predefinedPath = '';
 
 const emptyResult: DiagnoseResult = {
+    diagnostics: [],
     tokenizedTokens: [],
     analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
 } as const;
@@ -51,7 +54,7 @@ function checkDiagnosedPredefined() {
 }
 
 function diagnoseInternal(document: string, path: string): DiagnoseResult {
-    diagnostic.clear();
+    diagnostic.reset();
 
     profiler.restart();
 
@@ -69,7 +72,11 @@ function diagnoseInternal(document: string, path: string): DiagnoseResult {
     const analyzedScope = analyzeFromParsed(parsed, path, includedScopes);
     profiler.stamp("analyzer");
 
-    return {tokenizedTokens: tokenizedTokens, analyzedScope: analyzedScope};
+    return {
+        diagnostics: diagnostic.get(),
+        tokenizedTokens: tokenizedTokens,
+        analyzedScope: analyzedScope
+    };
 }
 
 function getIncludedScope() {
