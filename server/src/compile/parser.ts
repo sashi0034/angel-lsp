@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 import {
-    AccessModifier,
+    AccessModifier, DeclaredEnumMember,
     EntityModifier,
     NodeArgList,
     NodeAssign,
@@ -71,6 +71,13 @@ function parseScript(parsing: ParsingState): NodeScript {
         if (parsedNamespace === ParseFailure.Pending) continue;
         if (parsedNamespace !== ParseFailure.Mismatch) {
             script.push(parsedNamespace);
+            continue;
+        }
+
+        const parsedEnum = parseEnum(parsing, entityModifier);
+        if (parsedEnum === ParseFailure.Pending) continue;
+        if (parsedEnum !== ParseFailure.Mismatch) {
+            script.push(parsedEnum);
             continue;
         }
 
@@ -148,11 +155,57 @@ function parseEnum(
     if (parsing.next().text !== 'enum') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
+
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    // TODO
-    return ParseFailure.Pending;
+    let members: DeclaredEnumMember[] = [];
+    const scopeStart = parsing.next();
+
+    if (parsing.next().text === ';') {
+        parsing.confirm(HighlightTokenKind.Operator);
+    } else {
+        members = expectEnumMembers(parsing);
+    }
+
+    return {
+        nodeName: 'Enum',
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        scopeRange: {start: scopeStart, end: parsing.prev()},
+        entity: entity,
+        identifier: identifier,
+        members: members
+    };
+}
+
+function expectEnumMembers(parsing: ParsingState): DeclaredEnumMember[] {
+    const members: DeclaredEnumMember[] = [];
+    parsing.expect('{', HighlightTokenKind.Operator);
+    while (parsing.isEnd() === false) {
+        if (parsing.next().text === '}') {
+            parsing.expect('}', HighlightTokenKind.Operator);
+            break;
+        }
+
+        const identifier = expectIdentifier(parsing, HighlightTokenKind.EnumMember);
+        if (identifier === undefined) break;
+
+        let expr: NodeExpr | undefined = undefined;
+        if (parsing.next().text === '=') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            expr = expectExpr(parsing);
+        }
+
+        members.push({identifier: identifier, expr: expr});
+        if (parsing.next().text === ',') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            continue;
+        }
+        break;
+    }
+
+    return members;
+
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
@@ -1115,6 +1168,7 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
     if (parsing.next().text !== '.') return undefined;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
+
     const funcCall = parseFuncCall(parsing);
     if (funcCall !== undefined) return {
         nodeName: 'ExprPostOp',
@@ -1122,15 +1176,15 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
         postOp: 1,
         member: funcCall,
     };
+
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Variable);
-    if (identifier === undefined) {
-        return {
-            nodeName: 'ExprPostOp',
-            nodeRange: {start: rangeStart, end: parsing.prev()},
-            postOp: 1,
-            member: undefined
-        };
-    }
+    if (identifier === undefined) return {
+        nodeName: 'ExprPostOp',
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        postOp: 1,
+        member: undefined
+    };
+
     return {
         nodeName: 'ExprPostOp',
         nodeRange: {start: rangeStart, end: parsing.prev()},

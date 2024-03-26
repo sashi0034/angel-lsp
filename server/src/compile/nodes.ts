@@ -121,7 +121,7 @@ export interface NodesBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export type NodeScript = (NodeClass | NodeVar | NodeFunc | NodeNamespace)[];
+export type NodeScript = (NodeEnum | NodeClass | NodeVar | NodeFunc | NodeNamespace)[];
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
@@ -132,8 +132,16 @@ export interface NodeNamespace extends NodesBase {
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface NodeEnum extends NodesBase {
-    nodeName: 'Enum'
+    nodeName: 'Enum';
+    scopeRange: ParsedRange;
+    entity: EntityModifier | undefined;
+    identifier: ParsingToken;
+    members: DeclaredEnumMember[];
+}
+
+export interface DeclaredEnumMember {
     identifier: ParsingToken,
+    expr: NodeExpr | undefined
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
