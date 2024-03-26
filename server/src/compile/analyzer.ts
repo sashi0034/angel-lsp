@@ -67,18 +67,18 @@ type AnalyzeQueue = {
 };
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function forwardScript(parentScope: SymbolScope, ast: NodeScript, queue: AnalyzeQueue) {
+function hostingScript(parentScope: SymbolScope, ast: NodeScript, queue: AnalyzeQueue) {
     // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Enum) {
-            forwardEnum(parentScope, statement);
+            hostingEnum(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
-            forwardClass(parentScope, statement, queue);
+            hostingClass(parentScope, statement, queue);
         } else if (nodeName === NodeName.Func) {
-            forwardFunc(parentScope, statement, queue);
+            hostingFunc(parentScope, statement, queue);
         } else if (nodeName === NodeName.Namespace) {
-            forwardNamespace(parentScope, statement, queue);
+            hostingNamespace(parentScope, statement, queue);
         }
     }
 }
@@ -91,7 +91,7 @@ function analyzeScript(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function forwardNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, queue: AnalyzeQueue) {
+function hostingNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, queue: AnalyzeQueue) {
     if (namespace_.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
@@ -107,11 +107,11 @@ function forwardNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, q
         }
     }
 
-    forwardScript(scopeIterator, namespace_.script, queue);
+    hostingScript(scopeIterator, namespace_.script, queue);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-function forwardEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
+function hostingEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
@@ -121,10 +121,10 @@ function forwardEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const scope: SymbolScope = createSymbolScope(nodeEnum, parentScope);
     parentScope.childScopes.push(scope);
     insertSymbolicObject(parentScope.symbolDict, symbol);
-    forwardEnumMembers(scope, nodeEnum.memberList);
+    hostingEnumMembers(scope, nodeEnum.memberList);
 }
 
-function forwardEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMember[]) {
+function hostingEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMember[]) {
     for (const member of memberList) {
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
@@ -136,7 +136,7 @@ function forwardEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMe
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: AnalyzeQueue) {
+function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: AnalyzeQueue) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
@@ -151,7 +151,7 @@ function forwardClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
         if (member.nodeName === NodeName.VirtualProp) {
             // TODO
         } else if (member.nodeName === NodeName.Func) {
-            forwardFunc(scope, member, queue);
+            hostingFunc(scope, member, queue);
         } else if (member.nodeName === NodeName.Var) {
             // TODO
         }
@@ -161,7 +161,7 @@ function forwardClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function forwardFunc(parentScope: SymbolScope, func: NodeFunc, queue: AnalyzeQueue) {
+function hostingFunc(parentScope: SymbolScope, func: NodeFunc, queue: AnalyzeQueue) {
     if (func.head === funcHeadDestructor) return;
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
@@ -652,7 +652,7 @@ export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes:
     };
 
     // 宣言されたシンボルを収集
-    forwardScript(globalScope, ast, queue);
+    hostingScript(globalScope, ast, queue);
 
     // スコープの中身を解析
     analyzeScript(queue, globalScope, ast);
