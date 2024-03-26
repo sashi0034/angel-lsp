@@ -1,8 +1,9 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 import {
-    AccessModifier, DeclaredEnumMember,
-    EntityModifier,
+    AccessModifier,
+    DeclaredEnumMember,
+    EntityModifier, FunctionDestructor, functionDestructor, FunctionReturns,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -28,7 +29,8 @@ import {
     NodeFuncDef,
     NodeIf,
     NodeLambda,
-    NodeLiteral, NodeName,
+    NodeLiteral,
+    NodeName,
     NodeNamespace,
     NodeParamList,
     NodeReturn,
@@ -303,10 +305,10 @@ function parseFunc(
     accessor: AccessModifier | undefined,
 ): NodeFunc | undefined {
     const rangeStart = parsing.next();
-    let head: { returnType: NodeType; isRef: boolean; } | '~';
+    let head: FunctionReturns | FunctionDestructor;
     if (parsing.next().text === '~') {
         parsing.confirm(HighlightTokenKind.Operator);
-        head = '~';
+        head = functionDestructor;
     } else {
         const returnType = parseType(parsing);
         if (returnType === undefined) {
@@ -368,7 +370,7 @@ function parseAccessModifier(parsing: ParsingState): AccessModifier | undefined 
     const next = parsing.next().text;
     if (next === 'private' || next === 'protected') {
         parsing.confirm(HighlightTokenKind.Builtin);
-        return next;
+        return next === 'private' ? AccessModifier.Private : AccessModifier.Protected;
     }
     return undefined;
 }
@@ -524,10 +526,10 @@ function parseTypeMod(parsing: ParsingState): TypeModifier | undefined {
     const next = parsing.next().text;
     if (next === 'in' || next === 'out' || next === 'inout') {
         parsing.confirm(HighlightTokenKind.Builtin);
-        return next;
-    } else {
-        return 'inout';
+        if (next === 'in') return TypeModifier.In;
+        if (next === 'out') return TypeModifier.Out;
     }
+    return TypeModifier.InOut;
 }
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
@@ -568,9 +570,9 @@ function parseTypeTail(parsing: ParsingState) {
             parsing.confirm(HighlightTokenKind.Builtin);
             if (parsing.next().text === 'const') {
                 parsing.confirm(HighlightTokenKind.Keyword);
-                refModifier = '@const';
+                refModifier = ReferenceModifier.AtConst;
             } else {
-                refModifier = '@';
+                refModifier = ReferenceModifier.At;
             }
             continue;
         }

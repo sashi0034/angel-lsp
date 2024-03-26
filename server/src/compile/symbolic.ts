@@ -13,25 +13,35 @@ import {
 import {Range} from "vscode-languageserver";
 import {dummyToken, ParsingToken} from "./parsing";
 
-export type SymbolKind = 'type' | 'function' | 'variable';
+export enum SymbolKind {
+    Type = 'Type',
+    Function = 'Function',
+    Variable = 'Variable',
+}
+
+export enum PrimitiveType {
+    Bool = 'bool',
+    Number = 'number',
+    Void = 'void',
+}
 
 export interface SymbolicBase {
-    symbolKind: 'type' | 'function' | 'variable';
+    symbolKind: SymbolKind;
     declaredPlace: ParsingToken;
 }
 
 export interface SymbolicType extends SymbolicBase {
-    symbolKind: 'type';
-    sourceNode: NodeEnum | NodeClass | 'bool' | 'number' | 'void';
+    symbolKind: SymbolKind.Type;
+    sourceNode: NodeEnum | NodeClass | PrimitiveType;
 }
 
 export interface SymbolicFunction extends SymbolicBase {
-    symbolKind: 'function';
+    symbolKind: SymbolKind.Function;
     sourceNode: NodeFunc;
 }
 
 export interface SymbolicVariable extends SymbolicBase {
-    symbolKind: 'variable';
+    symbolKind: SymbolKind.Variable;
     type: SymbolicType | undefined;
 }
 
@@ -141,19 +151,19 @@ export interface CompletionNamespace extends ComplementBase {
 
 export type ComplementHints = ComplementType | CompletionNamespace;
 
-function createBuiltinType(name: 'bool' | 'number' | 'void'): SymbolicType {
+function createBuiltinType(name: PrimitiveType): SymbolicType {
     return {
-        symbolKind: 'type',
+        symbolKind: SymbolKind.Type,
         declaredPlace: dummyToken,
         sourceNode: name,
     } as const;
 }
 
-export const builtinNumberType: SymbolicType = createBuiltinType('number');
+export const builtinNumberType: SymbolicType = createBuiltinType(PrimitiveType.Number);
 
-export const builtinBoolType: SymbolicType = createBuiltinType('bool');
+export const builtinBoolType: SymbolicType = createBuiltinType(PrimitiveType.Bool);
 
-export const builtinVoidType: SymbolicType = createBuiltinType('void');
+export const builtinVoidType: SymbolicType = createBuiltinType(PrimitiveType.Void);
 
 export function findSymbolicTypeWithParent(scope: SymbolScope, token: ParsingToken): SymbolicType | undefined {
     const tokenText = token.text;
@@ -162,17 +172,17 @@ export function findSymbolicTypeWithParent(scope: SymbolScope, token: ParsingTok
         else if ((tokenText === 'void')) return builtinVoidType;
         else if (numberTypeSet.has(tokenText)) return builtinNumberType;
     }
-    return findSymbolWithParent(scope, tokenText, 'type') as SymbolicType;
+    return findSymbolWithParent(scope, tokenText, SymbolKind.Type) as SymbolicType;
 }
 
 const numberTypeSet = new Set(['int8', 'int16', 'int', 'int32', 'int64', 'uint8', 'uint16', 'uint', 'uint32', 'uint64', 'float', 'double']);
 
 export function findSymbolicFunctionWithParent(scope: SymbolScope, identifier: string): SymbolicFunction | undefined {
-    return findSymbolWithParent(scope, identifier, 'function') as SymbolicFunction;
+    return findSymbolWithParent(scope, identifier, SymbolKind.Function) as SymbolicFunction;
 }
 
 export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: string): SymbolicVariable | undefined {
-    return findSymbolWithParent(scope, identifier, 'variable') as SymbolicVariable;
+    return findSymbolWithParent(scope, identifier, SymbolKind.Function) as SymbolicVariable;
 }
 
 function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {

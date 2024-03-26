@@ -1,11 +1,21 @@
 import {LocationInfo} from "./token";
 import {ParsingToken} from "./parsing";
 
-export type AccessModifier = 'private' | 'protected';
+export enum AccessModifier {
+    Private = 'private',
+    Protected = 'protected',
+}
 
-export type TypeModifier = 'in' | 'out' | 'inout';
+export enum TypeModifier {
+    In = 'in',
+    Out = 'out',
+    InOut = 'inout',
+}
 
-export type ReferenceModifier = '@' | '@const';
+export enum ReferenceModifier {
+    At = '@',
+    AtConst = '@const',
+}
 
 export interface ParsedRange {
     start: ParsingToken;
@@ -159,12 +169,20 @@ export interface NodeClass extends NodesBase {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+export interface FunctionReturns {
+    returnType: NodeType;
+    isRef: boolean;
+}
+
+export const functionDestructor = Symbol();
+export type FunctionDestructor = typeof functionDestructor;
+
 export interface NodeFunc extends NodesBase {
     nodeName: NodeName.Func;
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     accessor: AccessModifier | undefined;
-    head: { returnType: NodeType; isRef: boolean; } | '~';
+    head: FunctionReturns | FunctionDestructor;
     identifier: ParsingToken;
     paramList: NodeParamList;
     isConst: boolean;
@@ -195,7 +213,7 @@ export interface NodeFuncDef extends NodesBase {
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface NodeVirtProp extends NodesBase {
     nodeName: NodeName.VirtProp
-    modifier: 'private' | 'protected' | 'null',
+    modifier: AccessModifier | undefined,
     type: NodeType,
     isRef: boolean,
     identifier: ParsingToken,

@@ -2,8 +2,12 @@ import {Position} from "vscode-languageserver";
 import {
     collectParentScopes,
     ComplementHints,
-    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent, isOwnerNodeExistence,
+    findClassScopeWithParent,
+    findGlobalScope,
+    findNamespaceScope,
+    isOwnerNodeExistence,
     SymbolicObject,
+    SymbolKind,
     SymbolScope
 } from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
@@ -92,13 +96,13 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
 
 function symbolToCompletionKind(symbol: SymbolicObject) {
     switch (symbol.symbolKind) {
-    case 'type':
+    case SymbolKind.Type:
         if (typeof symbol.sourceNode === 'string') return CompletionItemKind.Keyword;
         if (symbol.sourceNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
-    case 'function':
+    case SymbolKind.Function:
         return CompletionItemKind.Function;
-    case 'variable':
+    case SymbolKind.Variable:
         return CompletionItemKind.Variable;
     default:
         return CompletionItemKind.Text;

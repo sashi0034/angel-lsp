@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    functionDestructor,
     getNextTokenIfExist,
     getNodeLocation,
     NodeArgList,
@@ -51,6 +52,7 @@ import {
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
+    SymbolKind,
     SymbolScope
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
@@ -109,7 +111,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeClass) {
     const symbol: SymbolicType = {
-        symbolKind: 'type',
+        symbolKind: SymbolKind.Type,
         declaredPlace: class_.identifier,
         sourceNode: class_,
     };
@@ -135,9 +137,9 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
-    if (func.head === '~') return;
+    if (func.head === functionDestructor) return;
     const symbol: SymbolicFunction = {
-        symbolKind: 'function',
+        symbolKind: SymbolKind.Function,
         declaredPlace: func.identifier,
         sourceNode: func,
     };
@@ -150,7 +152,7 @@ function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
 }
 
 function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
-    if (ast.head === '~') {
+    if (ast.head === functionDestructor) {
         analyzeStatBlock(scope, ast.statBlock);
         return;
     }
@@ -174,7 +176,7 @@ function analyzeVar(scope: SymbolScope, ast: NodeVar) {
             if (initializer.nodeName === NodeName.ArgList) analyzeArgList(scope, initializer);
         }
         const variable: SymbolicVariable = {
-            symbolKind: 'variable',
+            symbolKind: SymbolKind.Variable,
             type: type?.symbol,
             declaredPlace: var_.identifier,
         };
@@ -207,7 +209,7 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
         const type = analyzeTYPE(scope, param.type);
 
         scope.symbolList.push({
-            symbolKind: 'variable',
+            symbolKind: SymbolKind.Variable,
             type: type?.symbol,
             declaredPlace: param.identifier,
         });
@@ -537,7 +539,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
-    const returnType = head !== '~' ? analyzeTYPE(scope, head.returnType) : undefined;
+    const returnType = head !== functionDestructor ? analyzeTYPE(scope, head.returnType) : undefined;
     scope.referencedList.push({
         declaredSymbol: calleeFunc,
         referencedToken: funcCall.identifier
