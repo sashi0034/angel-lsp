@@ -48,7 +48,7 @@ import {
     findNamespaceScope,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent,
-    findSymbolicVariableWithParent,
+    findSymbolicVariableWithParent, insertSymbolicObject,
     PrimitiveType,
     SymbolicFunction,
     SymbolicType,
@@ -117,10 +117,9 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
         sourceNode: class_,
     };
     const scope: SymbolScope = createSymbolScope(class_, parentScope);
-    scope.symbolList.push(symbol);
 
     parentScope.childScopes.push(scope);
-    parentScope.symbolList.push(symbol);
+    insertSymbolicObject(parentScope.symbolDict, symbol);
     queue.classQueue.push({scope, node: class_});
 
     for (const member of class_.memberList) {
@@ -146,10 +145,9 @@ function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
         overloadedAlt: undefined,
     };
     const scope: SymbolScope = createSymbolScope(func, parentScope);
-    scope.symbolList.push(symbol);
 
     parentScope.childScopes.push(scope);
-    parentScope.symbolList.push(symbol);
+    insertSymbolicObject(parentScope.symbolDict, symbol);
     queue.funcQueue.push({scope, node: func});
 }
 
@@ -182,7 +180,7 @@ function analyzeVar(scope: SymbolScope, ast: NodeVar) {
             type: type?.symbol,
             declaredPlace: var_.identifier,
         };
-        scope.symbolList.push(variable);
+        insertSymbolicObject(scope.symbolDict, variable);
     }
 }
 
@@ -210,7 +208,7 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
 
         const type = analyzeTYPE(scope, param.type);
 
-        scope.symbolList.push({
+        insertSymbolicObject(scope.symbolDict, {
             symbolKind: SymbolKind.Variable,
             type: type?.symbol,
             declaredPlace: param.identifier,

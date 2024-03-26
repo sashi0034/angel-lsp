@@ -12,6 +12,7 @@ import {
 } from "./nodes";
 import {Range} from "vscode-languageserver";
 import {dummyToken, ParsingToken} from "./parsing";
+import {diagnostic} from "../code/diagnostic";
 
 export enum SymbolKind {
     Type = 'Type',
@@ -65,13 +66,39 @@ export interface ReferencedSymbolInfo {
     referencedToken: ParsingToken;
 }
 
+export type SymbolDictionary = { [symbolName: string]: SymbolicObject };
+
 export interface SymbolScope {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
-    symbolList: SymbolicObject[];
+    symbolDict: SymbolDictionary;
     referencedList: ReferencedSymbolInfo[];
     completionHints: ComplementHints[];
+}
+
+export function insertSymbolicObject(dict: SymbolDictionary, symbol: SymbolicObject): boolean {
+    const identifier = symbol.declaredPlace.text;
+    const hit = dict[identifier];
+    if (hit === undefined) {
+        dict[identifier] = symbol;
+        return true;
+    }
+    const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
+    if (canOverload === false) {
+        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${identifier}' is already defined ❌`);
+        return false;
+    }
+
+    // 関数はオーバーロードとして追加が可能
+    let cursor = hit;
+    for (; ;) {
+        if (cursor.overloadedAlt === undefined) {
+            cursor.overloadedAlt = symbol;
+            return true;
+        }
+        cursor = cursor.overloadedAlt;
+    }
 }
 
 export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined): SymbolScope {
@@ -79,7 +106,7 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
         ownerNode: ownerNode,
         parentScope: parentScope,
         childScopes: [],
-        symbolList: [],
+        symbolDict: {},
         referencedList: [],
         completionHints: [],
     };
@@ -107,7 +134,7 @@ export class AnalyzedScope {
 
 function copyOriginalSymbolsInScope(srcPath: string, srcScope: SymbolScope, destScope: SymbolScope) {
     // 宣言ファイルが同じシンボルを収集
-    destScope.symbolList.push(...srcScope.symbolList.filter(symbol => symbol.declaredPlace.location.path === srcPath));
+    destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
 
     for (const child of srcScope.childScopes) {
         if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
@@ -120,7 +147,7 @@ function copyOriginalSymbolsInScope(srcPath: string, srcScope: SymbolScope, dest
 
 export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope) {
     // 対象元から対象先のスコープへ全シンボルをコピー
-    destScope.symbolList.push(...srcScope.symbolList);
+    destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
 
     for (const child of srcScope.childScopes) {
         if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
@@ -187,11 +214,8 @@ export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: s
 }
 
 function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {
-    for (const symbol of scope.symbolList) {
-        if (symbol.symbolKind !== kind) continue;
-        if (symbol.declaredPlace === undefined) continue;
-        if (symbol.declaredPlace.text === identifier) return symbol;
-    }
+    const symbol = scope.symbolDict[identifier];
+    if (symbol !== undefined && symbol.symbolKind === kind) return symbol;
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier, kind);
 }

@@ -33,7 +33,9 @@ export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Positi
 
 function getCompletionSymbolsInScope(scope: SymbolScope) {
     const items: CompletionItem[] = [];
-    for (const symbol of scope.symbolList) {
+    for (const symbolName in scope.symbolDict) {
+        if (Object.prototype.hasOwnProperty.call(scope.symbolDict, symbolName) === false) continue;
+        const symbol = scope.symbolDict[symbolName];
         const declareToken = symbol.declaredPlace;
         items.push({
             label: declareToken.text,
