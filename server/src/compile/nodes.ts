@@ -2,19 +2,19 @@ import {LocationInfo} from "./token";
 import {ParsingToken} from "./parsing";
 
 export enum AccessModifier {
-    Private = 'private',
-    Protected = 'protected',
+    Private = 'Private',
+    Protected = 'Protected',
 }
 
 export enum TypeModifier {
-    In = 'in',
-    Out = 'out',
-    InOut = 'inout',
+    In = 'In',
+    Out = 'Out',
+    InOut = 'InOut',
 }
 
 export enum ReferenceModifier {
-    At = '@',
-    AtConst = '@const',
+    At = 'At',
+    AtConst = 'AtConst',
 }
 
 export interface ParsedRange {

@@ -49,6 +49,7 @@ import {
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent,
     findSymbolicVariableWithParent,
+    PrimitiveType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -236,14 +237,14 @@ function isTypeMatch(src: DeducedType, dest: DeducedType) {
     const srcType = src.symbol;
     const destType = dest.symbol;
     const srcNode = srcType.sourceNode;
-    if (srcNode === 'void') {
+    if (srcNode === PrimitiveType.Void) {
         return false;
     }
-    if (srcNode === 'number') {
-        return destType.sourceNode === 'number';
+    if (srcNode === PrimitiveType.Number) {
+        return destType.sourceNode === PrimitiveType.Number;
     }
-    if (srcNode === 'bool') {
-        return destType.sourceNode === 'bool';
+    if (srcNode === PrimitiveType.Bool) {
+        return destType.sourceNode === PrimitiveType.Bool;
     }
     // TODO : 継承などに対応
     if (srcNode.nodeName === NodeName.Class) {

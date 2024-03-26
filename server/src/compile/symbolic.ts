@@ -20,9 +20,9 @@ export enum SymbolKind {
 }
 
 export enum PrimitiveType {
-    Bool = 'bool',
-    Number = 'number',
-    Void = 'void',
+    Bool = 'Bool',
+    Number = 'Number',
+    Void = 'Void',
 }
 
 export interface SymbolicBase {
