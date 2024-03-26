@@ -166,13 +166,13 @@ function parseEnum(
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    let members: DeclaredEnumMember[] = [];
+    let memberList: DeclaredEnumMember[] = [];
     const scopeStart = parsing.next();
 
     if (parsing.next().text === ';') {
         parsing.confirm(HighlightTokenKind.Operator);
     } else {
-        members = expectEnumMembers(parsing);
+        memberList = expectEnumMembers(parsing);
     }
 
     return {
@@ -181,7 +181,7 @@ function parseEnum(
         scopeRange: {start: scopeStart, end: parsing.prev()},
         entity: entity,
         identifier: identifier,
-        members: members
+        memberList: memberList
     };
 }
 

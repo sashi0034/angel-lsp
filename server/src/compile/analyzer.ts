@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    DeclaredEnumMember,
     funcHeadDestructor,
     getNextTokenIfExist,
     getNodeLocation, isFunctionHeadReturns,
@@ -9,7 +10,7 @@ import {
     NodeCASE,
     NodeClass,
     NodeCondition,
-    NodeDoWhile,
+    NodeDoWhile, NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -66,16 +67,18 @@ type AnalyzeQueue = {
 };
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function forwardScript(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeScript) {
+function forwardScript(parentScope: SymbolScope, ast: NodeScript, queue: AnalyzeQueue) {
     // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
-        if (nodeName === NodeName.Class) {
-            forwardClass(queue, parentScope, statement);
+        if (nodeName === NodeName.Enum) {
+            forwardEnum(parentScope, statement);
+        } else if (nodeName === NodeName.Class) {
+            forwardClass(parentScope, statement, queue);
         } else if (nodeName === NodeName.Func) {
-            forwardFunc(queue, parentScope, statement);
+            forwardFunc(parentScope, statement, queue);
         } else if (nodeName === NodeName.Namespace) {
-            forwardNamespace(queue, parentScope, statement);
+            forwardNamespace(parentScope, statement, queue);
         }
     }
 }
@@ -88,7 +91,7 @@ function analyzeScript(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function forwardNamespace(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNamespace) {
+function forwardNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, queue: AnalyzeQueue) {
     if (namespace_.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
@@ -104,29 +107,51 @@ function forwardNamespace(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
         }
     }
 
-    forwardScript(queue, scopeIterator, namespace_.script);
+    forwardScript(scopeIterator, namespace_.script, queue);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-
-// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardClass(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeClass) {
+function forwardEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
-        declaredPlace: class_.identifier,
-        sourceNode: class_,
+        declaredPlace: nodeEnum.identifier,
+        sourceNode: nodeEnum,
     };
-    const scope: SymbolScope = createSymbolScope(class_, parentScope);
 
+    const scope: SymbolScope = createSymbolScope(nodeEnum, parentScope);
     parentScope.childScopes.push(scope);
     insertSymbolicObject(parentScope.symbolDict, symbol);
-    queue.classQueue.push({scope, node: class_});
+    forwardEnumMembers(scope, nodeEnum.memberList);
+}
 
-    for (const member of class_.memberList) {
+function forwardEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMember[]) {
+    for (const member of memberList) {
+        const symbol: SymbolicVariable = {
+            symbolKind: SymbolKind.Variable,
+            declaredPlace: member.identifier,
+            type: builtinNumberType,
+        };
+        insertSymbolicObject(parentScope.symbolDict, symbol);
+    }
+}
+
+// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+function forwardClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: AnalyzeQueue) {
+    const symbol: SymbolicType = {
+        symbolKind: SymbolKind.Type,
+        declaredPlace: nodeClass.identifier,
+        sourceNode: nodeClass,
+    };
+    const scope: SymbolScope = createSymbolScope(nodeClass, parentScope);
+    parentScope.childScopes.push(scope);
+    insertSymbolicObject(parentScope.symbolDict, symbol);
+    queue.classQueue.push({scope, node: nodeClass});
+
+    for (const member of nodeClass.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
             // TODO
         } else if (member.nodeName === NodeName.Func) {
-            forwardFunc(queue, scope, member);
+            forwardFunc(scope, member, queue);
         } else if (member.nodeName === NodeName.Var) {
             // TODO
         }
@@ -136,7 +161,7 @@ function forwardClass(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
+function forwardFunc(parentScope: SymbolScope, func: NodeFunc, queue: AnalyzeQueue) {
     if (func.head === funcHeadDestructor) return;
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
@@ -627,7 +652,7 @@ export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes:
     };
 
     // 宣言されたシンボルを収集
-    forwardScript(queue, globalScope, ast);
+    forwardScript(globalScope, ast, queue);
 
     // スコープの中身を解析
     analyzeScript(queue, globalScope, ast);

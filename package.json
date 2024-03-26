@@ -34,7 +34,8 @@
                 "id": "AngelPredefined",
                 "filenames": [
                     "as.predefined"
-                ]
+                ],
+                "configuration": "./language-configuration.json"
             }
         ],
         "configurationDefaults": {

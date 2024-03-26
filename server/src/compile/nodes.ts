@@ -147,7 +147,7 @@ export interface NodeEnum extends NodesBase {
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     identifier: ParsingToken;
-    members: DeclaredEnumMember[];
+    memberList: DeclaredEnumMember[];
 }
 
 export interface DeclaredEnumMember {

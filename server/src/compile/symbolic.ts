@@ -51,7 +51,7 @@ export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
 type NamespaceString = string;
 
-type SymbolOwnerNode = NodeClass | NodeFunc | NamespaceString;
+type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc | NamespaceString;
 
 export function isOwnerNodeNamespace(node: SymbolOwnerNode | undefined): node is NamespaceString {
     return node !== undefined && typeof node === "string";
