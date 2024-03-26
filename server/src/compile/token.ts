@@ -1,7 +1,13 @@
 import {Position, Range, URI} from "vscode-languageserver";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
-export type TokenKind = 'reserved' | 'identifier' | 'number' | 'string' | 'comment'
+export enum TokenKind {
+    Reserved = 'Reserved',
+    Identifier = 'Identifier',
+    Number = 'Number',
+    String = 'String',
+    Comment = 'Comment',
+}
 
 export type LocationInfo = { path: string } & Range;
 

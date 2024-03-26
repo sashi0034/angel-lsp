@@ -48,6 +48,7 @@ import {
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParseFailure, ParsingState, ParsingToken, TriedParse} from "./parsing";
+import {TokenKind} from "./token";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {
@@ -139,7 +140,7 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
 
 function expectIdentifier(parsing: ParsingState, kind: HighlightTokenKind): ParsingToken | undefined {
     const identifier = parsing.next();
-    if (identifier.kind !== 'identifier') {
+    if (identifier.kind !== TokenKind.Identifier) {
         parsing.error("Expected identifier 💢");
         return undefined;
     }
@@ -390,7 +391,7 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
     while (parsing.isEnd() === false) {
         // 識別子
         const identifier = parsing.next();
-        if (identifier.kind !== 'identifier') {
+        if (identifier.kind !== TokenKind.Identifier) {
             if (variables.length === 0) {
                 parsing.backtrack(rangeStart);
                 return undefined;
@@ -499,7 +500,7 @@ function parseParamList(parsing: ParsingState): NodeParamList | undefined {
         const typeMod = parseTypeMod(parsing);
 
         let identifier: ParsingToken | undefined = undefined;
-        if (parsing.next().kind === 'identifier') {
+        if (parsing.next().kind === TokenKind.Identifier) {
             identifier = parsing.next();
             parsing.confirm(HighlightTokenKind.Variable);
         }
@@ -622,7 +623,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
     const namespaces: ParsingToken[] = [];
     while (parsing.isEnd() === false) {
         const identifier = parsing.next(0);
-        if (identifier.kind !== 'identifier') {
+        if (identifier.kind !== TokenKind.Identifier) {
             break;
         }
         if (parsing.next(1).text === '::') {
@@ -666,7 +667,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
 function parseDatatype(parsing: ParsingState): NodeDataType | undefined {
     // FIXME
     const next = parsing.next();
-    if (parsing.next().kind === 'identifier') {
+    if (parsing.next().kind === TokenKind.Identifier) {
         parsing.confirm(HighlightTokenKind.Type);
         return {
             nodeName: NodeName.DataType,
@@ -1225,7 +1226,7 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
 
 // [IDENTIFIER ':']
 function parseIdentifierWithColon(parsing: ParsingState): ParsingToken | undefined {
-    if (parsing.next(0).kind === 'identifier' && parsing.next(1).text === ':') {
+    if (parsing.next(0).kind === TokenKind.Identifier && parsing.next(1).text === ':') {
         const identifier = parsing.next();
         parsing.confirm(HighlightTokenKind.Parameter);
         parsing.confirm(HighlightTokenKind.Operator);
@@ -1278,7 +1279,7 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
             if (parsing.expect(',', HighlightTokenKind.Operator) === false) continue;
         }
 
-        if (parsing.next(0).kind === 'identifier' && parsing.next(1).kind === 'reserved') {
+        if (parsing.next(0).kind === TokenKind.Identifier && parsing.next(1).kind === TokenKind.Reserved) {
             parsing.confirm(HighlightTokenKind.Parameter);
             params.push({type: undefined, typeMod: undefined, identifier: parsing.next()});
             continue;
@@ -1288,7 +1289,7 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
         const typeMod = type !== undefined ? parseTypeMod(parsing) : undefined;
 
         let identifier: ParsingToken | undefined = undefined;
-        if (parsing.next().kind === 'identifier') {
+        if (parsing.next().kind === TokenKind.Identifier) {
             identifier = parsing.next();
             parsing.confirm(HighlightTokenKind.Parameter);
         }
@@ -1310,11 +1311,11 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function parseLiteral(parsing: ParsingState): NodeLiteral | undefined {
     const next = parsing.next();
-    if (next.kind === 'number') {
+    if (next.kind === TokenKind.Number) {
         parsing.confirm(HighlightTokenKind.Number);
         return {nodeName: NodeName.Literal, nodeRange: {start: next, end: next}, value: next};
     }
-    if (next.kind === 'string') {
+    if (next.kind === TokenKind.String) {
         parsing.confirm(HighlightTokenKind.String);
         return {nodeName: NodeName.Literal, nodeRange: {start: next, end: next}, value: next};
     }
@@ -1330,7 +1331,7 @@ function parseFuncCall(parsing: ParsingState): NodeFuncCall | undefined {
     const rangeStart = parsing.next();
     const scope = parseScope(parsing);
     const identifier = parsing.next();
-    if (identifier.kind !== 'identifier') {
+    if (identifier.kind !== TokenKind.Identifier) {
         parsing.backtrack(rangeStart);
         return undefined;
     }
@@ -1354,7 +1355,7 @@ function parseVarAccess(parsing: ParsingState): NodeVarAccess | undefined {
     const rangeStart = parsing.next();
     const scope = parseScope(parsing);
     const next = parsing.next();
-    if (next.kind !== 'identifier') {
+    if (next.kind !== TokenKind.Identifier) {
         if (scope === undefined) return undefined;
         parsing.error("Expected identifier 💢");
         return {

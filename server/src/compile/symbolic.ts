@@ -1,4 +1,4 @@
-import {LocationInfo} from "./token";
+import {LocationInfo, TokenKind} from "./token";
 import {
     NodeClass,
     NodeEnum,
@@ -157,7 +157,7 @@ export const builtinVoidType: SymbolicType = createBuiltinType('void');
 
 export function findSymbolicTypeWithParent(scope: SymbolScope, token: ParsingToken): SymbolicType | undefined {
     const tokenText = token.text;
-    if (token.kind === 'reserved') {
+    if (token.kind === TokenKind.Reserved) {
         if ((tokenText === 'bool')) return builtinBoolType;
         else if ((tokenText === 'void')) return builtinVoidType;
         else if (numberTypeSet.has(tokenText)) return builtinNumberType;

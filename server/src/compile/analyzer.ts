@@ -14,33 +14,37 @@ import {
     NodeExprPostOp1,
     NodeExprStat,
     NodeEXPRTERM,
-    NodeEXPRTERM1,
     NodeEXPRTERM2,
     NodeExprValue,
     NodeFor,
     NodeFunc,
     NodeFuncCall,
     NodeIf,
-    NodeLiteral, NodeNamespace,
+    NodeLiteral,
+    NodeName,
+    NodeNamespace,
     NodeParamList,
-    NodeReturn, NodeScope,
-    NodeScript, ParsedRange,
+    NodeReturn,
+    NodeScope,
+    NodeScript,
     NodeStatBlock,
     NodeStatement,
     NodeSwitch,
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeWhile,
-    NodeName
+    NodeWhile
 } from "./nodes";
 import {
-    AnalyzedScope, copySymbolsInScope,
+    AnalyzedScope,
     builtinBoolType,
     builtinNumberType,
-    builtinVoidType, createSymbolScope,
+    copySymbolsInScope,
+    createSymbolScope,
     DeducedType,
-    findClassScopeWithParent, findGlobalScope, findNamespaceScope, findNamespaceScopeWithParent,
+    findClassScopeWithParent,
+    findGlobalScope,
+    findNamespaceScope,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent,
     findSymbolicVariableWithParent,
@@ -51,6 +55,7 @@ import {
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
+import {TokenKind} from "./token";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeClass }[],
@@ -504,7 +509,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLITERAL(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
-    if (literal.value.kind === 'number') {
+    if (literal.value.kind === TokenKind.Number) {
         return {symbol: builtinNumberType};
     }
     const literalText = literal.value.text;

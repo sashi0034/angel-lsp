@@ -1,4 +1,4 @@
-import {TokenizingToken} from "./token";
+import {TokenizingToken, TokenKind} from "./token";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 
@@ -17,7 +17,7 @@ export interface ParsingToken extends TokenizingToken {
 }
 
 export const dummyToken: ParsingToken = {
-    kind: 'reserved',
+    kind: TokenKind.Reserved,
     text: '',
     location: {
         path: '',
@@ -69,7 +69,7 @@ export class ParsingState {
             diagnostic.addError(this.next().location, "Unexpected end of file ❌");
             return false;
         }
-        const isExpectedWord = this.next().kind === "reserved" && this.next().text === word;
+        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === word;
         if (isExpectedWord === false) {
             diagnostic.addError(this.next().location, `Expected 👉 ${word} 👈`);
             this.step();

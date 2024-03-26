@@ -1,7 +1,7 @@
 import {Position, URI} from 'vscode-languageserver';
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {Trie} from "../utils/trie";
-import {HighlightInfo, LocationInfo, TokenizingToken} from "./token";
+import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./token";
 import {diagnostic} from "../code/diagnostic";
 
 class ReadingState {
@@ -252,7 +252,7 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         if (triedComment.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: "comment",
+                kind: TokenKind.Comment,
                 text: triedComment,
                 location: location,
                 highlight: dummyHighlight(HighlightTokenKind.Comment, HighlightModifierKind.Invalid)
@@ -265,7 +265,7 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         if (triedNumber.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: "number",
+                kind: TokenKind.Number,
                 text: triedNumber,
                 location: location,
                 highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
@@ -278,7 +278,7 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         if (triedString.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: "string",
+                kind: TokenKind.String,
                 text: triedString,
                 location: location,
                 highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
@@ -291,7 +291,7 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         if (triedSymbol.length > 0) {
             location.end = reading.copyHead();
             tokens.push({
-                kind: "reserved",
+                kind: TokenKind.Reserved,
                 text: triedSymbol,
                 location: location,
                 highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
@@ -305,7 +305,7 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
             location.end = reading.copyHead();
             const isReserved = allKeywords.has(triedIdentifier);
             tokens.push({
-                kind: isReserved ? "reserved" : "identifier",
+                kind: isReserved ? TokenKind.Reserved : TokenKind.Identifier,
                 text: triedIdentifier,
                 location: location,
                 highlight: dummyHighlight(

@@ -1,4 +1,4 @@
-import {TokenizingToken} from "../compile/token";
+import {TokenizingToken, TokenKind} from "../compile/token";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
@@ -90,7 +90,7 @@ function getIncludedScope() {
 
 function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
     // コメント除去
-    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== 'comment').map(token => {
+    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== TokenKind.Comment).map(token => {
         return {
             ...token,
             index: -1,
@@ -100,7 +100,7 @@ function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
 
     // 連続する文字列の結合
     for (let i = actualTokens.length - 1; i >= 1; i--) {
-        const isContinuousString = actualTokens[i].kind === 'string' && actualTokens[i - 1].kind === 'string';
+        const isContinuousString = actualTokens[i].kind === TokenKind.String && actualTokens[i - 1].kind === TokenKind.String;
         if (isContinuousString === false) continue;
 
         // 結合した要素を新規生成
@@ -117,7 +117,7 @@ function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
 
 function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
     return {
-        kind: 'string',
+        kind: TokenKind.String,
         text: actualTokens[index].text + actualTokens[index + 1].text,
         location: {
             path: actualTokens[index].location.path,
