@@ -122,7 +122,7 @@ function hostingEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 
     const scope: SymbolScope = createSymbolScope(nodeEnum, parentScope);
     parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolDict, symbol);
+    insertSymbolicObject(parentScope.symbolMap, symbol);
     hostingEnumMembers(scope, nodeEnum.memberList);
 }
 
@@ -133,7 +133,7 @@ function hostingEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMe
             declaredPlace: member.identifier,
             type: builtinNumberType,
         };
-        insertSymbolicObject(parentScope.symbolDict, symbol);
+        insertSymbolicObject(parentScope.symbolMap, symbol);
     }
 }
 
@@ -146,7 +146,7 @@ function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
     };
     const scope: SymbolScope = createSymbolScope(nodeClass, parentScope);
     parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolDict, symbol);
+    insertSymbolicObject(parentScope.symbolMap, symbol);
     queue.classQueue.push({scope, node: nodeClass});
 
     for (const member of nodeClass.memberList) {
@@ -174,7 +174,7 @@ function hostingFunc(parentScope: SymbolScope, func: NodeFunc, queue: AnalyzeQue
     const scope: SymbolScope = createSymbolScope(func, parentScope);
 
     parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolDict, symbol);
+    insertSymbolicObject(parentScope.symbolMap, symbol);
     queue.funcQueue.push({scope, node: func});
 }
 
@@ -207,7 +207,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
             type: type?.symbol,
             declaredPlace: declaredVar.identifier,
         };
-        insertSymbolicObject(scope.symbolDict, variable);
+        insertSymbolicObject(scope.symbolMap, variable);
     }
 }
 
@@ -235,7 +235,7 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
 
         const type = analyzeType(scope, param.type);
 
-        insertSymbolicObject(scope.symbolDict, {
+        insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             type: type?.symbol,
             declaredPlace: param.identifier,

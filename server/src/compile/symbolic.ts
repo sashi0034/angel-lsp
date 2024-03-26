@@ -76,22 +76,22 @@ export interface ReferencedSymbolInfo {
     referencedToken: ParsingToken;
 }
 
-export type SymbolDictionary = { [symbolName: string]: SymbolicObject };
+export type SymbolMap = Map<string, SymbolicObject>;
 
 export interface SymbolScope {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
     childScopes: SymbolScope[];
-    symbolDict: SymbolDictionary;
+    symbolMap: SymbolMap;
     referencedList: ReferencedSymbolInfo[];
     completionHints: ComplementHints[];
 }
 
-export function insertSymbolicObject(dict: SymbolDictionary, symbol: SymbolicObject): boolean {
+export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): boolean {
     const identifier = symbol.declaredPlace.text;
-    const hit = dict[identifier];
+    const hit = map.get(identifier);
     if (hit === undefined) {
-        dict[identifier] = symbol;
+        map.set(identifier, symbol);
         return true;
     }
     const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
@@ -116,7 +116,7 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
         ownerNode: ownerNode,
         parentScope: parentScope,
         childScopes: [],
-        symbolDict: {},
+        symbolMap: new Map(),
         referencedList: [],
         completionHints: [],
     };
@@ -145,12 +145,14 @@ export class AnalyzedScope {
 function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: SymbolScope, destScope: SymbolScope) {
     if (srcPath === undefined) {
         // 対象元から対象先のスコープへ全シンボルをコピー
-        destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
+        for (const [key, symbol] of srcScope.symbolMap) {
+            destScope.symbolMap.set(key, symbol);
+        }
     } else {
         // 宣言ファイルが同じシンボルを収集
-        for (const srcKey in srcScope.symbolDict) {
-            if (srcScope.symbolDict[srcKey].declaredPlace.location.path === srcPath) {
-                destScope.symbolDict[srcKey] = srcScope.symbolDict[srcKey];
+        for (const [key, symbol] of srcScope.symbolMap) {
+            if (symbol.declaredPlace.location.path === srcPath) {
+                destScope.symbolMap.set(key, symbol);
             }
         }
     }
@@ -228,7 +230,7 @@ export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: s
 }
 
 function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {
-    const symbol = scope.symbolDict[identifier];
+    const symbol = scope.symbolMap.get(identifier);
     if (symbol !== undefined && symbol.symbolKind === kind) return symbol;
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier, kind);
