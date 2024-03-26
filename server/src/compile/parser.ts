@@ -42,7 +42,7 @@ import {
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeVirtProp,
+    NodeVirtualProp,
     NodeWhile,
     ReferenceModifier,
     setEntityModifier,
@@ -256,7 +256,7 @@ function parseClass(
     const scopeStart = parsing.next();
     let scopeEnd = scopeStart;
     parsing.expect('{', HighlightTokenKind.Operator);
-    const members: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
+    const members: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
     for (; ;) {
         if (parsing.isEnd()) {
             parsing.error("Unexpected end of file ❌");

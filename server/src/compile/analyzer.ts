@@ -123,7 +123,7 @@ function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
     queue.classQueue.push({scope, node: class_});
 
     for (const member of class_.memberList) {
-        if (member.nodeName === NodeName.VirtProp) {
+        if (member.nodeName === NodeName.VirtualProp) {
             // TODO
         } else if (member.nodeName === NodeName.Func) {
             forwardFunc(queue, scope, member);

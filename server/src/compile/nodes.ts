@@ -74,9 +74,9 @@ export enum NodeName {
     Var = 'Var',
     Import = 'Import',
     Funcdef = 'Funcdef',
-    VirtProp = 'VirtProp',
+    VirtualProp = 'VirtualProp',
     Mixin = 'Mixin',
-    IntfMthd = 'IntfMthd',
+    IntfMethod = 'IntfMethod',
     StatBlock = 'StatBlock',
     ParamList = 'ParamList',
     TypeMod = 'TypeMod',
@@ -163,7 +163,7 @@ export interface NodeClass extends NodesBase {
     identifier: ParsingToken;
     typeParameters: NodeType[] | undefined;
     baseList: ParsingToken[];
-    memberList: (NodeVirtProp | NodeVar | NodeFunc | NodeFuncDef)[];
+    memberList: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[];
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
@@ -211,8 +211,8 @@ export interface NodeFuncDef extends NodesBase {
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-export interface NodeVirtProp extends NodesBase {
-    nodeName: NodeName.VirtProp
+export interface NodeVirtualProp extends NodesBase {
+    nodeName: NodeName.VirtualProp
     modifier: AccessModifier | undefined,
     type: NodeType,
     isRef: boolean,
