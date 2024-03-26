@@ -38,6 +38,7 @@ export interface SymbolicType extends SymbolicBase {
 export interface SymbolicFunction extends SymbolicBase {
     symbolKind: SymbolKind.Function;
     sourceNode: NodeFunc;
+    overloadedAlt: SymbolicFunction | undefined;
 }
 
 export interface SymbolicVariable extends SymbolicBase {

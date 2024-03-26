@@ -143,6 +143,7 @@ function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
         symbolKind: SymbolKind.Function,
         declaredPlace: func.identifier,
         sourceNode: func,
+        overloadedAlt: undefined,
     };
     const scope: SymbolScope = createSymbolScope(func, parentScope);
     scope.symbolList.push(symbol);
@@ -268,8 +269,8 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
     if (nodeScope.isGlobal) {
         scopeIterator = findGlobalScope(symbolScope);
     }
-    for (let i = 0; i < nodeScope.namespaceList.length; i++) {
-        const nextNamespace = nodeScope.namespaceList[i];
+    for (let i = 0; i < nodeScope.scopeList.length; i++) {
+        const nextNamespace = nodeScope.scopeList[i];
 
         // 名前空間に対応するスコープを探す
         let found: SymbolScope | undefined = undefined;
@@ -294,7 +295,7 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         symbolScope.completionHints.push({
             complementKind: NodeName.Namespace,
             complementRange: complementRange,
-            namespaceList: nodeScope.namespaceList.slice(0, i + 1)
+            namespaceList: nodeScope.scopeList.slice(0, i + 1)
         });
 
     }

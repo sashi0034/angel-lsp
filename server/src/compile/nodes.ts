@@ -259,7 +259,7 @@ export interface NodeType extends NodesBase {
 export interface NodeScope extends NodesBase {
     nodeName: NodeName.Scope
     isGlobal: boolean,
-    namespaceList: ParsingToken[],
+    scopeList: ParsingToken[],
     typeParameters: NodeType[]
 }
 

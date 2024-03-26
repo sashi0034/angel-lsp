@@ -647,7 +647,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
                 nodeName: NodeName.Scope,
                 nodeRange: {start: rangeStart, end: parsing.prev()},
                 isGlobal: isGlobal,
-                namespaceList: namespaces,
+                scopeList: namespaces,
                 typeParameters: typeParameters
             };
         }
@@ -660,7 +660,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         nodeName: NodeName.Scope,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isGlobal: isGlobal,
-        namespaceList: namespaces,
+        scopeList: namespaces,
         typeParameters: []
     };
 }
