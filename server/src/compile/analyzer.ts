@@ -75,6 +75,8 @@ function hostingScript(parentScope: SymbolScope, ast: NodeScript, queue: Analyze
             hostingEnum(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
             hostingClass(parentScope, statement, queue);
+        } else if (nodeName === NodeName.Var) {
+            analyzeVar(parentScope, statement);
         } else if (nodeName === NodeName.Func) {
             hostingFunc(parentScope, statement, queue);
         } else if (nodeName === NodeName.Namespace) {
@@ -91,13 +93,13 @@ function analyzeScript(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function hostingNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, queue: AnalyzeQueue) {
-    if (namespace_.namespaceList.length === 0) return;
+function hostingNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, queue: AnalyzeQueue) {
+    if (nodeNamespace.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
-    for (let i = 0; i < namespace_.namespaceList.length; i++) {
-        const nextNamespace = namespace_.namespaceList[i];
-        const existing = findNamespaceScope(parentScope, nextNamespace.text);
+    for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
+        const nextNamespace = nodeNamespace.namespaceList[i];
+        const existing = findNamespaceScope(scopeIterator, nextNamespace.text);
         if (existing === undefined) {
             const newScope: SymbolScope = createSymbolScope(nextNamespace.text, parentScope);
             scopeIterator.childScopes.push(newScope);
@@ -107,7 +109,7 @@ function hostingNamespace(parentScope: SymbolScope, namespace_: NodeNamespace, q
         }
     }
 
-    hostingScript(scopeIterator, namespace_.script, queue);
+    hostingScript(scopeIterator, nodeNamespace.script, queue);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -153,7 +155,7 @@ function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
         } else if (member.nodeName === NodeName.Func) {
             hostingFunc(scope, member, queue);
         } else if (member.nodeName === NodeName.Var) {
-            // TODO
+            analyzeVar(scope, member);
         }
     }
 }
