@@ -57,8 +57,18 @@ export function isOwnerNodeNamespace(node: SymbolOwnerNode | undefined): node is
     return node !== undefined && typeof node === "string";
 }
 
-export function isOwnerNodeExistence(node: SymbolOwnerNode | undefined): node is NodeClass | NodeFunc {
+export function isOwnerNodeExistence(
+    node: SymbolOwnerNode | undefined
+): node is NodeEnum | NodeClass | NodeFunc {
     return node !== undefined && typeof node !== "string";
+}
+
+export function isOwnerNodeHoistingDeclare(
+    node: SymbolOwnerNode | undefined
+): node is NodeEnum | NodeClass {
+    if (isOwnerNodeExistence(node) === false) return false;
+    const nodeName = node.nodeName;
+    return nodeName === NodeName.Enum || nodeName === NodeName.Class;
 }
 
 export interface ReferencedSymbolInfo {
@@ -132,30 +142,34 @@ export class AnalyzedScope {
     }
 }
 
-function copyOriginalSymbolsInScope(srcPath: string, srcScope: SymbolScope, destScope: SymbolScope) {
-    // 宣言ファイルが同じシンボルを収集
-    destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
+function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: SymbolScope, destScope: SymbolScope) {
+    if (srcPath === undefined) {
+        // 対象元から対象先のスコープへ全シンボルをコピー
+        destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
+    } else {
+        // 宣言ファイルが同じシンボルを収集
+        for (const srcKey in srcScope.symbolDict) {
+            if (srcScope.symbolDict[srcKey].declaredPlace.location.path === srcPath) {
+                destScope.symbolDict[srcKey] = srcScope.symbolDict[srcKey];
+            }
+        }
+    }
 
     for (const child of srcScope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
-
-        // 名前空間のスコープを挿入
-        const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
-        copyOriginalSymbolsInScope(srcPath, child, namespaceScope);
+        if (isOwnerNodeNamespace(child.ownerNode)) {
+            // 名前空間のスコープを挿入
+            const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
+            copyOriginalSymbolsInScope(srcPath, child, namespaceScope);
+        } else if (isOwnerNodeHoistingDeclare(child.ownerNode)) {
+            // 巻き上げ宣言可能なシンボルを収集
+            destScope.childScopes.push(child);
+        }
     }
 }
 
 export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope) {
     // 対象元から対象先のスコープへ全シンボルをコピー
-    destScope.symbolDict = {...destScope.symbolDict, ...srcScope.symbolDict};
-
-    for (const child of srcScope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
-
-        // 名前空間のスコープを挿入
-        const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
-        copySymbolsInScope(child, namespaceScope);
-    }
+    copyOriginalSymbolsInScope(undefined, srcScope, destScope);
 }
 
 export interface DeducedType {
@@ -234,6 +248,14 @@ export function findNamespaceScope(scope: SymbolScope, identifier: string): Symb
     for (const child of scope.childScopes) {
         if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
         if (child.ownerNode === identifier) return child;
+    }
+    return undefined;
+}
+
+export function findScopeByIdentifier(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    for (const child of scope.childScopes) {
+        if (isOwnerNodeNamespace(child.ownerNode) && child.ownerNode === identifier) return child;
+        if (isOwnerNodeExistence(child.ownerNode) && child.ownerNode.identifier.text === identifier) return child;
     }
     return undefined;
 }

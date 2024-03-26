@@ -366,7 +366,7 @@ export interface NodeCASE extends NodesBase {
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 export interface NodeExpr extends NodesBase {
     nodeName: NodeName.Expr
-    head: NodeEXPRTERM,
+    head: NodeExprTerm,
     tail: DeclaredOpExpr | undefined
 }
 
@@ -376,7 +376,7 @@ export interface DeclaredOpExpr {
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-export type NodeEXPRTERM = NodeEXPRTERM1 | NodeEXPRTERM2;
+export type NodeExprTerm = NodeEXPRTERM1 | NodeExprTerm2;
 
 export interface NodeEXPRTERM1 extends NodesBase {
     nodeName: NodeName.ExprTerm
@@ -386,7 +386,7 @@ export interface NodeEXPRTERM1 extends NodesBase {
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-export interface NodeEXPRTERM2 extends NodesBase {
+export interface NodeExprTerm2 extends NodesBase {
     nodeName: NodeName.ExprTerm
     exprTerm: 2,
     preOp: ParsingToken | undefined,

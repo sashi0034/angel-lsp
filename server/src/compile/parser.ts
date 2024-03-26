@@ -25,7 +25,7 @@ import {
     NodeExprPostOp1,
     NodeExprPostOp2,
     NodeExprStat,
-    NodeEXPRTERM2,
+    NodeExprTerm2,
     NodeExprValue,
     NodeFor,
     NodeFunc,
@@ -1051,7 +1051,7 @@ function expectExpr(parsing: ParsingState): NodeExpr | undefined {
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseExprTerm(parsing: ParsingState) {
-    const exprTerm2 = parseEXPRTERM2(parsing);
+    const exprTerm2 = parseExprTerm2(parsing);
     if (exprTerm2 !== undefined) return exprTerm2;
     return undefined;
 }
@@ -1061,7 +1061,7 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 // const postOpSet = new Set(['.', '[', '(', '++', '--']);
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function parseEXPRTERM2(parsing: ParsingState): NodeEXPRTERM2 | undefined {
+function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
     const rangeStart = parsing.next();
     let pre = undefined;
     if (preOpSet.has(parsing.next().text)) {

@@ -15,8 +15,8 @@ import {
     NodeExprPostOp,
     NodeExprPostOp1,
     NodeExprStat,
-    NodeEXPRTERM,
-    NodeEXPRTERM2,
+    NodeExprTerm,
+    NodeExprTerm2,
     NodeExprValue,
     NodeFor,
     NodeFunc,
@@ -46,7 +46,7 @@ import {
     DeducedType,
     findClassScopeWithParent,
     findGlobalScope,
-    findNamespaceScope,
+    findNamespaceScope, findScopeByIdentifier,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent,
     findSymbolicVariableWithParent, insertSymbolicObject,
@@ -192,9 +192,9 @@ function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function analyzeVar(scope: SymbolScope, ast: NodeVar) {
-    const type = analyzeType(scope, ast.type);
-    for (const declaredVar of ast.variables) {
+function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
+    const type = analyzeType(scope, nodeVar.type);
+    for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
         if (initializer !== undefined) {
             if (initializer.nodeName === NodeName.Expr) analyzeExpr(scope, initializer);
@@ -293,18 +293,18 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = findGlobalScope(symbolScope);
     }
     for (let i = 0; i < nodeScope.scopeList.length; i++) {
-        const nextNamespace = nodeScope.scopeList[i];
+        const nextScope = nodeScope.scopeList[i];
 
-        // 名前空間に対応するスコープを探す
+        // 名前に対応するスコープを探す
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
-            found = findNamespaceScope(scopeIterator, nextNamespace.text);
+            found = findScopeByIdentifier(scopeIterator, nextScope.text);
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
                 // グローバルスコープでないなら、上の階層を更に探索
                 scopeIterator = scopeIterator.parentScope;
             } else {
-                diagnostic.addError(nextNamespace.location, `Undefined namespace: ${nextNamespace.text}`);
+                diagnostic.addError(nextScope.location, `Undefined scope: ${nextScope.text}`);
                 return undefined;
             }
         }
@@ -313,8 +313,8 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // 名前空間に対する補完を行う
-        const complementRange: Range = {start: nextNamespace.location.start, end: nextNamespace.location.end};
-        complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextNamespace)).location.start;
+        const complementRange: Range = {start: nextScope.location.start, end: nextScope.location.end};
+        complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         symbolScope.completionHints.push({
             complementKind: NodeName.Namespace,
             complementRange: complementRange,
@@ -435,7 +435,7 @@ function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function analyzeExpr(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined {
-    const lhs = analyzeEXPRTERM(scope, ast.head);
+    const lhs = analyzeExprTerm(scope, ast.head);
     // TODO: 型チェック
     if (ast.tail !== undefined) {
         const rhs = analyzeExpr(scope, ast.tail.expression);
@@ -445,16 +445,16 @@ function analyzeExpr(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function analyzeEXPRTERM(scope: SymbolScope, ast: NodeEXPRTERM): DeducedType | undefined {
+function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): DeducedType | undefined {
     if (ast.exprTerm === 1) {
         // TODO
     } else if (ast.exprTerm === 2) {
-        return analyzeEXPRTERM2(scope, ast);
+        return analyzeExprTerm2(scope, ast);
     }
     return undefined;
 }
 
-function analyzeEXPRTERM2(scope: SymbolScope, exprTerm: NodeEXPRTERM2) {
+function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
     const exprValue = analyzeExprValue(scope, exprTerm.value);
     if (exprTerm.postOp !== undefined && exprValue !== undefined) {
         analyzeExprPostOp(scope, exprTerm.postOp, exprValue.symbol);
