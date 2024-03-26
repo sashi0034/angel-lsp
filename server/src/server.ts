@@ -21,7 +21,7 @@ import {
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {jumpDefinition} from "./serve/definition";
-import {getDiagnosedResultFromUri, diagnoseFile} from "./serve/diagnoseFile";
+import {getInspectedResultFromUri, inspectFile} from "./serve/inspector";
 import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
@@ -154,18 +154,18 @@ documents.onDidClose(e => {
 connection.languages.diagnostics.on(async (params) => {
     return {
         kind: DocumentDiagnosticReportKind.Full,
-        items: getDiagnosedResultFromUri(params.textDocument.uri).diagnostics
+        items: getInspectedResultFromUri(params.textDocument.uri).diagnostics
     } satisfies DocumentDiagnosticReport;
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return buildSemanticTokens(getDiagnosedResultFromUri(params.textDocument.uri).tokenizedTokens);
+    return buildSemanticTokens(getInspectedResultFromUri(params.textDocument.uri).tokenizedTokens);
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const analyzedScope = getDiagnosedResultFromUri(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedResultFromUri(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return;
     const caret = params.position;
     const jumping = jumpDefinition(analyzedScope.fullScope, caret);
@@ -182,7 +182,7 @@ connection.onDefinition((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    diagnoseFile(change.document.getText(), change.document.uri);
+    inspectFile(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -197,7 +197,7 @@ connection.onCompletion(
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const diagnosedScope = getDiagnosedResultFromUri(params.textDocument.uri).analyzedScope;
+        const diagnosedScope = getInspectedResultFromUri(params.textDocument.uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
         return searchCompletionItems(diagnosedScope.fullScope, params.position);
 

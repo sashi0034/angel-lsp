@@ -11,49 +11,49 @@ import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 
-interface DiagnoseResult {
+interface InspectResult {
     diagnostics: Diagnostic[];
     tokenizedTokens: TokenizingToken[];
     analyzedScope: AnalyzedScope;
 }
 
-const s_diagnosedResults: { [path: string]: DiagnoseResult } = {};
+const s_inspectedResults: { [path: string]: InspectResult } = {};
 
 let s_predefinedPath = '';
 
-const emptyResult: DiagnoseResult = {
+const emptyResult: InspectResult = {
     diagnostics: [],
     tokenizedTokens: [],
     analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
 } as const;
 
-export function getDiagnosedResultFromUri(uri: string): DiagnoseResult {
-    const result = s_diagnosedResults[fileURLToPath(uri)];
+export function getInspectedResultFromUri(uri: string): InspectResult {
+    const result = s_inspectedResults[fileURLToPath(uri)];
     if (result === undefined) return emptyResult;
     return result;
 }
 
-export function diagnoseFile(document: string, uri: URI) {
+export function inspectFile(document: string, uri: URI) {
     const path = fileURLToPath(uri);
 
     // 事前定義ファイルの読み込み
-    checkDiagnosedPredefined();
+    checkInspectPredefined();
 
     // 解析結果をキャッシュ
-    s_diagnosedResults[path] = diagnoseInternal(document, path);
+    s_inspectedResults[path] = inspectInternal(document, path);
 }
 
-function checkDiagnosedPredefined() {
-    if (s_diagnosedResults[s_predefinedPath] !== undefined) return;
+function checkInspectPredefined() {
+    if (s_inspectedResults[s_predefinedPath] !== undefined) return;
 
     const predefined = findFileInCurrentDirectory('as.predefined');
     if (predefined === undefined) return;
 
-    s_diagnosedResults[predefined.fullPath] = diagnoseInternal(predefined.content, predefined.fullPath);
+    s_inspectedResults[predefined.fullPath] = inspectInternal(predefined.content, predefined.fullPath);
     s_predefinedPath = predefined.fullPath;
 }
 
-function diagnoseInternal(document: string, path: string): DiagnoseResult {
+function inspectInternal(document: string, path: string): InspectResult {
     diagnostic.reset();
 
     profiler.restart();
@@ -83,7 +83,7 @@ function getIncludedScope() {
     const includedScopes = []; // TODO: #include 対応
 
     // 事前定義ファイルの読み込み
-    const predefinedResult = s_diagnosedResults[s_predefinedPath];
+    const predefinedResult = s_inspectedResults[s_predefinedPath];
     if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
     return includedScopes;
 }
