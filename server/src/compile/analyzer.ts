@@ -71,11 +71,11 @@ function forwardScript(queue: AnalyzeQueue, parentScope: SymbolScope, ast: NodeS
     for (const statement of ast) {
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Class) {
-            forwardCLASS(queue, parentScope, statement);
+            forwardClass(queue, parentScope, statement);
         } else if (nodeName === NodeName.Func) {
             forwardFunc(queue, parentScope, statement);
         } else if (nodeName === NodeName.Namespace) {
-            forwardNAMESPACE(queue, parentScope, statement);
+            forwardNamespace(queue, parentScope, statement);
         }
     }
 }
@@ -88,7 +88,7 @@ function analyzeScript(queue: AnalyzeQueue, scriptScope: SymbolScope, ast: NodeS
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNamespace) {
+function forwardNamespace(queue: AnalyzeQueue, parentScope: SymbolScope, namespace_: NodeNamespace) {
     if (namespace_.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
@@ -110,7 +110,7 @@ function forwardNAMESPACE(queue: AnalyzeQueue, parentScope: SymbolScope, namespa
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function forwardCLASS(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeClass) {
+function forwardClass(queue: AnalyzeQueue, parentScope: SymbolScope, class_: NodeClass) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: class_.identifier,
@@ -168,17 +168,17 @@ function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVar(scope: SymbolScope, ast: NodeVar) {
-    const type = analyzeTYPE(scope, ast.type);
-    for (const var_ of ast.variables) {
-        const initializer = var_.initializer;
+    const type = analyzeType(scope, ast.type);
+    for (const declaredVar of ast.variables) {
+        const initializer = declaredVar.initializer;
         if (initializer !== undefined) {
-            if (initializer.nodeName === NodeName.Expr) analyzeEXPR(scope, initializer);
+            if (initializer.nodeName === NodeName.Expr) analyzeExpr(scope, initializer);
             if (initializer.nodeName === NodeName.ArgList) analyzeArgList(scope, initializer);
         }
         const variable: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             type: type?.symbol,
-            declaredPlace: var_.identifier,
+            declaredPlace: declaredVar.identifier,
         };
         insertSymbolicObject(scope.symbolDict, variable);
     }
@@ -196,7 +196,7 @@ function analyzeStatBlock(scope: SymbolScope, ast: NodeStatBlock) {
         if (statement.nodeName === NodeName.Var) {
             analyzeVar(scope, statement);
         } else {
-            analyzeSTATEMENT(scope, statement as NodeStatement);
+            analyzeStatement(scope, statement as NodeStatement);
         }
     }
 }
@@ -206,7 +206,7 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
     for (const param of ast) {
         if (param.identifier === undefined) continue;
 
-        const type = analyzeTYPE(scope, param.type);
+        const type = analyzeType(scope, param.type);
 
         insertSymbolicObject(scope.symbolDict, {
             symbolKind: SymbolKind.Variable,
@@ -219,7 +219,7 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function analyzeTYPE(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
+function analyzeType(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
     if (ast.scope !== undefined) analyzeScope(scope, ast.scope);
     const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
     if (found !== undefined) {
@@ -306,7 +306,7 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function analyzeSTATEMENT(scope: SymbolScope, ast: NodeStatement) {
+function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
     switch (ast.nodeName) {
     case NodeName.If:
         analyzeIF(scope, ast);
@@ -364,26 +364,26 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFor) {
         analyzeAssign(scope, inc);
     }
 
-    analyzeSTATEMENT(scope, ast.statement);
+    analyzeStatement(scope, ast.statement);
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWHILE(scope: SymbolScope, ast: NodeWhile) {
     analyzeAssign(scope, ast.assign);
-    analyzeSTATEMENT(scope, ast.statement);
+    analyzeStatement(scope, ast.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function analyzeDOWHILE(scope: SymbolScope, ast: NodeDoWhile) {
-    analyzeSTATEMENT(scope, ast.statement);
+    analyzeStatement(scope, ast.statement);
     analyzeAssign(scope, ast.assign);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIF(scope: SymbolScope, ast: NodeIf) {
     analyzeAssign(scope, ast.condition);
-    analyzeSTATEMENT(scope, ast.ts);
-    if (ast.fs !== undefined) analyzeSTATEMENT(scope, ast.fs);
+    analyzeStatement(scope, ast.ts);
+    if (ast.fs !== undefined) analyzeStatement(scope, ast.fs);
 }
 
 // CONTINUE      ::= 'continue' ';'
@@ -402,18 +402,18 @@ function analyzeRETURN(scope: SymbolScope, ast: NodeReturn) {
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
-    if (ast.expr !== undefined) analyzeEXPR(scope, ast.expr);
+    if (ast.expr !== undefined) analyzeExpr(scope, ast.expr);
     for (const statement of ast.statementList) {
-        analyzeSTATEMENT(scope, statement);
+        analyzeStatement(scope, statement);
     }
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeEXPR(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined {
+function analyzeExpr(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined {
     const lhs = analyzeEXPRTERM(scope, ast.head);
     // TODO: 型チェック
     if (ast.tail !== undefined) {
-        const rhs = analyzeEXPR(scope, ast.tail.expression);
+        const rhs = analyzeExpr(scope, ast.tail.expression);
         // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
     }
     return lhs;
@@ -539,7 +539,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
-    const returnType = head !== functionDestructor ? analyzeTYPE(scope, head.returnType) : undefined;
+    const returnType = head !== functionDestructor ? analyzeType(scope, head.returnType) : undefined;
     scope.referencedList.push({
         declaredSymbol: calleeFunc,
         referencedToken: funcCall.identifier
@@ -605,7 +605,7 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | un
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
-    const exprType = analyzeEXPR(scope, condition.expr);
+    const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
     const ta = analyzeAssign(scope, condition.ternary.ta);
     const fa = analyzeAssign(scope, condition.ternary.fa);

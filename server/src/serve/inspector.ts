@@ -67,7 +67,7 @@ function inspectInternal(document: string, path: string): InspectResult {
     profiler.stamp("parser");
 
     // 型解析
-    const includedScopes = getIncludedScope();
+    const includedScopes = getIncludedScope(path);
 
     const analyzedScope = analyzeFromParsed(parsed, path, includedScopes);
     profiler.stamp("analyzer");
@@ -79,12 +79,12 @@ function inspectInternal(document: string, path: string): InspectResult {
     };
 }
 
-function getIncludedScope() {
+function getIncludedScope(path: string) {
     const includedScopes = []; // TODO: #include 対応
 
     // 事前定義ファイルの読み込み
     const predefinedResult = s_inspectedResults[s_predefinedPath];
-    if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
+    if (path !== s_predefinedPath && predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
     return includedScopes;
 }
 
