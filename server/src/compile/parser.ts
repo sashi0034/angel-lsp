@@ -1147,21 +1147,16 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
     const indexes: { identifier: ParsingToken | undefined, assign: NodeAssign }[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ']') {
+            parsing.confirm(HighlightTokenKind.Operator);
             if (indexes.length === 0) {
                 parsing.error("Expected index 💢");
             }
-            parsing.confirm(HighlightTokenKind.Operator);
             break;
         }
         if (indexes.length > 0) {
             if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
         }
-        let identifier = undefined;
-        if (parsing.next(0).kind === 'identifier' && parsing.next(1).text === ':') {
-            identifier = parsing.next();
-            parsing.confirm(HighlightTokenKind.Parameter);
-            parsing.confirm(HighlightTokenKind.Operator);
-        }
+        const identifier = parseIdentifierWithColon(parsing);
         const assign = expectAssign(parsing);
         if (assign === undefined) continue;
         indexes.push({identifier: identifier, assign: assign});
@@ -1172,6 +1167,17 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
         postOp: 2,
         indexes: indexes
     };
+}
+
+// [IDENTIFIER ':']
+function parseIdentifierWithColon(parsing: ParsingState): ParsingToken | undefined {
+    if (parsing.next(0).kind === 'identifier' && parsing.next(1).text === ':') {
+        const identifier = parsing.next();
+        parsing.confirm(HighlightTokenKind.Parameter);
+        parsing.confirm(HighlightTokenKind.Operator);
+        return identifier;
+    }
+    return undefined;
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -1328,12 +1334,7 @@ function parseArgList(parsing: ParsingState): NodeArgList | undefined {
         if (argList.length > 0) {
             if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
         }
-        let identifier = undefined;
-        if (parsing.next(0).kind === 'identifier' && parsing.next(1).text === ':') {
-            identifier = parsing.next();
-            parsing.confirm(HighlightTokenKind.Parameter);
-            parsing.confirm(HighlightTokenKind.Operator);
-        }
+        const identifier = parseIdentifierWithColon(parsing);
         const assign = expectAssign(parsing);
         if (assign === undefined) break;
         argList.push({identifier: identifier, assign: assign});
