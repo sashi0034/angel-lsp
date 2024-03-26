@@ -178,13 +178,18 @@ function parseEnum(
     };
 }
 
+// '{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'
 function expectEnumMembers(parsing: ParsingState): DeclaredEnumMember[] {
     const members: DeclaredEnumMember[] = [];
     parsing.expect('{', HighlightTokenKind.Operator);
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') {
-            parsing.expect('}', HighlightTokenKind.Operator);
+            parsing.confirm(HighlightTokenKind.Operator);
             break;
+        }
+
+        if (members.length > 0) {
+            parsing.expect(',', HighlightTokenKind.Operator);
         }
 
         const identifier = expectIdentifier(parsing, HighlightTokenKind.EnumMember);
@@ -197,11 +202,6 @@ function expectEnumMembers(parsing: ParsingState): DeclaredEnumMember[] {
         }
 
         members.push({identifier: identifier, expr: expr});
-        if (parsing.next().text === ',') {
-            parsing.confirm(HighlightTokenKind.Operator);
-            continue;
-        }
-        break;
     }
 
     return members;
