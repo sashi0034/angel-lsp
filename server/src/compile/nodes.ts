@@ -53,70 +53,71 @@ export function isEntityModifierForClass(modifier: EntityModifier) {
     return modifier.isAbstract || modifier.isFinal;
 }
 
-export type NodeNames =
-    'Script'
-    | 'Namespace'
-    | 'Enum'
-    | 'Class'
-    | 'Typedef'
-    | 'Func'
-    | 'Interface'
-    | 'Var'
-    | 'Import'
-    | 'Funcdef'
-    | 'VirtProp'
-    | 'Mixin'
-    | 'IntfMthd'
-    | 'StatBlock'
-    | 'ParamList'
-    | 'TypeMod'
-    | 'Type'
-    | 'InitList'
-    | 'Scope'
-    | 'DataType'
-    | 'PrimType'
-    | 'FuncAttr'
-    | 'Statement'
-    | 'Switch'
-    | 'Break'
-    | 'For'
-    | 'While'
-    | 'DoWhile'
-    | 'If'
-    | 'Continue'
-    | 'ExprStat'
-    | 'Try'
-    | 'Return'
-    | 'Case'
-    | 'Expr'
-    | 'ExprTerm'
-    | 'ExprValue'
-    | 'ConstructCall'
-    | 'ExprPreOp'
-    | 'ExprPostOp'
-    | 'Cast'
-    | 'Lambda'
-    | 'Literal'
-    | 'FuncCall'
-    | 'VarAccess'
-    | 'ArgList'
-    | 'Assign'
-    | 'Condition'
-    | 'ExprOp'
-    | 'BitOp'
-    | 'MathOp'
-    | 'CompOp'
-    | 'LogicOp'
-    | 'AssignOp'
-    | 'Identifier'
-    | 'Number'
-    | 'String'
-    | 'Bits'
-    | 'Comment'
-    | 'Whitespace';
+export enum NodeName {
+    NodeName = 'NodeName',
+    Namespace = 'Namespace',
+    Enum = 'Enum',
+    Class = 'Class',
+    Typedef = 'Typedef',
+    Func = 'Func',
+    Interface = 'Interface',
+    Var = 'Var',
+    Import = 'Import',
+    Funcdef = 'Funcdef',
+    VirtProp = 'VirtProp',
+    Mixin = 'Mixin',
+    IntfMthd = 'IntfMthd',
+    StatBlock = 'StatBlock',
+    ParamList = 'ParamList',
+    TypeMod = 'TypeMod',
+    Type = 'Type',
+    InitList = 'InitList',
+    Scope = 'Scope',
+    DataType = 'DataType',
+    PrimType = 'PrimType',
+    FuncAttr = 'FuncAttr',
+    Statement = 'Statement',
+    Switch = 'Switch',
+    Break = 'Break',
+    For = 'For',
+    While = 'While',
+    DoWhile = 'DoWhile',
+    If = 'If',
+    Continue = 'Continue',
+    ExprStat = 'ExprStat',
+    Try = 'Try',
+    Return = 'Return',
+    Case = 'Case',
+    Expr = 'Expr',
+    ExprTerm = 'ExprTerm',
+    ExprValue = 'ExprValue',
+    ConstructCall = 'ConstructCall',
+    ExprPreOp = 'ExprPreOp',
+    ExprPostOp = 'ExprPostOp',
+    Cast = 'Cast',
+    Lambda = 'Lambda',
+    Literal = 'Literal',
+    FuncCall = 'FuncCall',
+    VarAccess = 'VarAccess',
+    ArgList = 'ArgList',
+    Assign = 'Assign',
+    Condition = 'Condition',
+    ExprOp = 'ExprOp',
+    BitOp = 'BitOp',
+    MathOp = 'MathOp',
+    CompOp = 'CompOp',
+    LogicOp = 'LogicOp',
+    AssignOp = 'AssignOp',
+    Identifier = 'Identifier',
+    Number = 'Number',
+    String = 'String',
+    Bits = 'Bits',
+    Comment = 'Comment',
+    Whitespace = 'Whitespace',
+}
 
 export interface NodesBase {
-    nodeName: NodeNames;
+    nodeName: NodeName;
     nodeRange: ParsedRange;
 }
 
@@ -125,14 +126,14 @@ export type NodeScript = (NodeEnum | NodeClass | NodeVar | NodeFunc | NodeNamesp
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
-    nodeName: 'Namespace'
+    nodeName: NodeName.Namespace
     namespaceList: ParsingToken[],
     script: NodeScript
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface NodeEnum extends NodesBase {
-    nodeName: 'Enum';
+    nodeName: NodeName.Enum;
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     identifier: ParsingToken;
@@ -146,7 +147,7 @@ export interface DeclaredEnumMember {
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeClass extends NodesBase {
-    nodeName: 'Class';
+    nodeName: NodeName.Class;
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     identifier: ParsingToken;
@@ -159,7 +160,7 @@ export interface NodeClass extends NodesBase {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export interface NodeFunc extends NodesBase {
-    nodeName: 'Func';
+    nodeName: NodeName.Func;
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     accessor: AccessModifier | undefined;
@@ -175,7 +176,7 @@ export interface NodeFunc extends NodesBase {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 export interface NodeVar extends NodesBase {
-    nodeName: 'Var'
+    nodeName: NodeName.Var
     accessor: AccessModifier | undefined,
     type: NodeType,
     variables: {
@@ -188,12 +189,12 @@ export interface NodeVar extends NodesBase {
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 export interface NodeFuncDef extends NodesBase {
-    nodeName: 'Funcdef';
+    nodeName: NodeName.Funcdef;
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface NodeVirtProp extends NodesBase {
-    nodeName: 'VirtProp'
+    nodeName: NodeName.VirtProp
     modifier: 'private' | 'protected' | 'null',
     type: NodeType,
     isRef: boolean,
@@ -207,7 +208,7 @@ export interface NodeVirtProp extends NodesBase {
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export interface NodeStatBlock extends NodesBase {
-    nodeName: 'StatBlock';
+    nodeName: NodeName.StatBlock;
     statements: (NodeVar | NodeStatement)[];
 }
 
@@ -225,7 +226,7 @@ export interface DeclaredTypeIdentifier {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface NodeType extends NodesBase {
-    nodeName: 'Type'
+    nodeName: NodeName.Type
     isConst: boolean,
     scope: NodeScope | undefined,
     datatype: NodeDataType,
@@ -238,7 +239,7 @@ export interface NodeType extends NodesBase {
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 export interface NodeScope extends NodesBase {
-    nodeName: 'Scope'
+    nodeName: NodeName.Scope
     isGlobal: boolean,
     namespaceList: ParsingToken[],
     typeParameters: NodeType[]
@@ -246,7 +247,7 @@ export interface NodeScope extends NodesBase {
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export interface NodeDataType extends NodesBase {
-    nodeName: 'DataType';
+    nodeName: NodeName.DataType;
     identifier: ParsingToken;
 }
 
@@ -268,19 +269,19 @@ export type NodeStatement =
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 export interface NodeSwitch extends NodesBase {
-    nodeName: 'Switch'
+    nodeName: NodeName.Switch
     assign: NodeAssign,
     cases: NodeCASE[]
 }
 
 // BREAK         ::= 'break' ';'
 export interface NodeBreak extends NodesBase {
-    nodeName: 'Break';
+    nodeName: NodeName.Break;
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 export interface NodeFor extends NodesBase {
-    nodeName: 'For'
+    nodeName: NodeName.For
     initial: NodeVar | NodeExprStat,
     condition: NodeExprStat,
     incrementList: NodeAssign[],
@@ -289,21 +290,21 @@ export interface NodeFor extends NodesBase {
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 export interface NodeWhile extends NodesBase {
-    nodeName: 'While'
+    nodeName: NodeName.While
     assign: NodeAssign,
     statement: NodeStatement
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 export interface NodeDoWhile extends NodesBase {
-    nodeName: 'DoWhile'
+    nodeName: NodeName.DoWhile
     statement: NodeStatement,
     assign: NodeAssign
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 export interface NodeIf extends NodesBase {
-    nodeName: 'If'
+    nodeName: NodeName.If
     condition: NodeAssign,
     ts: NodeStatement,
     fs: NodeStatement | undefined
@@ -311,12 +312,12 @@ export interface NodeIf extends NodesBase {
 
 // CONTINUE      ::= 'continue' ';'
 export interface NodeContinue extends NodesBase {
-    nodeName: 'Continue';
+    nodeName: NodeName.Continue;
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
 export type NodeExprStat = {
-    nodeName: 'ExprStat',
+    nodeName: NodeName.ExprStat,
     assign: NodeAssign | undefined
 };
 
@@ -324,20 +325,20 @@ export type NodeExprStat = {
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 export interface NodeReturn extends NodesBase {
-    nodeName: 'Return';
+    nodeName: NodeName.Return;
     assign: NodeAssign;
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 export interface NodeCASE extends NodesBase {
-    nodeName: 'Case'
+    nodeName: NodeName.Case
     expr: NodeExpr | undefined,
     statementList: NodeStatement[]
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 export interface NodeExpr extends NodesBase {
-    nodeName: 'Expr'
+    nodeName: NodeName.Expr
     head: NodeEXPRTERM,
     tail: DeclaredOpExpr | undefined
 }
@@ -351,7 +352,7 @@ export interface DeclaredOpExpr {
 export type NodeEXPRTERM = NodeEXPRTERM1 | NodeEXPRTERM2;
 
 export interface NodeEXPRTERM1 extends NodesBase {
-    nodeName: 'ExprTerm'
+    nodeName: NodeName.ExprTerm
     exprTerm: 1
     type: NodeType,
     eq: ParsingToken | undefined,
@@ -359,7 +360,7 @@ export interface NodeEXPRTERM1 extends NodesBase {
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeEXPRTERM2 extends NodesBase {
-    nodeName: 'ExprTerm'
+    nodeName: NodeName.ExprTerm
     exprTerm: 2,
     preOp: ParsingToken | undefined,
     value: NodeExprValue,
@@ -378,7 +379,7 @@ export type  NodeExprValue =
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 export interface NodeConstructCall extends NodesBase {
-    nodeName: 'ConstructCall';
+    nodeName: NodeName.ConstructCall;
     type: NodeType;
     argList: NodeArgList;
 }
@@ -390,55 +391,55 @@ export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3
 
 // ('.' (FUNCCALL | IDENTIFIER))
 export interface NodeExprPostOp1 extends NodesBase {
-    nodeName: 'ExprPostOp';
+    nodeName: NodeName.ExprPostOp;
     postOp: 1;
     member: NodeFuncCall | ParsingToken | undefined;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 export interface NodeExprPostOp2 extends NodesBase {
-    nodeName: 'ExprPostOp';
+    nodeName: NodeName.ExprPostOp;
     postOp: 2;
     indexes: { identifier: ParsingToken | undefined, assign: NodeAssign }[];
 }
 
 // ARGLIST
 export interface NodeExprPostOp3 extends NodesBase {
-    nodeName: 'ExprPostOp';
+    nodeName: NodeName.ExprPostOp;
     postOp: 3;
     args: NodeArgList;
 }
 
 // ++ | --
 export interface NodeExprPostOp4 extends NodesBase {
-    nodeName: 'ExprPostOp';
+    nodeName: NodeName.ExprPostOp;
     postOp: 4;
     operator: '++' | '--';
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 export interface NodeCast extends NodesBase {
-    nodeName: 'Cast';
+    nodeName: NodeName.Cast;
     type: NodeType;
     assign: NodeAssign;
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLambda extends NodesBase {
-    nodeName: 'Lambda';
+    nodeName: NodeName.Lambda;
     params: { type: NodeType | undefined, typeMod: TypeModifier | undefined, identifier: ParsingToken | undefined }[],
     statBlock: NodeStatBlock
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLiteral extends NodesBase {
-    nodeName: 'Literal';
+    nodeName: NodeName.Literal;
     value: ParsingToken;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFuncCall extends NodesBase {
-    nodeName: 'FuncCall'
+    nodeName: NodeName.FuncCall
     scope: NodeScope | undefined,
     identifier: ParsingToken,
     argList: NodeArgList
@@ -446,14 +447,14 @@ export interface NodeFuncCall extends NodesBase {
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 export interface NodeVarAccess extends NodesBase {
-    nodeName: 'VarAccess';
+    nodeName: NodeName.VarAccess;
     scope: NodeScope | undefined;
     identifier: ParsingToken | undefined;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeArgList extends NodesBase {
-    nodeName: 'ArgList';
+    nodeName: NodeName.ArgList;
     argList: DeclaredArgument[];
 }
 
@@ -464,7 +465,7 @@ export interface DeclaredArgument {
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 export interface NodeAssign extends NodesBase {
-    nodeName: 'Assign';
+    nodeName: NodeName.Assign;
     condition: NodeCondition;
     tail: {
         op: ParsingToken
@@ -474,7 +475,7 @@ export interface NodeAssign extends NodesBase {
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 export interface NodeCondition extends NodesBase {
-    nodeName: 'Condition'
+    nodeName: NodeName.Condition
     expr: NodeExpr,
     ternary: {
         ta: NodeAssign,

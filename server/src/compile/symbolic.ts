@@ -1,5 +1,15 @@
 import {LocationInfo} from "./token";
-import {NodeClass, NodeEnum, NodeFunc, NodeFuncDef, NodeNamespace, NodeParamList, ParsedRange, NodeType} from "./nodes";
+import {
+    NodeClass,
+    NodeEnum,
+    NodeFunc,
+    NodeFuncDef,
+    NodeNamespace,
+    NodeParamList,
+    ParsedRange,
+    NodeType,
+    NodeName
+} from "./nodes";
 import {Range} from "vscode-languageserver";
 import {dummyToken, ParsingToken} from "./parsing";
 
@@ -115,17 +125,17 @@ export interface DeducedType {
 }
 
 export interface ComplementBase {
-    complementKind: 'Type' | 'Namespace';
+    complementKind: NodeName.Type | NodeName.Namespace;
     complementRange: Range;
 }
 
 export interface ComplementType extends ComplementBase {
-    complementKind: 'Type';
+    complementKind: NodeName.Type;
     targetType: SymbolicType;
 }
 
 export interface CompletionNamespace extends ComplementBase {
-    complementKind: 'Namespace';
+    complementKind: NodeName.Namespace;
     namespaceList: ParsingToken[];
 }
 
@@ -178,7 +188,7 @@ function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: Symb
 export function findClassScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     for (const child of scope.childScopes) {
         if (isOwnerNodeExistence(child.ownerNode) === false) continue;
-        if (child.ownerNode.nodeName !== 'Class') continue;
+        if (child.ownerNode.nodeName !== NodeName.Class) continue;
         if (child.ownerNode.identifier.text === identifier) return child;
     }
     if (scope.parentScope === undefined) return undefined;

@@ -7,7 +7,7 @@ import {
     SymbolScope
 } from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {getNodeLocation} from "../compile/nodes";
+import {getNodeLocation, NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/token";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
@@ -69,14 +69,14 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 }
 
 function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
-    if (completion.complementKind === 'Type') {
+    if (completion.complementKind === NodeName.Type) {
         // 補完対象の型が属するスコープを探す
         const typeScope = findClassScopeWithParent(scope, completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
         // スコープ内の補完候補を返す
         return getCompletionSymbolsInScope(typeScope);
-    } else if (completion.complementKind === 'Namespace') {
+    } else if (completion.complementKind === NodeName.Namespace) {
         // 補完対象の名前空間が属するスコープを探す
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
@@ -94,7 +94,7 @@ function symbolToCompletionKind(symbol: SymbolicObject) {
     switch (symbol.symbolKind) {
     case 'type':
         if (typeof symbol.sourceNode === 'string') return CompletionItemKind.Keyword;
-        if (symbol.sourceNode.nodeName === 'Enum') return CompletionItemKind.Enum;
+        if (symbol.sourceNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     case 'function':
         return CompletionItemKind.Function;
