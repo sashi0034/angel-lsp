@@ -210,7 +210,7 @@ export function findSymbolicFunctionWithParent(scope: SymbolScope, identifier: s
 }
 
 export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: string): SymbolicVariable | undefined {
-    return findSymbolWithParent(scope, identifier, SymbolKind.Function) as SymbolicVariable;
+    return findSymbolWithParent(scope, identifier, SymbolKind.Variable) as SymbolicVariable;
 }
 
 function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {
