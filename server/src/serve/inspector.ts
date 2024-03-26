@@ -5,7 +5,7 @@ import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
 import {AnalyzedScope, createSymbolScope} from "../compile/symbolic";
-import {ParsingToken} from "../compile/parsing";
+import {convertToParsingTokens, ParsingToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
 import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
@@ -27,7 +27,7 @@ const emptyResult: InspectResult = {
     analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
 } as const;
 
-export function getInspectedResultFromUri(uri: string): InspectResult {
+export function getInspectedResultFromUri(uri: URI): InspectResult {
     const result = s_inspectedResults[fileURLToPath(uri)];
     if (result === undefined) return emptyResult;
     return result;
@@ -63,7 +63,7 @@ function inspectInternal(document: string, path: string): InspectResult {
     profiler.stamp("tokenizer");
 
     // 構文解析
-    const parsed = parseFromTokenized(filterTokens(tokenizedTokens));
+    const parsed = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
     profiler.stamp("parser");
 
     // 型解析
@@ -88,44 +88,3 @@ function getIncludedScope() {
     return includedScopes;
 }
 
-function filterTokens(tokens: TokenizingToken[]): ParsingToken[] {
-    // コメント除去
-    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== TokenKind.Comment).map(token => {
-        return {
-            ...token,
-            index: -1,
-            next: undefined
-        };
-    });
-
-    // 連続する文字列の結合
-    for (let i = actualTokens.length - 1; i >= 1; i--) {
-        const isContinuousString = actualTokens[i].kind === TokenKind.String && actualTokens[i - 1].kind === TokenKind.String;
-        if (isContinuousString === false) continue;
-
-        // 結合した要素を新規生成
-        actualTokens[i - 1] = createConnectedStringTokenAt(actualTokens, i);
-        actualTokens.splice(i, 1);
-    }
-
-    for (let i = 0; i < actualTokens.length; i++) {
-        actualTokens[i].index = i;
-        actualTokens[i].next = i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined;
-    }
-    return actualTokens;
-}
-
-function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
-    return {
-        kind: TokenKind.String,
-        text: actualTokens[index].text + actualTokens[index + 1].text,
-        location: {
-            path: actualTokens[index].location.path,
-            start: actualTokens[index].location.start,
-            end: actualTokens[index + 1].location.end
-        },
-        highlight: actualTokens[index].highlight,
-        index: -1,
-        next: undefined
-    };
-}
