@@ -3,7 +3,11 @@
 import {
     AccessModifier,
     DeclaredEnumMember,
-    EntityModifier, FunctionDestructor, functionDestructor, FunctionReturns,
+    EntityModifier, FuncHeadConstructor,
+    funcHeadConstructor,
+    FuncHeadDestructor,
+    funcHeadDestructor,
+    FuncHeadReturns, FuncHeads, isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -254,36 +258,8 @@ function parseClass(
         }
     }
     const scopeStart = parsing.next();
-    let scopeEnd = scopeStart;
-    parsing.expect('{', HighlightTokenKind.Operator);
-    const members: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
-    for (; ;) {
-        if (parsing.isEnd()) {
-            parsing.error("Unexpected end of file ❌");
-            break;
-        }
-        if (parsing.next().text === '}') {
-            scopeEnd = parsing.next();
-            parsing.confirm(HighlightTokenKind.Operator);
-            break;
-        }
-
-        const entityModifier = parseEntityModifier(parsing);
-        const accessor = parseAccessModifier(parsing);
-
-        const func = parseFunc(parsing, entityModifier, accessor);
-        if (func !== undefined) {
-            members.push(func);
-            continue;
-        }
-        const var_ = parseVar(parsing, accessor);
-        if (var_ !== undefined) {
-            members.push(var_);
-            continue;
-        }
-        parsing.error("Expected class member 💢");
-        parsing.step();
-    }
+    const members = expectClassMembers(parsing);
+    const scopeEnd = parsing.prev();
     return {
         nodeName: NodeName.Class,
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -296,6 +272,36 @@ function parseClass(
     };
 }
 
+// '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
+function expectClassMembers(parsing: ParsingState) {
+    parsing.expect('{', HighlightTokenKind.Operator);
+    const members: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
+    while (parsing.isEnd() === false) {
+        if (parsing.next().text === '}') break;
+
+        const entityModifier = parseEntityModifier(parsing);
+        const accessor = parseAccessModifier(parsing);
+
+        const parsedFunc = parseFunc(parsing, entityModifier, accessor);
+        if (parsedFunc !== undefined) {
+            members.push(parsedFunc);
+            continue;
+        }
+
+        const parsedVar = parseVar(parsing, accessor);
+        if (parsedVar !== undefined) {
+            members.push(parsedVar);
+            continue;
+        }
+
+        parsing.error("Expected class member 💢");
+        parsing.step();
+    }
+
+    parsing.expect('}', HighlightTokenKind.Operator);
+    return members;
+}
+
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -305,10 +311,12 @@ function parseFunc(
     accessor: AccessModifier | undefined,
 ): NodeFunc | undefined {
     const rangeStart = parsing.next();
-    let head: FunctionReturns | FunctionDestructor;
+    let head: FuncHeads;
     if (parsing.next().text === '~') {
         parsing.confirm(HighlightTokenKind.Operator);
-        head = functionDestructor;
+        head = funcHeadDestructor;
+    } else if (parsing.next(0).kind === TokenKind.Identifier && parsing.next(1).text === '(') {
+        head = funcHeadConstructor;
     } else {
         const returnType = parseType(parsing);
         if (returnType === undefined) {
@@ -320,7 +328,7 @@ function parseFunc(
         head = {returnType: returnType, isRef: isRef};
     }
     const identifier = parsing.next();
-    parsing.step();
+    parsing.confirm(isFunctionHeadReturns(head) ? HighlightTokenKind.Function : HighlightTokenKind.Type);
     const paramList = parseParamList(parsing);
     if (paramList === undefined) {
         parsing.backtrack(rangeStart);

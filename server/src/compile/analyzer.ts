@@ -1,9 +1,9 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    functionDestructor,
+    funcHeadDestructor,
     getNextTokenIfExist,
-    getNodeLocation,
+    getNodeLocation, isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
     NodeCASE,
@@ -137,7 +137,7 @@ function forwardClass(queue: AnalyzeQueue, parentScope: SymbolScope, class_: Nod
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFunc) {
-    if (func.head === functionDestructor) return;
+    if (func.head === funcHeadDestructor) return;
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: func.identifier,
@@ -152,7 +152,7 @@ function forwardFunc(queue: AnalyzeQueue, parentScope: SymbolScope, func: NodeFu
 }
 
 function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
-    if (ast.head === functionDestructor) {
+    if (ast.head === funcHeadDestructor) {
         analyzeStatBlock(scope, ast.statBlock);
         return;
     }
@@ -539,7 +539,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
-    const returnType = head !== functionDestructor ? analyzeType(scope, head.returnType) : undefined;
+    const returnType = isFunctionHeadReturns(head) ? analyzeType(scope, head.returnType) : undefined;
     scope.referencedList.push({
         declaredSymbol: calleeFunc,
         referencedToken: funcCall.identifier

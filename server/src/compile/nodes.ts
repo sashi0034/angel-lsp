@@ -169,20 +169,29 @@ export interface NodeClass extends NodesBase {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-export interface FunctionReturns {
+export interface FuncHeadReturns {
     returnType: NodeType;
     isRef: boolean;
 }
 
-export const functionDestructor = Symbol();
-export type FunctionDestructor = typeof functionDestructor;
+export const funcHeadDestructor = Symbol();
+export type FuncHeadDestructor = typeof funcHeadDestructor;
+
+export const funcHeadConstructor = Symbol();
+export type FuncHeadConstructor = typeof funcHeadConstructor;
+
+export type FuncHeads = FuncHeadReturns | FuncHeadDestructor | FuncHeadConstructor;
+
+export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns {
+    return head !== funcHeadDestructor && head !== funcHeadConstructor;
+}
 
 export interface NodeFunc extends NodesBase {
     nodeName: NodeName.Func;
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     accessor: AccessModifier | undefined;
-    head: FunctionReturns | FunctionDestructor;
+    head: FuncHeads;
     identifier: ParsingToken;
     paramList: NodeParamList;
     isConst: boolean;
