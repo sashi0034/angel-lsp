@@ -220,6 +220,10 @@ export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined
 
 const numberTypeSet = new Set(['int8', 'int16', 'int', 'int32', 'int64', 'uint8', 'uint16', 'uint', 'uint32', 'uint64', 'float', 'double']);
 
+export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
+    return scope.symbolMap.get(identifier);
+}
+
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     const symbol = scope.symbolMap.get(identifier);
     if (symbol !== undefined) return symbol;

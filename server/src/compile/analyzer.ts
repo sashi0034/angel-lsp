@@ -10,7 +10,7 @@ import {
     NodeAssign,
     NodeCASE,
     NodeClass,
-    NodeCondition,
+    NodeCondition, NodeConstructCall,
     NodeDoWhile,
     NodeEnum,
     NodeExpr,
@@ -48,19 +48,23 @@ import {
     createSymbolScopeAndInsert,
     DeducedType,
     findGlobalScope,
-    findScopeShallowly, findScopeShallowlyOrInsert,
-    findScopeWithParent, findSymbolWithParent,
+    findScopeShallowly,
+    findScopeShallowlyOrInsert,
+    findScopeWithParent, findSymbolShallowly,
+    findSymbolWithParent,
     insertSymbolicObject,
     PrimitiveType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
-    SymbolScope, tryGetBuiltInType
+    SymbolScope,
+    tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
 import {TokenKind} from "./token";
+import {ParsingToken} from "./parsing";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeClass }[],
@@ -339,16 +343,16 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
     switch (ast.nodeName) {
     case NodeName.If:
-        analyzeIF(scope, ast);
+        analyzeIf(scope, ast);
         break;
     case NodeName.For:
-        analyzeFOR(scope, ast);
+        analyzeFor(scope, ast);
         break;
     case NodeName.While:
-        analyzeWHILE(scope, ast);
+        analyzeWhile(scope, ast);
         break;
     case NodeName.Return:
-        analyzeRETURN(scope, ast);
+        analyzeReturn(scope, ast);
         break;
     case NodeName.StatBlock: {
         const childScope = createSymbolScopeAndInsert(undefined, scope, createUniqueIdentifier());
@@ -360,10 +364,10 @@ function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
     case NodeName.Continue:
         break;
     case NodeName.DoWhile:
-        analyzeDOWHILE(scope, ast);
+        analyzeDoWhile(scope, ast);
         break;
     case NodeName.Switch:
-        analyzeSWITCH(scope, ast);
+        analyzeSwitch(scope, ast);
         break;
     case NodeName.ExprStat:
         analyzeEexprStat(scope, ast);
@@ -376,7 +380,7 @@ function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function analyzeSWITCH(scope: SymbolScope, ast: NodeSwitch) {
+function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
     analyzeAssign(scope, ast.assign);
     for (const c of ast.cases) {
         analyzeCASE(scope, c);
@@ -386,7 +390,7 @@ function analyzeSWITCH(scope: SymbolScope, ast: NodeSwitch) {
 // BREAK         ::= 'break' ';'
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function analyzeFOR(scope: SymbolScope, ast: NodeFor) {
+function analyzeFor(scope: SymbolScope, ast: NodeFor) {
     if (ast.initial.nodeName === NodeName.Var) analyzeVar(scope, ast.initial);
     else analyzeEexprStat(scope, ast.initial);
 
@@ -400,19 +404,19 @@ function analyzeFOR(scope: SymbolScope, ast: NodeFor) {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function analyzeWHILE(scope: SymbolScope, ast: NodeWhile) {
+function analyzeWhile(scope: SymbolScope, ast: NodeWhile) {
     analyzeAssign(scope, ast.assign);
     analyzeStatement(scope, ast.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function analyzeDOWHILE(scope: SymbolScope, ast: NodeDoWhile) {
+function analyzeDoWhile(scope: SymbolScope, ast: NodeDoWhile) {
     analyzeStatement(scope, ast.statement);
     analyzeAssign(scope, ast.assign);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function analyzeIF(scope: SymbolScope, ast: NodeIf) {
+function analyzeIf(scope: SymbolScope, ast: NodeIf) {
     analyzeAssign(scope, ast.condition);
     analyzeStatement(scope, ast.ts);
     if (ast.fs !== undefined) analyzeStatement(scope, ast.fs);
@@ -428,7 +432,7 @@ function analyzeEexprStat(scope: SymbolScope, ast: NodeExprStat) {
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function analyzeRETURN(scope: SymbolScope, ast: NodeReturn) {
+function analyzeReturn(scope: SymbolScope, ast: NodeReturn) {
     analyzeAssign(scope, ast.assign);
 }
 
@@ -493,6 +497,23 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
+function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, constructorType: SymbolicType) {
+    const classScope = findScopeWithParent(scope, funcCall.identifier.text);
+    if (classScope === undefined) {
+        diagnostic.addError(funcCall.identifier.location, `Undefined class: ${funcCall.identifier.text} 💢`);
+        return undefined;
+    }
+
+    const constructor = findSymbolShallowly(classScope, funcCall.identifier.text);
+    if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
+        diagnostic.addError(funcCall.identifier.location, `Missing constructor: ${funcCall.identifier.text} 💢`);
+        return undefined;
+    }
+
+    analyzeFunctionCall(scope, funcCall, constructor);
+    return {symbol: constructorType};
+}
+
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
@@ -565,34 +586,72 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
         return undefined;
-    } else if (calleeFunc.symbolKind !== SymbolKind.Function) {
+    }
+
+    if (calleeFunc.symbolKind === SymbolKind.Type) {
+        return analyzeConstructorByType(scope, funcCall, calleeFunc);
+    }
+
+    if (calleeFunc.symbolKind !== SymbolKind.Function) {
         diagnostic.addError(funcCall.identifier.location, `Not a function: ${funcCall.identifier.text}`);
         return undefined;
     }
     return analyzeFunctionCall(scope, funcCall, calleeFunc);
 }
 
-function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeFunc: SymbolicFunction) {
+function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
     const head = calleeFunc.sourceNode.head;
     const returnType = isFunctionHeadReturns(head) ? analyzeType(scope, head.returnType) : undefined;
+    const identifier = getIdentifierInFuncOrConstructor(funcCall);
     scope.referencedList.push({
         declaredSymbol: calleeFunc,
-        referencedToken: funcCall.identifier
+        referencedToken: identifier
     });
     const argTypes = analyzeArgList(scope, funcCall.argList);
-    if (argTypes.length === calleeFunc.sourceNode.paramList.length) {
-        for (let i = 0; i < argTypes.length; i++) {
-            const actualType = argTypes[i];
-            const expectedType = analyzeType(scope, calleeFunc.sourceNode.paramList[i].type);
-            if (actualType === undefined || expectedType === undefined) continue;
-            if (isTypeMatch(actualType, expectedType) === false) {
-                diagnostic.addError(getNodeLocation(funcCall.argList.argList[i].assign.nodeRange), `Argument type mismatch: ${funcCall.identifier.text}`);
-            }
-        }
-    } else {
-        diagnostic.addError(funcCall.identifier.location, `Argument count mismatch: ${funcCall.identifier.text}`);
+
+    const calleeParams = calleeFunc.sourceNode.paramList;
+    if (argTypes.length > calleeParams.length) {
+        // オーバーロード存在するなら使用
+        if (calleeFunc.overloadedAlt !== undefined) return analyzeFunctionCall(scope, funcCall, calleeFunc.overloadedAlt);
+        diagnostic.addError(getNodeLocation(funcCall.nodeRange),
+            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${argTypes.length} were provided 💢`);
+        return returnType;
     }
+
+    for (let i = 0; i < calleeParams.length; i++) {
+        let actualType: DeducedType | undefined;
+        const expectedType = analyzeType(scope, calleeParams[i].type);
+        if (i >= argTypes.length) {
+            // デフォルト値があればそれを採用
+            const param = calleeParams[i];
+            if (param.defaultExpr === undefined) {
+                // オーバーロード存在するなら使用
+                if (calleeFunc.overloadedAlt !== undefined) return analyzeFunctionCall(scope, funcCall, calleeFunc.overloadedAlt);
+                diagnostic.addError(getNodeLocation(funcCall.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
+                break;
+            }
+            actualType = analyzeExpr(scope, param.defaultExpr);
+        } else {
+            actualType = argTypes[i];
+        }
+        if (actualType === undefined || expectedType === undefined) continue;
+        if (isTypeMatch(actualType, expectedType)) continue;
+
+        // オーバーロード存在するなら使用
+        if (calleeFunc.overloadedAlt !== undefined) return analyzeFunctionCall(scope, funcCall, calleeFunc.overloadedAlt);
+        diagnostic.addError(getNodeLocation(funcCall.argList.argList[i].assign.nodeRange),
+            `Cannot convert '${actualType.symbol.declaredPlace.text}' to parameter type '${expectedType.symbol.declaredPlace.text}' 💢`);
+    }
+
     return returnType;
+}
+
+function getIdentifierInFuncOrConstructor(funcCall: NodeFuncCall | NodeConstructCall): ParsingToken {
+    if (funcCall.nodeName === NodeName.FuncCall) {
+        return funcCall.identifier;
+    } else {
+        return funcCall.type.datatype.identifier;
+    }
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
