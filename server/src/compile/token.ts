@@ -12,21 +12,22 @@ export enum TokenKind {
 export type LocationInfo = { path: string } & Range;
 
 export function isPositionInRange(position: Position, range: Range): boolean {
-    if (range.start.line === position.line
-        && position.line < range.end.line
-        && range.start.character <= position.character) return true;
+    const startLine = range.start.line;
+    const endLine = range.end.line;
+    const posLine = position.line;
 
-    if (range.start.line < position.line
-        && position.line < range.end.line) return true;
+    const startCharacter = range.start.character;
+    const endCharacter = range.end.character;
+    const posCharacter = position.character;
 
-    if (range.start.line < position.line
-        && position.line === range.end.line
-        && position.character <= range.end.character) return true;
-
-    if (range.start.line === position.line
-        && position.line === range.end.line
-        && range.start.character <= position.character
-        && position.character <= range.end.character) return true;
+    if (startLine === posLine && posLine < endLine)
+        return startCharacter <= posCharacter;
+    else if (startLine < posLine && posLine < endLine)
+        return true;
+    else if (startLine < posLine && posLine === endLine)
+        return posCharacter <= endCharacter;
+    else if (startLine === posLine && posLine === endLine)
+        return startCharacter <= posCharacter && posCharacter <= endCharacter;
 
     return false;
 }
