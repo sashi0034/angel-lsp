@@ -4,13 +4,15 @@ import {
     DeclaredEnumMember,
     funcHeadDestructor,
     getNextTokenIfExist,
-    getNodeLocation, isFunctionHeadReturns,
+    getNodeLocation,
+    isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
     NodeCASE,
     NodeClass,
     NodeCondition,
-    NodeDoWhile, NodeEnum,
+    NodeDoWhile,
+    NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -43,13 +45,15 @@ import {
     builtinNumberType,
     copySymbolsInScope,
     createSymbolScope,
+    createSymbolScopeAndInsert,
     DeducedType,
-    findClassScopeWithParent,
     findGlobalScope,
-    findNamespaceScope, findScopeByIdentifier,
+    findScopeShallowly, findScopeShallowlyOrCreate,
+    findScopeWithParent,
     findSymbolicFunctionWithParent,
     findSymbolicTypeWithParent,
-    findSymbolicVariableWithParent, insertSymbolicObject,
+    findSymbolicVariableWithParent,
+    insertSymbolicObject,
     PrimitiveType,
     SymbolicFunction,
     SymbolicType,
@@ -98,12 +102,10 @@ function hostingNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace
 
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        const nextNamespace = nodeNamespace.namespaceList[i];
-        const existing = findNamespaceScope(scopeIterator, nextNamespace.text);
+        const nextNamespace = nodeNamespace.namespaceList[i].text;
+        const existing = findScopeShallowly(scopeIterator, nextNamespace);
         if (existing === undefined) {
-            const newScope: SymbolScope = createSymbolScope(nextNamespace.text, parentScope);
-            scopeIterator.childScopes.push(newScope);
-            scopeIterator = newScope;
+            scopeIterator = createSymbolScopeAndInsert(undefined, parentScope, nextNamespace);
         } else {
             scopeIterator = existing;
         }
@@ -120,9 +122,8 @@ function hostingEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         sourceNode: nodeEnum,
     };
 
-    const scope: SymbolScope = createSymbolScope(nodeEnum, parentScope);
-    parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    const scope = findScopeShallowlyOrCreate(nodeEnum, parentScope, nodeEnum.identifier.text);
     hostingEnumMembers(scope, nodeEnum.memberList);
 }
 
@@ -144,9 +145,8 @@ function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
         declaredPlace: nodeClass.identifier,
         sourceNode: nodeClass,
     };
-    const scope: SymbolScope = createSymbolScope(nodeClass, parentScope);
-    parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    const scope: SymbolScope = findScopeShallowlyOrCreate(nodeClass, parentScope, nodeClass.identifier.text);
     queue.classQueue.push({scope, node: nodeClass});
 
     for (const member of nodeClass.memberList) {
@@ -163,19 +163,17 @@ function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function hostingFunc(parentScope: SymbolScope, func: NodeFunc, queue: AnalyzeQueue) {
-    if (func.head === funcHeadDestructor) return;
+function hostingFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, queue: AnalyzeQueue) {
+    if (nodeFunc.head === funcHeadDestructor) return;
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
-        declaredPlace: func.identifier,
-        sourceNode: func,
+        declaredPlace: nodeFunc.identifier,
+        sourceNode: nodeFunc,
         overloadedAlt: undefined,
     };
-    const scope: SymbolScope = createSymbolScope(func, parentScope);
-
-    parentScope.childScopes.push(scope);
-    insertSymbolicObject(parentScope.symbolMap, symbol);
-    queue.funcQueue.push({scope, node: func});
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
+    queue.funcQueue.push({scope, node: nodeFunc});
 }
 
 function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
@@ -300,7 +298,7 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // 名前に対応するスコープを探す
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
-            found = findScopeByIdentifier(scopeIterator, nextScope.text);
+            found = findScopeShallowly(scopeIterator, nextScope.text);
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
                 // グローバルスコープでないなら、上の階層を更に探索
@@ -521,7 +519,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        const classScope = findClassScopeWithParent(scope, exprValue.sourceNode.identifier.text);
+        const classScope = findScopeWithParent(scope, exprValue.sourceNode.identifier.text);
         if (classScope === undefined) {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.sourceNode.identifier.text}`);
             return undefined;

@@ -2,13 +2,11 @@ import {Position} from "vscode-languageserver";
 import {
     collectParentScopes,
     ComplementHints,
-    findClassScopeWithParent,
+    findScopeWithParent,
     findGlobalScope,
-    findNamespaceScope,
-    isOwnerNodeExistence,
     SymbolicObject,
     SymbolKind,
-    SymbolScope
+    SymbolScope, findScopeShallowly
 } from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation, NodeName} from "../compile/nodes";
@@ -43,12 +41,12 @@ function getCompletionSymbolsInScope(scope: SymbolScope) {
 }
 
 function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
-    for (const child of scope.childScopes) {
-        if (isOwnerNodeExistence(child.ownerNode) === false) continue;
+    for (const [childName, childScope] of scope.childScopes) {
+        if (childScope.ownerNode === undefined) continue;
 
-        const location = getNodeLocation(child.ownerNode.scopeRange);
+        const location = getNodeLocation(childScope.ownerNode.scopeRange);
         if (isPositionInRange(caret, location)) {
-            const found = findIncludedScopes(child, caret);
+            const found = findIncludedScopes(childScope, caret);
             if (found !== undefined) return found;
         }
     }
@@ -74,7 +72,7 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
     if (completion.complementKind === NodeName.Type) {
         // 補完対象の型が属するスコープを探す
-        const typeScope = findClassScopeWithParent(scope, completion.targetType.declaredPlace.text);
+        const typeScope = findScopeWithParent(scope, completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
         // スコープ内の補完候補を返す
@@ -84,7 +82,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
-        const namespaceScope = findNamespaceScope(findGlobalScope(scope), namespaceList[0].text);
+        const namespaceScope = findScopeShallowly(findGlobalScope(scope), namespaceList[0].text);
         if (namespaceScope === undefined) return [];
 
         // スコープ内の補完候補を返す

@@ -49,43 +49,36 @@ export interface SymbolicVariable extends SymbolicBase {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
-type NamespaceString = string;
-
-type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc | NamespaceString;
-
-export function isOwnerNodeNamespace(node: SymbolOwnerNode | undefined): node is NamespaceString {
-    return node !== undefined && typeof node === "string";
-}
-
-export function isOwnerNodeExistence(
-    node: SymbolOwnerNode | undefined
-): node is NodeEnum | NodeClass | NodeFunc {
-    return node !== undefined && typeof node !== "string";
-}
-
-export function isOwnerNodeHoistingDeclare(
-    node: SymbolOwnerNode | undefined
-): node is NodeEnum | NodeClass {
-    if (isOwnerNodeExistence(node) === false) return false;
-    const nodeName = node.nodeName;
-    return nodeName === NodeName.Enum || nodeName === NodeName.Class;
-}
+type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc;
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;
     referencedToken: ParsingToken;
 }
 
+export type ScopeMap = Map<string, SymbolScope>;
+
 export type SymbolMap = Map<string, SymbolicObject>;
 
-export interface SymbolScope {
+// 親ノードと親スコープ
+export interface ScopeBirthInfo {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
-    childScopes: SymbolScope[];
+}
+
+// 定義されたシンボル情報と小スコープ
+export interface ScopeContainInfo {
+    childScopes: ScopeMap;
     symbolMap: SymbolMap;
+}
+
+// 参照情報や補完情報
+export interface ScopeServiceInfo {
     referencedList: ReferencedSymbolInfo[];
     completionHints: ComplementHints[];
 }
+
+export type SymbolScope = ScopeBirthInfo & ScopeContainInfo & ScopeServiceInfo;
 
 export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): boolean {
     const identifier = symbol.declaredPlace.text;
@@ -115,11 +108,21 @@ export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parent
     return {
         ownerNode: ownerNode,
         parentScope: parentScope,
-        childScopes: [],
+        childScopes: new Map(),
         symbolMap: new Map(),
         referencedList: [],
         completionHints: [],
     };
+}
+
+export function createSymbolScopeAndInsert(
+    ownerNode: SymbolOwnerNode | undefined,
+    parentScope: SymbolScope | undefined,
+    identifier: string,
+): SymbolScope {
+    const scope = createSymbolScope(ownerNode, parentScope);
+    parentScope?.childScopes.set(identifier, scope);
+    return scope;
 }
 
 export class AnalyzedScope {
@@ -157,15 +160,10 @@ function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: Symbo
         }
     }
 
-    for (const child of srcScope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode)) {
-            // 名前空間のスコープを挿入
-            const namespaceScope = findNamespaceScopeOrCreate(destScope, child.ownerNode);
-            copyOriginalSymbolsInScope(srcPath, child, namespaceScope);
-        } else if (isOwnerNodeHoistingDeclare(child.ownerNode)) {
-            // 巻き上げ宣言可能なシンボルを収集
-            destScope.childScopes.push(child);
-        }
+    // 子スコープも再帰的にコピー
+    for (const [key, child] of srcScope.childScopes) {
+        const destChild = findScopeShallowlyOrCreate(child.ownerNode, destScope, key);
+        copyOriginalSymbolsInScope(srcPath, child, destChild);
     }
 }
 
@@ -236,47 +234,30 @@ function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: Symb
     return findSymbolWithParent(scope.parentScope, identifier, kind);
 }
 
-export function findClassScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    for (const child of scope.childScopes) {
-        if (isOwnerNodeExistence(child.ownerNode) === false) continue;
-        if (child.ownerNode.nodeName !== NodeName.Class) continue;
-        if (child.ownerNode.identifier.text === identifier) return child;
-    }
+export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    const child = scope.childScopes.get(identifier);
+    if (child !== undefined) return child;
     if (scope.parentScope === undefined) return undefined;
-    return findClassScopeWithParent(scope.parentScope, identifier);
+    return findScopeWithParent(scope.parentScope, identifier);
 }
 
-export function findNamespaceScope(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    for (const child of scope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
-        if (child.ownerNode === identifier) return child;
+export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {
+    return scope.childScopes.get(identifier);
+}
+
+export function findScopeShallowlyOrCreate(
+    ownerNode: SymbolOwnerNode | undefined,
+    scope: SymbolScope,
+    identifier: string
+): SymbolScope {
+    const found = scope.childScopes.get(identifier);
+    if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
+    if (ownerNode === undefined) return found;
+    if (found.ownerNode === undefined) found.ownerNode = ownerNode;
+    else if (found.ownerNode !== ownerNode) {
+        diagnostic.addError(ownerNode.identifier.location, `Symbol ${identifier}' is already defined ❌`);
     }
-    return undefined;
-}
-
-export function findScopeByIdentifier(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    for (const child of scope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode) && child.ownerNode === identifier) return child;
-        if (isOwnerNodeExistence(child.ownerNode) && child.ownerNode.identifier.text === identifier) return child;
-    }
-    return undefined;
-}
-
-export function findNamespaceScopeOrCreate(scope: SymbolScope, identifier: string): SymbolScope {
-    const namespaceScope = findNamespaceScope(scope, identifier);
-    if (namespaceScope !== undefined) return namespaceScope;
-    const newScope = createSymbolScope(identifier, scope);
-    scope.childScopes.push(newScope);
-    return newScope;
-}
-
-export function findNamespaceScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    for (const child of scope.childScopes) {
-        if (isOwnerNodeNamespace(child.ownerNode) === false) continue;
-        if (child.ownerNode === identifier) return child;
-    }
-    if (scope.parentScope === undefined) return undefined;
-    return findClassScopeWithParent(scope.parentScope, identifier);
+    return found;
 }
 
 export function findGlobalScope(scope: SymbolScope): SymbolScope {

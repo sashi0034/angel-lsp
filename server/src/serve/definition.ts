@@ -14,7 +14,7 @@ export function jumpDefinition(analyzedScope: SymbolScope, caret: Position): Par
     }
 
     // 現在のスコープで見つからないときは子スコープを探索
-    for (const child of analyzedScope.childScopes) {
+    for (const [key, child] of analyzedScope.childScopes) {
         const jumping = jumpDefinition(child, caret);
         if (jumping !== null) return jumping;
     }
