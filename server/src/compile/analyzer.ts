@@ -8,7 +8,7 @@ import {
     isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
-    NodeCASE,
+    NodeCase,
     NodeClass,
     NodeCondition, NodeConstructCall,
     NodeDoWhile,
@@ -438,7 +438,7 @@ function analyzeReturn(scope: SymbolScope, ast: NodeReturn) {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function analyzeCASE(scope: SymbolScope, ast: NodeCASE) {
+function analyzeCASE(scope: SymbolScope, ast: NodeCase) {
     if (ast.expr !== undefined) analyzeExpr(scope, ast.expr);
     for (const statement of ast.statementList) {
         analyzeStatement(scope, statement);

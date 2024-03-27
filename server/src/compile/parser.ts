@@ -11,7 +11,7 @@ import {
     NodeArgList,
     NodeAssign,
     NodeBreak,
-    NodeCASE,
+    NodeCase,
     NodeCast,
     NodeClass,
     NodeCondition,
@@ -764,20 +764,22 @@ function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
 function parseSwitch(parsing: ParsingState): TriedParse<NodeSwitch> {
     if (parsing.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
-    parsing.step();
+    parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect('(', HighlightTokenKind.Operator);
+
     const assign = expectAssign(parsing);
     if (assign === undefined) return ParseFailure.Pending;
+
     parsing.expect(')', HighlightTokenKind.Operator);
     parsing.expect('{', HighlightTokenKind.Operator);
-    const cases: NodeCASE[] = [];
+    const cases: NodeCase[] = [];
 
     while (parsing.isEnd() === false) {
         if (parsing.isEnd() || parsing.next().text === '}') break;
-        const case_ = parseCASE(parsing);
-        if (case_ === ParseFailure.Mismatch) break;
-        if (case_ === ParseFailure.Pending) continue;
-        cases.push(case_);
+        const parsedCase = parseCase(parsing);
+        if (parsedCase === ParseFailure.Mismatch) break;
+        if (parsedCase === ParseFailure.Pending) continue;
+        cases.push(parsedCase);
     }
     parsing.expect('}', HighlightTokenKind.Operator);
     return {
@@ -979,7 +981,7 @@ function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function parseCASE(parsing: ParsingState): TriedParse<NodeCASE> {
+function parseCase(parsing: ParsingState): TriedParse<NodeCase> {
     const rangeStart = parsing.next();
     let expr = undefined;
     if (parsing.next().text === 'case') {
@@ -1417,10 +1419,10 @@ function parseAssign(parsing: ParsingState): NodeAssign | undefined {
     const rangeStart = parsing.next();
     const condition = parseCONDITION(parsing);
     if (condition === undefined) return undefined;
-    const op = parseASSIGNOP(parsing);
+    const op = parseAssignOp(parsing);
     const result: NodeAssign = {
         nodeName: NodeName.Assign,
-        nodeRange: {start: rangeStart, end: rangeStart},
+        nodeRange: {start: rangeStart, end: parsing.prev()},
         condition: condition,
         tail: undefined
     };
@@ -1485,7 +1487,7 @@ const exprOpSet = new Set([
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
-function parseASSIGNOP(parsing: ParsingState) {
+function parseAssignOp(parsing: ParsingState) {
     if (assignOpSet.has(parsing.next().text) === false) return undefined;
     const next = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
