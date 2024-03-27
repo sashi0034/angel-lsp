@@ -523,6 +523,7 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
     }
 }
 
+// ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
     const complementRange = getNodeLocation(exprPostOp.nodeRange);
 
@@ -553,7 +554,13 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        return analyzeFuncCall(classScope, exprPostOp.member);
+        const classMethod = findSymbolShallowly(classScope, exprPostOp.member.identifier.text);
+        if (classMethod === undefined || classMethod.symbolKind !== SymbolKind.Function) {
+            diagnostic.addError(exprPostOp.member.identifier.location, `Missing method: ${exprPostOp.member.identifier.text}`);
+            return undefined;
+        }
+
+        return analyzeFunctionCall(scope, exprPostOp.member, classMethod);
     } else {
         // フィールド診断
         // TODO
