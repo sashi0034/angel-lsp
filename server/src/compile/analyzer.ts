@@ -67,6 +67,13 @@ type AnalyzeQueue = {
     funcQueue: { scope: SymbolScope, node: NodeFunc }[],
 };
 
+let s_uniqueIdentifier = -1;
+
+function createUniqueIdentifier(): string {
+    s_uniqueIdentifier++;
+    return `~${s_uniqueIdentifier}`;
+}
+
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hostingScript(parentScope: SymbolScope, ast: NodeScript, queue: AnalyzeQueue) {
     // 宣言分析
@@ -343,9 +350,11 @@ function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
     case NodeName.Return:
         analyzeRETURN(scope, ast);
         break;
-    case NodeName.StatBlock:
-        analyzeStatBlock(scope, ast);
+    case NodeName.StatBlock: {
+        const childScope = createSymbolScopeAndInsert(undefined, scope, createUniqueIdentifier());
+        analyzeStatBlock(childScope, ast);
         break;
+    }
     case NodeName.Break:
         break;
     case NodeName.Continue:
@@ -357,7 +366,7 @@ function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
         analyzeSWITCH(scope, ast);
         break;
     case NodeName.ExprStat:
-        analyzeEXPRSTAT(scope, ast);
+        analyzeEexprStat(scope, ast);
         break;
         // case NodeName.Try:
         //     break;
@@ -379,9 +388,9 @@ function analyzeSWITCH(scope: SymbolScope, ast: NodeSwitch) {
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFOR(scope: SymbolScope, ast: NodeFor) {
     if (ast.initial.nodeName === NodeName.Var) analyzeVar(scope, ast.initial);
-    else analyzeEXPRSTAT(scope, ast.initial);
+    else analyzeEexprStat(scope, ast.initial);
 
-    analyzeEXPRSTAT(scope, ast.condition);
+    analyzeEexprStat(scope, ast.condition);
 
     for (const inc of ast.incrementList) {
         analyzeAssign(scope, inc);
@@ -412,7 +421,7 @@ function analyzeIF(scope: SymbolScope, ast: NodeIf) {
 // CONTINUE      ::= 'continue' ';'
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function analyzeEXPRSTAT(scope: SymbolScope, ast: NodeExprStat) {
+function analyzeEexprStat(scope: SymbolScope, ast: NodeExprStat) {
     if (ast.assign !== undefined) analyzeAssign(scope, ast.assign);
 }
 
