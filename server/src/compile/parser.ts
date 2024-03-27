@@ -557,7 +557,7 @@ function parseType(parsing: ParsingState): NodeType | undefined {
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isConst: isConst,
         scope: scope,
-        datatype: datatype,
+        dataType: datatype,
         typeParameters: typeParameters,
         isArray: isArray,
         refModifier: refModifier

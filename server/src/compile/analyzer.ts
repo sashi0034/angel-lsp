@@ -172,6 +172,7 @@ function hostingFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, queue: Analyz
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
+        returnType: isFunctionHeadReturns(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
         sourceNode: nodeFunc,
         overloadedAlt: undefined,
     };
@@ -248,21 +249,29 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function analyzeType(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
-    if (ast.scope !== undefined) analyzeScope(scope, ast.scope);
+function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
+    let searchScope = scope;
+    if (nodeType.scope !== undefined) searchScope = analyzeScope(scope, nodeType.scope) ?? searchScope;
 
-    const found = tryGetBuiltInType(ast.datatype.identifier) ?? findSymbolWithParent(scope, ast.datatype.identifier.text);
+    const ownerNode = searchScope.ownerNode;
+    const dataTypeIdentifier = nodeType.dataType.identifier;
+    if (ownerNode?.nodeName === 'Class' && ownerNode.identifier.text === dataTypeIdentifier.text) {
+        // コンストラクタと衝突するので上の階層から探す
+        searchScope = scope.parentScope ?? searchScope;
+    }
+
+    const found = tryGetBuiltInType(dataTypeIdentifier) ?? findSymbolWithParent(searchScope, dataTypeIdentifier.text);
     if (found === undefined) {
-        diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text} 💢`);
+        diagnostic.addError(nodeType.dataType.identifier.location, `Undefined type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;
     } else if (found.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(ast.datatype.identifier.location, `Not a type: ${ast.datatype.identifier.text} 💢`);
+        diagnostic.addError(nodeType.dataType.identifier.location, `Not a type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;
     }
 
     scope.referencedList.push({
         declaredSymbol: found,
-        referencedToken: ast.datatype.identifier
+        referencedToken: nodeType.dataType.identifier
     });
     return {symbol: found};
 }
@@ -330,7 +339,6 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
             complementRange: complementRange,
             namespaceList: nodeScope.scopeList.slice(0, i + 1)
         });
-
     }
 
     return scopeIterator;
@@ -608,8 +616,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 }
 
 function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
-    const head = calleeFunc.sourceNode.head;
-    const returnType = isFunctionHeadReturns(head) ? analyzeType(scope, head.returnType) : undefined;
+    const returnType = calleeFunc.returnType;
     const identifier = getIdentifierInFuncOrConstructor(funcCall);
     scope.referencedList.push({
         declaredSymbol: calleeFunc,
@@ -619,7 +626,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall | NodeCo
 
     const calleeParams = calleeFunc.sourceNode.paramList;
     if (argTypes.length > calleeParams.length) {
-        // オーバーロード存在するなら使用
+        // オーバーロード存在するなら採用
         if (calleeFunc.overloadedAlt !== undefined) return analyzeFunctionCall(scope, funcCall, calleeFunc.overloadedAlt);
         diagnostic.addError(getNodeLocation(funcCall.nodeRange),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${argTypes.length} were provided 💢`);
@@ -633,7 +640,7 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall | NodeCo
             // デフォルト値があればそれを採用
             const param = calleeParams[i];
             if (param.defaultExpr === undefined) {
-                // オーバーロード存在するなら使用
+                // オーバーロード存在するなら採用
                 if (calleeFunc.overloadedAlt !== undefined) return analyzeFunctionCall(scope, funcCall, calleeFunc.overloadedAlt);
                 diagnostic.addError(getNodeLocation(funcCall.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
                 break;
@@ -658,7 +665,7 @@ function getIdentifierInFuncOrConstructor(funcCall: NodeFuncCall | NodeConstruct
     if (funcCall.nodeName === NodeName.FuncCall) {
         return funcCall.identifier;
     } else {
-        return funcCall.type.datatype.identifier;
+        return funcCall.type.dataType.identifier;
     }
 }
 

@@ -256,7 +256,7 @@ export interface NodeType extends NodesBase {
     nodeName: NodeName.Type
     isConst: boolean,
     scope: NodeScope | undefined,
-    datatype: NodeDataType,
+    dataType: NodeDataType,
     typeParameters: NodeType[],
     isArray: boolean,
     refModifier: ReferenceModifier | undefined,
