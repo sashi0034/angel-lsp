@@ -48,18 +48,15 @@ import {
     createSymbolScopeAndInsert,
     DeducedType,
     findGlobalScope,
-    findScopeShallowly, findScopeShallowlyOrCreate,
-    findScopeWithParent,
-    findSymbolicFunctionWithParent,
-    findSymbolicTypeWithParent,
-    findSymbolicVariableWithParent,
+    findScopeShallowly, findScopeShallowlyOrInsert,
+    findScopeWithParent, findSymbolWithParent,
     insertSymbolicObject,
     PrimitiveType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
-    SymbolScope
+    SymbolScope, tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
@@ -103,12 +100,7 @@ function hostingNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
         const nextNamespace = nodeNamespace.namespaceList[i].text;
-        const existing = findScopeShallowly(scopeIterator, nextNamespace);
-        if (existing === undefined) {
-            scopeIterator = createSymbolScopeAndInsert(undefined, parentScope, nextNamespace);
-        } else {
-            scopeIterator = existing;
-        }
+        scopeIterator = findScopeShallowlyOrInsert(undefined, scopeIterator, nextNamespace);
     }
 
     hostingScript(scopeIterator, nodeNamespace.script, queue);
@@ -123,7 +115,7 @@ function hostingEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     };
 
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
-    const scope = findScopeShallowlyOrCreate(nodeEnum, parentScope, nodeEnum.identifier.text);
+    const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier.text);
     hostingEnumMembers(scope, nodeEnum.memberList);
 }
 
@@ -146,7 +138,7 @@ function hostingClass(parentScope: SymbolScope, nodeClass: NodeClass, queue: Ana
         sourceNode: nodeClass,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
-    const scope: SymbolScope = findScopeShallowlyOrCreate(nodeClass, parentScope, nodeClass.identifier.text);
+    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier.text);
     queue.classQueue.push({scope, node: nodeClass});
 
     for (const member of nodeClass.memberList) {
@@ -246,15 +238,21 @@ function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeType(scope: SymbolScope, ast: NodeType): DeducedType | undefined {
     if (ast.scope !== undefined) analyzeScope(scope, ast.scope);
-    const found = findSymbolicTypeWithParent(scope, ast.datatype.identifier);
-    if (found !== undefined) {
-        scope.referencedList.push({
-            declaredSymbol: found,
-            referencedToken: ast.datatype.identifier
-        });
-        return {symbol: found};
+
+    const found = tryGetBuiltInType(ast.datatype.identifier) ?? findSymbolWithParent(scope, ast.datatype.identifier.text);
+    if (found === undefined) {
+        diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text} 💢`);
+        return undefined;
+    } else if (found.symbolKind !== SymbolKind.Type) {
+        diagnostic.addError(ast.datatype.identifier.location, `Not a type: ${ast.datatype.identifier.text} 💢`);
+        return undefined;
     }
-    diagnostic.addError(ast.datatype.identifier.location, `Undefined type: ${ast.datatype.identifier.text}`);
+
+    scope.referencedList.push({
+        declaredSymbol: found,
+        referencedToken: ast.datatype.identifier
+    });
+    return {symbol: found};
 }
 
 function isTypeMatch(src: DeducedType, dest: DeducedType) {
@@ -554,9 +552,12 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         if (namespaceScope === undefined) return undefined;
         scope = namespaceScope;
     }
-    const calleeFunc = findSymbolicFunctionWithParent(scope, funcCall.identifier.text);
+    const calleeFunc = findSymbolWithParent(scope, funcCall.identifier.text);
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
+        return undefined;
+    } else if (calleeFunc.symbolKind !== SymbolKind.Function) {
+        diagnostic.addError(funcCall.identifier.location, `Not a function: ${funcCall.identifier.text}`);
         return undefined;
     }
     return analyzeFunctionCall(scope, funcCall, calleeFunc);
@@ -573,9 +574,9 @@ function analyzeFunctionCall(scope: SymbolScope, funcCall: NodeFuncCall, calleeF
     if (argTypes.length === calleeFunc.sourceNode.paramList.length) {
         for (let i = 0; i < argTypes.length; i++) {
             const actualType = argTypes[i];
-            const expectedType = findSymbolicTypeWithParent(scope, calleeFunc.sourceNode.paramList[i].type.datatype.identifier);
+            const expectedType = analyzeType(scope, calleeFunc.sourceNode.paramList[i].type);
             if (actualType === undefined || expectedType === undefined) continue;
-            if (isTypeMatch(actualType, {symbol: expectedType}) === false) {
+            if (isTypeMatch(actualType, expectedType) === false) {
                 diagnostic.addError(getNodeLocation(funcCall.argList.argList[i].assign.nodeRange), `Argument type mismatch: ${funcCall.identifier.text}`);
             }
         }
@@ -598,9 +599,12 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
     }
 
     const token = varAccess.identifier;
-    const declared = findSymbolicVariableWithParent(scope, token.text);
+    const declared = findSymbolWithParent(scope, token.text);
     if (declared === undefined) {
         diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
+        return undefined;
+    } else if (declared.symbolKind !== SymbolKind.Variable) {
+        diagnostic.addError(token.location, `Not a variable: ${token.text}`);
         return undefined;
     }
     scope.referencedList.push({

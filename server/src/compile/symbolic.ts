@@ -162,7 +162,7 @@ function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: Symbo
 
     // 子スコープも再帰的にコピー
     for (const [key, child] of srcScope.childScopes) {
-        const destChild = findScopeShallowlyOrCreate(child.ownerNode, destScope, key);
+        const destChild = findScopeShallowlyOrInsert(child.ownerNode, destScope, key);
         copyOriginalSymbolsInScope(srcPath, child, destChild);
     }
 }
@@ -207,31 +207,24 @@ export const builtinBoolType: SymbolicType = createBuiltinType(PrimitiveType.Boo
 
 export const builtinVoidType: SymbolicType = createBuiltinType(PrimitiveType.Void);
 
-export function findSymbolicTypeWithParent(scope: SymbolScope, token: ParsingToken): SymbolicType | undefined {
-    const tokenText = token.text;
-    if (token.kind === TokenKind.Reserved) {
-        if ((tokenText === 'bool')) return builtinBoolType;
-        else if ((tokenText === 'void')) return builtinVoidType;
-        else if (numberTypeSet.has(tokenText)) return builtinNumberType;
-    }
-    return findSymbolWithParent(scope, tokenText, SymbolKind.Type) as SymbolicType;
+export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined {
+    if (token.kind !== TokenKind.Reserved) return undefined;
+
+    const identifier = token.text;
+    if ((identifier === 'bool')) return builtinBoolType;
+    else if ((identifier === 'void')) return builtinVoidType;
+    else if (numberTypeSet.has(identifier)) return builtinNumberType;
+
+    return undefined;
 }
 
 const numberTypeSet = new Set(['int8', 'int16', 'int', 'int32', 'int64', 'uint8', 'uint16', 'uint', 'uint32', 'uint64', 'float', 'double']);
 
-export function findSymbolicFunctionWithParent(scope: SymbolScope, identifier: string): SymbolicFunction | undefined {
-    return findSymbolWithParent(scope, identifier, SymbolKind.Function) as SymbolicFunction;
-}
-
-export function findSymbolicVariableWithParent(scope: SymbolScope, identifier: string): SymbolicVariable | undefined {
-    return findSymbolWithParent(scope, identifier, SymbolKind.Variable) as SymbolicVariable;
-}
-
-function findSymbolWithParent(scope: SymbolScope, identifier: string, kind: SymbolKind): SymbolicObject | undefined {
+export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     const symbol = scope.symbolMap.get(identifier);
-    if (symbol !== undefined && symbol.symbolKind === kind) return symbol;
+    if (symbol !== undefined) return symbol;
     if (scope.parentScope === undefined) return undefined;
-    return findSymbolWithParent(scope.parentScope, identifier, kind);
+    return findSymbolWithParent(scope.parentScope, identifier);
 }
 
 export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
@@ -245,7 +238,7 @@ export function findScopeShallowly(scope: SymbolScope, identifier: string): Symb
     return scope.childScopes.get(identifier);
 }
 
-export function findScopeShallowlyOrCreate(
+export function findScopeShallowlyOrInsert(
     ownerNode: SymbolOwnerNode | undefined,
     scope: SymbolScope,
     identifier: string
