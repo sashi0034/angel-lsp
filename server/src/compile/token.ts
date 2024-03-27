@@ -1,4 +1,4 @@
-import {Position, Range, URI} from "vscode-languageserver";
+import {Position, Range} from "vscode-languageserver";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
 export enum TokenKind {

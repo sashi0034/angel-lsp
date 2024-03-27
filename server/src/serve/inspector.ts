@@ -4,12 +4,12 @@ import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
-import {AnalyzedScope, createSymbolScope} from "../compile/symbolic";
 import {convertToParsingTokens, ParsingToken} from "../compile/parsing";
 import {fileURLToPath} from 'url';
 import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
+import {AnalyzedScope, createSymbolScope} from "../compile/scope";
 
 interface InspectResult {
     diagnostics: Diagnostic[];

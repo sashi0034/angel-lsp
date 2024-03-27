@@ -40,17 +40,10 @@ import {
     NodeWhile
 } from "./nodes";
 import {
-    AnalyzedScope,
     builtinBoolType,
     builtinNumberType,
-    copySymbolsInScope,
-    createSymbolScope,
-    createSymbolScopeAndInsert,
     DeducedType,
-    findGlobalScope,
-    findScopeShallowly,
-    findScopeShallowlyOrInsert,
-    findScopeWithParent, findSymbolShallowly,
+    findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
     PrimitiveType,
@@ -65,6 +58,14 @@ import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
 import {TokenKind} from "./token";
 import {ParsingToken} from "./parsing";
+import {
+    AnalyzedScope,
+    copySymbolsInScope, createSymbolScope, createSymbolScopeAndInsert,
+    findGlobalScope,
+    findScopeShallowly,
+    findScopeShallowlyOrInsert,
+    findScopeWithParent
+} from "./scope";
 
 type AnalyzeQueue = {
     classQueue: { scope: SymbolScope, node: NodeClass }[],

@@ -1,16 +1,14 @@
 import {Position} from "vscode-languageserver";
 import {
-    collectParentScopes,
     ComplementHints,
-    findScopeWithParent,
-    findGlobalScope,
     SymbolicObject,
     SymbolKind,
-    SymbolScope, findScopeShallowly
+    SymbolScope
 } from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation, NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/token";
+import {collectParentScopes, findGlobalScope, findScopeShallowly, findScopeWithParent} from "../compile/scope";
 
 export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
     const items: CompletionItem[] = [];
