@@ -594,14 +594,15 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
     const rangeStart = parsing.next();
     if (parsing.next().text !== '<') return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
-    const generics: NodeType[] = [];
+    const typeParameters: NodeType[] = [];
     while (parsing.isEnd() === false) {
-        if (parsing.next().text === '>') {
+        const next = parsing.next();
+        if (next.text === '>') {
             parsing.confirm(HighlightTokenKind.Operator);
             break;
         }
-        if (generics.length > 0) {
-            if (parsing.next().text !== ',') {
+        if (typeParameters.length > 0) {
+            if (next.text !== ',') {
                 parsing.backtrack(rangeStart);
                 return undefined;
             }
@@ -612,12 +613,12 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
             parsing.backtrack(rangeStart);
             return undefined;
         }
-        generics.push(type);
+        typeParameters.push(type);
     }
-    if (generics.length == 0) {
+    if (typeParameters.length == 0) {
         parsing.error("Expected type parameter 💢");
     }
-    return generics;
+    return typeParameters;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -677,7 +678,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
 function parseDatatype(parsing: ParsingState): NodeDataType | undefined {
     // FIXME
     const next = parsing.next();
-    if (parsing.next().kind === TokenKind.Identifier) {
+    if (next.kind === TokenKind.Identifier) {
         parsing.confirm(HighlightTokenKind.Type);
         return {
             nodeName: NodeName.DataType,
@@ -1093,7 +1094,7 @@ function parseExprValue(parsing: ParsingState): TriedParse<NodeExprValue> {
     if (lambda === ParseFailure.Pending) return ParseFailure.Pending;
     if (lambda !== ParseFailure.Mismatch) return lambda;
 
-    const cast = parseCAST(parsing);
+    const cast = parseCast(parsing);
     if (cast === ParseFailure.Pending) return ParseFailure.Pending;
     if (cast !== ParseFailure.Mismatch) return cast;
 
@@ -1246,7 +1247,7 @@ function parseIdentifierWithColon(parsing: ParsingState): ParsingToken | undefin
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function parseCAST(parsing: ParsingState): TriedParse<NodeCast> {
+function parseCast(parsing: ParsingState): TriedParse<NodeCast> {
     if (parsing.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
@@ -1307,8 +1308,8 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
     }
     const statBlock = parseStatBlock(parsing);
     if (statBlock === undefined) {
-        parsing.error("Expected statement block 💢");
-        return ParseFailure.Pending;
+        parsing.backtrack(rangeStart);
+        return ParseFailure.Mismatch;
     }
     return {
         nodeName: NodeName.Lambda,
