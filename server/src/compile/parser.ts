@@ -2,7 +2,7 @@
 
 import {
     AccessModifier,
-    DeclaredEnumMember,
+    ParsedEnumMember,
     EntityModifier, FuncHeadConstructor,
     funcHeadConstructor,
     FuncHeadDestructor,
@@ -166,7 +166,7 @@ function parseEnum(
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    let memberList: DeclaredEnumMember[] = [];
+    let memberList: ParsedEnumMember[] = [];
     const scopeStart = parsing.next();
 
     if (parsing.next().text === ';') {
@@ -186,8 +186,8 @@ function parseEnum(
 }
 
 // '{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'
-function expectEnumMembers(parsing: ParsingState): DeclaredEnumMember[] {
-    const members: DeclaredEnumMember[] = [];
+function expectEnumMembers(parsing: ParsingState): ParsedEnumMember[] {
+    const members: ParsedEnumMember[] = [];
     parsing.expect('{', HighlightTokenKind.Operator);
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') {

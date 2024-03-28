@@ -147,10 +147,10 @@ export interface NodeEnum extends NodesBase {
     scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     identifier: ParsingToken;
-    memberList: DeclaredEnumMember[];
+    memberList: ParsedEnumMember[];
 }
 
-export interface DeclaredEnumMember {
+export interface ParsedEnumMember {
     identifier: ParsingToken,
     expr: NodeExpr | undefined
 }
@@ -240,9 +240,9 @@ export interface NodeStatBlock extends NodesBase {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-export type NodeParamList = DeclaredTypeIdentifier[];
+export type NodeParamList = ParsedTypeIdentifier[];
 
-export interface DeclaredTypeIdentifier {
+export interface ParsedTypeIdentifier {
     type: NodeType,
     modifier: TypeModifier | undefined,
     identifier: ParsingToken | undefined
@@ -367,10 +367,10 @@ export interface NodeCase extends NodesBase {
 export interface NodeExpr extends NodesBase {
     nodeName: NodeName.Expr
     head: NodeExprTerm,
-    tail: DeclaredOpExpr | undefined
+    tail: ParsedOpExpr | undefined
 }
 
-export interface DeclaredOpExpr {
+export interface ParsedOpExpr {
     operator: ParsingToken,
     expression: NodeExpr
 }
@@ -482,10 +482,10 @@ export interface NodeVarAccess extends NodesBase {
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface NodeArgList extends NodesBase {
     nodeName: NodeName.ArgList;
-    argList: DeclaredArgument[];
+    argList: ParsedArgument[];
 }
 
-export interface DeclaredArgument {
+export interface ParsedArgument {
     identifier: ParsingToken | undefined,
     assign: NodeAssign
 }

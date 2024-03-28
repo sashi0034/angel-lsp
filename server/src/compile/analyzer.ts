@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    DeclaredEnumMember,
+    ParsedEnumMember,
     funcHeadDestructor,
     getNextTokenIfExist,
     getNodeLocation,
@@ -128,7 +128,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     hoistEnumMembers(scope, nodeEnum.memberList);
 }
 
-function hoistEnumMembers(parentScope: SymbolScope, memberList: DeclaredEnumMember[]) {
+function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[]) {
     for (const member of memberList) {
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
