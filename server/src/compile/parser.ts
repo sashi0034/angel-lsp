@@ -1067,9 +1067,11 @@ const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
     const rangeStart = parsing.next();
-    let pre = undefined;
-    if (preOpSet.has(parsing.next().text)) {
-        pre = parsing.next();
+
+    const preOps: ParsingToken[] = [];
+    while (parsing.isEnd() === false) {
+        if (preOpSet.has(parsing.next().text) === false) break;
+        preOps.push(parsing.next());
         parsing.confirm(HighlightTokenKind.Operator);
     }
 
@@ -1079,15 +1081,20 @@ function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
         return undefined;
     }
 
-    const postOp = parseExprPostOp(parsing);
+    const postOps: NodeExprPostOp[] = [];
+    while (parsing.isEnd() === false) {
+        const parsed = parseExprPostOp(parsing);
+        if (parsed === undefined) break;
+        postOps.push(parsed);
+    }
 
     return {
         nodeName: NodeName.ExprTerm,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         exprTerm: 2,
-        preOp: pre,
+        preOps: preOps,
         value: exprValue,
-        postOp: postOp
+        postOps: postOps
     };
 }
 

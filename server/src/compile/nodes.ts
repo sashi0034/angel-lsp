@@ -389,9 +389,9 @@ export interface NodeEXPRTERM1 extends NodesBase {
 export interface NodeExprTerm2 extends NodesBase {
     nodeName: NodeName.ExprTerm
     exprTerm: 2,
-    preOp: ParsingToken | undefined,
+    preOps: ParsingToken[],
     value: NodeExprValue,
-    postOp: NodeExprPostOp | undefined
+    postOps: NodeExprPostOp[]
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA

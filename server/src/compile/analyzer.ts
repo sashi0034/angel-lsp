@@ -477,11 +477,15 @@ function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): DeducedType | u
     return undefined;
 }
 
+// {EXPRPREOP} EXPRVALUE {EXPRPOSTOP}
 function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
-    const exprValue = analyzeExprValue(scope, exprTerm.value);
-    if (exprTerm.postOp !== undefined && exprValue !== undefined) {
-        analyzeExprPostOp(scope, exprTerm.postOp, exprValue.symbol);
+    let exprValue = analyzeExprValue(scope, exprTerm.value);
+
+    for (const postOp of exprTerm.postOps) {
+        if (exprValue === undefined) break;
+        exprValue = analyzeExprPostOp(scope, postOp, exprValue.symbol);
     }
+
     return exprValue;
 }
 
