@@ -36,8 +36,8 @@ export interface SymbolicFunction extends SymbolicBase {
     symbolKind: SymbolKind.Function;
     sourceNode: NodeFunc;
     returnType: DeducedType | undefined;
-    // TODO: 引数も
-    overloadedAlt: SymbolicFunction | undefined;
+    parameterTypes: (DeducedType | undefined)[];
+    nextOverload: SymbolicFunction | undefined;
 }
 
 export interface SymbolicVariable extends SymbolicBase {
@@ -99,11 +99,11 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
     // 関数はオーバーロードとして追加が可能
     let cursor = hit;
     for (; ;) {
-        if (cursor.overloadedAlt === undefined) {
-            cursor.overloadedAlt = symbol;
+        if (cursor.nextOverload === undefined) {
+            cursor.nextOverload = symbol;
             return true;
         }
-        cursor = cursor.overloadedAlt;
+        cursor = cursor.nextOverload;
     }
 }
 

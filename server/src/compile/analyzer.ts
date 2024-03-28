@@ -95,7 +95,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
         } else if (nodeName === NodeName.Var) {
             analyzeVar(parentScope, statement);
         } else if (nodeName === NodeName.Func) {
-            hoistFunc(parentScope, statement, analyzing);
+            hoistFunc(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Namespace) {
             hoistNamespace(parentScope, statement, analyzing);
         }
@@ -151,16 +151,16 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     // analyzing.push(() => {analyzeClass}) // TODO
 
     hoisting.push(() => {
-        hoistClassMembers(scope, nodeClass, analyzing);
+        hoistClassMembers(scope, nodeClass, analyzing, hoisting);
     });
 }
 
-function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, queue: AnalyzingQueue) {
+function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
     for (const member of nodeClass.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
             // TODO
         } else if (member.nodeName === NodeName.Func) {
-            hoistFunc(scope, member, queue);
+            hoistFunc(scope, member, analyzing, hoisting);
         } else if (member.nodeName === NodeName.Var) {
             analyzeVar(scope, member);
         }
@@ -170,18 +170,26 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, queue: Anal
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, queue: AnalyzingQueue) {
+function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
     if (nodeFunc.head === funcHeadDestructor) return;
+
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
         returnType: isFunctionHeadReturns(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
+        parameterTypes: [],
         sourceNode: nodeFunc,
-        overloadedAlt: undefined,
+        nextOverload: undefined,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
-    queue.push(() => {
+
+    hoisting.push(() => {
+        symbol.parameterTypes = hoistParamList(scope, nodeFunc.paramList);
+    });
+
+    analyzing.push(() => {
         analyzeFunc(scope, nodeFunc);
     });
 }
@@ -237,17 +245,28 @@ function analyzeStatBlock(scope: SymbolScope, ast: NodeStatBlock) {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function analyzeParamList(scope: SymbolScope, ast: NodeParamList) {
-    for (const param of ast) {
+function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
+    const deducedTypes: (DeducedType | undefined)[] = [];
+    for (const param of paramList) {
         if (param.identifier === undefined) continue;
 
         const type = analyzeType(scope, param.type);
+        if (type === undefined) deducedTypes.push(undefined);
+        else deducedTypes.push(type);
 
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             type: type?.symbol,
             declaredPlace: param.identifier,
         });
+    }
+    return deducedTypes;
+}
+
+function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
+    for (const param of paramList) {
+        if (param.defaultExpr === undefined) continue;
+        analyzeExpr(scope, param.defaultExpr);
     }
 }
 
@@ -503,7 +522,7 @@ function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, co
         return undefined;
     }
 
-    analyzeFuncCallWithCallee(scope, funcCall, constructor);
+    analyzeFunctionCaller(scope, funcCall, constructor);
     return {symbol: constructorType, sourceScope: classScope};
 }
 
@@ -553,7 +572,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        return analyzeFuncCallWithCallee(scope, exprPostOp.member, classMethod);
+        return analyzeFunctionCaller(scope, exprPostOp.member, classMethod);
     } else {
         // フィールド診断
         // TODO
@@ -596,52 +615,56 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         diagnostic.addError(funcCall.identifier.location, `Not a function: ${funcCall.identifier.text}`);
         return undefined;
     }
-    return analyzeFuncCallWithCallee(scope, funcCall, calleeFunc);
+    return analyzeFunctionCaller(scope, funcCall, calleeFunc);
 }
 
-function analyzeFuncCallWithCallee(scope: SymbolScope, funcCall: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
+function analyzeFunctionCaller(scope: SymbolScope, callerNode: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
+    const pushReference = () => {
+        const callerIdentifier = getIdentifierInFuncOrConstructor(callerNode);
+        scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
+    };
+
     const returnType = calleeFunc.returnType;
-    const identifier = getIdentifierInFuncOrConstructor(funcCall);
-    scope.referencedList.push({
-        declaredSymbol: calleeFunc,
-        referencedToken: identifier
-    });
-    const argTypes = analyzeArgList(scope, funcCall.argList);
+    const callerArgs = analyzeArgList(scope, callerNode.argList);
 
     const calleeParams = calleeFunc.sourceNode.paramList;
-    if (argTypes.length > calleeParams.length) {
+
+    // 呼び出し側の引数の数が多すぎる場合はエラー
+    if (callerArgs.length > calleeParams.length) {
         // オーバーロード存在するなら採用
-        if (calleeFunc.overloadedAlt !== undefined) return analyzeFuncCallWithCallee(scope, funcCall, calleeFunc.overloadedAlt);
-        diagnostic.addError(getNodeLocation(funcCall.nodeRange),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${argTypes.length} were provided 💢`);
+        if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
+        diagnostic.addError(getNodeLocation(callerNode.nodeRange),
+            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgs.length} were provided 💢`);
+        pushReference();
         return returnType;
     }
 
     for (let i = 0; i < calleeParams.length; i++) {
+        const expectedType = calleeFunc.parameterTypes[i];
         let actualType: DeducedType | undefined;
-        const expectedType = analyzeType(scope, calleeParams[i].type);
-        if (i >= argTypes.length) {
+        if (i >= callerArgs.length) {
             // デフォルト値があればそれを採用
             const param = calleeParams[i];
             if (param.defaultExpr === undefined) {
                 // オーバーロード存在するなら採用
-                if (calleeFunc.overloadedAlt !== undefined) return analyzeFuncCallWithCallee(scope, funcCall, calleeFunc.overloadedAlt);
-                diagnostic.addError(getNodeLocation(funcCall.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
+                if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
+                diagnostic.addError(getNodeLocation(callerNode.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
                 break;
             }
             actualType = analyzeExpr(scope, param.defaultExpr);
         } else {
-            actualType = argTypes[i];
+            actualType = callerArgs[i];
         }
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロード存在するなら使用
-        if (calleeFunc.overloadedAlt !== undefined) return analyzeFuncCallWithCallee(scope, funcCall, calleeFunc.overloadedAlt);
-        diagnostic.addError(getNodeLocation(funcCall.argList.argList[i].assign.nodeRange),
+        if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
+        diagnostic.addError(getNodeLocation(callerNode.argList.argList[i].assign.nodeRange),
             `Cannot convert '${actualType.symbol.declaredPlace.text}' to parameter type '${expectedType.symbol.declaredPlace.text}' 💢`);
     }
 
+    pushReference();
     return returnType;
 }
 
