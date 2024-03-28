@@ -4,7 +4,8 @@ import {
     funcHeadDestructor,
     getNextTokenIfExist,
     getNodeLocation,
-    isFunctionHeadReturns, isMethodMemberInPostOp,
+    isFunctionHeadReturns,
+    isMethodMemberInPostOp,
     NodeArgList,
     NodeAssign,
     NodeCase,
@@ -46,8 +47,9 @@ import {
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
-    insertSymbolicObject, isSourceNodeClass, isSourcePrimitiveType,
-    SymbolicFunction,
+    insertSymbolicObject,
+    isSourceNodeClass, SymbolAndScope,
+    SymbolicFunction, SymbolicObject,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
@@ -65,7 +67,7 @@ import {
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
-    findScopeWithParent
+    findScopeWithParent, isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 
@@ -145,7 +147,6 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier.text);
-    // analyzing.push(() => {analyzeClass}) // TODO
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
@@ -270,20 +271,23 @@ function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
-    let searchScope = scope;
-    if (nodeType.scope !== undefined) searchScope = analyzeScope(scope, nodeType.scope) ?? searchScope;
+    const searchScope = nodeType.scope !== undefined
+        ? (analyzeScope(scope, nodeType.scope) ?? scope)
+        : scope;
 
-    const ownerNode = searchScope.ownerNode;
     const dataTypeIdentifier = nodeType.dataType.identifier;
-    if (ownerNode?.nodeName === NodeName.Class && ownerNode.identifier.text === dataTypeIdentifier.text) {
-        // コンストラクタと衝突するので上の階層から探す
-        searchScope = scope.parentScope ?? searchScope;
-    }
-
     const foundBuiltin = tryGetBuiltInType(dataTypeIdentifier);
     if (foundBuiltin !== undefined) return {symbol: foundBuiltin, sourceScope: undefined};
 
-    const foundSymbol = findSymbolWithParent(searchScope, dataTypeIdentifier.text);
+    let foundSymbol = findSymbolWithParent(searchScope, dataTypeIdentifier.text);
+    if (foundSymbol !== undefined
+        && isSymbolConstructorInScope(foundSymbol.symbol, foundSymbol.scope)
+        && foundSymbol.scope.parentScope !== undefined
+    ) {
+        // コンストラクタの場合は上の階層を探索
+        foundSymbol = findSymbolWithParent(foundSymbol.scope.parentScope, dataTypeIdentifier.text);
+    }
+
     if (foundSymbol === undefined) {
         diagnostic.addError(nodeType.dataType.identifier.location, `Undefined type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;

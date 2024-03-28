@@ -1,5 +1,6 @@
-import {SymbolOwnerNode, SymbolScope} from "./symbolic";
+import {SymbolAndScope, SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
+import {NodeName} from "./nodes";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
@@ -108,4 +109,12 @@ export function findScopeShallowlyOrInsert(
 export function findGlobalScope(scope: SymbolScope): SymbolScope {
     if (scope.parentScope === undefined) return scope;
     return findGlobalScope(scope.parentScope);
+}
+
+export function isSymbolConstructorInScope(symbol: SymbolicObject, scope: SymbolScope): boolean {
+    return symbol !== undefined
+        && symbol.symbolKind === SymbolKind.Function
+        && scope.ownerNode !== undefined
+        && scope.ownerNode.nodeName === NodeName.Class
+        && scope.ownerNode.identifier.text === symbol.declaredPlace.text;
 }
