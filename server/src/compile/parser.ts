@@ -53,8 +53,9 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParseFailure, ParsingState, ParsingToken, TriedParse} from "./parsing";
+import {ParsingToken} from "./parsing";
 import {TokenKind} from "./token";
+import {ParseFailure, ParsingState, TriedParse} from "./parsingState";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {

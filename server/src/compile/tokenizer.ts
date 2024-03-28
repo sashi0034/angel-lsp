@@ -1,72 +1,8 @@
-import {Position, URI} from 'vscode-languageserver';
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {Trie} from "../utils/trie";
 import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./token";
 import {diagnostic} from "../code/diagnostic";
-
-class ReadingState {
-    public readonly str: URI;
-    private cursor: number;
-    private head: Position;
-
-    public getCursor() {
-        return this.cursor;
-    }
-
-    constructor(str: string) {
-        this.str = str;
-        this.cursor = 0;
-        this.head = {line: 0, character: 0};
-    }
-
-    next(offset: number = 0) {
-        return this.str[this.cursor + offset];
-    }
-
-    isEnd() {
-        return this.cursor >= this.str.length;
-    }
-
-    isNext(expected: string) {
-        return this.str.substring(this.cursor, this.cursor + expected.length) === expected;
-    }
-
-    isNextWrap() {
-        const next = this.next();
-        return next === '\r' || next === '\n';
-    }
-
-    isNextWhitespace() {
-        const next = this.str[this.cursor];
-        return next === ' ' || next === '\t';
-    }
-
-    stepNext() {
-        if (this.isEnd()) return;
-
-        if (this.isNextWrap()) {
-            this.head.line++;
-            this.head.character = 0;
-            if (this.isNext('\r\n')) this.cursor += 2;
-            else this.cursor += 1;
-        } else {
-            this.head.character++;
-            this.cursor += 1;
-        }
-    }
-
-    stepFor(count: number) {
-        this.head.character += count;
-        this.cursor += count;
-    }
-
-    copyHead() {
-        return {
-            line: this.head.line,
-            character: this.head.character
-        };
-    }
-}
+import {TokenizingState} from "./tokenizingState";
 
 function isDigit(str: string): boolean {
     return /^[0-9]$/.test(str);
@@ -76,7 +12,7 @@ function isAlnum(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-function tryComment(reading: ReadingState) {
+function tryComment(reading: TokenizingState) {
     if (reading.isNext('//')) {
         reading.stepFor(2);
         let comment = '//';
@@ -112,14 +48,14 @@ const allSymbolArray = [
 
 const allSymbolTrie = Trie.fromArray(allSymbolArray);
 
-function trySymbol(reading: ReadingState) {
+function trySymbol(reading: TokenizingState) {
     const symbol = allSymbolTrie.find(reading.str, reading.getCursor());
     reading.stepFor(symbol.length);
     return symbol;
 }
 
 // 数値解析
-function tryNumber(reading: ReadingState) {
+function tryNumber(reading: TokenizingState) {
     let result: string = "";
     let isFloating = false;
 
@@ -140,7 +76,7 @@ function tryNumber(reading: ReadingState) {
 }
 
 // 文字列解析
-function tryString(reading: ReadingState) {
+function tryString(reading: TokenizingState) {
     let result: string = "";
     if (reading.next() !== '\'' && reading.next() !== '"') return "";
     const startQuote: '\'' | '"' | '"""' = (() => {
@@ -187,7 +123,7 @@ const allKeywordArray = [
 
 const allKeywords = new Set(allKeywordArray);
 
-function tryIdentifier(reading: ReadingState) {
+function tryIdentifier(reading: TokenizingState) {
     let result: string = "";
     while (reading.isEnd() === false && isAlnum(reading.next())) {
         result += reading.next();
@@ -230,7 +166,7 @@ class UnknownBuffer {
 
 export function tokenize(str: string, path: string): TokenizingToken[] {
     const tokens: TokenizingToken[] = [];
-    const reading = new ReadingState(str);
+    const reading = new TokenizingState(str);
     const unknownBuffer = new UnknownBuffer();
 
     for (; ;) {

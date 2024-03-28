@@ -1,10 +1,10 @@
 import {diagnostic} from "../code/diagnostic";
 import {getNodeLocation, NodeConstructCall, NodeFuncCall, NodeName} from "./nodes";
 import {DeducedType, SymbolicFunction, SymbolScope} from "./symbolic";
-import {isTypeMatch} from "./typeMatch";
+import {isTypeMatch} from "./checkType";
 import {ParsingToken} from "./parsing";
 
-export function analyzeFunctionMatch(
+export function checkFunctionMatch(
     scope: SymbolScope,
     callerNode: NodeFuncCall | NodeConstructCall,
     callerArgs: (DeducedType | undefined)[],
@@ -25,7 +25,7 @@ export function analyzeFunctionMatch(
             if (param.defaultExpr === undefined) {
                 // デフォルト値も存在しない場合
                 // オーバーロードが存在するなら採用
-                if (calleeFunc.nextOverload !== undefined) return analyzeFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
                 diagnostic.addError(getNodeLocation(callerNode.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
                 break;
             }
@@ -37,7 +37,7 @@ export function analyzeFunctionMatch(
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロードが存在するなら使用
-        if (calleeFunc.nextOverload !== undefined) return analyzeFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
         diagnostic.addError(getNodeLocation(callerNode.argList.argList[i].assign.nodeRange),
             `Cannot convert '${actualType.symbol.declaredPlace.text}' to parameter type '${expectedType.symbol.declaredPlace.text}' 💢`);
     }
@@ -53,7 +53,7 @@ function handleTooMuchCallerArgs(
     calleeFunc: SymbolicFunction
 ) {
     // オーバーロードが存在するなら採用
-    if (calleeFunc.nextOverload !== undefined) return analyzeFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
 
     diagnostic.addError(getNodeLocation(callerNode.nodeRange),
         `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgs.length} were provided 💢`);

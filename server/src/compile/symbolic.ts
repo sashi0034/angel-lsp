@@ -18,8 +18,13 @@ export enum PrimitiveType {
 
 export type SourceType = NodeEnum | NodeClass | PrimitiveType;
 
-export function isPrimitiveType(type: SourceType): type is PrimitiveType {
+export function isSourcePrimitiveType(type: SourceType): type is PrimitiveType {
     return typeof type === 'string';
+}
+
+export function isSourceNodeClass(type: SourceType): type is NodeClass {
+    if (isSourcePrimitiveType(type)) return false;
+    return type.nodeName === NodeName.Class;
 }
 
 export interface SymbolicBase {

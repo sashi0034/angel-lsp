@@ -1,11 +1,10 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    ParsedEnumMember,
     funcHeadDestructor,
     getNextTokenIfExist,
     getNodeLocation,
-    isFunctionHeadReturns,
+    isFunctionHeadReturns, isMethodMemberInPostOp,
     NodeArgList,
     NodeAssign,
     NodeCase,
@@ -38,7 +37,8 @@ import {
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeWhile
+    NodeWhile,
+    ParsedEnumMember
 } from "./nodes";
 import {
     builtinBoolType,
@@ -46,9 +46,7 @@ import {
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
-    insertSymbolicObject,
-    isPrimitiveType,
-    PrimitiveType,
+    insertSymbolicObject, isSourceNodeClass, isSourcePrimitiveType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -59,7 +57,6 @@ import {
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
 import {TokenKind} from "./token";
-import {ParsingToken} from "./parsing";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -70,7 +67,7 @@ import {
     findScopeShallowlyOrInsert,
     findScopeWithParent
 } from "./scope";
-import {analyzeFunctionMatch} from "./functionMatch";
+import {checkFunctionMatch} from "./checkFunction";
 
 type HoistingQueue = (() => void)[];
 
@@ -278,7 +275,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
 
     const ownerNode = searchScope.ownerNode;
     const dataTypeIdentifier = nodeType.dataType.identifier;
-    if (ownerNode?.nodeName === 'Class' && ownerNode.identifier.text === dataTypeIdentifier.text) {
+    if (ownerNode?.nodeName === NodeName.Class && ownerNode.identifier.text === dataTypeIdentifier.text) {
         // コンストラクタと衝突するので上の階層から探す
         searchScope = scope.parentScope ?? searchScope;
     }
@@ -552,9 +549,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if (exprPostOp.member === undefined) return undefined;
 
-    if ('nodeName' in exprPostOp.member) {
+    if (isMethodMemberInPostOp(exprPostOp.member)) {
         // メソッド診断
-        if (typeof (exprValue.sourceType) === 'string' || exprValue.sourceType.nodeName !== NodeName.Class) {
+        if (isSourceNodeClass(exprValue.sourceType) === false) {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
         }
@@ -619,7 +616,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
 function analyzeFunctionCaller(scope: SymbolScope, callerNode: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
     const callerArgs = analyzeArgList(scope, callerNode.argList);
-    return analyzeFunctionMatch(scope, callerNode, callerArgs, calleeFunc);
+    return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc);
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER

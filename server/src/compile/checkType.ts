@@ -1,4 +1,4 @@
-import {DeducedType, findSymbolShallowly, isPrimitiveType, PrimitiveType, SymbolKind} from "./symbolic";
+import {DeducedType, findSymbolShallowly, isSourcePrimitiveType, PrimitiveType, SymbolKind} from "./symbolic";
 import {NodeName} from "./nodes";
 import {findScopeShallowly} from "./scope";
 
@@ -17,7 +17,7 @@ export function isTypeMatch(src: DeducedType, dest: DeducedType) {
     }
     // TODO : 継承などに対応
     if (srcNode.nodeName === NodeName.Class) {
-        if (isPrimitiveType(destType.sourceType) || destType.sourceType.nodeName !== NodeName.Class) {
+        if (isSourcePrimitiveType(destType.sourceType) || destType.sourceType.nodeName !== NodeName.Class) {
             return false;
         }
         const destIdentifier = destType.sourceType.identifier.text;

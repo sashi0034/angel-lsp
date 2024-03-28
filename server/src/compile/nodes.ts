@@ -423,6 +423,10 @@ export interface NodeExprPostOp1 extends NodesBase {
     member: NodeFuncCall | ParsingToken | undefined;
 }
 
+export function isMethodMemberInPostOp(member: NodeFuncCall | ParsingToken | undefined): member is NodeFuncCall {
+    return member !== undefined && 'nodeName' in member;
+}
+
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 export interface NodeExprPostOp2 extends NodesBase {
     nodeName: NodeName.ExprPostOp;
