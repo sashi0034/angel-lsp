@@ -16,6 +16,12 @@ export enum PrimitiveType {
     Void = 'Void',
 }
 
+export type SourceType = NodeEnum | NodeClass | PrimitiveType;
+
+export function isPrimitiveType(type: SourceType): type is PrimitiveType {
+    return typeof type === 'string';
+}
+
 export interface SymbolicBase {
     symbolKind: SymbolKind;
     declaredPlace: ParsingToken;
@@ -23,13 +29,14 @@ export interface SymbolicBase {
 
 export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
-    sourceNode: NodeEnum | NodeClass | PrimitiveType;
+    sourceType: SourceType;
 }
 
 export interface SymbolicFunction extends SymbolicBase {
     symbolKind: SymbolKind.Function;
     sourceNode: NodeFunc;
     returnType: DeducedType | undefined;
+    // TODO: 引数も
     overloadedAlt: SymbolicFunction | undefined;
 }
 
@@ -126,7 +133,7 @@ function createBuiltinType(name: PrimitiveType): SymbolicType {
     return {
         symbolKind: SymbolKind.Type,
         declaredPlace: dummyToken,
-        sourceNode: name,
+        sourceType: name,
     } as const;
 }
 

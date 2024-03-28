@@ -10,7 +10,8 @@ import {
     NodeAssign,
     NodeCase,
     NodeClass,
-    NodeCondition, NodeConstructCall,
+    NodeCondition,
+    NodeConstructCall,
     NodeDoWhile,
     NodeEnum,
     NodeExpr,
@@ -46,6 +47,7 @@ import {
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
+    isPrimitiveType,
     PrimitiveType,
     SymbolicFunction,
     SymbolicType,
@@ -60,7 +62,9 @@ import {TokenKind} from "./token";
 import {ParsingToken} from "./parsing";
 import {
     AnalyzedScope,
-    copySymbolsInScope, createSymbolScope, createSymbolScopeAndInsert,
+    copySymbolsInScope,
+    createSymbolScope,
+    createSymbolScopeAndInsert,
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
@@ -115,7 +119,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
-        sourceNode: nodeEnum,
+        sourceType: nodeEnum,
     };
 
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
@@ -139,7 +143,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
-        sourceNode: nodeClass,
+        sourceType: nodeClass,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier.text);
@@ -260,42 +264,57 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         searchScope = scope.parentScope ?? searchScope;
     }
 
-    const found = tryGetBuiltInType(dataTypeIdentifier)
-        ?? findSymbolWithParent(searchScope, dataTypeIdentifier.text)?.symbol;
-    if (found === undefined) {
+    const foundBuiltin = tryGetBuiltInType(dataTypeIdentifier);
+    if (foundBuiltin !== undefined) return {symbol: foundBuiltin, sourceScope: undefined};
+
+    const foundSymbol = findSymbolWithParent(searchScope, dataTypeIdentifier.text);
+    if (foundSymbol === undefined) {
         diagnostic.addError(nodeType.dataType.identifier.location, `Undefined type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;
-    } else if (found.symbolKind !== SymbolKind.Type) {
+    } else if (foundSymbol.symbol.symbolKind !== SymbolKind.Type) {
         diagnostic.addError(nodeType.dataType.identifier.location, `Not a type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;
     }
 
     scope.referencedList.push({
-        declaredSymbol: found,
+        declaredSymbol: foundSymbol.symbol,
         referencedToken: nodeType.dataType.identifier
     });
-    return {symbol: found, sourceScope: searchScope};
+    return {symbol: foundSymbol.symbol, sourceScope: foundSymbol.scope};
 }
 
 function isTypeMatch(src: DeducedType, dest: DeducedType) {
     const srcType = src.symbol;
     const destType = dest.symbol;
-    const srcNode = srcType.sourceNode;
+    const srcNode = srcType.sourceType;
     if (srcNode === PrimitiveType.Void) {
         return false;
     }
     if (srcNode === PrimitiveType.Number) {
-        return destType.sourceNode === PrimitiveType.Number;
+        return destType.sourceType === PrimitiveType.Number;
     }
     if (srcNode === PrimitiveType.Bool) {
-        return destType.sourceNode === PrimitiveType.Bool;
+        return destType.sourceType === PrimitiveType.Bool;
     }
     // TODO : 継承などに対応
     if (srcNode.nodeName === NodeName.Class) {
-        if (typeof (destType.sourceNode) === 'string' || destType.sourceNode.nodeName !== NodeName.Class) {
+        if (isPrimitiveType(destType.sourceType) || destType.sourceType.nodeName !== NodeName.Class) {
             return false;
         }
-        return srcNode.identifier.text === destType.sourceNode.identifier.text;
+        const destIdentifier = destType.sourceType.identifier.text;
+        if (srcNode.identifier.text === destIdentifier) return true;
+
+        if (dest.sourceScope === undefined) return false;
+
+        // コンストラクタに当てはまるかで判定
+        const constructorScope = findScopeShallowly(dest.sourceScope, destIdentifier);
+        if (constructorScope === undefined || constructorScope.ownerNode?.nodeName !== NodeName.Class) return false;
+
+        const constructor = findSymbolShallowly(constructorScope, destIdentifier);
+        if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
+        if (constructor.sourceNode.paramList.length === 1 && constructor.sourceNode.paramList[0].type.dataType.identifier.text === destIdentifier) {
+            return true;
+        }
     }
 
     return false;
@@ -553,14 +572,14 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if ('nodeName' in exprPostOp.member) {
         // メソッド診断
-        if (typeof (exprValue.sourceNode) === 'string' || exprValue.sourceNode.nodeName !== NodeName.Class) {
+        if (typeof (exprValue.sourceType) === 'string' || exprValue.sourceType.nodeName !== NodeName.Class) {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
         }
 
-        const classScope = findScopeWithParent(scope, exprValue.sourceNode.identifier.text);
+        const classScope = findScopeWithParent(scope, exprValue.sourceType.identifier.text);
         if (classScope === undefined) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.sourceNode.identifier.text}`);
+            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.sourceType.identifier.text}`);
             return undefined;
         }
 
@@ -696,7 +715,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
         referencedToken: token
     });
     if (declared.symbol.type === undefined) return undefined;
-    return {symbol: declared.symbol.type, sourceScope: scope};
+    return {symbol: declared.symbol.type, sourceScope: declared.scope};
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
