@@ -71,6 +71,11 @@ export interface ScopeServiceInfo {
 
 export type SymbolScope = ScopeBirthInfo & ScopeContainInfo & ScopeServiceInfo;
 
+export interface SymbolAndScope {
+    symbol: SymbolicObject;
+    scope: SymbolScope;
+}
+
 export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): boolean {
     const identifier = symbol.declaredPlace.text;
     const hit = map.get(identifier);
@@ -97,6 +102,7 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
 
 export interface DeducedType {
     symbol: SymbolicType;
+    sourceScope: SymbolScope | undefined;
 }
 
 export interface ComplementBase {
@@ -147,9 +153,9 @@ export function findSymbolShallowly(scope: SymbolScope, identifier: string): Sym
     return scope.symbolMap.get(identifier);
 }
 
-export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
+export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
     const symbol = scope.symbolMap.get(identifier);
-    if (symbol !== undefined) return symbol;
+    if (symbol !== undefined) return {symbol: symbol, scope: scope};
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier);
 }

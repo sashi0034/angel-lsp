@@ -260,7 +260,8 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         searchScope = scope.parentScope ?? searchScope;
     }
 
-    const found = tryGetBuiltInType(dataTypeIdentifier) ?? findSymbolWithParent(searchScope, dataTypeIdentifier.text);
+    const found = tryGetBuiltInType(dataTypeIdentifier)
+        ?? findSymbolWithParent(searchScope, dataTypeIdentifier.text)?.symbol;
     if (found === undefined) {
         diagnostic.addError(nodeType.dataType.identifier.location, `Undefined type: ${nodeType.dataType.identifier.text} 💢`);
         return undefined;
@@ -273,7 +274,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         declaredSymbol: found,
         referencedToken: nodeType.dataType.identifier
     });
-    return {symbol: found};
+    return {symbol: found, sourceScope: searchScope};
 }
 
 function isTypeMatch(src: DeducedType, dest: DeducedType) {
@@ -506,7 +507,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, constructorType: SymbolicType) {
+function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, constructorType: SymbolicType): DeducedType | undefined {
     const classScope = findScopeWithParent(scope, funcCall.identifier.text);
     if (classScope === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined class: ${funcCall.identifier.text} 💢`);
@@ -520,7 +521,7 @@ function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, co
     }
 
     analyzeFuncCallWithCallee(scope, funcCall, constructor);
-    return {symbol: constructorType};
+    return {symbol: constructorType, sourceScope: classScope};
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
@@ -581,11 +582,11 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
     if (literal.value.kind === TokenKind.Number) {
-        return {symbol: builtinNumberType};
+        return {symbol: builtinNumberType, sourceScope: undefined};
     }
     const literalText = literal.value.text;
     if (literalText === 'true' || literalText === 'false') {
-        return {symbol: builtinBoolType};
+        return {symbol: builtinBoolType, sourceScope: undefined};
     }
     // TODO
     return undefined;
@@ -598,7 +599,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         if (namespaceScope === undefined) return undefined;
         scope = namespaceScope;
     }
-    const calleeFunc = findSymbolWithParent(scope, funcCall.identifier.text);
+    const calleeFunc = findSymbolWithParent(scope, funcCall.identifier.text)?.symbol;
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
         return undefined;
@@ -686,15 +687,16 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
     if (declared === undefined) {
         diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
         return undefined;
-    } else if (declared.symbolKind !== SymbolKind.Variable) {
+    } else if (declared.symbol.symbolKind !== SymbolKind.Variable) {
         diagnostic.addError(token.location, `Not a variable: ${token.text}`);
         return undefined;
     }
     scope.referencedList.push({
-        declaredSymbol: declared,
+        declaredSymbol: declared.symbol,
         referencedToken: token
     });
-    return declared.type === undefined ? undefined : {symbol: declared.type};
+    if (declared.symbol.type === undefined) return undefined;
+    return {symbol: declared.symbol.type, sourceScope: scope};
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
