@@ -1417,7 +1417,7 @@ function parseArgList(parsing: ParsingState): NodeArgList | undefined {
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function parseAssign(parsing: ParsingState): NodeAssign | undefined {
     const rangeStart = parsing.next();
-    const condition = parseCONDITION(parsing);
+    const condition = parseCondition(parsing);
     if (condition === undefined) return undefined;
     const op = parseAssignOp(parsing);
     const result: NodeAssign = {
@@ -1443,7 +1443,7 @@ function expectAssign(parsing: ParsingState): NodeAssign | undefined {
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-function parseCONDITION(parsing: ParsingState): NodeCondition | undefined {
+function parseCondition(parsing: ParsingState): NodeCondition | undefined {
     const rangeStart = parsing.next();
     const expr = parseExpr(parsing);
     if (expr === undefined) return undefined;
