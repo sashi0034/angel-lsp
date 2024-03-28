@@ -70,7 +70,7 @@ import {
     findScopeShallowlyOrInsert,
     findScopeWithParent
 } from "./scope";
-import {isTypeMatch} from "./typeMatch";
+import {analyzeFunctionMatch} from "./functionMatch";
 
 type HoistingQueue = (() => void)[];
 
@@ -248,12 +248,11 @@ function analyzeStatBlock(scope: SymbolScope, ast: NodeStatBlock) {
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     const deducedTypes: (DeducedType | undefined)[] = [];
     for (const param of paramList) {
-        if (param.identifier === undefined) continue;
-
         const type = analyzeType(scope, param.type);
         if (type === undefined) deducedTypes.push(undefined);
         else deducedTypes.push(type);
 
+        if (param.identifier === undefined) continue;
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             type: type?.symbol,
@@ -619,61 +618,8 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 }
 
 function analyzeFunctionCaller(scope: SymbolScope, callerNode: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
-    const pushReference = () => {
-        const callerIdentifier = getIdentifierInFuncOrConstructor(callerNode);
-        scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
-    };
-
-    const returnType = calleeFunc.returnType;
     const callerArgs = analyzeArgList(scope, callerNode.argList);
-
-    const calleeParams = calleeFunc.sourceNode.paramList;
-
-    // 呼び出し側の引数の数が多すぎる場合はエラー
-    if (callerArgs.length > calleeParams.length) {
-        // オーバーロード存在するなら採用
-        if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
-        diagnostic.addError(getNodeLocation(callerNode.nodeRange),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgs.length} were provided 💢`);
-        pushReference();
-        return returnType;
-    }
-
-    for (let i = 0; i < calleeParams.length; i++) {
-        const expectedType = calleeFunc.parameterTypes[i];
-        let actualType: DeducedType | undefined;
-        if (i >= callerArgs.length) {
-            // デフォルト値があればそれを採用
-            const param = calleeParams[i];
-            if (param.defaultExpr === undefined) {
-                // オーバーロード存在するなら採用
-                if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
-                diagnostic.addError(getNodeLocation(callerNode.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
-                break;
-            }
-            actualType = analyzeExpr(scope, param.defaultExpr);
-        } else {
-            actualType = callerArgs[i];
-        }
-        if (actualType === undefined || expectedType === undefined) continue;
-        if (isTypeMatch(actualType, expectedType)) continue;
-
-        // オーバーロード存在するなら使用
-        if (calleeFunc.nextOverload !== undefined) return analyzeFunctionCaller(scope, callerNode, calleeFunc.nextOverload);
-        diagnostic.addError(getNodeLocation(callerNode.argList.argList[i].assign.nodeRange),
-            `Cannot convert '${actualType.symbol.declaredPlace.text}' to parameter type '${expectedType.symbol.declaredPlace.text}' 💢`);
-    }
-
-    pushReference();
-    return returnType;
-}
-
-function getIdentifierInFuncOrConstructor(funcCall: NodeFuncCall | NodeConstructCall): ParsingToken {
-    if (funcCall.nodeName === NodeName.FuncCall) {
-        return funcCall.identifier;
-    } else {
-        return funcCall.type.dataType.identifier;
-    }
+    return analyzeFunctionMatch(scope, callerNode, callerArgs, calleeFunc);
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
