@@ -10,6 +10,7 @@ import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
+import {DocumentPath} from "./documentPath";
 
 interface InspectResult {
     diagnostics: Diagnostic[];
@@ -27,20 +28,21 @@ const emptyResult: InspectResult = {
     analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
 } as const;
 
-export function getInspectedResultFromUri(uri: URI): InspectResult {
-    const result = s_inspectedResults[fileURLToPath(uri)];
+export function getInspectedResult(document: DocumentPath): InspectResult {
+    const path = document.path;
+    const result = s_inspectedResults[path];
     if (result === undefined) return emptyResult;
     return result;
 }
 
-export function inspectFile(document: string, uri: URI) {
-    const path = fileURLToPath(uri);
+export function inspectFile(content: string, document: DocumentPath) {
+    const path = document.path;
 
     // 事前定義ファイルの読み込み
     checkInspectPredefined();
 
     // 解析結果をキャッシュ
-    s_inspectedResults[path] = inspectInternal(document, path);
+    s_inspectedResults[path] = inspectInternal(content, path);
 }
 
 function checkInspectPredefined() {
@@ -53,13 +55,13 @@ function checkInspectPredefined() {
     s_predefinedPath = predefined.fullPath;
 }
 
-function inspectInternal(document: string, path: string): InspectResult {
+function inspectInternal(content: string, path: string): InspectResult {
     diagnostic.reset();
 
     profiler.restart();
 
     // 字句解析
-    const tokenizedTokens = tokenize(document, path);
+    const tokenizedTokens = tokenize(content, path);
     profiler.stamp("tokenizer");
 
     // 構文解析

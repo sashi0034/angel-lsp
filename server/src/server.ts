@@ -21,13 +21,11 @@ import {
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {jumpDefinition} from "./serve/definition";
-import {getInspectedResultFromUri, inspectFile} from "./serve/inspector";
-import {CompletionRequest} from "vscode-languageserver";
+import {getInspectedResult, inspectFile} from "./serve/inspector";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
 import {pathToFileURL} from "node:url";
-import uriToFilePath = Files.uriToFilePath;
-import {fileURLToPath} from "url";
+import {getDocumentPath} from "./serve/documentPath";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -156,18 +154,18 @@ documents.onDidClose(e => {
 connection.languages.diagnostics.on(async (params) => {
     return {
         kind: DocumentDiagnosticReportKind.Full,
-        items: getInspectedResultFromUri(params.textDocument.uri).diagnostics
+        items: getInspectedResult(getDocumentPath(params)).diagnostics
     } satisfies DocumentDiagnosticReport;
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return buildSemanticTokens(getInspectedResultFromUri(params.textDocument.uri).tokenizedTokens);
+    return buildSemanticTokens(getInspectedResult(getDocumentPath(params)).tokenizedTokens);
 });
 
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
-    const analyzedScope = getInspectedResultFromUri(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
     if (analyzedScope === undefined) return;
     const caret = params.position;
     const jumping = jumpDefinition(analyzedScope.fullScope, caret);
@@ -184,7 +182,7 @@ connection.onDefinition((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    inspectFile(change.document.getText(), change.document.uri);
+    inspectFile(change.document.getText(), getDocumentPath(change));
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -199,9 +197,10 @@ connection.onCompletion(
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const diagnosedScope = getInspectedResultFromUri(params.textDocument.uri).analyzedScope;
+        const path = getDocumentPath(params);
+        const diagnosedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return searchCompletionItems(diagnosedScope.fullScope, params.position, fileURLToPath(params.textDocument.uri));
+        return searchCompletionItems(diagnosedScope.fullScope, params.position, path);
 
         // return [
         //     {

@@ -9,9 +9,13 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation, NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/token";
 import {collectParentScopes, findGlobalScope, findScopeShallowly, findScopeWithParent} from "../compile/scope";
+import {DocumentPath} from "./documentPath";
 
-export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position, path: string): CompletionItem[] {
+export function searchCompletionItems(
+    diagnosedScope: SymbolScope, caret: Position, documentPath: DocumentPath
+): CompletionItem[] {
     const items: CompletionItem[] = [];
+    const path = documentPath.path;
 
     const targetScope = findIncludedScopes(diagnosedScope, caret, path);
 
