@@ -13,7 +13,7 @@ import {
     InitializeResult,
     DocumentDiagnosticReportKind,
     type DocumentDiagnosticReport,
-    SemanticTokensBuilder,
+    SemanticTokensBuilder, Files,
 } from 'vscode-languageserver/node';
 
 import {
@@ -26,6 +26,8 @@ import {CompletionRequest} from "vscode-languageserver";
 import {searchCompletionItems} from "./serve/completion";
 import {buildSemanticTokens} from "./serve/semantiTokens";
 import {pathToFileURL} from "node:url";
+import uriToFilePath = Files.uriToFilePath;
+import {fileURLToPath} from "url";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -199,7 +201,7 @@ connection.onCompletion(
 
         const diagnosedScope = getInspectedResultFromUri(params.textDocument.uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return searchCompletionItems(diagnosedScope.fullScope, params.position);
+        return searchCompletionItems(diagnosedScope.fullScope, params.position, fileURLToPath(params.textDocument.uri));
 
         // return [
         //     {

@@ -10,10 +10,10 @@ import {getNodeLocation, NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/token";
 import {collectParentScopes, findGlobalScope, findScopeShallowly, findScopeWithParent} from "../compile/scope";
 
-export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position): CompletionItem[] {
+export function searchCompletionItems(diagnosedScope: SymbolScope, caret: Position, path: string): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    const targetScope = findIncludedScopes(diagnosedScope, caret);
+    const targetScope = findIncludedScopes(diagnosedScope, caret, path);
 
     // スコープ内に優先的に補完する対象があるなら、それについての補完候補を返す
     const primeCompletion = checkMissingCompletionInScope(targetScope, caret);
@@ -38,13 +38,15 @@ function getCompletionSymbolsInScope(scope: SymbolScope) {
     return items;
 }
 
-function findIncludedScopes(scope: SymbolScope, caret: Position): SymbolScope {
+function findIncludedScopes(scope: SymbolScope, caret: Position, path: string): SymbolScope {
     for (const [childName, childScope] of scope.childScopes) {
         if (childScope.ownerNode === undefined) continue;
 
         const location = getNodeLocation(childScope.ownerNode.scopeRange);
+        if (location.path !== path) continue;
+
         if (isPositionInRange(caret, location)) {
-            const found = findIncludedScopes(childScope, caret);
+            const found = findIncludedScopes(childScope, caret, path);
             if (found !== undefined) return found;
         }
     }
