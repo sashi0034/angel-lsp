@@ -58,6 +58,10 @@ export class TokenizingState {
         this.cursor += count;
     }
 
+    substrFrom(start: number) {
+        return this.content.substring(start, this.cursor);
+    }
+
     copyHead() {
         return {
             line: this.head.line,

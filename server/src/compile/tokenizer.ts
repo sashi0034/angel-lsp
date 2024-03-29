@@ -41,38 +41,34 @@ function createTokenComment(comment: string, location: LocationInfo): TokenComme
 }
 
 function tokenizeLineComment(reading: TokenizingState, location: LocationInfo) {
+    const start = reading.getCursor();
     reading.stepFor(2);
-    let comment = '//';
     for (; ;) {
         if (reading.isEnd() || reading.isNextWrap()) break;
-        comment += reading.next();
         reading.stepNext();
     }
     location.end = reading.copyHead();
-    return createTokenComment(comment, location);
+    return createTokenComment(reading.substrFrom(start), location);
 }
 
 function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) {
+    const start = reading.getCursor();
     reading.stepFor(2);
-    let comment = '/*';
     for (; ;) {
         if (reading.isEnd()) break;
         if (reading.isNext('*/')) {
-            comment += '*/';
             reading.stepFor(2);
             break;
         }
-        if (reading.isNext('\r\n')) comment += '\r\n';
-        else comment += reading.next();
         reading.stepNext();
     }
     location.end = reading.copyHead();
-    return createTokenComment(comment, location);
+    return createTokenComment(reading.substrFrom(start), location);
 }
 
 // 数値解析
 function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
-    let result: string = "";
+    const start = reading.getCursor();
     let isFloating = false;
 
     for (; ;) {
@@ -81,19 +77,18 @@ function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumbe
         const floatStart = next === '.' && isFloating === false;
         const floatEnd = next === 'f' && isFloating;
         if (isDigit(next) || floatStart || floatEnd) {
-            result += next;
             reading.stepFor(1);
             if (floatStart) isFloating = true;
             if (floatEnd) break;
         } else break;
     }
 
-    if (result === "") return undefined;
+    if (start === reading.getCursor()) return undefined;
 
     location.end = reading.copyHead();
     return {
         kind: TokenKind.Number,
-        text: result,
+        text: reading.substrFrom(start),
         location: location,
         highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
     };
@@ -101,14 +96,14 @@ function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumbe
 
 // 文字列解析
 function tryString(reading: TokenizingState, location: LocationInfo): TokenString | undefined {
-    let result: string = "";
+
+    const start = reading.getCursor();
     if (reading.next() !== '\'' && reading.next() !== '"') return undefined;
     const startQuote: '\'' | '"' | '"""' = (() => {
         if (reading.isNext('"""')) return '"""';
         else if (reading.isNext('"')) return '"';
         return '\'';
     })();
-    result += startQuote;
     reading.stepFor(startQuote.length);
 
     let isEscaping = false;
@@ -122,7 +117,6 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
             }, 'Missing end quote ' + startQuote);
             break;
         } else if (isEscaping === false && reading.isNext(startQuote)) {
-            result += startQuote;
             reading.stepFor(startQuote.length);
             break;
         } else {
@@ -131,7 +125,6 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
             } else {
                 isEscaping = false;
             }
-            result += reading.next();
             reading.stepNext();
         }
     }
@@ -139,7 +132,7 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
     location.end = reading.copyHead();
     return {
         kind: TokenKind.String,
-        text: result,
+        text: reading.substrFrom(start),
         location: location,
         highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
     };
@@ -167,12 +160,13 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 
 // 識別子解析
 function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizingToken | TokenIdentifier | undefined {
-    let identifier: string = "";
+    const start = reading.getCursor();
     while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
-        identifier += reading.next();
         reading.stepFor(1);
     }
-    if (identifier.length === 0) return undefined;
+
+    const identifier = reading.substrFrom(start);
+    if (identifier === "") return undefined;
 
     location.end = reading.copyHead();
 
