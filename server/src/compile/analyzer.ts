@@ -685,10 +685,10 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | un
 export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
-    const ta = analyzeAssign(scope, condition.ternary.ta);
-    const fa = analyzeAssign(scope, condition.ternary.fa);
-    // if (ta !== undefined && fa !== undefined) checkTypeMatch(ta, fa);
-    return ta;
+    const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
+    const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
+    // if (trueAssign !== undefined && falseAssign !== undefined) checkTypeMatch(trueAssign, falseAssign);
+    return trueAssign;
 }
 
 export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {

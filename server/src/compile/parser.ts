@@ -50,12 +50,13 @@ import {
     NodeWhile,
     ReferenceModifier,
     setEntityModifier,
-    TypeModifier
+    TypeModifier, NodeInitList, ParsedVariableInit
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingToken} from "./parsing";
 import {TokenKind} from "./token";
 import {ParseFailure, ParsingState, TriedParse} from "./parsingState";
+import {diagnostic} from "../code/diagnostic";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {
@@ -390,14 +391,9 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
     const rangeStart = parsing.next();
 
     const type = parseType(parsing);
-    if (type === undefined) {
-        // parsing.error("Expected type");
-        return undefined;
-    }
-    const variables: {
-        identifier: ParsingToken,
-        initializer: NodeExpr | NodeArgList | undefined
-    }[] = [];
+    if (type === undefined) return undefined;
+
+    const variables: ParsedVariableInit[] = [];
     while (parsing.isEnd() === false) {
         // 識別子
         const identifier = parsing.next();
@@ -418,11 +414,8 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
             break;
         } else if (parsing.next().text === '=') {
             parsing.confirm(HighlightTokenKind.Operator);
-
-            const expr = expectExpr(parsing);
-            if (expr === undefined) return undefined;
-
-            variables.push({identifier: identifier, initializer: expr});
+            const initListOrExpr = expectInitListOrExpr(parsing);
+            variables.push({identifier: identifier, initializer: initListOrExpr});
         } else {
             const argList = parseArgList(parsing);
             variables.push({identifier: identifier, initializer: argList});
@@ -437,7 +430,7 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
             break;
         }
 
-        parsing.error("Expected ',' or ';'");
+        parsing.error("Expected ',' or ';' ❌");
         parsing.step();
     }
 
@@ -448,6 +441,20 @@ function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): 
         type: type,
         variables: variables
     };
+}
+
+function expectInitListOrExpr(parsing: ParsingState) {
+    const initList = parseInitList(parsing);
+    if (initList !== undefined) {
+        return initList;
+    }
+
+    const expr = expectExpr(parsing);
+    if (expr !== undefined) {
+        return expr;
+    }
+
+    parsing.error("Expected initializer list or expression ❌");
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
@@ -622,6 +629,42 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+function parseInitList(parsing: ParsingState): NodeInitList | undefined {
+    if (parsing.next().text !== '{') return undefined;
+    const rangeStart = parsing.next();
+    parsing.confirm(HighlightTokenKind.Operator);
+
+    const initList: (NodeAssign | NodeInitList)[] = [];
+    while (parsing.isEnd() === false) {
+        if (parsing.next().text === '}') {
+            parsing.confirm(HighlightTokenKind.Operator);
+            break;
+        }
+        if (initList.length > 0) {
+            parsing.expect(',', HighlightTokenKind.Operator);
+        }
+
+        const assign = parseAssign(parsing);
+        if (assign !== undefined) {
+            initList.push(assign);
+            continue;
+        }
+
+        const parsedInits = parseInitList(parsing);
+        if (parsedInits !== undefined) {
+            initList.push(parsedInits);
+            continue;
+        }
+
+        parsing.error("Expected assignment or initializer list ❌");
+        parsing.step();
+    }
+    return {
+        nodeName: NodeName.InitList,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        initList: initList
+    };
+}
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parsing: ParsingState): NodeScope | undefined {
@@ -1159,12 +1202,13 @@ function parseExprPostOp(parsing: ParsingState): NodeExprPostOp | undefined {
     if (exprPostOp2 !== undefined) return exprPostOp2;
 
     const argList = parseArgList(parsing);
-    if (argList !== undefined) return {
-        nodeName: NodeName.ExprPostOp,
-        nodeRange: {start: rangeStart, end: parsing.prev()},
-        postOp: 3,
-        args: argList
-    };
+    if (argList !== undefined)
+        return {
+            nodeName: NodeName.ExprPostOp,
+            nodeRange: {start: rangeStart, end: parsing.prev()},
+            postOp: 3,
+            args: argList
+        };
 
     const maybeOperator = parsing.next().text;
     if (maybeOperator === '++' || maybeOperator === '--') {
@@ -1187,21 +1231,15 @@ function parseExprPostOp1(parsing: ParsingState): NodeExprPostOp1 | undefined {
     parsing.confirm(HighlightTokenKind.Operator);
 
     const funcCall = parseFuncCall(parsing);
-    if (funcCall !== undefined) return {
-        nodeName: NodeName.ExprPostOp,
-        nodeRange: {start: rangeStart, end: parsing.prev()},
-        postOp: 1,
-        member: funcCall,
-    };
+    if (funcCall !== undefined)
+        return {
+            nodeName: NodeName.ExprPostOp,
+            nodeRange: {start: rangeStart, end: parsing.prev()},
+            postOp: 1,
+            member: funcCall,
+        };
 
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Variable);
-    if (identifier === undefined) return {
-        nodeName: NodeName.ExprPostOp,
-        nodeRange: {start: rangeStart, end: parsing.prev()},
-        postOp: 1,
-        member: undefined
-    };
-
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1458,12 +1496,12 @@ function parseCondition(parsing: ParsingState): NodeCondition | undefined {
     };
     if (parsing.next().text === '?') {
         parsing.confirm(HighlightTokenKind.Operator);
-        const ta = expectAssign(parsing);
-        if (ta === undefined) return result;
+        const trueAssign = expectAssign(parsing);
+        if (trueAssign === undefined) return result;
         parsing.expect(':', HighlightTokenKind.Operator);
-        const fa = expectAssign(parsing);
-        if (fa === undefined) return result;
-        result.ternary = {ta: ta, fa: fa};
+        const falseAssign = expectAssign(parsing);
+        if (falseAssign === undefined) return result;
+        result.ternary = {trueAssign: trueAssign, falseAssign: falseAssign};
     }
     result.nodeRange.end = parsing.prev();
     return result;

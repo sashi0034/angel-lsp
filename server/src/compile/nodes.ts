@@ -205,10 +205,12 @@ export interface NodeVar extends NodesBase {
     nodeName: NodeName.Var
     accessor: AccessModifier | undefined,
     type: NodeType,
-    variables: {
-        identifier: ParsingToken,
-        initializer: NodeExpr | NodeArgList | undefined
-    }[];
+    variables: ParsedVariableInit[];
+}
+
+export interface ParsedVariableInit {
+    identifier: ParsingToken;
+    initializer: NodeInitList | NodeExpr | NodeArgList | undefined;
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
@@ -262,6 +264,10 @@ export interface NodeType extends NodesBase {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+export interface NodeInitList extends NodesBase {
+    nodeName: NodeName.InitList;
+    initList: (NodeAssign | NodeInitList)[];
+}
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 export interface NodeScope extends NodesBase {
@@ -507,8 +513,10 @@ export interface NodeAssign extends NodesBase {
 export interface NodeCondition extends NodesBase {
     nodeName: NodeName.Condition
     expr: NodeExpr,
-    ternary: {
-        ta: NodeAssign,
-        fa: NodeAssign
-    } | undefined
+    ternary: ParsedTernary | undefined
+}
+
+export interface ParsedTernary {
+    trueAssign: NodeAssign,
+    falseAssign: NodeAssign
 }
