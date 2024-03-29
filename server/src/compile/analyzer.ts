@@ -183,12 +183,6 @@ function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: Anal
 
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
 
-    parentScope.completionHints.push({
-        complementKind: ComplementKind.Scope,
-        complementLocation: getNodeLocation(nodeFunc.statBlock.nodeRange),
-        targetScope: scope
-    });
-
     hoisting.push(() => {
         symbol.parameterTypes = hoistParamList(scope, nodeFunc.paramList);
     });
@@ -238,8 +232,15 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function analyzeStatBlock(scope: SymbolScope, ast: NodeStatBlock) {
-    for (const statement of ast.statements) {
+function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
+    // スコープ内の補完情報を追加
+    scope.parentScope?.completionHints.push({
+        complementKind: ComplementKind.Scope,
+        complementLocation: getNodeLocation(statBlock.nodeRange),
+        targetScope: scope
+    });
+
+    for (const statement of statBlock.statements) {
         if (statement.nodeName === NodeName.Var) {
             analyzeVar(scope, statement);
         } else {
