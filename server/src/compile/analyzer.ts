@@ -316,10 +316,10 @@ function analyzeINITLIST(scope: SymbolScope, ast: NodeExpr) {
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
-    let scopeIterator = symbolScope;
+function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
+    let scopeIterator = parentScope;
     if (nodeScope.isGlobal) {
-        scopeIterator = findGlobalScope(symbolScope);
+        scopeIterator = findGlobalScope(parentScope);
     }
     for (let i = 0; i < nodeScope.scopeList.length; i++) {
         const nextScope = nodeScope.scopeList[i];
@@ -344,9 +344,9 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // 名前空間に対する補完を行う
         const complementRange = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
-        symbolScope.completionHints.push({
+        parentScope.completionHints.push({
             complementKind: ComplementKind.Namespace,
-            complementLocation: nextScope.location,
+            complementLocation: complementRange,
             namespaceList: nodeScope.scopeList.slice(0, i + 1)
         });
     }

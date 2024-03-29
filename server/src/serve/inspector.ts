@@ -62,7 +62,6 @@ function inspectInternal(content: string, path: string): InspectResult {
 
     // 字句解析
     const tokenizedTokens = tokenize(content, path);
-    console.log(tokenizedTokens);
     profiler.stamp("tokenizer");
 
     // 構文解析
