@@ -1,57 +1,77 @@
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
-import {Trie} from "../utils/trie";
-import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./tokens";
+import {Trie, TrieFound} from "../utils/trie";
+import {
+    HighlightInfo,
+    LocationInfo, ReservedWordProperty,
+    TokenComment, TokenIdentifier,
+    TokenizingToken,
+    TokenKind,
+    TokenNumber, TokenReserved,
+    TokenString
+} from "./tokens";
 import {diagnostic} from "../code/diagnostic";
-import {TokenizingState} from "./tokenizingState";
+import {TokenizingState, UnknownBuffer} from "./tokenizingState";
 import {findReservedKeywordProperty, findReservedMarkProperty} from "./tokenReserves";
 
 function isDigit(str: string): boolean {
     return /^[0-9]$/.test(str);
 }
 
-function isAlnum(c: string): boolean {
+function isAlphanumeric(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-function tryComment(reading: TokenizingState) {
+// コメント解析
+function tryComment(reading: TokenizingState, location: LocationInfo): TokenComment | undefined {
     if (reading.isNext('//')) {
-        reading.stepFor(2);
-        let comment = '//';
-        for (; ;) {
-            if (reading.isEnd() || reading.isNextWrap()) break;
-            comment += reading.next();
-            reading.stepNext();
-        }
-        return comment;
+        return tokenizeLineComment(reading, location);
+    } else if (reading.isNext('/*')) {
+        return tokenizeBlockComment(reading, location);
     }
-    if (reading.isNext('/*')) {
-        reading.stepFor(2);
-        let comment = '/*';
-        for (; ;) {
-            if (reading.isEnd()) break;
-            if (reading.isNext('*/')) {
-                comment += '*/';
-                reading.stepFor(2);
-                break;
-            }
-            if (reading.isNext('\r\n')) comment += '\r\n';
-            else comment += reading.next();
-            reading.stepNext();
-        }
-        return comment;
-    }
-    return '';
+    return undefined;
 }
 
-function tryMark(reading: TokenizingState) {
-    const mark = findReservedMarkProperty(reading.content, reading.getCursor());
-    if (mark === undefined) return undefined;
-    reading.stepFor(mark.key.length);
-    return mark;
+function createTokenComment(comment: string, location: LocationInfo): TokenComment | undefined {
+    return {
+        kind: TokenKind.Comment,
+        text: comment,
+        location: location,
+        highlight: dummyHighlight(HighlightTokenKind.Comment, HighlightModifierKind.Invalid)
+    };
+}
+
+function tokenizeLineComment(reading: TokenizingState, location: LocationInfo) {
+    reading.stepFor(2);
+    let comment = '//';
+    for (; ;) {
+        if (reading.isEnd() || reading.isNextWrap()) break;
+        comment += reading.next();
+        reading.stepNext();
+    }
+    location.end = reading.copyHead();
+    return createTokenComment(comment, location);
+}
+
+function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) {
+    reading.stepFor(2);
+    let comment = '/*';
+    for (; ;) {
+        if (reading.isEnd()) break;
+        if (reading.isNext('*/')) {
+            comment += '*/';
+            reading.stepFor(2);
+            break;
+        }
+        if (reading.isNext('\r\n')) comment += '\r\n';
+        else comment += reading.next();
+        reading.stepNext();
+    }
+    location.end = reading.copyHead();
+    return createTokenComment(comment, location);
 }
 
 // 数値解析
-function tryNumber(reading: TokenizingState) {
+function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
     let result: string = "";
     let isFloating = false;
 
@@ -68,13 +88,21 @@ function tryNumber(reading: TokenizingState) {
         } else break;
     }
 
-    return result;
+    if (result === "") return undefined;
+
+    location.end = reading.copyHead();
+    return {
+        kind: TokenKind.Number,
+        text: result,
+        location: location,
+        highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
+    };
 }
 
 // 文字列解析
-function tryString(reading: TokenizingState) {
+function tryString(reading: TokenizingState, location: LocationInfo): TokenString | undefined {
     let result: string = "";
-    if (reading.next() !== '\'' && reading.next() !== '"') return "";
+    if (reading.next() !== '\'' && reading.next() !== '"') return undefined;
     const startQuote: '\'' | '"' | '"""' = (() => {
         if (reading.isNext('"""')) return '"""';
         else if (reading.isNext('"')) return '"';
@@ -108,16 +136,58 @@ function tryString(reading: TokenizingState) {
         }
     }
 
-    return result;
+    location.end = reading.copyHead();
+    return {
+        kind: TokenKind.String,
+        text: result,
+        location: location,
+        highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
+    };
 }
 
-function tryIdentifier(reading: TokenizingState) {
-    let result: string = "";
-    while (reading.isEnd() === false && isAlnum(reading.next())) {
-        result += reading.next();
+// 記号解析
+function tryMark(reading: TokenizingState, location: LocationInfo): TokenReserved | undefined {
+    const mark = findReservedMarkProperty(reading.content, reading.getCursor());
+    if (mark === undefined) return undefined;
+    reading.stepFor(mark.key.length);
+
+    location.end = reading.copyHead();
+    return createTokenReserved(mark.key, mark.value, location);
+}
+
+function createTokenReserved(text: string, property: ReservedWordProperty, location: LocationInfo): TokenReserved {
+    return {
+        kind: TokenKind.Reserved,
+        text: text,
+        property: property,
+        location: location,
+        highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
+    };
+}
+
+// 識別子解析
+function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizingToken | TokenIdentifier | undefined {
+    let identifier: string = "";
+    while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
+        identifier += reading.next();
         reading.stepFor(1);
     }
-    return result;
+    if (identifier.length === 0) return undefined;
+
+    location.end = reading.copyHead();
+
+    const reserved = findReservedKeywordProperty(identifier);
+    if (reserved !== undefined) return createTokenReserved(identifier, reserved, location);
+    return createTokenIdentifier(identifier, location);
+}
+
+function createTokenIdentifier(identifier: string, location: LocationInfo): TokenIdentifier {
+    return {
+        kind: TokenKind.Identifier,
+        text: identifier,
+        location: location,
+        highlight: dummyHighlight(HighlightTokenKind.Variable, HighlightModifierKind.Invalid)
+    };
 }
 
 function dummyHighlight(token: HighlightTokenKind, modifier: HighlightModifierKind): HighlightInfo {
@@ -125,31 +195,6 @@ function dummyHighlight(token: HighlightTokenKind, modifier: HighlightModifierKi
         token: token,
         modifier: modifier,
     };
-}
-
-// 英数字や記号以外の文字列のバッファ
-class UnknownBuffer {
-    private buffer: string = "";
-    private location: LocationInfo | null = null;
-
-    public append(head: LocationInfo, next: string) {
-        if (this.location === null) this.location = head;
-        else if (head.start.line !== this.location.start.line
-            || head.start.character - this.location.end.character > 1) {
-            this.flush();
-            this.location = head;
-        }
-        this.location.end = head.end;
-        this.buffer += next;
-    }
-
-    public flush() {
-        if (this.buffer.length === 0) return;
-        if (this.location === null) return;
-        this.location.end.character++;
-        diagnostic.addError(this.location, 'Unknown token: ' + this.buffer);
-        this.buffer = "";
-    }
 }
 
 export function tokenize(str: string, path: string): TokenizingToken[] {
@@ -165,87 +210,44 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
             continue;
         }
 
-        const location = {
+        const location: LocationInfo = {
             start: reading.copyHead(),
             end: reading.copyHead(),
             path: path
         };
 
         // コメント
-        const triedComment = tryComment(reading);
-        if (triedComment.length > 0) {
-            location.end = reading.copyHead();
-            tokens.push({
-                kind: TokenKind.Comment,
-                text: triedComment,
-                location: location,
-                highlight: dummyHighlight(HighlightTokenKind.Comment, HighlightModifierKind.Invalid)
-            });
+        const triedComment = tryComment(reading, location);
+        if (triedComment !== undefined) {
+            tokens.push(triedComment);
             continue;
         }
 
         // 数値
-        const triedNumber = tryNumber(reading);
-        if (triedNumber.length > 0) {
-            location.end = reading.copyHead();
-            tokens.push({
-                kind: TokenKind.Number,
-                text: triedNumber,
-                location: location,
-                highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
-            });
+        const triedNumber = tryNumber(reading, location);
+        if (triedNumber !== undefined) {
+            tokens.push(triedNumber);
             continue;
         }
 
         // 文字列
-        const triedString = tryString(reading);
-        if (triedString.length > 0) {
-            location.end = reading.copyHead();
-            tokens.push({
-                kind: TokenKind.String,
-                text: triedString,
-                location: location,
-                highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
-            });
+        const triedString = tryString(reading, location);
+        if (triedString !== undefined) {
+            tokens.push(triedString);
             continue;
         }
 
         // 記号
-        const triedMark = tryMark(reading);
+        const triedMark = tryMark(reading, location);
         if (triedMark !== undefined) {
-            location.end = reading.copyHead();
-            tokens.push({
-                kind: TokenKind.Reserved,
-                text: triedMark.key,
-                property: triedMark.value,
-                location: location,
-                highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
-            });
+            tokens.push(triedMark);
             continue;
         }
 
         // 識別子
-        const triedIdentifier = tryIdentifier(reading);
-        if (triedIdentifier.length > 0) {
-            location.end = reading.copyHead();
-            const reserved = findReservedKeywordProperty(triedIdentifier);
-            if (reserved !== undefined) {
-                tokens.push({
-                    kind: TokenKind.Reserved,
-                    text: triedIdentifier,
-                    property: reserved,
-                    location: location,
-                    highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
-                });
-                continue;
-            } else {
-                tokens.push({
-                    kind: TokenKind.Identifier,
-                    text: triedIdentifier,
-                    location: location,
-                    highlight: dummyHighlight(HighlightTokenKind.Variable, HighlightModifierKind.Invalid)
-                });
-            }
+        const triedIdentifier = tryIdentifier(reading, location);
+        if (triedIdentifier !== undefined) {
+            tokens.push(triedIdentifier);
             continue;
         }
 

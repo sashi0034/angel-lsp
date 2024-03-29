@@ -1,6 +1,5 @@
 import {LocationInfo, TokenKind} from "./tokens";
-import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName, NodeWhile} from "./nodes";
-import {Range} from "vscode-languageserver";
+import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName} from "./nodes";
 import {dummyToken, ParsingToken} from "./parsing";
 import {diagnostic} from "../code/diagnostic";
 
@@ -166,12 +165,10 @@ export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined
     const identifier = token.text;
     if ((identifier === 'bool')) return builtinBoolType;
     else if ((identifier === 'void')) return builtinVoidType;
-    else if (numberTypeSet.has(identifier)) return builtinNumberType;
+    else if (token.kind === TokenKind.Reserved && token.property.isPrimeType) return builtinNumberType;
 
     return undefined;
 }
-
-const numberTypeSet = new Set(['int8', 'int16', 'int', 'int32', 'int64', 'uint8', 'uint16', 'uint', 'uint32', 'uint64', 'float', 'double']);
 
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     return scope.symbolMap.get(identifier);

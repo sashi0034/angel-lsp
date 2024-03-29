@@ -1,4 +1,6 @@
 import {Position, URI} from "vscode-languageserver";
+import {LocationInfo} from "./tokens";
+import {diagnostic} from "../code/diagnostic";
 
 export class TokenizingState {
     public readonly content: string;
@@ -61,5 +63,30 @@ export class TokenizingState {
             line: this.head.line,
             character: this.head.character
         };
+    }
+}
+
+// 英数字や記号以外の文字列のバッファ
+export class UnknownBuffer {
+    private buffer: string = "";
+    private location: LocationInfo | null = null;
+
+    public append(head: LocationInfo, next: string) {
+        if (this.location === null) this.location = head;
+        else if (head.start.line !== this.location.start.line
+            || head.start.character - this.location.end.character > 1) {
+            this.flush();
+            this.location = head;
+        }
+        this.location.end = head.end;
+        this.buffer += next;
+    }
+
+    public flush() {
+        if (this.buffer.length === 0) return;
+        if (this.location === null) return;
+        this.location.end.character++;
+        diagnostic.addError(this.location, 'Unknown token: ' + this.buffer);
+        this.buffer = "";
     }
 }

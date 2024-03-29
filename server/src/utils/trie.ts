@@ -8,6 +8,8 @@ class TrieNode<T> {
     }
 }
 
+export type TrieFound<T> = { key: string, value: T };
+
 export class Trie<T> {
     root: TrieNode<T>;
 
@@ -26,7 +28,7 @@ export class Trie<T> {
         }
     }
 
-    find(str: string, start: number): { key: string, value: T } | undefined {
+    find(str: string, start: number): TrieFound<T> | undefined {
         let node = this.root;
         let prefix = '';
 
