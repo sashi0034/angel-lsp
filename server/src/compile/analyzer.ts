@@ -43,7 +43,7 @@ import {
 } from "./nodes";
 import {
     builtinBoolType,
-    builtinNumberType,
+    builtinNumberType, ComplementKind,
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
@@ -58,7 +58,7 @@ import {
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
-import {TokenKind} from "./token";
+import {LocationInfo, TokenKind} from "./token";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -107,7 +107,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        const nextNamespace = nodeNamespace.namespaceList[i].text;
+        const nextNamespace = nodeNamespace.namespaceList[i];
         scopeIterator = findScopeShallowlyOrInsert(undefined, scopeIterator, nextNamespace);
     }
 
@@ -123,7 +123,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     };
 
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
-    const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier.text);
+    const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
     hoistEnumMembers(scope, nodeEnum.memberList);
 }
 
@@ -146,7 +146,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         sourceType: nodeClass,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
-    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier.text);
+    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
@@ -182,6 +182,12 @@ function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: Anal
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
+
+    parentScope.completionHints.push({
+        complementKind: ComplementKind.Scope,
+        complementLocation: getNodeLocation(nodeFunc.statBlock.nodeRange),
+        targetScope: scope
+    });
 
     hoisting.push(() => {
         symbol.parameterTypes = hoistParamList(scope, nodeFunc.paramList);
@@ -335,11 +341,11 @@ function analyzeScope(symbolScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // 名前空間に対する補完を行う
-        const complementRange: Range = {start: nextScope.location.start, end: nextScope.location.end};
+        const complementRange = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         symbolScope.completionHints.push({
-            complementKind: NodeName.Namespace,
-            complementRange: complementRange,
+            complementKind: ComplementKind.Namespace,
+            complementLocation: nextScope.location,
             namespaceList: nodeScope.scopeList.slice(0, i + 1)
         });
     }
@@ -550,8 +556,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     // クラスメンバ補完
     scope.completionHints.push({
-        complementKind: NodeName.Type,
-        complementRange: complementRange,
+        complementKind: ComplementKind.Type,
+        complementLocation: complementRange,
         targetType: exprValue
     });
 

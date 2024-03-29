@@ -1,5 +1,5 @@
-import {TokenKind} from "./token";
-import {NodeClass, NodeEnum, NodeFunc, NodeName} from "./nodes";
+import {LocationInfo, TokenKind} from "./token";
+import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName, NodeWhile} from "./nodes";
 import {Range} from "vscode-languageserver";
 import {dummyToken, ParsingToken} from "./parsing";
 import {diagnostic} from "../code/diagnostic";
@@ -52,7 +52,8 @@ export interface SymbolicVariable extends SymbolicBase {
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
-export type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc;
+// (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+export type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc | NodeIf;
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;
@@ -117,22 +118,33 @@ export interface DeducedType {
     sourceScope: SymbolScope | undefined;
 }
 
+export enum ComplementKind {
+    Scope = 'Scope',
+    Type = 'Type',
+    Namespace = 'Namespace',
+}
+
 export interface ComplementBase {
-    complementKind: NodeName.Type | NodeName.Namespace;
-    complementRange: Range;
+    complementKind: ComplementKind;
+    complementLocation: LocationInfo;
+}
+
+export interface ComplementScope extends ComplementBase {
+    complementKind: ComplementKind.Scope;
+    targetScope: SymbolScope;
 }
 
 export interface ComplementType extends ComplementBase {
-    complementKind: NodeName.Type;
+    complementKind: ComplementKind.Type;
     targetType: SymbolicType;
 }
 
 export interface CompletionNamespace extends ComplementBase {
-    complementKind: NodeName.Namespace;
+    complementKind: ComplementKind.Namespace;
     namespaceList: ParsingToken[];
 }
 
-export type ComplementHints = ComplementType | CompletionNamespace;
+export type ComplementHints = ComplementScope | ComplementType | CompletionNamespace;
 
 function createBuiltinType(name: PrimitiveType): SymbolicType {
     return {

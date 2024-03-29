@@ -1,6 +1,7 @@
 import {SymbolAndScope, SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
+import {ParsingToken} from "./parsing";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
@@ -81,7 +82,7 @@ function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: Symbo
 
     // 子スコープも再帰的にコピー
     for (const [key, child] of srcScope.childScopes) {
-        const destChild = findScopeShallowlyOrInsert(child.ownerNode, destScope, key);
+        const destChild = findScopeShallowlyOrInsertByIdentifier(child.ownerNode, destScope, key);
         copyOriginalSymbolsInScope(srcPath, child, destChild);
     }
 }
@@ -94,15 +95,25 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
 export function findScopeShallowlyOrInsert(
     ownerNode: SymbolOwnerNode | undefined,
     scope: SymbolScope,
+    identifierToken: ParsingToken
+): SymbolScope {
+    const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
+    if (found.ownerNode !== undefined && found.ownerNode !== ownerNode) {
+        // 名前空間でないノードがヒットしたとき、それが検索ノードと異なっているときはエラー
+        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined ❌`);
+    }
+    return found;
+}
+
+function findScopeShallowlyOrInsertByIdentifier(
+    ownerNode: SymbolOwnerNode | undefined,
+    scope: SymbolScope,
     identifier: string
 ): SymbolScope {
     const found = scope.childScopes.get(identifier);
     if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
     if (ownerNode === undefined) return found;
     if (found.ownerNode === undefined) found.ownerNode = ownerNode;
-    else if (found.ownerNode !== ownerNode) {
-        diagnostic.addError(ownerNode.identifier.location, `Symbol ${identifier}' is already defined ❌`);
-    }
     return found;
 }
 

@@ -356,7 +356,6 @@ function parseFunc(
     return {
         nodeName: NodeName.Func,
         nodeRange: {start: rangeStart, end: parsing.prev()},
-        scopeRange: statBlock.nodeRange,
         entity: entityModifier,
         accessor: accessor,
         head: head,

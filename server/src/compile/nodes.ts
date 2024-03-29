@@ -188,7 +188,6 @@ export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns 
 
 export interface NodeFunc extends NodesBase {
     nodeName: NodeName.Func;
-    scopeRange: ParsedRange;
     entity: EntityModifier | undefined;
     accessor: AccessModifier | undefined;
     head: FuncHeads;
