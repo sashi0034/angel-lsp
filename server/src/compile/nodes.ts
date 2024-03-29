@@ -381,13 +381,14 @@ export interface ParsedOpExpr {
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-export type NodeExprTerm = NodeEXPRTERM1 | NodeExprTerm2;
+export type NodeExprTerm = NodeExprTerm1 | NodeExprTerm2;
 
-export interface NodeEXPRTERM1 extends NodesBase {
+// ([TYPE '='] INITLIST)
+export interface NodeExprTerm1 extends NodesBase {
     nodeName: NodeName.ExprTerm
     exprTerm: 1
-    type: NodeType,
-    eq: ParsingToken | undefined,
+    type: NodeType | undefined,
+    initList: NodeInitList
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})

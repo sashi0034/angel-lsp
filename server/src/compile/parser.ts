@@ -50,7 +50,7 @@ import {
     NodeWhile,
     ReferenceModifier,
     setEntityModifier,
-    TypeModifier, NodeInitList, ParsedVariableInit
+    TypeModifier, NodeInitList, ParsedVariableInit, NodeExprTerm1
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingToken} from "./parsing";
@@ -1093,16 +1093,51 @@ function expectExpr(parsing: ParsingState): NodeExpr | undefined {
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseExprTerm(parsing: ParsingState) {
+    const exprTerm1 = parseExprTerm1(parsing);
+    if (exprTerm1 !== undefined) return exprTerm1;
+
     const exprTerm2 = parseExprTerm2(parsing);
     if (exprTerm2 !== undefined) return exprTerm2;
+
     return undefined;
 }
 
-const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
+// ([TYPE '='] INITLIST)
+function parseExprTerm1(parsing: ParsingState): NodeExprTerm1 | undefined {
+    const rangeStart = parsing.next();
 
-// const postOpSet = new Set(['.', '[', '(', '++', '--']);
+    const type = parseType(parsing);
+
+    if (type !== undefined) {
+        if (parsing.next().text !== '=') {
+            parsing.backtrack(rangeStart);
+            return undefined;
+        }
+        parsing.confirm(HighlightTokenKind.Operator);
+    }
+
+    const initList = parseInitList(parsing);
+    if (initList === undefined) {
+        if (type === undefined) {
+            parsing.backtrack(rangeStart);
+        } else {
+            parsing.error("Expected initializer list ❌");
+        }
+        return undefined;
+    }
+
+    return {
+        nodeName: NodeName.ExprTerm,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        exprTerm: 1,
+        type: type,
+        initList: initList
+    };
+}
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
+
 function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
     const rangeStart = parsing.next();
 
