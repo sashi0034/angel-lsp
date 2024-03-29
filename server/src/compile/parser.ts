@@ -50,7 +50,7 @@ import {
     NodeWhile,
     ReferenceModifier,
     setEntityModifier,
-    TypeModifier, NodeInitList, ParsedVariableInit, NodeExprTerm1
+    TypeModifier, NodeInitList, ParsedVariableInit, NodeExprTerm1, ParsedPostIndexer
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingToken} from "./parsing";
@@ -575,13 +575,12 @@ function parseTypeTail(parsing: ParsingState) {
     let isArray = false;
     let refModifier: ReferenceModifier | undefined = undefined;
     while (parsing.isEnd() === false) {
-        const next = parsing.next().text;
-        if (next === '[') {
+        if (parsing.next(0).text === '[' && parsing.next().text === ']') {
             parsing.confirm(HighlightTokenKind.Operator);
-            parsing.expect(']', HighlightTokenKind.Operator);
+            parsing.confirm(HighlightTokenKind.Operator);
             isArray = true;
             continue;
-        } else if (next === '@') {
+        } else if (parsing.next().text === '@') {
             parsing.confirm(HighlightTokenKind.Builtin);
             if (parsing.next().text === 'const') {
                 parsing.confirm(HighlightTokenKind.Keyword);
@@ -1288,28 +1287,29 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
     if (parsing.next().text !== '[') return undefined;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Operator);
-    const indexes: { identifier: ParsingToken | undefined, assign: NodeAssign }[] = [];
+
+    const indexerList: ParsedPostIndexer[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ']') {
             parsing.confirm(HighlightTokenKind.Operator);
-            if (indexes.length === 0) {
+            if (indexerList.length === 0) {
                 parsing.error("Expected index ❌");
             }
             break;
         }
-        if (indexes.length > 0) {
+        if (indexerList.length > 0) {
             if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
         }
         const identifier = parseIdentifierWithColon(parsing);
         const assign = expectAssign(parsing);
         if (assign === undefined) continue;
-        indexes.push({identifier: identifier, assign: assign});
+        indexerList.push({identifier: identifier, assign: assign});
     }
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         postOp: 2,
-        indexes: indexes
+        indexerList: indexerList
     };
 }
 

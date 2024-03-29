@@ -437,7 +437,12 @@ export function isMethodMemberInPostOp(member: NodeFuncCall | ParsingToken | und
 export interface NodeExprPostOp2 extends NodesBase {
     nodeName: NodeName.ExprPostOp;
     postOp: 2;
-    indexes: { identifier: ParsingToken | undefined, assign: NodeAssign }[];
+    indexerList: ParsedPostIndexer[];
+}
+
+export interface ParsedPostIndexer {
+    identifier: ParsingToken | undefined,
+    assign: NodeAssign
 }
 
 // ARGLIST
