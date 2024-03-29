@@ -7,3 +7,9 @@
 </h1>
 
 WIP
+
+---
+
+OpenSiv3D Support 
+
+- Put [`as.predefined`](https://gist.github.com/sashi0034/6575b0e12c390a07eeabb542019372af) directly under the workspace directory.
