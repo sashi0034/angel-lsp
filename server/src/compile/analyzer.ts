@@ -437,8 +437,8 @@ function analyzeDoWhile(scope: SymbolScope, ast: NodeDoWhile) {
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, ast: NodeIf) {
     analyzeAssign(scope, ast.condition);
-    analyzeStatement(scope, ast.ts);
-    if (ast.fs !== undefined) analyzeStatement(scope, ast.fs);
+    analyzeStatement(scope, ast.thenStat);
+    if (ast.elseStat !== undefined) analyzeStatement(scope, ast.elseStat);
 }
 
 // CONTINUE      ::= 'continue' ';'

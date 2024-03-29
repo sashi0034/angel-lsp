@@ -469,7 +469,7 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
             statements.push(var_);
             continue;
         }
-        const statement = parseSTATEMENT(parsing);
+        const statement = parseStatement(parsing);
         if (statement === ParseFailure.Pending) {
             continue;
         }
@@ -720,39 +720,39 @@ const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', '
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function parseSTATEMENT(parsing: ParsingState): TriedParse<NodeStatement> {
-    const if_ = parseIF(parsing);
-    if (if_ === ParseFailure.Pending) return ParseFailure.Pending;
-    if (if_ !== ParseFailure.Mismatch) return if_;
+function parseStatement(parsing: ParsingState): TriedParse<NodeStatement> {
+    const parsedIf = parseIf(parsing);
+    if (parsedIf === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedIf !== ParseFailure.Mismatch) return parsedIf;
 
-    const for_ = parseFOR(parsing);
-    if (for_ === ParseFailure.Pending) return ParseFailure.Pending;
-    if (for_ !== ParseFailure.Mismatch) return for_;
+    const parsedFor = parseFor(parsing);
+    if (parsedFor === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedFor !== ParseFailure.Mismatch) return parsedFor;
 
-    const while_ = parseWHILE(parsing);
-    if (while_ === ParseFailure.Pending) return ParseFailure.Pending;
-    if (while_ !== ParseFailure.Mismatch) return while_;
+    const parsedWhile = parseWhile(parsing);
+    if (parsedWhile === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedWhile !== ParseFailure.Mismatch) return parsedWhile;
 
-    const return_ = parseReturn(parsing);
-    if (return_ === ParseFailure.Pending) return ParseFailure.Pending;
-    if (return_ !== ParseFailure.Mismatch) return return_;
+    const parsedReturn = parseReturn(parsing);
+    if (parsedReturn === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedReturn !== ParseFailure.Mismatch) return parsedReturn;
 
     const statBlock = parseStatBlock(parsing);
     if (statBlock !== undefined) return statBlock;
 
-    const break_ = parseBREAK(parsing);
-    if (break_ !== undefined) return break_;
+    const parsedBreak = parseBreak(parsing);
+    if (parsedBreak !== undefined) return parsedBreak;
 
-    const continue_ = parseCONTINUE(parsing);
-    if (continue_ !== undefined) return continue_;
+    const parsedContinue = parseContinue(parsing);
+    if (parsedContinue !== undefined) return parsedContinue;
 
-    const dowhile = parseDOWHILE(parsing);
-    if (dowhile === ParseFailure.Pending) return ParseFailure.Pending;
-    if (dowhile !== ParseFailure.Mismatch) return dowhile;
+    const doWhile = parseDoWhile(parsing);
+    if (doWhile === ParseFailure.Pending) return ParseFailure.Pending;
+    if (doWhile !== ParseFailure.Mismatch) return doWhile;
 
-    const switch_ = parseSwitch(parsing);
-    if (switch_ === ParseFailure.Pending) return ParseFailure.Pending;
-    if (switch_ !== ParseFailure.Mismatch) return switch_;
+    const parsedSwitch = parseSwitch(parsing);
+    if (parsedSwitch === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedSwitch !== ParseFailure.Mismatch) return parsedSwitch;
 
     const exprStat = parseExprStat(parsing);
     if (exprStat !== undefined) return exprStat;
@@ -791,7 +791,7 @@ function parseSwitch(parsing: ParsingState): TriedParse<NodeSwitch> {
 }
 
 // BREAK         ::= 'break' ';'
-function parseBREAK(parsing: ParsingState): NodeBreak | undefined {
+function parseBreak(parsing: ParsingState): NodeBreak | undefined {
     if (parsing.next().text !== 'break') return undefined;
     const rangeStart = parsing.next();
     parsing.step();
@@ -800,7 +800,7 @@ function parseBREAK(parsing: ParsingState): NodeBreak | undefined {
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
+function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
     if (parsing.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
@@ -831,7 +831,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
 
     parsing.expect(')', HighlightTokenKind.Operator);
 
-    const statement = parseSTATEMENT(parsing);
+    const statement = parseStatement(parsing);
     if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) return ParseFailure.Pending;
 
     return {
@@ -845,7 +845,7 @@ function parseFOR(parsing: ParsingState): TriedParse<NodeFor> {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
+function parseWhile(parsing: ParsingState): TriedParse<NodeWhile> {
     if (parsing.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
@@ -856,7 +856,7 @@ function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
         return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
-    const statement = parseSTATEMENT(parsing);
+    const statement = parseStatement(parsing);
     if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) {
         parsing.error("Expected statement 💢");
         return ParseFailure.Pending;
@@ -871,11 +871,11 @@ function parseWHILE(parsing: ParsingState): TriedParse<NodeWhile> {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDoWhile> {
+function parseDoWhile(parsing: ParsingState): TriedParse<NodeDoWhile> {
     if (parsing.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.step();
-    const statement = parseSTATEMENT(parsing);
+    const statement = parseStatement(parsing);
     if (statement === ParseFailure.Mismatch || statement === ParseFailure.Pending) {
         parsing.error("Expected statement 💢");
         return ParseFailure.Pending;
@@ -898,10 +898,10 @@ function parseDOWHILE(parsing: ParsingState): TriedParse<NodeDoWhile> {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function parseIF(parsing: ParsingState): TriedParse<NodeIf> {
+function parseIf(parsing: ParsingState): TriedParse<NodeIf> {
     if (parsing.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
-    parsing.step();
+    parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect('(', HighlightTokenKind.Operator);
     const assign = parseAssign(parsing);
     if (assign === undefined) {
@@ -909,33 +909,29 @@ function parseIF(parsing: ParsingState): TriedParse<NodeIf> {
         return ParseFailure.Pending;
     }
     parsing.expect(')', HighlightTokenKind.Operator);
-    const ts = parseSTATEMENT(parsing);
-    if (ts === ParseFailure.Mismatch || ts === ParseFailure.Pending) return ParseFailure.Pending;
-    let fs = undefined;
+    const thenStat = parseStatement(parsing);
+    if (thenStat === ParseFailure.Mismatch || thenStat === ParseFailure.Pending) return ParseFailure.Pending;
+    let elseStat = undefined;
     if (parsing.next().text === 'else') {
-        fs = parseSTATEMENT(parsing);
-        if (fs === ParseFailure.Mismatch || fs === ParseFailure.Pending) {
+        parsing.confirm(HighlightTokenKind.Keyword);
+        const parsedElse = parseStatement(parsing);
+        if (parsedElse === ParseFailure.Mismatch || parsedElse === ParseFailure.Pending) {
             parsing.error("Expected statement 💢");
-            return {
-                nodeName: NodeName.If,
-                nodeRange: {start: rangeStart, end: parsing.prev()},
-                condition: assign,
-                ts: ts,
-                fs: undefined
-            };
+        } else {
+            elseStat = parsedElse;
         }
     }
     return {
         nodeName: NodeName.If,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         condition: assign,
-        ts: ts,
-        fs: fs
+        thenStat: thenStat,
+        elseStat: elseStat
     };
 }
 
 // CONTINUE      ::= 'continue' ';'
-function parseCONTINUE(parsing: ParsingState): NodeContinue | undefined {
+function parseContinue(parsing: ParsingState): NodeContinue | undefined {
     if (parsing.next().text !== 'continue') return undefined;
     const rangeStart = parsing.next();
     parsing.step();
@@ -997,7 +993,7 @@ function parseCase(parsing: ParsingState): TriedParse<NodeCase> {
     parsing.expect(':', HighlightTokenKind.Operator);
     const statements: NodeStatement[] = [];
     while (parsing.isEnd() === false) {
-        const statement = parseSTATEMENT(parsing);
+        const statement = parseStatement(parsing);
         if (statement === ParseFailure.Mismatch) break;
         if (statement === ParseFailure.Pending) continue;
         statements.push(statement);

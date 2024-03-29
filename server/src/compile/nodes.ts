@@ -332,8 +332,8 @@ export interface NodeDoWhile extends NodesBase {
 export interface NodeIf extends NodesBase {
     nodeName: NodeName.If
     condition: NodeAssign,
-    ts: NodeStatement,
-    fs: NodeStatement | undefined
+    thenStat: NodeStatement,
+    elseStat: NodeStatement | undefined
 }
 
 // CONTINUE      ::= 'continue' ';'
