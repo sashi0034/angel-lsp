@@ -98,7 +98,7 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
     }
     const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
     if (canOverload === false) {
-        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${identifier}' is already defined ❌`);
+        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${identifier}' is already defined 💢`);
         return false;
     }
 

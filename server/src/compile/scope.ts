@@ -100,7 +100,7 @@ export function findScopeShallowlyOrInsert(
     const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (found.ownerNode !== undefined && found.ownerNode !== ownerNode) {
         // 名前空間でないノードがヒットしたとき、それが検索ノードと異なっているときはエラー
-        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined ❌`);
+        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
     }
     return found;
 }
