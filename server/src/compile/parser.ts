@@ -754,13 +754,10 @@ function parseDatatype(parsing: ParsingState): NodeDataType | undefined {
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 function parsePrimeType(parsing: ParsingState) {
     const next = parsing.next();
-    // TODO: トークナイズの時点で決定したい
-    if (primeTypeSet.has(next.text) === false) return undefined;
+    if (next.kind !== TokenKind.Reserved || next.property.isPrimeType === false) return undefined;
     parsing.confirm(HighlightTokenKind.Builtin);
     return next;
 }
-
-const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
 
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
@@ -1120,11 +1117,7 @@ function parseExprTerm1(parsing: ParsingState): NodeExprTerm1 | undefined {
 
     const initList = parseInitList(parsing);
     if (initList === undefined) {
-        if (type === undefined) {
-            parsing.backtrack(rangeStart);
-        } else {
-            parsing.error("Expected initializer list ❌");
-        }
+        parsing.backtrack(rangeStart);
         return undefined;
     }
 

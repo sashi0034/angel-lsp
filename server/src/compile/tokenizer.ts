@@ -3,7 +3,7 @@ import {Trie} from "../utils/trie";
 import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./tokens";
 import {diagnostic} from "../code/diagnostic";
 import {TokenizingState} from "./tokenizingState";
-import {findReservedKeywordProperty, findReservedMarkProperty} from "./tokenReserve";
+import {findReservedKeywordProperty, findReservedMarkProperty} from "./tokenReserves";
 
 function isDigit(str: string): boolean {
     return /^[0-9]$/.test(str);

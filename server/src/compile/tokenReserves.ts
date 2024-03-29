@@ -25,7 +25,9 @@ const assignOpSet = new Set(['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%='
 
 const numberTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double']);
 
-function makeEmptyProperty() {
+const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
+
+function makeEmptyProperty(): ReservedWordProperty {
     return {
         isExprPreOp: false,
         isBitOp: false,
@@ -34,6 +36,7 @@ function makeEmptyProperty() {
         isLogicOp: false,
         isAssignOp: false,
         isNumber: false,
+        isPrimeType: false,
     };
 }
 
@@ -72,6 +75,11 @@ function createProperties() {
     for (const symbol of numberTypeSet) {
         properties.get(symbol)!.isNumber = true;
     }
+
+    for (const symbol of primeTypeSet) {
+        properties.get(symbol)!.isPrimeType = true;
+    }
+
     return properties;
 }
 

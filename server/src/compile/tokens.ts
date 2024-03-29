@@ -67,6 +67,7 @@ export interface ReservedWordProperty {
     isLogicOp: boolean;
     isAssignOp: boolean;
     isNumber: boolean;
+    isPrimeType: boolean;
 }
 
 export interface TokenIdentifier extends TokenBase {
