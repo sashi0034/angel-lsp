@@ -1,5 +1,15 @@
-import {Position, Range} from "vscode-languageserver";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
+import {uinteger} from "vscode-languageserver-types/lib/esm/main";
+
+export interface Position {
+    line: uinteger;
+    character: uinteger;
+}
+
+export interface Range {
+    start: Position;
+    end: Position;
+}
 
 export enum TokenKind {
     Reserved = 'Reserved',
@@ -37,10 +47,43 @@ export interface HighlightInfo {
     modifier: HighlightModifierKind;
 }
 
-export interface TokenizingToken {
+export interface TokenBase {
     kind: TokenKind;
     text: string;
     location: LocationInfo;
     highlight: HighlightInfo;
 }
+
+export interface TokenReserved extends TokenBase {
+    kind: TokenKind.Reserved;
+    property: ReservedWordProperty;
+}
+
+export interface ReservedWordProperty {
+    isExprPreOp: boolean;
+    isBitOp: boolean;
+    isMathOp: boolean;
+    isCompOp: boolean;
+    isLogicOp: boolean;
+    isAssignOp: boolean;
+    isNumber: boolean;
+}
+
+export interface TokenIdentifier extends TokenBase {
+    kind: TokenKind.Identifier;
+}
+
+export interface TokenNumber extends TokenBase {
+    kind: TokenKind.Number;
+}
+
+export interface TokenString extends TokenBase {
+    kind: TokenKind.String;
+}
+
+export interface TokenComment extends TokenBase {
+    kind: TokenKind.Comment;
+}
+
+export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;
 

@@ -1,13 +1,13 @@
-import {TokenizingToken, TokenKind} from "./token";
+import {TokenizingToken, TokenKind} from "./tokens";
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 
-export interface ParsingToken extends TokenizingToken {
+export type ParsingToken = TokenizingToken & {
     index: number;
     next: ParsingToken | undefined;
 }
 
 export const dummyToken: ParsingToken = {
-    kind: TokenKind.Reserved,
+    kind: TokenKind.Identifier,
     text: '',
     location: {
         path: '',

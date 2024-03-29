@@ -1,37 +1,32 @@
-class TrieNode {
-    children: Map<string, TrieNode>;
+class TrieNode<T> {
+    value: T | undefined;
+    children: Map<string, TrieNode<T>>;
 
-    constructor() {
-        this.children = new Map<string, TrieNode>();
+    constructor(value: T | undefined) {
+        this.value = value;
+        this.children = new Map<string, TrieNode<T>>();
     }
 }
 
-export class Trie {
-    root: TrieNode;
+export class Trie<T> {
+    root: TrieNode<T>;
 
     constructor() {
-        this.root = new TrieNode();
+        this.root = new TrieNode<T>(undefined);
     }
 
-    static fromArray(allSymbols: string[]) {
-        const trie = new Trie();
-        for (const symbol of allSymbols) {
-            trie.insert(symbol);
-        }
-        return trie;
-    }
-
-    insert(word: string) {
+    insert(word: string, value: T) {
         let node = this.root;
         for (const char of word) {
-            if (!node.children.has(char)) {
-                node.children.set(char, new TrieNode());
+            if (node.children.has(char) === false) {
+                node.children.set(char, new TrieNode<T>(undefined));
             }
             node = node.children.get(char)!;
+            node.value = value;
         }
     }
 
-    find(str: string, start: number): string {
+    find(str: string, start: number): { key: string, value: T } | undefined {
         let node = this.root;
         let prefix = '';
 
@@ -44,6 +39,8 @@ export class Trie {
                 break;
             }
         }
-        return prefix;
+
+        if (node.value === undefined) return undefined;
+        return {key: prefix, value: node.value};
     }
 }

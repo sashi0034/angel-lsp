@@ -1,7 +1,7 @@
 import {Position, URI} from "vscode-languageserver";
 
 export class TokenizingState {
-    public readonly str: URI;
+    public readonly content: string;
     private cursor: number;
     private head: Position;
 
@@ -9,22 +9,22 @@ export class TokenizingState {
         return this.cursor;
     }
 
-    constructor(str: string) {
-        this.str = str;
+    constructor(content: string) {
+        this.content = content;
         this.cursor = 0;
         this.head = {line: 0, character: 0};
     }
 
     next(offset: number = 0) {
-        return this.str[this.cursor + offset];
+        return this.content[this.cursor + offset];
     }
 
     isEnd() {
-        return this.cursor >= this.str.length;
+        return this.cursor >= this.content.length;
     }
 
     isNext(expected: string) {
-        return this.str.substring(this.cursor, this.cursor + expected.length) === expected;
+        return this.content.substring(this.cursor, this.cursor + expected.length) === expected;
     }
 
     isNextWrap() {
@@ -33,7 +33,7 @@ export class TokenizingState {
     }
 
     isNextWhitespace() {
-        const next = this.str[this.cursor];
+        const next = this.content[this.cursor];
         return next === ' ' || next === '\t';
     }
 

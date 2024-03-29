@@ -1,6 +1,6 @@
 import {SymbolScope} from "../compile/symbolic";
 import {Position} from "vscode-languageserver";
-import {isPositionInRange} from "../compile/token";
+import {isPositionInRange} from "../compile/tokens";
 import {ParsingToken} from "../compile/parsing";
 
 export function jumpDefinition(analyzedScope: SymbolScope, caret: Position): ParsingToken | null {

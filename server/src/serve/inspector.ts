@@ -1,4 +1,4 @@
-import {TokenizingToken, TokenKind} from "../compile/token";
+import {TokenizingToken, TokenKind} from "../compile/tokens";
 import {profiler} from "../debug/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
@@ -62,6 +62,7 @@ function inspectInternal(content: string, path: string): InspectResult {
 
     // 字句解析
     const tokenizedTokens = tokenize(content, path);
+    console.log(tokenizedTokens);
     profiler.stamp("tokenizer");
 
     // 構文解析
@@ -89,4 +90,3 @@ function getIncludedScope(path: string) {
     if (path !== s_predefinedPath && predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
     return includedScopes;
 }
-

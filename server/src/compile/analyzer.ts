@@ -58,7 +58,7 @@ import {
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {Range} from "vscode-languageserver";
-import {LocationInfo, TokenKind} from "./token";
+import {LocationInfo, TokenKind} from "./tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,

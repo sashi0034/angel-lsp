@@ -1,8 +1,9 @@
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
 import {Trie} from "../utils/trie";
-import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./token";
+import {HighlightInfo, LocationInfo, TokenizingToken, TokenKind} from "./tokens";
 import {diagnostic} from "../code/diagnostic";
 import {TokenizingState} from "./tokenizingState";
+import {findReservedKeywordProperty, findReservedMarkProperty} from "./tokenReserve";
 
 function isDigit(str: string): boolean {
     return /^[0-9]$/.test(str);
@@ -42,16 +43,11 @@ function tryComment(reading: TokenizingState) {
     return '';
 }
 
-const allSymbolArray = [
-    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
-];
-
-const allSymbolTrie = Trie.fromArray(allSymbolArray);
-
-function trySymbol(reading: TokenizingState) {
-    const symbol = allSymbolTrie.find(reading.str, reading.getCursor());
-    reading.stepFor(symbol.length);
-    return symbol;
+function tryMark(reading: TokenizingState) {
+    const mark = findReservedMarkProperty(reading.content, reading.getCursor());
+    if (mark === undefined) return undefined;
+    reading.stepFor(mark.key.length);
+    return mark;
 }
 
 // 数値解析
@@ -114,14 +110,6 @@ function tryString(reading: TokenizingState) {
 
     return result;
 }
-
-const allKeywordArray = [
-    'and', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'false', 'float', 'for', 'funcdef', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'switch', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
-    // Not really a reserved keyword, but is recognized by the compiler as a built-in keyword.
-    // 'abstract', 'explicit', 'external', 'function', 'final', 'from', 'get', 'set', 'shared', 'super', 'this',
-];
-
-const allKeywords = new Set(allKeywordArray);
 
 function tryIdentifier(reading: TokenizingState) {
     let result: string = "";
@@ -222,13 +210,14 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
             continue;
         }
 
-        // シンボル
-        const triedSymbol = trySymbol(reading);
-        if (triedSymbol.length > 0) {
+        // 記号
+        const triedMark = tryMark(reading);
+        if (triedMark !== undefined) {
             location.end = reading.copyHead();
             tokens.push({
                 kind: TokenKind.Reserved,
-                text: triedSymbol,
+                text: triedMark.key,
+                property: triedMark.value,
                 location: location,
                 highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
             });
@@ -239,15 +228,24 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         const triedIdentifier = tryIdentifier(reading);
         if (triedIdentifier.length > 0) {
             location.end = reading.copyHead();
-            const isReserved = allKeywords.has(triedIdentifier);
-            tokens.push({
-                kind: isReserved ? TokenKind.Reserved : TokenKind.Identifier,
-                text: triedIdentifier,
-                location: location,
-                highlight: dummyHighlight(
-                    isReserved ? HighlightTokenKind.Keyword : HighlightTokenKind.Variable,
-                    HighlightModifierKind.Invalid)
-            });
+            const reserved = findReservedKeywordProperty(triedIdentifier);
+            if (reserved !== undefined) {
+                tokens.push({
+                    kind: TokenKind.Reserved,
+                    text: triedIdentifier,
+                    property: reserved,
+                    location: location,
+                    highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
+                });
+                continue;
+            } else {
+                tokens.push({
+                    kind: TokenKind.Identifier,
+                    text: triedIdentifier,
+                    location: location,
+                    highlight: dummyHighlight(HighlightTokenKind.Variable, HighlightModifierKind.Invalid)
+                });
+            }
             continue;
         }
 

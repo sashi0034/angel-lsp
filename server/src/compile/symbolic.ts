@@ -1,4 +1,4 @@
-import {LocationInfo, TokenKind} from "./token";
+import {LocationInfo, TokenKind} from "./tokens";
 import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName, NodeWhile} from "./nodes";
 import {Range} from "vscode-languageserver";
 import {dummyToken, ParsingToken} from "./parsing";

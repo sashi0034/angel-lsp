@@ -1,4 +1,4 @@
-import {LocationInfo} from "./token";
+import {LocationInfo} from "./tokens";
 import {ParsingToken} from "./parsing";
 
 export enum AccessModifier {

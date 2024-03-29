@@ -2,12 +2,11 @@
 
 import {
     AccessModifier,
-    ParsedEnumMember,
-    EntityModifier, FuncHeadConstructor,
+    EntityModifier,
     funcHeadConstructor,
-    FuncHeadDestructor,
     funcHeadDestructor,
-    FuncHeadReturns, FuncHeads, isFunctionHeadReturns,
+    FuncHeads,
+    isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -25,6 +24,7 @@ import {
     NodeExprPostOp1,
     NodeExprPostOp2,
     NodeExprStat,
+    NodeExprTerm1,
     NodeExprTerm2,
     NodeExprValue,
     NodeFor,
@@ -32,6 +32,7 @@ import {
     NodeFuncCall,
     NodeFuncDef,
     NodeIf,
+    NodeInitList,
     NodeLambda,
     NodeLiteral,
     NodeName,
@@ -48,15 +49,17 @@ import {
     NodeVarAccess,
     NodeVirtualProp,
     NodeWhile,
+    ParsedEnumMember,
+    ParsedPostIndexer,
+    ParsedVariableInit,
     ReferenceModifier,
     setEntityModifier,
-    TypeModifier, NodeInitList, ParsedVariableInit, NodeExprTerm1, ParsedPostIndexer
+    TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
 import {ParsingToken} from "./parsing";
-import {TokenKind} from "./token";
+import {TokenKind} from "./tokens";
 import {ParseFailure, ParsingState, TriedParse} from "./parsingState";
-import {diagnostic} from "../code/diagnostic";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {
@@ -1135,14 +1138,13 @@ function parseExprTerm1(parsing: ParsingState): NodeExprTerm1 | undefined {
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-const preOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
-
 function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
     const rangeStart = parsing.next();
 
     const preOps: ParsingToken[] = [];
     while (parsing.isEnd() === false) {
-        if (preOpSet.has(parsing.next().text) === false) break;
+        const next = parsing.next();
+        if (next.kind !== TokenKind.Reserved || next.property.isExprPreOp === false) break;
         preOps.push(parsing.next());
         parsing.confirm(HighlightTokenKind.Operator);
     }
@@ -1564,15 +1566,11 @@ const exprOpSet = new Set([
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parsing: ParsingState) {
-    if (assignOpSet.has(parsing.next().text) === false) return undefined;
     const next = parsing.next();
+    if (next.kind !== TokenKind.Reserved || next.property.isAssignOp === false) return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
     return next;
 }
-
-const assignOpSet = new Set([
-    '=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>='
-]);
 
 export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);

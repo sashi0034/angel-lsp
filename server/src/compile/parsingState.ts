@@ -1,6 +1,6 @@
 import {HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "./token";
+import {TokenKind} from "./tokens";
 import {ParsingToken} from "./parsing";
 
 export enum ParseFailure {

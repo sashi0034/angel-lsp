@@ -2,7 +2,7 @@ import {Position} from "vscode-languageserver";
 import {ComplementHints, ComplementKind, SymbolicObject, SymbolKind, SymbolScope} from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation, NodeName} from "../compile/nodes";
-import {isPositionInRange} from "../compile/token";
+import {isPositionInRange} from "../compile/tokens";
 import {collectParentScopes, findGlobalScope, findScopeShallowly, findScopeWithParent} from "../compile/scope";
 import {DocumentPath} from "./documentPath";
 
