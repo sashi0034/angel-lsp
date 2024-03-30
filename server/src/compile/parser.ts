@@ -612,9 +612,13 @@ function parseTypeTail(parsing: ParsingState) {
 
 // '<' TYPE {',' TYPE} '>'
 function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
+    const cache = parsing.cache(ParseCacheKind.TypeParameters);
+    if (cache.restore !== undefined) return cache.restore();
+
     const rangeStart = parsing.next();
     if (parsing.next().text !== '<') return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
+
     const typeParameters: NodeType[] = [];
     while (parsing.isEnd() === false) {
         const next = parsing.next();
@@ -636,9 +640,11 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
         }
         typeParameters.push(type);
     }
+
     if (typeParameters.length == 0) {
         parsing.error("Expected type parameter ❌");
     }
+    cache.store(typeParameters);
     return typeParameters;
 }
 
