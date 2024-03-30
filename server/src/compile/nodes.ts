@@ -1,4 +1,4 @@
-import {LocationInfo} from "./tokens";
+import {LocationInfo, TokenReserved} from "./tokens";
 import {ParsingToken} from "./parsingToken";
 
 export enum AccessModifier {
@@ -72,12 +72,12 @@ export enum NodeName {
     Namespace = 'Namespace',
     Enum = 'Enum',
     Class = 'Class',
-    Typedef = 'Typedef',
+    TypeDef = 'TypeDef',
     Func = 'Func',
     Interface = 'Interface',
     Var = 'Var',
     Import = 'Import',
-    Funcdef = 'Funcdef',
+    FuncDef = 'FuncDef',
     VirtualProp = 'VirtualProp',
     Mixin = 'Mixin',
     IntfMethod = 'IntfMethod',
@@ -136,7 +136,7 @@ export interface NodesBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export type NodeScript = (NodeEnum | NodeClass | NodeMixin | NodeVar | NodeFunc | NodeNamespace)[];
+export type NodeScript = (NodeEnum | NodeTypeDef | NodeClass | NodeMixin | NodeFuncDef | NodeVar | NodeFunc | NodeNamespace)[];
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
@@ -171,6 +171,11 @@ export interface NodeClass extends NodesBase {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+export interface NodeTypeDef extends NodesBase {
+    nodeName: NodeName.TypeDef;
+    type: TokenReserved;
+    identifier: ParsingToken;
+}
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export interface FuncHeadReturns {
@@ -221,7 +226,12 @@ export interface ParsedVariableInit {
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 export interface NodeFuncDef extends NodesBase {
-    nodeName: NodeName.Funcdef;
+    nodeName: NodeName.FuncDef;
+    entity: EntityAttribute | undefined;
+    returnType: NodeType;
+    isRef: boolean;
+    identifier: ParsingToken;
+    paramList: NodeParamList;
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'

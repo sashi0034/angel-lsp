@@ -47,7 +47,7 @@ import {
     NodeStatement,
     NodeSwitch,
     NodeTry,
-    NodeType,
+    NodeType, NodeTypeDef,
     NodeVar,
     NodeVarAccess,
     NodeVirtualProp,
@@ -76,17 +76,17 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
+        const parsedTypeDef = parseTypeDef(parsing);
+        if (parsedTypeDef === ParseFailure.Pending) continue;
+        if (parsedTypeDef !== ParseFailure.Mismatch) {
+            script.push(parsedTypeDef);
+            continue;
+        }
+
         const parsedMixin = parseMixin(parsing);
         if (parsedMixin === ParseFailure.Pending) continue;
         if (parsedMixin !== ParseFailure.Mismatch) {
             script.push(parsedMixin);
-            continue;
-        }
-
-        const parsedClass = parseClass(parsing);
-        if (parsedClass === ParseFailure.Pending) continue;
-        if (parsedClass !== ParseFailure.Mismatch) {
-            script.push(parsedClass);
             continue;
         }
 
@@ -97,10 +97,24 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
+        const parsedClass = parseClass(parsing);
+        if (parsedClass === ParseFailure.Pending) continue;
+        if (parsedClass !== ParseFailure.Mismatch) {
+            script.push(parsedClass);
+            continue;
+        }
+
         const parsedEnum = parseEnum(parsing);
         if (parsedEnum === ParseFailure.Pending) continue;
         if (parsedEnum !== ParseFailure.Mismatch) {
             script.push(parsedEnum);
+            continue;
+        }
+
+        const parsedFuncDef = parseFuncDef(parsing);
+        if (parsedFuncDef === ParseFailure.Pending) continue;
+        if (parsedFuncDef !== ParseFailure.Mismatch) {
+            script.push(parsedFuncDef);
             continue;
         }
 
@@ -302,6 +316,13 @@ function expectClassMembers(parsing: ParsingState) {
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
 
+        const parsedFuncDef = parseFuncDef(parsing);
+        if (parsedFuncDef === ParseFailure.Pending) continue;
+        if (parsedFuncDef !== ParseFailure.Mismatch) {
+            members.push(parsedFuncDef);
+            continue;
+        }
+
         const parsedFunc = parseFunc(parsing);
         if (parsedFunc !== undefined) {
             members.push(parsedFunc);
@@ -323,6 +344,29 @@ function expectClassMembers(parsing: ParsingState) {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+function parseTypeDef(parsing: ParsingState): TriedParse<NodeTypeDef> {
+    if (parsing.next().text !== 'typedef') return ParseFailure.Mismatch;
+    const rangeStart = parsing.next();
+    parsing.confirm(HighlightTokenKind.Builtin);
+
+    const primeType = parsePrimeType(parsing);
+    if (primeType === undefined) {
+        parsing.error("Expected primitive type ❌");
+        return ParseFailure.Pending;
+    }
+
+    const identifier = parsing.next();
+    parsing.confirm(HighlightTokenKind.Type);
+
+    parsing.expect(';', HighlightTokenKind.Operator);
+
+    return {
+        nodeName: NodeName.TypeDef,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        type: primeType,
+        identifier: identifier
+    };
+}
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parsing: ParsingState): NodeFunc | undefined {
@@ -344,8 +388,9 @@ function parseFunc(parsing: ParsingState): NodeFunc | undefined {
             parsing.backtrack(rangeStart);
             return undefined;
         }
-        const isRef = parsing.next().text === '&';
-        if (isRef) parsing.confirm(HighlightTokenKind.Builtin);
+
+        const isRef = parseRef(parsing);
+
         head = {returnType: returnType, isRef: isRef};
     }
     const identifier = parsing.next();
@@ -394,6 +439,12 @@ function parseConst(parsing: ParsingState): boolean {
     if (parsing.next().text !== 'const') return false;
     parsing.confirm(HighlightTokenKind.Keyword);
     return true;
+}
+
+function parseRef(parsing: ParsingState) {
+    const isRef = parsing.next().text === '&';
+    if (isRef) parsing.confirm(HighlightTokenKind.Builtin);
+    return isRef;
 }
 
 // ['private' | 'protected']
@@ -482,7 +533,40 @@ function expectInitListOrExpr(parsing: ParsingState) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+function parseFuncDef(parsing: ParsingState): TriedParse<NodeFuncDef> {
+    const rangeStart = parsing.next();
+
+    const entity = parseEntityAttribute(parsing);
+
+    if (parsing.next().text !== 'funcdef') return ParseFailure.Mismatch;
+    parsing.confirm(HighlightTokenKind.Builtin);
+
+    const returnType = expectType(parsing);
+    if (returnType === undefined) return ParseFailure.Pending;
+
+    const isRef = parseRef(parsing);
+
+    const identifier = parsing.next();
+    parsing.confirm(HighlightTokenKind.Function);
+
+    const paramList = expectParamList(parsing);
+    if (paramList === undefined) return ParseFailure.Pending;
+
+    parsing.expect(';', HighlightTokenKind.Operator);
+
+    return {
+        nodeName: NodeName.FuncDef,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        entity: entity,
+        returnType: returnType,
+        isRef: isRef,
+        identifier: identifier,
+        paramList: paramList
+    };
+}
+
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 
 // MIXIN         ::= 'mixin' CLASS
@@ -576,6 +660,14 @@ function parseParamList(parsing: ParsingState): NodeParamList | undefined {
         paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
     }
 
+    return paramList;
+}
+
+function expectParamList(parsing: ParsingState): NodeParamList | undefined {
+    const paramList = parseParamList(parsing);
+    if (paramList === undefined) {
+        parsing.error("Expected parameter list ❌");
+    }
     return paramList;
 }
 
@@ -944,7 +1036,7 @@ function parseSwitch(parsing: ParsingState): TriedParse<NodeSwitch> {
 function parseBreak(parsing: ParsingState): NodeBreak | undefined {
     if (parsing.next().text !== 'break') return undefined;
     const rangeStart = parsing.next();
-    parsing.step();
+    parsing.confirm(HighlightTokenKind.Keyword);
     parsing.expect(';', HighlightTokenKind.Operator);
     return {nodeName: NodeName.Break, nodeRange: {start: rangeStart, end: parsing.prev()}};
 }
@@ -1037,6 +1129,7 @@ function parseDoWhile(parsing: ParsingState): TriedParse<NodeDoWhile> {
 
     parsing.expect(')', HighlightTokenKind.Operator);
     parsing.expect(';', HighlightTokenKind.Operator);
+
     return {
         nodeName: NodeName.DoWhile,
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1095,9 +1188,12 @@ function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
             assign: undefined
         };
     }
+
     const assign = parseAssign(parsing);
     if (assign === undefined) return undefined;
+
     parsing.expect(';', HighlightTokenKind.Operator);
+
     return {
         nodeName: NodeName.ExprStat,
         assign: assign
@@ -1155,6 +1251,7 @@ function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function parseCase(parsing: ParsingState): TriedParse<NodeCase> {
     const rangeStart = parsing.next();
+
     let expr = undefined;
     if (parsing.next().text === 'case') {
         parsing.confirm(HighlightTokenKind.Keyword);
@@ -1162,11 +1259,13 @@ function parseCase(parsing: ParsingState): TriedParse<NodeCase> {
         expr = expectExpr(parsing);
         if (expr === undefined) return ParseFailure.Pending;
     } else if (parsing.next().text === 'default') {
-        parsing.step();
+        parsing.confirm(HighlightTokenKind.Keyword);
     } else {
         return ParseFailure.Mismatch;
     }
+
     parsing.expect(':', HighlightTokenKind.Operator);
+
     const statements: NodeStatement[] = [];
     while (parsing.isEnd() === false) {
         const statement = parseStatement(parsing);
@@ -1174,6 +1273,7 @@ function parseCase(parsing: ParsingState): TriedParse<NodeCase> {
         if (statement === ParseFailure.Pending) continue;
         statements.push(statement);
     }
+
     return {
         nodeName: NodeName.Case,
         nodeRange: {start: rangeStart, end: parsing.prev()},
