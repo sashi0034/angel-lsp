@@ -44,7 +44,7 @@ import {
     NodeScript,
     NodeStatBlock,
     NodeStatement,
-    NodeSwitch,
+    NodeSwitch, NodeTry,
     NodeType,
     NodeVar,
     NodeVarAccess,
@@ -829,6 +829,10 @@ function parseStatement(parsing: ParsingState): TriedParse<NodeStatement> {
     if (parsedSwitch === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedSwitch !== ParseFailure.Mismatch) return parsedSwitch;
 
+    const parsedTry = parseTry(parsing);
+    if (parsedTry === ParseFailure.Pending) return ParseFailure.Pending;
+    if (parsedTry !== ParseFailure.Mismatch) return parsedTry;
+
     const exprStat = parseExprStat(parsing);
     if (exprStat !== undefined) return exprStat;
 
@@ -1033,6 +1037,35 @@ function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+function parseTry(parsing: ParsingState): TriedParse<NodeTry> {
+    if (parsing.next().text !== 'try') return ParseFailure.Mismatch;
+    const rangeStart = parsing.next();
+    parsing.confirm(HighlightTokenKind.Keyword);
+
+    const tryBlock = parseStatBlock(parsing);
+    if (tryBlock === undefined) {
+        parsing.error("Expected try block ❌");
+        return ParseFailure.Pending;
+    }
+
+    if (parsing.next().text !== 'catch') {
+        parsing.error("Expected catch block ❌");
+        return ParseFailure.Pending;
+    }
+    parsing.confirm(HighlightTokenKind.Keyword);
+
+    const catchBlock = parseStatBlock(parsing);
+    if (catchBlock === undefined) {
+        parsing.error("Expected catch block ❌");
+    }
+
+    return {
+        nodeName: NodeName.Try,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        tryBlock: tryBlock,
+        catchBlock: catchBlock
+    };
+}
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {

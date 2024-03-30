@@ -302,7 +302,8 @@ export type NodeStatement =
     | NodeContinue
     | NodeDoWhile
     | NodeSwitch
-    | NodeExprStat;
+    | NodeExprStat
+    | NodeTry;
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 export interface NodeSwitch extends NodesBase {
@@ -359,6 +360,11 @@ export type NodeExprStat = {
 };
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+export interface NodeTry extends NodesBase {
+    nodeName: NodeName.Try;
+    tryBlock: NodeStatBlock,
+    catchBlock: NodeStatBlock | undefined
+}
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 export interface NodeReturn extends NodesBase {
