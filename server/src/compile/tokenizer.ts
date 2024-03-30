@@ -1,5 +1,4 @@
 import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
-import {Trie, TrieFound} from "../utils/trie";
 import {
     HighlightInfo,
     LocationInfo, ReservedWordProperty,

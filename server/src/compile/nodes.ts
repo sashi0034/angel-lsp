@@ -35,32 +35,36 @@ export function getNodeLocation(range: ParsedRange): LocationInfo {
     };
 }
 
-export interface EntityModifier {
+export interface EntityAttribute {
     isShared: boolean,
     isExternal: boolean,
     isAbstract: boolean,
     isFinal: boolean,
 }
 
-export function setEntityModifier(modifier: EntityModifier, token: string) {
-    switch (token) {
-    case 'shared':
-        modifier.isShared = true;
-        break;
-    case 'external':
-        modifier.isExternal = true;
-        break;
-    case 'abstract':
-        modifier.isAbstract = true;
-        break;
-    case 'final':
-        modifier.isFinal = true;
-        break;
-    }
+export function setEntityAttribute(attribute: EntityAttribute, token: 'shared' | 'external' | 'abstract' | 'final') {
+    if (token === 'shared') attribute.isShared = true;
+    else if (token === 'external') attribute.isExternal = true;
+    else if (token === 'abstract') attribute.isAbstract = true;
+    else if (token === 'final') attribute.isFinal = true;
 }
 
-export function isEntityModifierForClass(modifier: EntityModifier) {
+export function isEntityModifierForClass(modifier: EntityAttribute) {
     return modifier.isAbstract || modifier.isFinal;
+}
+
+export interface FunctionAttribute {
+    isOverride: boolean,
+    isFinal: boolean,
+    isExplicit: boolean,
+    isProperty: boolean
+}
+
+export function setFunctionAttribute(attribute: FunctionAttribute, token: 'override' | 'final' | 'explicit' | 'property') {
+    if (token === 'override') attribute.isOverride = true;
+    else if (token === 'final') attribute.isFinal = true;
+    else if (token === 'explicit') attribute.isExplicit = true;
+    else if (token === 'property') attribute.isProperty = true;
 }
 
 export enum NodeName {
@@ -145,7 +149,7 @@ export interface NodeNamespace extends NodesBase {
 export interface NodeEnum extends NodesBase {
     nodeName: NodeName.Enum;
     scopeRange: ParsedRange;
-    entity: EntityModifier | undefined;
+    entity: EntityAttribute | undefined;
     identifier: ParsingToken;
     memberList: ParsedEnumMember[];
 }
@@ -159,7 +163,7 @@ export interface ParsedEnumMember {
 export interface NodeClass extends NodesBase {
     nodeName: NodeName.Class;
     scopeRange: ParsedRange;
-    entity: EntityModifier | undefined;
+    entity: EntityAttribute | undefined;
     identifier: ParsingToken;
     typeParameters: NodeType[] | undefined;
     baseList: ParsingToken[];
@@ -188,13 +192,13 @@ export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns 
 
 export interface NodeFunc extends NodesBase {
     nodeName: NodeName.Func;
-    entity: EntityModifier | undefined;
+    entity: EntityAttribute | undefined;
     accessor: AccessModifier | undefined;
     head: FuncHeads;
     identifier: ParsingToken;
     paramList: NodeParamList;
     isConst: boolean;
-    funcAttr: ParsingToken | undefined;
+    funcAttr: FunctionAttribute | undefined;
     statBlock: NodeStatBlock;
 }
 
@@ -284,6 +288,7 @@ export interface NodeDataType extends NodesBase {
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

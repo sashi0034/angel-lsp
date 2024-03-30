@@ -2,10 +2,10 @@
 
 import {
     AccessModifier,
-    EntityModifier,
+    EntityAttribute,
     funcHeadConstructor,
     funcHeadDestructor,
-    FuncHeads,
+    FuncHeads, FunctionAttribute,
     isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
@@ -53,7 +53,7 @@ import {
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
-    setEntityModifier,
+    setEntityAttribute, setFunctionAttribute,
     TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
@@ -70,9 +70,9 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
-        const entityModifier = parseEntityModifier(parsing);
+        const entityAttribute = parseEntityAttribute(parsing);
 
-        const parsedClass = parseClass(parsing, entityModifier);
+        const parsedClass = parseClass(parsing, entityAttribute);
         if (parsedClass === ParseFailure.Pending) continue;
         if (parsedClass !== ParseFailure.Mismatch) {
             script.push(parsedClass);
@@ -86,7 +86,7 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
-        const parsedEnum = parseEnum(parsing, entityModifier);
+        const parsedEnum = parseEnum(parsing, entityAttribute);
         if (parsedEnum === ParseFailure.Pending) continue;
         if (parsedEnum !== ParseFailure.Mismatch) {
             script.push(parsedEnum);
@@ -95,7 +95,7 @@ function parseScript(parsing: ParsingState): NodeScript {
 
         const accessor = parseAccessModifier(parsing);
 
-        const parsedFunc = parseFunc(parsing, entityModifier, accessor);
+        const parsedFunc = parseFunc(parsing, entityAttribute, accessor);
         if (parsedFunc !== undefined) {
             script.push(parsedFunc);
             continue;
@@ -162,7 +162,7 @@ function expectIdentifier(parsing: ParsingState, kind: HighlightTokenKind): Pars
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function parseEnum(
     parsing: ParsingState,
-    entity: EntityModifier | undefined
+    entity: EntityAttribute | undefined
 ): TriedParse<NodeEnum> {
     if (parsing.next().text !== 'enum') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
@@ -221,24 +221,29 @@ function expectEnumMembers(parsing: ParsingState): ParsedEnumMember[] {
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
-function parseEntityModifier(parsing: ParsingState): EntityModifier | undefined {
-    let modifier: EntityModifier | undefined = undefined;
+function parseEntityAttribute(parsing: ParsingState): EntityAttribute | undefined {
+    let attribute: EntityAttribute | undefined = undefined;
     while (parsing.isEnd() === false) {
         const next = parsing.next().text;
         const isEntityToken = next === 'shared' || next === 'external' || next === 'abstract' || next === 'final';
         if (isEntityToken === false) break;
-        if (modifier === undefined) modifier = {isShared: false, isExternal: false, isAbstract: false, isFinal: false};
-        setEntityModifier(modifier, next);
+        if (attribute === undefined) attribute = {
+            isShared: false,
+            isExternal: false,
+            isAbstract: false,
+            isFinal: false
+        };
+        setEntityAttribute(attribute, next);
         parsing.confirm(HighlightTokenKind.Builtin);
     }
 
-    return modifier;
+    return attribute;
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseClass(
     parsing: ParsingState,
-    entity: EntityModifier | undefined
+    entity: EntityAttribute | undefined
 ): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
     if (parsing.next().text !== 'class') return ParseFailure.Mismatch;
@@ -284,10 +289,10 @@ function expectClassMembers(parsing: ParsingState) {
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
 
-        const entityModifier = parseEntityModifier(parsing);
+        const entityAttribute = parseEntityAttribute(parsing);
         const accessor = parseAccessModifier(parsing);
 
-        const parsedFunc = parseFunc(parsing, entityModifier, accessor);
+        const parsedFunc = parseFunc(parsing, entityAttribute, accessor);
         if (parsedFunc !== undefined) {
             members.push(parsedFunc);
             continue;
@@ -312,7 +317,7 @@ function expectClassMembers(parsing: ParsingState) {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(
     parsing: ParsingState,
-    entityModifier: EntityModifier | undefined,
+    entityAttribute: EntityAttribute | undefined,
     accessor: AccessModifier | undefined,
 ): NodeFunc | undefined {
     const rangeStart = parsing.next();
@@ -342,6 +347,8 @@ function parseFunc(
 
     const isConst = parseConst(parsing);
 
+    const funcAttr = parseFuncAttr(parsing);
+
     const statStart = parsing.next().text;
     let statBlock: NodeStatBlock | undefined = undefined;
     if (statStart === ';') {
@@ -360,13 +367,13 @@ function parseFunc(
     return {
         nodeName: NodeName.Func,
         nodeRange: {start: rangeStart, end: parsing.prev()},
-        entity: entityModifier,
+        entity: entityAttribute,
         accessor: accessor,
         head: head,
         identifier: identifier,
         paramList: paramList,
         isConst: isConst,
-        funcAttr: undefined,
+        funcAttr: funcAttr,
         statBlock: statBlock
     };
 }
@@ -760,6 +767,23 @@ function parsePrimeType(parsing: ParsingState) {
 }
 
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+function parseFuncAttr(parsing: ParsingState): FunctionAttribute | undefined {
+    let attribute: FunctionAttribute | undefined = undefined;
+    while (parsing.isEnd() === false) {
+        const next = parsing.next().text;
+        const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property';
+        if (isFuncAttrToken === false) break;
+        if (attribute === undefined) attribute = {
+            isOverride: false,
+            isFinal: false,
+            isExplicit: false,
+            isProperty: false
+        };
+        setFunctionAttribute(attribute, next);
+        parsing.confirm(HighlightTokenKind.Builtin);
+    }
+    return attribute;
+}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function parseStatement(parsing: ParsingState): TriedParse<NodeStatement> {
