@@ -1,6 +1,6 @@
 import {LocationInfo, TokenKind} from "./tokens";
 import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName} from "./nodes";
-import {dummyToken, ParsingToken} from "./parsing";
+import {dummyToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 
 export enum SymbolKind {

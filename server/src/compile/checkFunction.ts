@@ -2,7 +2,7 @@ import {diagnostic} from "../code/diagnostic";
 import {getNodeLocation, NodeConstructCall, NodeFuncCall, NodeName} from "./nodes";
 import {DeducedType, SymbolicFunction, SymbolScope} from "./symbolic";
 import {isTypeMatch} from "./checkType";
-import {ParsingToken} from "./parsing";
+import {ParsingToken} from "./parsingToken";
 
 export function checkFunctionMatch(
     scope: SymbolScope,

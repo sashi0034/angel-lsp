@@ -1,7 +1,12 @@
 import {HighlightTokenKind} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
-import {ParsingToken} from "./parsing";
+import {ParsingToken} from "./parsingToken";
+import {
+    ParseCachedData,
+    ParseCacheKind,
+    ParseCacher, ParseCacheTargets
+} from "./parseCached";
 
 export enum ParseFailure {
     Mismatch = 'mismatch',
@@ -12,10 +17,13 @@ export enum ParseFailure {
 export type TriedParse<T> = T | ParseFailure;
 
 export class ParsingState {
+    private readonly caches: (ParseCachedData<ParseCacheKind> | undefined)[] = [];
+
     public constructor(
-        private tokens: ParsingToken[],
+        private readonly tokens: ParsingToken[],
         private cursorIndex: number = 0
     ) {
+        this.caches = new Array(tokens.length);
     }
 
     public backtrack(token: ParsingToken) {
@@ -63,5 +71,27 @@ export class ParsingState {
 
     public error(message: string) {
         diagnostic.addError(this.next().location, message);
+    }
+
+    public cache<T extends ParseCacheKind>(key: T): ParseCacher<T> {
+        const data = this.caches[this.cursorIndex];
+        let restore: (() => ParseCacheTargets<T> | undefined) | undefined = undefined;
+        if (data !== undefined && data.kind === key) restore = () => {
+            this.cursorIndex = data.rangeEnd;
+            return data.data as ParseCacheTargets<T> | undefined;
+        };
+
+        const store = (cache: ParseCacheTargets<T> | undefined) => {
+            this.caches[this.cursorIndex] = {
+                kind: key,
+                rangeEnd: this.cursorIndex,
+                data: cache,
+            };
+        };
+
+        return {
+            restore: restore,
+            store: store,
+        };
     }
 }

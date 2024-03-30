@@ -5,7 +5,8 @@ import {
     EntityAttribute,
     funcHeadConstructor,
     funcHeadDestructor,
-    FuncHeads, FunctionAttribute,
+    FuncHeads,
+    FunctionAttribute,
     isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
@@ -53,13 +54,15 @@ import {
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
-    setEntityAttribute, setFunctionAttribute,
+    setEntityAttribute,
+    setFunctionAttribute,
     TypeModifier
 } from "./nodes";
 import {HighlightTokenKind} from "../code/highlight";
-import {ParsingToken} from "./parsing";
+import {ParsingToken} from "./parsingToken";
 import {TokenKind} from "./tokens";
 import {ParseFailure, ParsingState, TriedParse} from "./parsingState";
+import {ParseCacheKind} from "./parseCached";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parsing: ParsingState): NodeScript {
@@ -93,15 +96,13 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
-        const accessor = parseAccessModifier(parsing);
-
-        const parsedFunc = parseFunc(parsing, entityAttribute, accessor);
+        const parsedFunc = parseFunc(parsing);
         if (parsedFunc !== undefined) {
             script.push(parsedFunc);
             continue;
         }
 
-        const parsedVar = parseVar(parsing, accessor);
+        const parsedVar = parseVar(parsing);
         if (parsedVar !== undefined) {
             script.push(parsedVar);
             continue;
@@ -222,6 +223,9 @@ function expectEnumMembers(parsing: ParsingState): ParsedEnumMember[] {
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityAttribute(parsing: ParsingState): EntityAttribute | undefined {
+    const cache = parsing.cache(ParseCacheKind.EntityAttribute);
+    if (cache.restore !== undefined) return cache.restore();
+
     let attribute: EntityAttribute | undefined = undefined;
     while (parsing.isEnd() === false) {
         const next = parsing.next().text;
@@ -237,6 +241,7 @@ function parseEntityAttribute(parsing: ParsingState): EntityAttribute | undefine
         parsing.confirm(HighlightTokenKind.Builtin);
     }
 
+    cache.store(attribute);
     return attribute;
 }
 
@@ -289,16 +294,13 @@ function expectClassMembers(parsing: ParsingState) {
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
 
-        const entityAttribute = parseEntityAttribute(parsing);
-        const accessor = parseAccessModifier(parsing);
-
-        const parsedFunc = parseFunc(parsing, entityAttribute, accessor);
+        const parsedFunc = parseFunc(parsing);
         if (parsedFunc !== undefined) {
             members.push(parsedFunc);
             continue;
         }
 
-        const parsedVar = parseVar(parsing, accessor);
+        const parsedVar = parseVar(parsing);
         if (parsedVar !== undefined) {
             members.push(parsedVar);
             continue;
@@ -315,12 +317,13 @@ function expectClassMembers(parsing: ParsingState) {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function parseFunc(
-    parsing: ParsingState,
-    entityAttribute: EntityAttribute | undefined,
-    accessor: AccessModifier | undefined,
-): NodeFunc | undefined {
+function parseFunc(parsing: ParsingState): NodeFunc | undefined {
     const rangeStart = parsing.next();
+
+    const entityAttribute = parseEntityAttribute(parsing);
+
+    const accessor = parseAccessModifier(parsing);
+
     let head: FuncHeads;
     if (parsing.next().text === '~') {
         parsing.confirm(HighlightTokenKind.Operator);
@@ -397,8 +400,10 @@ function parseAccessModifier(parsing: ParsingState): AccessModifier | undefined 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function parseVar(parsing: ParsingState, accessor: AccessModifier | undefined): NodeVar | undefined {
+function parseVar(parsing: ParsingState): NodeVar | undefined {
     const rangeStart = parsing.next();
+
+    const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);
     if (type === undefined) return undefined;
@@ -481,9 +486,9 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
     const statements: (NodeVar | NodeStatement)[] = [];
     while (parsing.isEnd() === false) {
         if (parsing.next().text === '}') break;
-        const var_ = parseVar(parsing, undefined);
-        if (var_ !== undefined) {
-            statements.push(var_);
+        const parsedVar = parseVar(parsing);
+        if (parsedVar !== undefined) {
+            statements.push(parsedVar);
             continue;
         }
         const statement = parseStatement(parsing);
@@ -872,7 +877,7 @@ function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
     parsing.step();
     parsing.expect('(', HighlightTokenKind.Operator);
 
-    const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing, undefined);
+    const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing);
     if (initial === undefined) {
         parsing.error("Expected initial expression or variable declaration ❌");
         return ParseFailure.Pending;

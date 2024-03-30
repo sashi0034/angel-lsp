@@ -4,7 +4,7 @@ import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {URI} from "vscode-languageserver";
-import {convertToParsingTokens, ParsingToken} from "../compile/parsing";
+import {convertToParsingTokens, ParsingToken} from "../compile/parsingToken";
 import {fileURLToPath} from 'url';
 import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';

@@ -1,5 +1,5 @@
 import {LocationInfo} from "./tokens";
-import {ParsingToken} from "./parsing";
+import {ParsingToken} from "./parsingToken";
 
 export enum AccessModifier {
     Private = 'Private',

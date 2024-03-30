@@ -1,7 +1,7 @@
 import {SymbolAndScope, SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
-import {ParsingToken} from "./parsing";
+import {ParsingToken} from "./parsingToken";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
