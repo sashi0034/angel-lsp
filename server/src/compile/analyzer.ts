@@ -240,7 +240,7 @@ function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
         targetScope: scope
     });
 
-    for (const statement of statBlock.statements) {
+    for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
             analyzeVar(scope, statement);
         } else {

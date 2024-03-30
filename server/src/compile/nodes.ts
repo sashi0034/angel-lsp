@@ -136,7 +136,7 @@ export interface NodesBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export type NodeScript = (NodeEnum | NodeClass | NodeVar | NodeFunc | NodeNamespace)[];
+export type NodeScript = (NodeEnum | NodeClass | NodeMixin | NodeVar | NodeFunc | NodeNamespace)[];
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
@@ -236,12 +236,17 @@ export interface NodeVirtualProp extends NodesBase {
 }
 
 // MIXIN         ::= 'mixin' CLASS
+export interface NodeMixin extends NodesBase {
+    nodeName: NodeName.Mixin;
+    mixinClass: NodeClass;
+}
+
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export interface NodeStatBlock extends NodesBase {
     nodeName: NodeName.StatBlock;
-    statements: (NodeVar | NodeStatement)[];
+    statementList: (NodeVar | NodeStatement)[];
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'

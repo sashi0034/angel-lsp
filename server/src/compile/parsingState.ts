@@ -13,6 +13,11 @@ export enum ParseFailure {
     Pending = 'pending',
 }
 
+export enum BreakThrough {
+    Break = 'break',
+    Through = 'through',
+}
+
 // 診断メッセージは pending 発生時に発行する
 export type TriedParse<T> = T | ParseFailure;
 
