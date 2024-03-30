@@ -682,13 +682,19 @@ function parseInitList(parsing: ParsingState): NodeInitList | undefined {
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parsing: ParsingState): NodeScope | undefined {
+    const cache = parsing.cache(ParseCacheKind.Scope);
+    if (cache.restore !== undefined) return cache.restore();
+
     const rangeStart = parsing.next();
+
     let isGlobal = false;
     if (parsing.next().text === '::') {
         parsing.confirm(HighlightTokenKind.Operator);
         isGlobal = true;
     }
-    const namespaces: ParsingToken[] = [];
+
+    const scopeList: ParsingToken[] = [];
+    let typeParameters: NodeType[] | undefined = undefined;
     while (parsing.isEnd() === false) {
         const identifier = parsing.next(0);
         if (identifier.kind !== TokenKind.Identifier) {
@@ -697,38 +703,36 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         if (parsing.next(1).text === '::') {
             parsing.confirm(HighlightTokenKind.Namespace);
             parsing.confirm(HighlightTokenKind.Operator);
-            namespaces.push(identifier);
+            scopeList.push(identifier);
             continue;
         } else if (parsing.next(1).text === '<') {
-            const rangeStart = parsing.next();
+            const typesStart = parsing.next();
             parsing.confirm(HighlightTokenKind.Class);
-            const typeParameters = parseTypeParameters(parsing);
+            typeParameters = parseTypeParameters(parsing);
             if (typeParameters === undefined || parsing.next().text !== '::') {
-                parsing.backtrack(rangeStart);
-                break;
+                parsing.backtrack(typesStart);
+            } else {
+                parsing.confirm(HighlightTokenKind.Operator);
+                scopeList.push(identifier);
             }
-            parsing.confirm(HighlightTokenKind.Operator);
-            namespaces.push(identifier);
-            return {
-                nodeName: NodeName.Scope,
-                nodeRange: {start: rangeStart, end: parsing.prev()},
-                isGlobal: isGlobal,
-                scopeList: namespaces,
-                typeParameters: typeParameters
-            };
         }
         break;
     }
-    if (isGlobal === false && namespaces.length === 0) {
+
+    if (isGlobal === false && scopeList.length === 0) {
+        cache.store(undefined);
         return undefined;
     }
-    return {
+
+    const nodeScope: NodeScope = {
         nodeName: NodeName.Scope,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isGlobal: isGlobal,
-        scopeList: namespaces,
-        typeParameters: []
+        scopeList: scopeList,
+        typeParameters: typeParameters ?? []
     };
+    cache.store(nodeScope);
+    return nodeScope;
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
