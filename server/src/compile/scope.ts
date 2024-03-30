@@ -99,7 +99,7 @@ export function findScopeShallowlyOrInsert(
 ): SymbolScope {
     const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
-        // 名前空間でないノードがヒットしたとき、それが検索ノードと異なっているときはエラー
+        // 名前空間でないノードを検索しているとき、それが検索ノードと異なっているときはエラー
         diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
     }
     return found;

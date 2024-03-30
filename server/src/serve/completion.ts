@@ -28,12 +28,24 @@ export function searchCompletionItems(
 
 function getCompletionSymbolsInScope(scope: SymbolScope) {
     const items: CompletionItem[] = [];
+
+    // スコープ内シンボルの補完
     for (const [symbolName, symbol] of scope.symbolMap) {
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
         });
     }
+
+    // 名前空間の補完
+    for (const [childName, childScope] of scope.childScopes) {
+        if (childScope.ownerNode !== undefined) continue;
+        items.push({
+            label: childName,
+            kind: CompletionItemKind.Module,
+        });
+    }
+
     return items;
 }
 
