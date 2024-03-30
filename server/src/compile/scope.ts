@@ -98,7 +98,7 @@ export function findScopeShallowlyOrInsert(
     identifierToken: ParsingToken
 ): SymbolScope {
     const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
-    if (found.ownerNode !== undefined && found.ownerNode !== ownerNode) {
+    if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
         // 名前空間でないノードがヒットしたとき、それが検索ノードと異なっているときはエラー
         diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
     }
