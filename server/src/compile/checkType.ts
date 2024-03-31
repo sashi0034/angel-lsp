@@ -55,22 +55,3 @@ export function isTypeMatch(
 
     return false;
 }
-
-// function isTemplateType(type: DeducedType) {
-//     return type.symbol.sourceType === PrimitiveType.Template;
-// }
-//
-// function compareAfterTemplateTranslate(
-//     src: DeducedType, dest: DeducedType, templateTranslator: TemplateTranslation | undefined
-// ): boolean {
-//     if (templateTranslator === undefined) return false;
-//
-//     let src2: DeducedType | undefined = src;
-//     let dest2: DeducedType | undefined = dest;
-//
-//     if (isTemplateType(src)) src2 = resolveTemplateType(templateTranslator, src);
-//     if (isTemplateType(dest)) dest2 = resolveTemplateType(templateTranslator, dest);
-//
-//     if (src2 === undefined || dest2 === undefined) return false;
-//     return isTypeMatch(src2, dest2);
-// }

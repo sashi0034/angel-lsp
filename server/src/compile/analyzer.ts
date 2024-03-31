@@ -210,17 +210,17 @@ function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: Anal
     });
 }
 
-function analyzeFunc(scope: SymbolScope, ast: NodeFunc) {
-    if (ast.head === funcHeadDestructor) {
-        analyzeStatBlock(scope, ast.statBlock);
+function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
+    if (func.head === funcHeadDestructor) {
+        analyzeStatBlock(scope, func.statBlock);
         return;
     }
 
     // 引数をスコープに追加
-    analyzeParamList(scope, ast.paramList);
+    analyzeParamList(scope, func.paramList);
 
     // スコープ分析
-    analyzeStatBlock(scope, ast.statBlock);
+    analyzeStatBlock(scope, func.statBlock);
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -659,13 +659,14 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType |
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedType | undefined {
+    let searchScope = scope;
     if (funcCall.scope !== undefined) {
         const namespaceScope = analyzeScope(scope, funcCall.scope);
         if (namespaceScope === undefined) return undefined;
-        scope = namespaceScope;
+        searchScope = namespaceScope;
     }
 
-    const calleeFunc = findSymbolWithParent(scope, funcCall.identifier.text)?.symbol;
+    const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text)?.symbol;
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
         return undefined;
