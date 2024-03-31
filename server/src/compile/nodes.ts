@@ -208,6 +208,13 @@ export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns 
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+export interface NodeInterface extends NodesBase {
+    nodeName: NodeName.Interface;
+    entity: EntityAttribute | undefined;
+    identifier: ParsingToken;
+    baseList: ParsingToken[];
+    memberList: (NodeVirtualProp | NodeIntfMethod)[];
+}
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 export interface NodeVar extends NodesBase {
@@ -237,12 +244,18 @@ export interface NodeFuncDef extends NodesBase {
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface NodeVirtualProp extends NodesBase {
     nodeName: NodeName.VirtualProp
-    modifier: AccessModifier | undefined,
+    accessor: AccessModifier | undefined,
     type: NodeType,
     isRef: boolean,
     identifier: ParsingToken,
-    getter: [isConst: boolean, NodeStatBlock | undefined] | undefined,
-    setter: NodeFunc | undefined
+    getter: ParsedGetterSetter | undefined,
+    setter: ParsedGetterSetter | undefined
+}
+
+export interface ParsedGetterSetter {
+    isConst: boolean,
+    funcAttr: FunctionAttribute | undefined,
+    statBlock: NodeStatBlock | undefined
 }
 
 // MIXIN         ::= 'mixin' CLASS
@@ -252,6 +265,14 @@ export interface NodeMixin extends NodesBase {
 }
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+export interface NodeIntfMethod extends NodesBase {
+    nodeName: NodeName.IntfMethod;
+    returnType: NodeType;
+    isRef: boolean;
+    identifier: ParsingToken;
+    paramList: NodeParamList;
+    isConst: boolean;
+}
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export interface NodeStatBlock extends NodesBase {

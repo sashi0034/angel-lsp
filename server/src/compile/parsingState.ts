@@ -67,7 +67,7 @@ export class ParsingState {
         const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === word;
         if (isExpectedWord === false) {
             diagnostic.addError(this.next().location, `Expected '${word}' ❌`);
-            this.step();
+            // this.step();
             return false;
         }
         this.confirm(analyzeToken);

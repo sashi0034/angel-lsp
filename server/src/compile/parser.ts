@@ -33,7 +33,7 @@ import {
     NodeFuncCall,
     NodeFuncDef,
     NodeIf,
-    NodeInitList,
+    NodeInitList, NodeIntfMethod,
     NodeLambda,
     NodeLiteral,
     NodeMixin,
@@ -54,7 +54,7 @@ import {
     NodeVirtualProp,
     NodeWhile,
     ParsedArgument,
-    ParsedEnumMember, ParsedLambdaParams,
+    ParsedEnumMember, ParsedGetterSetter, ParsedLambdaParams,
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
@@ -546,6 +546,63 @@ function parseFuncDef(parsing: ParsingState): TriedParse<NodeFuncDef> {
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+function parseVirtualProp(parsing: ParsingState): NodeVirtualProp | undefined {
+    const rangeStart = parsing.next();
+
+    const accessor = parseAccessModifier(parsing);
+
+    const type = parseType(parsing);
+    if (type === undefined) return undefined;
+
+    const isRef = parseRef(parsing);
+
+    const identifier = parseIdentifier(parsing, HighlightTokenKind.Variable);
+    if (identifier === undefined) return undefined;
+
+    if (parsing.next().text !== '{') return undefined;
+    parsing.expect('{', HighlightTokenKind.Operator);
+
+    let getter: ParsedGetterSetter | undefined = undefined;
+    let setter: ParsedGetterSetter | undefined = undefined;
+    while (parsing.isEnd() === false) {
+        const next = parsing.next().text;
+        if (next === '}') break;
+        else if (next === 'get') getter = expectGetterSetter(parsing);
+        else if (next === 'set') setter = expectGetterSetter(parsing);
+        else {
+            parsing.error("Expected getter or setter ❌");
+            parsing.step();
+        }
+    }
+
+    parsing.expect('}', HighlightTokenKind.Operator);
+
+    return {
+        nodeName: NodeName.VirtualProp,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        accessor: accessor,
+        type: type,
+        isRef: isRef,
+        identifier: identifier,
+        getter: getter,
+        setter: setter
+    };
+}
+
+// ('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')
+function expectGetterSetter(parsing: ParsingState): ParsedGetterSetter {
+    parsing.confirm(HighlightTokenKind.Builtin);
+
+    const isConst = parseConst(parsing);
+    const funcAttr = parseFuncAttr(parsing);
+    const statBlock = expectStatBlock(parsing);
+
+    return {
+        isConst: isConst,
+        funcAttr: funcAttr,
+        statBlock: statBlock
+    };
+}
 
 // MIXIN         ::= 'mixin' CLASS
 function parseMixin(parsing: ParsingState): TriedParse<NodeMixin> {
@@ -568,6 +625,34 @@ function parseMixin(parsing: ParsingState): TriedParse<NodeMixin> {
 }
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+function parseIntfMethod(parsing: ParsingState): NodeIntfMethod | undefined {
+    const rangeStart = parsing.next();
+
+    const returnType = expectType(parsing);
+    if (returnType === undefined) return undefined;
+
+    const isRef = parseRef(parsing);
+
+    const identifier = parseIdentifier(parsing, HighlightTokenKind.Function);
+    if (identifier === undefined) return undefined;
+
+    const paramList = parseParamList(parsing);
+    if (paramList === undefined) return undefined;
+
+    const isConst = parseConst(parsing);
+
+    parsing.expect(';', HighlightTokenKind.Operator);
+
+    return {
+        nodeName: NodeName.IntfMethod,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        returnType: returnType,
+        isRef: isRef,
+        identifier: identifier,
+        paramList: paramList,
+        isConst: isConst
+    };
+}
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
@@ -628,7 +713,10 @@ function parseParamList(parsing: ParsingState): NodeParamList | undefined {
         if (expectCommaOrParensClose(parsing, paramList.length > 0) === BreakThrough.Break) break;
 
         const type = expectType(parsing);
-        if (type === undefined) break;
+        if (type === undefined) {
+            parsing.step();
+            continue;
+        }
 
         const typeMod = parseTypeMod(parsing);
 
@@ -1101,8 +1189,8 @@ function parseDoWhile(parsing: ParsingState): TriedParse<NodeDoWhile> {
     const statement = expectStatement(parsing);
     if (statement === undefined) return ParseFailure.Pending;
 
-    parsing.expect('while', HighlightTokenKind.Keyword);
-    parsing.expect('(', HighlightTokenKind.Operator);
+    if (parsing.expect('while', HighlightTokenKind.Keyword) === false) return ParseFailure.Pending;
+    if (parsing.expect('(', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
 
     const assign = parseAssign(parsing);
     if (assign === undefined) {
@@ -1110,8 +1198,8 @@ function parseDoWhile(parsing: ParsingState): TriedParse<NodeDoWhile> {
         return ParseFailure.Pending;
     }
 
-    parsing.expect(')', HighlightTokenKind.Operator);
-    parsing.expect(';', HighlightTokenKind.Operator);
+    if (parsing.expect(')', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
+    if (parsing.expect(';', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
 
     return {
         nodeName: NodeName.DoWhile,
@@ -1127,12 +1215,12 @@ function parseIf(parsing: ParsingState): TriedParse<NodeIf> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
 
-    parsing.expect('(', HighlightTokenKind.Operator);
+    if (parsing.expect('(', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
 
     const assign = expectAssign(parsing);
     if (assign === undefined) return ParseFailure.Pending;
 
-    parsing.expect(')', HighlightTokenKind.Operator);
+    if (parsing.expect(')', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
 
     const thenStat = expectStatement(parsing);
     if (thenStat === undefined) return ParseFailure.Pending;
@@ -1190,22 +1278,12 @@ function parseTry(parsing: ParsingState): TriedParse<NodeTry> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
 
-    const tryBlock = parseStatBlock(parsing);
-    if (tryBlock === undefined) {
-        parsing.error("Expected try block ❌");
-        return ParseFailure.Pending;
-    }
+    const tryBlock = expectStatBlock(parsing);
+    if (tryBlock === undefined) return ParseFailure.Pending;
 
-    if (parsing.next().text !== 'catch') {
-        parsing.error("Expected catch block ❌");
-        return ParseFailure.Pending;
-    }
-    parsing.confirm(HighlightTokenKind.Keyword);
+    if (parsing.expect('catch', HighlightTokenKind.Keyword) === false) return ParseFailure.Pending;
 
-    const catchBlock = parseStatBlock(parsing);
-    if (catchBlock === undefined) {
-        parsing.error("Expected catch block ❌");
-    }
+    const catchBlock = expectStatBlock(parsing);
 
     return {
         nodeName: NodeName.Try,
