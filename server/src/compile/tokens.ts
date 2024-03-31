@@ -1,4 +1,4 @@
-import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {uinteger} from "vscode-languageserver-types/lib/esm/main";
 
 export interface Position {
@@ -19,7 +19,9 @@ export enum TokenKind {
     Comment = 'Comment',
 }
 
-export type LocationInfo = { path: string } & Range;
+export interface LocationInfo extends Range {
+    path: string;
+}
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;
@@ -43,8 +45,15 @@ export function isPositionInRange(position: Position, range: Range): boolean {
 }
 
 export interface HighlightInfo {
-    token: HighlightTokenKind;
-    modifier: HighlightModifierKind;
+    token: HighlightToken;
+    modifier: HighlightModifier;
+}
+
+export function createVirtualHighlight(): HighlightInfo {
+    return {
+        token: HighlightToken.Invalid,
+        modifier: HighlightModifier.Nothing,
+    };
 }
 
 export interface TokenBase {
@@ -52,6 +61,10 @@ export interface TokenBase {
     text: string;
     location: LocationInfo;
     highlight: HighlightInfo;
+}
+
+export function isVirtualToken(token: TokenBase): boolean {
+    return token.highlight.token === HighlightToken.Invalid;
 }
 
 export interface TokenReserved extends TokenBase {

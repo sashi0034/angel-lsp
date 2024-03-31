@@ -1,4 +1,4 @@
-import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
     HighlightInfo,
     LocationInfo, ReservedWordProperty,
@@ -35,7 +35,7 @@ function createTokenComment(comment: string, location: LocationInfo): TokenComme
         kind: TokenKind.Comment,
         text: comment,
         location: location,
-        highlight: dummyHighlight(HighlightTokenKind.Comment, HighlightModifierKind.Invalid)
+        highlight: createHighlight(HighlightToken.Comment, HighlightModifier.Nothing)
     };
 }
 
@@ -89,7 +89,7 @@ function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumbe
         kind: TokenKind.Number,
         text: reading.substrFrom(start),
         location: location,
-        highlight: dummyHighlight(HighlightTokenKind.Number, HighlightModifierKind.Invalid)
+        highlight: createHighlight(HighlightToken.Number, HighlightModifier.Nothing)
     };
 }
 
@@ -133,7 +133,7 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
         kind: TokenKind.String,
         text: reading.substrFrom(start),
         location: location,
-        highlight: dummyHighlight(HighlightTokenKind.String, HighlightModifierKind.Invalid)
+        highlight: createHighlight(HighlightToken.String, HighlightModifier.Nothing)
     };
 }
 
@@ -153,7 +153,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
         text: text,
         property: property,
         location: location,
-        highlight: dummyHighlight(HighlightTokenKind.Keyword, HighlightModifierKind.Invalid)
+        highlight: createHighlight(HighlightToken.Keyword, HighlightModifier.Nothing)
     };
 }
 
@@ -179,11 +179,11 @@ function createTokenIdentifier(identifier: string, location: LocationInfo): Toke
         kind: TokenKind.Identifier,
         text: identifier,
         location: location,
-        highlight: dummyHighlight(HighlightTokenKind.Variable, HighlightModifierKind.Invalid)
+        highlight: createHighlight(HighlightToken.Variable, HighlightModifier.Nothing)
     };
 }
 
-function dummyHighlight(token: HighlightTokenKind, modifier: HighlightModifierKind): HighlightInfo {
+function createHighlight(token: HighlightToken, modifier: HighlightModifier): HighlightInfo {
     return {
         token: token,
         modifier: modifier,

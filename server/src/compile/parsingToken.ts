@@ -1,9 +1,14 @@
-import {TokenizingToken, TokenKind} from "./tokens";
-import {HighlightModifierKind, HighlightTokenKind} from "../code/highlight";
+import {createVirtualHighlight, HighlightInfo, TokenizingToken, TokenKind} from "./tokens";
+import {HighlightModifier, HighlightToken} from "../code/highlight";
 
 export type ParsingToken = TokenizingToken & {
+    highlight: HighlightInfo;
     index: number;
     next: ParsingToken | undefined;
+}
+
+function isVirtualToken(token: ParsingToken): boolean {
+    return token.highlight === undefined;
 }
 
 export const dummyToken: ParsingToken = {
@@ -14,7 +19,7 @@ export const dummyToken: ParsingToken = {
         start: {line: 0, character: 0},
         end: {line: 0, character: 0},
     },
-    highlight: {token: HighlightTokenKind.Variable, modifier: HighlightModifierKind.Invalid},
+    highlight: createVirtualHighlight(),
     index: 0,
     next: undefined,
 } as const;
@@ -56,7 +61,7 @@ function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: numbe
             start: actualTokens[index].location.start,
             end: actualTokens[index + 1].location.end
         },
-        highlight: actualTokens[index].highlight,
+        highlight: createVirtualHighlight(),
         index: -1,
         next: undefined
     };

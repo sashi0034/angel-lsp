@@ -1,4 +1,4 @@
-import {HighlightTokenKind} from "../code/highlight";
+import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
 import {ParsingToken} from "./parsingToken";
@@ -53,13 +53,13 @@ export class ParsingState {
         this.cursorIndex++;
     }
 
-    public confirm(analyzeToken: HighlightTokenKind) {
+    public confirm(analyzeToken: HighlightToken) {
         const next = this.next();
         next.highlight.token = analyzeToken;
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightTokenKind) {
+    public expect(word: string, analyzeToken: HighlightToken) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file ❌");
             return false;
