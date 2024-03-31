@@ -1,4 +1,4 @@
-import {SymbolAndScope, SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
+import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsingToken} from "./parsingToken";
@@ -128,4 +128,15 @@ export function isSymbolConstructorInScope(symbol: SymbolicObject, scope: Symbol
         && scope.ownerNode !== undefined
         && scope.ownerNode.nodeName === NodeName.Class
         && scope.ownerNode.identifier.text === symbol.declaredPlace.text;
+}
+
+let s_uniqueIdentifier = -1;
+
+export function createAnonymousIdentifier(): string {
+    s_uniqueIdentifier++;
+    return `~${s_uniqueIdentifier}`;
+}
+
+export function isAnonymousIdentifier(identifier: string): boolean {
+    return identifier.startsWith('~');
 }

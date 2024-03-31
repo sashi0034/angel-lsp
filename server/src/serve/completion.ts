@@ -3,7 +3,13 @@ import {ComplementHints, ComplementKind, SymbolicObject, SymbolKind, SymbolScope
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {getNodeLocation, NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/tokens";
-import {collectParentScopes, findGlobalScope, findScopeShallowly, findScopeWithParent} from "../compile/scope";
+import {
+    collectParentScopes,
+    findGlobalScope,
+    findScopeShallowly,
+    findScopeWithParent,
+    isAnonymousIdentifier
+} from "../compile/scope";
 import {DocumentPath} from "./documentPath";
 
 export function searchCompletionItems(
@@ -40,6 +46,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope) {
     // 名前空間の補完
     for (const [childName, childScope] of scope.childScopes) {
         if (childScope.ownerNode !== undefined) continue;
+        if (isAnonymousIdentifier(childName)) continue;
         items.push({
             label: childName,
             kind: CompletionItemKind.Module,

@@ -35,6 +35,7 @@ import {
     NodeStatBlock,
     NodeStatement,
     NodeSwitch,
+    NodeTry,
     NodeType,
     NodeVar,
     NodeVarAccess,
@@ -43,13 +44,14 @@ import {
 } from "./nodes";
 import {
     builtinBoolType,
-    builtinNumberType, ComplementKind,
+    builtinNumberType,
+    ComplementKind,
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
-    isSourceNodeClass, SymbolAndScope,
-    SymbolicFunction, SymbolicObject,
+    isSourceNodeClass,
+    SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
@@ -57,30 +59,24 @@ import {
     tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
-import {Range} from "vscode-languageserver";
-import {LocationInfo, TokenKind} from "./tokens";
+import {TokenKind} from "./tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
+    createAnonymousIdentifier,
     createSymbolScope,
     createSymbolScopeAndInsert,
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
-    findScopeWithParent, isSymbolConstructorInScope
+    findScopeWithParent,
+    isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 
 type HoistingQueue = (() => void)[];
 
 type AnalyzingQueue = (() => void)[];
-
-let s_uniqueIdentifier = -1;
-
-function createUniqueIdentifier(): string {
-    s_uniqueIdentifier++;
-    return `~${s_uniqueIdentifier}`;
-}
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -359,23 +355,23 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
-    switch (ast.nodeName) {
+function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
+    switch (statement.nodeName) {
     case NodeName.If:
-        analyzeIf(scope, ast);
+        analyzeIf(scope, statement);
         break;
     case NodeName.For:
-        analyzeFor(scope, ast);
+        analyzeFor(scope, statement);
         break;
     case NodeName.While:
-        analyzeWhile(scope, ast);
+        analyzeWhile(scope, statement);
         break;
     case NodeName.Return:
-        analyzeReturn(scope, ast);
+        analyzeReturn(scope, statement);
         break;
     case NodeName.StatBlock: {
-        const childScope = createSymbolScopeAndInsert(undefined, scope, createUniqueIdentifier());
-        analyzeStatBlock(childScope, ast);
+        const childScope = createSymbolScopeAndInsert(undefined, scope, createAnonymousIdentifier());
+        analyzeStatBlock(childScope, statement);
         break;
     }
     case NodeName.Break:
@@ -383,16 +379,17 @@ function analyzeStatement(scope: SymbolScope, ast: NodeStatement) {
     case NodeName.Continue:
         break;
     case NodeName.DoWhile:
-        analyzeDoWhile(scope, ast);
+        analyzeDoWhile(scope, statement);
         break;
     case NodeName.Switch:
-        analyzeSwitch(scope, ast);
+        analyzeSwitch(scope, statement);
         break;
     case NodeName.ExprStat:
-        analyzeEexprStat(scope, ast);
+        analyzeEexprStat(scope, statement);
         break;
-        // case NodeName.Try:
-        //     break;
+    case NodeName.Try:
+        analyzeTry(scope, statement);
+        break;
     default:
         break;
     }
@@ -444,21 +441,25 @@ function analyzeIf(scope: SymbolScope, ast: NodeIf) {
 // CONTINUE      ::= 'continue' ';'
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function analyzeEexprStat(scope: SymbolScope, ast: NodeExprStat) {
-    if (ast.assign !== undefined) analyzeAssign(scope, ast.assign);
+function analyzeEexprStat(scope: SymbolScope, exprStat: NodeExprStat) {
+    if (exprStat.assign !== undefined) analyzeAssign(scope, exprStat.assign);
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
+    analyzeStatBlock(scope, nodeTry.tryBlock);
+    if (nodeTry.catchBlock !== undefined) analyzeStatBlock(scope, nodeTry.catchBlock);
+}
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function analyzeReturn(scope: SymbolScope, ast: NodeReturn) {
-    analyzeAssign(scope, ast.assign);
+function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
+    analyzeAssign(scope, nodeReturn.assign);
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function analyzeCASE(scope: SymbolScope, ast: NodeCase) {
-    if (ast.expr !== undefined) analyzeExpr(scope, ast.expr);
-    for (const statement of ast.statementList) {
+function analyzeCASE(scope: SymbolScope, nodeCase: NodeCase) {
+    if (nodeCase.expr !== undefined) analyzeExpr(scope, nodeCase.expr);
+    for (const statement of nodeCase.statementList) {
         analyzeStatement(scope, statement);
     }
 }
