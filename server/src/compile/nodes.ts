@@ -178,7 +178,7 @@ export interface NodeClass extends NodesBase {
     scopeRange: ParsedRange;
     entity: EntityAttribute | undefined;
     identifier: ParsingToken;
-    typeParameters: NodeType[] | undefined;
+    typeTemplates: NodeType[] | undefined;
     baseList: ParsingToken[];
     memberList: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[];
 }
@@ -320,7 +320,7 @@ export interface NodeType extends NodesBase {
     isConst: boolean,
     scope: NodeScope | undefined,
     dataType: NodeDataType,
-    typeParameters: NodeType[],
+    typeTemplates: NodeType[],
     isArray: boolean,
     refModifier: ReferenceModifier | undefined,
 }
@@ -340,7 +340,7 @@ export interface NodeScope extends NodesBase {
     nodeName: NodeName.Scope
     isGlobal: boolean,
     scopeList: ParsingToken[],
-    typeParameters: NodeType[]
+    typeTemplates: NodeType[]
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')

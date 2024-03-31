@@ -149,7 +149,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
 
-    const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeParameters);
+    const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
 
     hoisting.push(() => {
@@ -326,7 +326,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         return undefined;
     }
 
-    const typeParameters = analyzeTemplateTypes(scope, nodeType.typeParameters, foundSymbol.symbol.templateTypes);
+    const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.symbol.templateTypes);
 
     scope.referencedList.push({
         declaredSymbol: foundSymbol.symbol,
@@ -336,7 +336,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
     return {
         symbol: foundSymbol.symbol,
         sourceScope: foundSymbol.scope,
-        templateTranslate: typeParameters
+        templateTranslate: typeTemplates
     };
 }
 

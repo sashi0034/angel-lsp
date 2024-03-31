@@ -307,7 +307,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     const identifier = expectIdentifier(parsing, HighlightTokenKind.Class);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    const typeParameters = parseTypeParameters(parsing);
+    const typeTemplates = parseTypeTemplates(parsing);
 
     const baseList: ParsingToken[] = [];
     if (parsing.next().text === ':') {
@@ -334,7 +334,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
         scopeRange: {start: scopeStart, end: scopeEnd},
         entity: entity,
         identifier: identifier,
-        typeParameters: typeParameters,
+        typeTemplates: typeTemplates,
         baseList: baseList,
         memberList: members
     };
@@ -964,7 +964,7 @@ function parseType(parsing: ParsingState): NodeType | undefined {
         parsing.backtrack(rangeStart);
         return undefined;
     }
-    const typeParameters = parseTypeParameters(parsing) ?? [];
+    const typeTemplates = parseTypeTemplates(parsing) ?? [];
     const {isArray, refModifier} = parseTypeTail(parsing);
     return {
         nodeName: NodeName.Type,
@@ -972,7 +972,7 @@ function parseType(parsing: ParsingState): NodeType | undefined {
         isConst: isConst,
         scope: scope,
         dataType: datatype,
-        typeParameters: typeParameters,
+        typeTemplates: typeTemplates,
         isArray: isArray,
         refModifier: refModifier
     };
@@ -1011,32 +1011,29 @@ function expectType(parsing: ParsingState): NodeType | undefined {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
-    const cache = parsing.cache(ParseCacheKind.TypeParameters);
+function parseTypeTemplates(parsing: ParsingState): NodeType[] | undefined {
+    const cache = parsing.cache(ParseCacheKind.TypeTemplates);
     if (cache.restore !== undefined) return cache.restore();
 
     const rangeStart = parsing.next();
     if (parsing.next().text !== '<') return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
 
-    const typeParameters: NodeType[] = [];
+    const typeTemplates: NodeType[] = [];
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, ',', '>', typeParameters.length > 0) === BreakThrough.Break) break;
-
         const type = parseType(parsing);
         if (type === undefined) {
             parsing.backtrack(rangeStart);
             return undefined;
         }
 
-        typeParameters.push(type);
+        typeTemplates.push(type);
+
+        if (expectContinuousOrClose(parsing, ',', '>', typeTemplates.length > 0) === BreakThrough.Break) break;
     }
 
-    if (typeParameters.length == 0) {
-        parsing.error("Expected type parameter ❌");
-    }
-    cache.store(typeParameters);
-    return typeParameters;
+    cache.store(typeTemplates);
+    return typeTemplates;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -1085,7 +1082,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
     }
 
     const scopeList: ParsingToken[] = [];
-    let typeParameters: NodeType[] | undefined = undefined;
+    let typeTemplates: NodeType[] | undefined = undefined;
     while (parsing.isEnd() === false) {
         const identifier = parsing.next(0);
         if (identifier.kind !== TokenKind.Identifier) {
@@ -1101,8 +1098,8 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
             const typesStart = parsing.next();
             parsing.confirm(HighlightTokenKind.Class);
 
-            typeParameters = parseTypeParameters(parsing);
-            if (typeParameters === undefined || parsing.next().text !== '::') {
+            typeTemplates = parseTypeTemplates(parsing);
+            if (typeTemplates === undefined || parsing.next().text !== '::') {
                 parsing.backtrack(typesStart);
             } else {
                 parsing.confirm(HighlightTokenKind.Operator);
@@ -1122,7 +1119,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         nodeRange: {start: rangeStart, end: parsing.prev()},
         isGlobal: isGlobal,
         scopeList: scopeList,
-        typeParameters: typeParameters ?? []
+        typeTemplates: typeTemplates ?? []
     };
     cache.store(nodeScope);
     return nodeScope;
