@@ -159,26 +159,28 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Builtin);
 
-    const namespaces: ParsingToken[] = [];
+    const namespaceList: ParsingToken[] = [];
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, namespaces.length > 0, '::', '{') === BreakThrough.Break) break;
-
         const identifier = expectIdentifier(parsing, HighlightTokenKind.Namespace);
-        if (identifier === undefined) break;
+        if (identifier !== undefined) namespaceList.push(identifier);
 
-        namespaces.push(identifier);
+        if (expectContinuousOrClose(parsing, '::', '{', true) === BreakThrough.Break) break;
+
+        if (identifier === undefined) parsing.step();
     }
 
-    if (namespaces.length === 0) {
+    if (namespaceList.length === 0) {
         return ParseFailure.Pending;
     }
 
     const script = parseScript(parsing);
+
     parsing.expect('}', HighlightTokenKind.Operator);
+
     return {
         nodeName: NodeName.Namespace,
         nodeRange: {start: rangeStart, end: parsing.prev()},
-        namespaceList: namespaces,
+        namespaceList: namespaceList,
         script: script
     };
 }
@@ -234,7 +236,7 @@ function expectEnumMembers(parsing: ParsingState): ParsedEnumMember[] {
     const members: ParsedEnumMember[] = [];
     parsing.expect('{', HighlightTokenKind.Operator);
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, members.length > 0, ',', '}') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', '}', members.length > 0) === BreakThrough.Break) break;
 
         const identifier = expectIdentifier(parsing, HighlightTokenKind.EnumMember);
         if (identifier === undefined) break;
@@ -294,13 +296,15 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightTokenKind.Operator);
         while (parsing.isEnd() === false) {
-            if (expectContinuousOrClose(parsing, baseList.length > 0, ',', '{') === BreakThrough.Break) break;
-
             const identifier = expectIdentifier(parsing, HighlightTokenKind.Type);
-            if (identifier === undefined) break;
+            if (identifier !== undefined) baseList.push(identifier);
 
-            baseList.push(identifier);
+            if (expectContinuousOrClose(parsing, ',', '{', true) === BreakThrough.Break) break;
+
+            if (identifier === undefined) parsing.step();
         }
+    } else {
+        parsing.expect('{', HighlightTokenKind.Operator);
     }
 
     const scopeStart = parsing.next();
@@ -321,7 +325,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
 
 // '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
 function expectClassMembers(parsing: ParsingState) {
-    parsing.expect('{', HighlightTokenKind.Operator);
+    // parsing.expect('{', HighlightTokenKind.Operator);
     const members: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
     while (parsing.isEnd() === false) {
         if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
@@ -501,16 +505,15 @@ function parseInterface(parsing: ParsingState): TriedParse<NodeInterface> {
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightTokenKind.Operator);
         while (parsing.isEnd() === false) {
-            if (expectContinuousOrClose(parsing, result.baseList.length > 0, ',', '{') === BreakThrough.Break) break;
-
             const identifier = expectIdentifier(parsing, HighlightTokenKind.Type);
-            if (identifier === undefined) {
-                parsing.step();
-                continue;
-            }
+            if (identifier !== undefined) result.baseList.push(identifier);
 
-            result.baseList.push(identifier);
+            if (expectContinuousOrClose(parsing, ',', '{', true) === BreakThrough.Break) break;
+
+            if (identifier === undefined) parsing.step();
         }
+    } else {
+        parsing.expect('{', HighlightTokenKind.Operator);
     }
 
     result.memberList = expectInterfaceMembers(parsing);
@@ -520,7 +523,7 @@ function parseInterface(parsing: ParsingState): TriedParse<NodeInterface> {
 
 // '{' {VIRTPROP | INTFMTHD} '}'
 function expectInterfaceMembers(parsing: ParsingState): (NodeIntfMethod | NodeVirtualProp)[] {
-    parsing.expect('{', HighlightTokenKind.Operator);
+    // parsing.expect('{', HighlightTokenKind.Operator);
 
     const members: (NodeIntfMethod | NodeVirtualProp)[] = [];
     while (parsing.isEnd() === false) {
@@ -579,7 +582,7 @@ function parseVar(parsing: ParsingState): NodeVar | undefined {
         }
 
         // 追加または終了判定
-        if (expectContinuousOrClose(parsing, true, ',', ';') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', ';', true) === BreakThrough.Break) break;
     }
 
     return {
@@ -847,14 +850,16 @@ function expectParamList(parsing: ParsingState): NodeParamList | undefined {
 }
 
 function expectCommaOrParensClose(parsing: ParsingState, canColon: boolean): BreakThrough {
-    return expectContinuousOrClose(parsing, canColon, ',', ')');
+    return expectContinuousOrClose(parsing, ',', ')', canColon);
 }
 
 function isCommaOrParensClose(character: string): boolean {
     return character === ',' || character === ')';
 }
 
-function expectContinuousOrClose(parsing: ParsingState, canColon: boolean, continuousOp: string, closeOp: string): BreakThrough {
+function expectContinuousOrClose(
+    parsing: ParsingState, continuousOp: string, closeOp: string, canColon: boolean
+): BreakThrough {
     const next = parsing.next().text;
     if (next === closeOp) {
         parsing.confirm(HighlightTokenKind.Operator);
@@ -958,7 +963,7 @@ function parseTypeParameters(parsing: ParsingState): NodeType[] | undefined {
 
     const typeParameters: NodeType[] = [];
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, typeParameters.length > 0, ',', '>') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', '>', typeParameters.length > 0) === BreakThrough.Break) break;
 
         const type = parseType(parsing);
         if (type === undefined) {
@@ -984,7 +989,7 @@ function parseInitList(parsing: ParsingState): NodeInitList | undefined {
 
     const initList: (NodeAssign | NodeInitList)[] = [];
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, initList.length > 0, ',', '}') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', '}', initList.length > 0) === BreakThrough.Break) break;
 
         const assign = parseAssign(parsing);
         if (assign !== undefined) {
@@ -1246,7 +1251,7 @@ function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
 
     const increment: NodeAssign[] = [];
     while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, increment.length > 0, ',', ')') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', ')', increment.length > 0) === BreakThrough.Break) break;
 
         const assign = increment.length > 0 ? expectAssign(parsing) : parseAssign(parsing);
         if (assign === undefined) break;
@@ -1702,7 +1707,7 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
         const assign = expectAssign(parsing);
         if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
 
-        if (expectContinuousOrClose(parsing, indexerList.length > 0, ',', ']') === BreakThrough.Break) break;
+        if (expectContinuousOrClose(parsing, ',', ']', indexerList.length > 0) === BreakThrough.Break) break;
     }
 
     return {
