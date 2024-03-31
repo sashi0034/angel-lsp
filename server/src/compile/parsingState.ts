@@ -9,13 +9,13 @@ import {
 } from "./parseCached";
 
 export enum ParseFailure {
-    Mismatch = 'mismatch',
-    Pending = 'pending',
+    Mismatch = 'Mismatch',
+    Pending = 'Pending',
 }
 
 export enum BreakThrough {
-    Break = 'break',
-    Through = 'through',
+    Break = 'Break',
+    Through = 'Through',
 }
 
 // 診断メッセージは pending 発生時に発行する

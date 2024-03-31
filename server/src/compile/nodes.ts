@@ -178,6 +178,18 @@ export interface NodeTypeDef extends NodesBase {
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+export interface NodeFunc extends NodesBase {
+    nodeName: NodeName.Func;
+    entity: EntityAttribute | undefined;
+    accessor: AccessModifier | undefined;
+    head: FuncHeads;
+    identifier: ParsingToken;
+    paramList: NodeParamList;
+    isConst: boolean;
+    funcAttr: FunctionAttribute | undefined;
+    statBlock: NodeStatBlock;
+}
+
 export interface FuncHeadReturns {
     returnType: NodeType;
     isRef: boolean;
@@ -193,18 +205,6 @@ export type FuncHeads = FuncHeadReturns | FuncHeadDestructor | FuncHeadConstruct
 
 export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns {
     return head !== funcHeadDestructor && head !== funcHeadConstructor;
-}
-
-export interface NodeFunc extends NodesBase {
-    nodeName: NodeName.Func;
-    entity: EntityAttribute | undefined;
-    accessor: AccessModifier | undefined;
-    head: FuncHeads;
-    identifier: ParsingToken;
-    paramList: NodeParamList;
-    isConst: boolean;
-    funcAttr: FunctionAttribute | undefined;
-    statBlock: NodeStatBlock;
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -495,8 +495,14 @@ export interface NodeCast extends NodesBase {
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLambda extends NodesBase {
     nodeName: NodeName.Lambda;
-    params: { type: NodeType | undefined, typeMod: TypeModifier | undefined, identifier: ParsingToken | undefined }[],
+    paramList: ParsedLambdaParams[],
     statBlock: NodeStatBlock
+}
+
+export interface ParsedLambdaParams {
+    type: NodeType | undefined,
+    typeMod: TypeModifier | undefined,
+    identifier: ParsingToken | undefined
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
