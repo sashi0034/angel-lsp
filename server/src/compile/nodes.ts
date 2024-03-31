@@ -136,7 +136,19 @@ export interface NodesBase {
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-export type NodeScript = (NodeEnum | NodeTypeDef | NodeClass | NodeMixin | NodeFuncDef | NodeVar | NodeFunc | NodeNamespace)[];
+export type NodeScript = NodeScriptMember[];
+
+export type NodeScriptMember =
+    NodeEnum
+    | NodeTypeDef
+    | NodeClass
+    | NodeMixin
+    | NodeInterface
+    | NodeFuncDef
+    | NodeVirtualProp
+    | NodeVar
+    | NodeFunc
+    | NodeNamespace;
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {

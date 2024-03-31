@@ -33,7 +33,9 @@ import {
     NodeFuncCall,
     NodeFuncDef,
     NodeIf,
-    NodeInitList, NodeIntfMethod,
+    NodeInitList,
+    NodeInterface,
+    NodeIntfMethod,
     NodeLambda,
     NodeLiteral,
     NodeMixin,
@@ -54,7 +56,9 @@ import {
     NodeVirtualProp,
     NodeWhile,
     ParsedArgument,
-    ParsedEnumMember, ParsedGetterSetter, ParsedLambdaParams,
+    ParsedEnumMember,
+    ParsedGetterSetter,
+    ParsedLambdaParams,
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
@@ -105,6 +109,13 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
+        const parsedInterface = parseInterface(parsing);
+        if (parsedInterface === ParseFailure.Pending) continue;
+        if (parsedInterface !== ParseFailure.Mismatch) {
+            script.push(parsedInterface);
+            continue;
+        }
+
         const parsedEnum = parseEnum(parsing);
         if (parsedEnum === ParseFailure.Pending) continue;
         if (parsedEnum !== ParseFailure.Mismatch) {
@@ -122,6 +133,12 @@ function parseScript(parsing: ParsingState): NodeScript {
         const parsedFunc = parseFunc(parsing);
         if (parsedFunc !== undefined) {
             script.push(parsedFunc);
+            continue;
+        }
+
+        const parsedVirtualProp = parseVirtualProp(parsing);
+        if (parsedVirtualProp !== undefined) {
+            script.push(parsedVirtualProp);
             continue;
         }
 
@@ -307,7 +324,7 @@ function expectClassMembers(parsing: ParsingState) {
     parsing.expect('{', HighlightTokenKind.Operator);
     const members: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[] = [];
     while (parsing.isEnd() === false) {
-        if (parsing.next().text === '}') break;
+        if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
 
         const parsedFuncDef = parseFuncDef(parsing);
         if (parsedFuncDef === ParseFailure.Pending) continue;
@@ -322,6 +339,12 @@ function expectClassMembers(parsing: ParsingState) {
             continue;
         }
 
+        const parsedVirtualProp = parseVirtualProp(parsing);
+        if (parsedVirtualProp !== undefined) {
+            members.push(parsedVirtualProp);
+            continue;
+        }
+
         const parsedVar = parseVar(parsing);
         if (parsedVar !== undefined) {
             members.push(parsedVar);
@@ -332,7 +355,6 @@ function expectClassMembers(parsing: ParsingState) {
         parsing.step();
     }
 
-    parsing.expect('}', HighlightTokenKind.Operator);
     return members;
 }
 
@@ -451,6 +473,76 @@ function parseAccessModifier(parsing: ParsingState): AccessModifier | undefined 
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+function parseInterface(parsing: ParsingState): TriedParse<NodeInterface> {
+    const rangeStart = parsing.next();
+
+    const entity = parseEntityAttribute(parsing);
+
+    if (parsing.next().text !== 'interface') return ParseFailure.Mismatch;
+    parsing.confirm(HighlightTokenKind.Builtin);
+
+    const identifier = expectIdentifier(parsing, HighlightTokenKind.Interface);
+    if (identifier === undefined) return ParseFailure.Pending;
+
+    const result: NodeInterface = {
+        nodeName: NodeName.Interface,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        entity: entity,
+        identifier: identifier,
+        baseList: [],
+        memberList: []
+    };
+
+    if (parsing.next().text === ';') {
+        parsing.confirm(HighlightTokenKind.Operator);
+        return result;
+    }
+
+    if (parsing.next().text === ':') {
+        parsing.confirm(HighlightTokenKind.Operator);
+        while (parsing.isEnd() === false) {
+            if (expectContinuousOrClose(parsing, result.baseList.length > 0, ',', '{') === BreakThrough.Break) break;
+
+            const identifier = expectIdentifier(parsing, HighlightTokenKind.Type);
+            if (identifier === undefined) {
+                parsing.step();
+                continue;
+            }
+
+            result.baseList.push(identifier);
+        }
+    }
+
+    result.memberList = expectInterfaceMembers(parsing);
+
+    return result;
+}
+
+// '{' {VIRTPROP | INTFMTHD} '}'
+function expectInterfaceMembers(parsing: ParsingState): (NodeIntfMethod | NodeVirtualProp)[] {
+    parsing.expect('{', HighlightTokenKind.Operator);
+
+    const members: (NodeIntfMethod | NodeVirtualProp)[] = [];
+    while (parsing.isEnd() === false) {
+        if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
+
+        const intfMethod = parseIntfMethod(parsing);
+        if (intfMethod !== undefined) {
+            members.push(intfMethod);
+            continue;
+        }
+
+        const virtualProp = parseVirtualProp(parsing);
+        if (virtualProp !== undefined) {
+            members.push(virtualProp);
+            continue;
+        }
+
+        parsing.error("Expected interface member ❌");
+        parsing.step();
+    }
+    return members;
+}
 
 // VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function parseVar(parsing: ParsingState): NodeVar | undefined {
@@ -459,7 +551,10 @@ function parseVar(parsing: ParsingState): NodeVar | undefined {
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);
-    if (type === undefined) return undefined;
+    if (type === undefined) {
+        parsing.backtrack(rangeStart);
+        return undefined;
+    }
 
     if (parsing.next().kind !== TokenKind.Identifier) {
         parsing.backtrack(rangeStart);
@@ -552,21 +647,30 @@ function parseVirtualProp(parsing: ParsingState): NodeVirtualProp | undefined {
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);
-    if (type === undefined) return undefined;
+    if (type === undefined) {
+        parsing.backtrack(rangeStart);
+        return undefined;
+    }
 
     const isRef = parseRef(parsing);
 
     const identifier = parseIdentifier(parsing, HighlightTokenKind.Variable);
-    if (identifier === undefined) return undefined;
+    if (identifier === undefined) {
+        parsing.backtrack(rangeStart);
+        return undefined;
+    }
 
-    if (parsing.next().text !== '{') return undefined;
-    parsing.expect('{', HighlightTokenKind.Operator);
+    if (parsing.next().text !== '{') {
+        parsing.backtrack(rangeStart);
+        return undefined;
+    }
+    parsing.confirm(HighlightTokenKind.Operator);
 
     let getter: ParsedGetterSetter | undefined = undefined;
     let setter: ParsedGetterSetter | undefined = undefined;
     while (parsing.isEnd() === false) {
         const next = parsing.next().text;
-        if (next === '}') break;
+        if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
         else if (next === 'get') getter = expectGetterSetter(parsing);
         else if (next === 'set') setter = expectGetterSetter(parsing);
         else {
@@ -574,8 +678,6 @@ function parseVirtualProp(parsing: ParsingState): NodeVirtualProp | undefined {
             parsing.step();
         }
     }
-
-    parsing.expect('}', HighlightTokenKind.Operator);
 
     return {
         nodeName: NodeName.VirtualProp,
@@ -662,7 +764,7 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
 
     const statementList: (NodeVar | NodeStatement)[] = [];
     while (parsing.isEnd() === false) {
-        if (parsing.next().text === '}') break;
+        if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
 
         const parsedVar = parseVar(parsing);
         if (parsedVar !== undefined) {
@@ -681,7 +783,6 @@ function parseStatBlock(parsing: ParsingState): NodeStatBlock | undefined {
         parsing.step();
     }
 
-    parsing.expect('}', HighlightTokenKind.Operator);
     return {
         nodeName: NodeName.StatBlock,
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -764,6 +865,15 @@ function expectContinuousOrClose(parsing: ParsingState, canColon: boolean, conti
             return BreakThrough.Break;
         }
         parsing.confirm(HighlightTokenKind.Operator);
+    }
+    return BreakThrough.Through;
+}
+
+function parseCloseOperator(parsing: ParsingState, closeOp: string): BreakThrough {
+    const next = parsing.next().text;
+    if (next === closeOp) {
+        parsing.confirm(HighlightTokenKind.Operator);
+        return BreakThrough.Break;
     }
     return BreakThrough.Through;
 }
@@ -1084,13 +1194,17 @@ function parseSwitch(parsing: ParsingState): TriedParse<NodeSwitch> {
 
     const cases: NodeCase[] = [];
     while (parsing.isEnd() === false) {
-        if (parsing.isEnd() || parsing.next().text === '}') break;
+        if (parseCloseOperator(parsing, '}') === BreakThrough.Break) break;
+
         const parsedCase = parseCase(parsing);
-        if (parsedCase === ParseFailure.Mismatch) break;
+        if (parsedCase === ParseFailure.Mismatch) {
+            parsing.error("Expected case statement ❌");
+            parsing.step();
+            continue;
+        }
         if (parsedCase === ParseFailure.Pending) continue;
         cases.push(parsedCase);
     }
-    parsing.expect('}', HighlightTokenKind.Operator);
 
     return {
         nodeName: NodeName.Switch,
@@ -1583,21 +1697,14 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
 
     const indexerList: ParsedPostIndexer[] = [];
     while (parsing.isEnd() === false) {
-        if (parsing.next().text === ']') {
-            parsing.confirm(HighlightTokenKind.Operator);
-            if (indexerList.length === 0) {
-                parsing.error("Expected index ❌");
-            }
-            break;
-        }
-        if (indexerList.length > 0) {
-            if (parsing.expect(',', HighlightTokenKind.Operator) === false) break;
-        }
         const identifier = parseIdentifierWithColon(parsing);
+
         const assign = expectAssign(parsing);
-        if (assign === undefined) continue;
-        indexerList.push({identifier: identifier, assign: assign});
+        if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
+
+        if (expectContinuousOrClose(parsing, indexerList.length > 0, ',', ']') === BreakThrough.Break) break;
     }
+
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: {start: rangeStart, end: parsing.prev()},
@@ -1622,17 +1729,20 @@ function parseCast(parsing: ParsingState): TriedParse<NodeCast> {
     if (parsing.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parsing.next();
     parsing.confirm(HighlightTokenKind.Keyword);
-    parsing.expect('<', HighlightTokenKind.Operator);
-    const type = parseType(parsing);
-    if (type === undefined) {
-        parsing.error("Expected type ❌");
-        return ParseFailure.Pending;
-    }
-    parsing.expect('>', HighlightTokenKind.Operator);
-    parsing.expect('(', HighlightTokenKind.Operator);
+
+    if (parsing.expect('<', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
+
+    const type = expectType(parsing);
+    if (type === undefined) return ParseFailure.Pending;
+
+    if (parsing.expect('>', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
+    if (parsing.expect('(', HighlightTokenKind.Operator) === false) return ParseFailure.Pending;
+
     const assign = expectAssign(parsing);
     if (assign === undefined) return ParseFailure.Pending;
+
     parsing.expect(')', HighlightTokenKind.Operator);
+
     return {
         nodeName: NodeName.Cast,
         nodeRange: {start: rangeStart, end: parsing.prev()},
