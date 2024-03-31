@@ -1971,18 +1971,12 @@ function parseCondition(parsing: ParsingState): NodeCondition | undefined {
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parsing: ParsingState) {
-    if (exprOpSet.has(parsing.next().text) === false) return undefined;
     const next = parsing.next();
+    if (next.kind !== TokenKind.Reserved) return undefined;
+    if (next.property.isExprOp === false) return undefined;
     parsing.confirm(HighlightTokenKind.Operator);
     return next;
 }
-
-const exprOpSet = new Set([
-    '+', '-', '*', '/', '%', '**',
-    '==', '!=', '<', '<=', '>', '>=', 'is',
-    '&&', '||', '^^', 'and', 'or', 'xor',
-    '&', '|', '^', '<<', '>>', '>>>'
-]);
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'

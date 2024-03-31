@@ -24,8 +24,8 @@ export class Trie<T> {
                 node.children.set(char, new TrieNode<T>(undefined));
             }
             node = node.children.get(char)!;
-            node.value = value;
         }
+        node.value = value;
     }
 
     find(str: string, start: number): TrieFound<T> | undefined {

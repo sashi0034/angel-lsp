@@ -30,6 +30,7 @@ const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', '
 function makeEmptyProperty(): ReservedWordProperty {
     return {
         isExprPreOp: false,
+        isExprOp: false,
         isBitOp: false,
         isMathOp: false,
         isCompOp: false,
@@ -53,18 +54,22 @@ function createProperties() {
     }
 
     for (const symbol of bitOpSet) {
+        properties.get(symbol)!.isExprOp = true;
         properties.get(symbol)!.isBitOp = true;
     }
 
     for (const symbol of mathOpSet) {
+        properties.get(symbol)!.isExprOp = true;
         properties.get(symbol)!.isMathOp = true;
     }
 
     for (const symbol of compOpSet) {
+        properties.get(symbol)!.isExprOp = true;
         properties.get(symbol)!.isCompOp = true;
     }
 
     for (const symbol of logicOpSet) {
+        properties.get(symbol)!.isExprOp = true;
         properties.get(symbol)!.isLogicOp = true;
     }
 
