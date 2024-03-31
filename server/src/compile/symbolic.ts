@@ -10,6 +10,7 @@ export enum SymbolKind {
 }
 
 export enum PrimitiveType {
+    Template = 'Template',
     Bool = 'Bool',
     Number = 'Number',
     Void = 'Void',
@@ -34,6 +35,7 @@ export interface SymbolicBase {
 export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
     sourceType: SourceType;
+    templateTypes?: ParsingToken[];
 }
 
 export interface SymbolicFunction extends SymbolicBase {
@@ -46,7 +48,7 @@ export interface SymbolicFunction extends SymbolicBase {
 
 export interface SymbolicVariable extends SymbolicBase {
     symbolKind: SymbolKind.Variable;
-    type: SymbolicType | undefined;
+    type: DeducedType | undefined;
 }
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
@@ -112,9 +114,25 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
     }
 }
 
+export type TemplateTranslation = Map<ParsingToken, DeducedType | undefined>;
+
+export function resolveTemplateType(
+    templateTranslate: TemplateTranslation, arg: DeducedType | undefined
+): DeducedType | undefined {
+    if (arg !== undefined && templateTranslate.has(arg.symbol.declaredPlace)) {
+        return templateTranslate.get(arg.symbol.declaredPlace);
+    }
+    return arg;
+}
+
+export function resolveTemplateTypes(templateTranslate: TemplateTranslation, args: (DeducedType | undefined)[]) {
+    return args.map(arg => resolveTemplateType(templateTranslate, arg));
+}
+
 export interface DeducedType {
     symbol: SymbolicType;
     sourceScope: SymbolScope | undefined;
+    templateTranslate?: TemplateTranslation;
 }
 
 export enum ComplementKind {

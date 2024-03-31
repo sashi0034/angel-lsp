@@ -325,6 +325,10 @@ export interface NodeType extends NodesBase {
     refModifier: ReferenceModifier | undefined,
 }
 
+export function getIdentifierInType(type: NodeType): ParsingToken {
+    return type.dataType.identifier;
+}
+
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 export interface NodeInitList extends NodesBase {
     nodeName: NodeName.InitList;

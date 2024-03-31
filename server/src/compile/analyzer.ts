@@ -3,7 +3,7 @@
 import {
     funcHeadDestructor,
     getNextTokenIfExist,
-    getNodeLocation,
+    getNodeLocation, getIdentifierInType,
     isFunctionHeadReturns,
     isMethodMemberInPostOp,
     NodeArgList,
@@ -25,7 +25,7 @@ import {
     NodeFunc,
     NodeFuncCall,
     NodeIf,
-    NodeLiteral,
+    NodeLiteral, NodeMixin,
     NodeName,
     NodeNamespace,
     NodeParamList,
@@ -51,11 +51,12 @@ import {
     findSymbolWithParent,
     insertSymbolicObject,
     isSourceNodeClass,
+    PrimitiveType, resolveTemplateType, resolveTemplateTypes,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
-    SymbolScope,
+    SymbolScope, TemplateTranslation,
     tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
@@ -73,6 +74,7 @@ import {
     isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
+import {ParsingToken} from "./parsingToken";
 
 type HoistingQueue = (() => void)[];
 
@@ -87,6 +89,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
             hoistEnum(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
             hoistClass(parentScope, statement, analyzing, hoisting);
+        } else if (nodeName === NodeName.Mixin) {
+            hoistMixin(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Var) {
             analyzeVar(parentScope, statement);
         } else if (nodeName === NodeName.Func) {
@@ -128,7 +132,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
-            type: builtinNumberType,
+            type: {symbol: builtinNumberType, sourceScope: undefined},
         };
         insertSymbolicObject(parentScope.symbolMap, symbol);
     }
@@ -142,11 +146,29 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         sourceType: nodeClass,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
+
+    const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeParameters);
+    if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
     });
+}
+
+function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
+    const templateTypes: ParsingToken[] = [];
+    for (const type of types ?? []) {
+        insertSymbolicObject(scope.symbolMap, {
+            symbolKind: SymbolKind.Type,
+            declaredPlace: getIdentifierInType(type),
+            sourceType: PrimitiveType.Template,
+        } satisfies SymbolicType);
+
+        templateTypes.push(getIdentifierInType(type));
+    }
+    return templateTypes;
 }
 
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -214,7 +236,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
         }
         const variable: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
-            type: type?.symbol,
+            type: type,
             declaredPlace: declaredVar.identifier,
         };
         insertSymbolicObject(scope.symbolMap, variable);
@@ -224,7 +246,12 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+
 // MIXIN         ::= 'mixin' CLASS
+function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
+    hoistClass(parentScope, mixin.mixinClass, analyzing, hoisting);
+}
+
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
@@ -256,7 +283,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         if (param.identifier === undefined) continue;
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
-            type: type?.symbol,
+            type: type,
             declaredPlace: param.identifier,
         });
     }
@@ -299,11 +326,35 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         return undefined;
     }
 
+    const typeParameters = analyzeTemplateTypes(scope, nodeType.typeParameters, foundSymbol.symbol.templateTypes);
+
     scope.referencedList.push({
         declaredSymbol: foundSymbol.symbol,
         referencedToken: nodeType.dataType.identifier
     });
-    return {symbol: foundSymbol.symbol, sourceScope: foundSymbol.scope};
+
+    return {
+        symbol: foundSymbol.symbol,
+        sourceScope: foundSymbol.scope,
+        templateTranslate: typeParameters
+    };
+}
+
+function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsingToken[] | undefined) {
+    if (templateTypes === undefined) return undefined;
+
+    const translation: TemplateTranslation = new Map();
+    for (let i = 0; i < nodeType.length; i++) {
+        if (i >= templateTypes.length) {
+            diagnostic.addError(getNodeLocation(nodeType[nodeType.length - 1].nodeRange), `Too many template types 💢`);
+            break;
+        }
+
+        const template = nodeType[i];
+        translation.set(templateTypes[i], analyzeType(scope, template));
+    }
+
+    return translation;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -399,7 +450,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
 function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
     analyzeAssign(scope, ast.assign);
     for (const c of ast.cases) {
-        analyzeCASE(scope, c);
+        analyzeCase(scope, c);
     }
 }
 
@@ -457,7 +508,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function analyzeCASE(scope: SymbolScope, nodeCase: NodeCase) {
+function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
     if (nodeCase.expr !== undefined) analyzeExpr(scope, nodeCase.expr);
     for (const statement of nodeCase.statementList) {
         analyzeStatement(scope, statement);
@@ -491,7 +542,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
 
     for (const postOp of exprTerm.postOps) {
         if (exprValue === undefined) break;
-        exprValue = analyzeExprPostOp(scope, postOp, exprValue.symbol);
+        exprValue = analyzeExprPostOp(scope, postOp, exprValue);
     }
 
     return exprValue;
@@ -534,21 +585,21 @@ function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, co
         return undefined;
     }
 
-    analyzeFunctionCaller(scope, funcCall, constructor);
+    analyzeFunctionCaller(scope, funcCall, constructor, undefined);
     return {symbol: constructorType, sourceScope: classScope};
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: SymbolicType) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: DeducedType) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     }
 }
 
 // ('.' (FUNCCALL | IDENTIFIER))
-function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: SymbolicType) {
+function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: DeducedType) {
     const complementRange = getNodeLocation(exprPostOp.nodeRange);
 
     // メンバが存在しない場合は、次のトークンまでを補完範囲とする
@@ -560,21 +611,21 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
-        targetType: exprValue
+        targetType: exprValue.symbol
     });
 
     if (exprPostOp.member === undefined) return undefined;
 
     if (isMethodMemberInPostOp(exprPostOp.member)) {
         // メソッド診断
-        if (isSourceNodeClass(exprValue.sourceType) === false) {
+        if (isSourceNodeClass(exprValue.symbol.sourceType) === false) {
             diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
             return undefined;
         }
 
-        const classScope = findScopeWithParent(scope, exprValue.sourceType.identifier.text);
+        const classScope = findScopeWithParent(scope, exprValue.symbol.sourceType.identifier.text);
         if (classScope === undefined) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.sourceType.identifier.text}`);
+            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.symbol.sourceType.identifier.text}`);
             return undefined;
         }
 
@@ -584,7 +635,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        return analyzeFunctionCaller(scope, exprPostOp.member, classMethod);
+        return analyzeFunctionCaller(scope, exprPostOp.member, classMethod, exprValue.templateTranslate);
     } else {
         // フィールド診断
         // TODO
@@ -613,6 +664,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         if (namespaceScope === undefined) return undefined;
         scope = namespaceScope;
     }
+
     const calleeFunc = findSymbolWithParent(scope, funcCall.identifier.text)?.symbol;
     if (calleeFunc === undefined) {
         diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
@@ -627,12 +679,18 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         diagnostic.addError(funcCall.identifier.location, `Not a function: ${funcCall.identifier.text}`);
         return undefined;
     }
-    return analyzeFunctionCaller(scope, funcCall, calleeFunc);
+
+    return analyzeFunctionCaller(scope, funcCall, calleeFunc, undefined);
 }
 
-function analyzeFunctionCaller(scope: SymbolScope, callerNode: NodeFuncCall | NodeConstructCall, calleeFunc: SymbolicFunction) {
+function analyzeFunctionCaller(
+    scope: SymbolScope,
+    callerNode: NodeFuncCall | NodeConstructCall,
+    calleeFunc: SymbolicFunction,
+    templateTranslate: TemplateTranslation | undefined
+) {
     const callerArgs = analyzeArgList(scope, callerNode.argList);
-    return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc);
+    return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc, templateTranslate);
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
@@ -656,12 +714,14 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
         diagnostic.addError(token.location, `Not a variable: ${token.text}`);
         return undefined;
     }
+
     scope.referencedList.push({
         declaredSymbol: declared.symbol,
         referencedToken: token
     });
+
     if (declared.symbol.type === undefined) return undefined;
-    return {symbol: declared.symbol.type, sourceScope: declared.scope};
+    return declared.symbol.type;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'

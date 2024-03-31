@@ -1,6 +1,6 @@
 import {diagnostic} from "../code/diagnostic";
 import {getNodeLocation, NodeConstructCall, NodeFuncCall, NodeName} from "./nodes";
-import {DeducedType, SymbolicFunction, SymbolScope} from "./symbolic";
+import {DeducedType, resolveTemplateType, SymbolicFunction, SymbolScope, TemplateTranslation} from "./symbolic";
 import {isTypeMatch} from "./checkType";
 import {ParsingToken} from "./parsingToken";
 
@@ -8,13 +8,14 @@ export function checkFunctionMatch(
     scope: SymbolScope,
     callerNode: NodeFuncCall | NodeConstructCall,
     callerArgs: (DeducedType | undefined)[],
-    calleeFunc: SymbolicFunction
+    calleeFunc: SymbolicFunction,
+    templateTranslator: TemplateTranslation | undefined
 ): DeducedType | undefined {
     const calleeParams = calleeFunc.sourceNode.paramList;
 
     if (callerArgs.length > calleeParams.length) {
         // 呼び出し側の引数の数が多すぎる場合へ対処
-        return handleTooMuchCallerArgs(scope, callerNode, callerArgs, calleeFunc);
+        return handleTooMuchCallerArgs(scope, callerNode, callerArgs, calleeFunc, templateTranslator);
     }
 
     for (let i = 0; i < calleeParams.length; i++) {
@@ -25,19 +26,24 @@ export function checkFunctionMatch(
             if (param.defaultExpr === undefined) {
                 // デフォルト値も存在しない場合
                 // オーバーロードが存在するなら採用
-                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload, templateTranslator);
                 diagnostic.addError(getNodeLocation(callerNode.nodeRange), `Missing argument for parameter '${param.identifier?.text}' 💢`);
                 break;
             }
         }
 
-        const actualType = callerArgs[i];
-        const expectedType = calleeFunc.parameterTypes[i];
+        let actualType = callerArgs[i];
+        let expectedType = calleeFunc.parameterTypes[i];
+        if (templateTranslator !== undefined) {
+            actualType = resolveTemplateType(templateTranslator, actualType);
+            expectedType = resolveTemplateType(templateTranslator, expectedType);
+        }
+
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロードが存在するなら使用
-        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload, templateTranslator);
         diagnostic.addError(getNodeLocation(callerNode.argList.argList[i].assign.nodeRange),
             `Cannot convert '${actualType.symbol.declaredPlace.text}' to parameter type '${expectedType.symbol.declaredPlace.text}' 💢`);
     }
@@ -50,10 +56,11 @@ function handleTooMuchCallerArgs(
     scope: SymbolScope,
     callerNode: NodeFuncCall | NodeConstructCall,
     callerArgs: (DeducedType | undefined)[],
-    calleeFunc: SymbolicFunction
+    calleeFunc: SymbolicFunction,
+    templateTranslate: TemplateTranslation | undefined
 ) {
     // オーバーロードが存在するなら採用
-    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload);
+    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc.nextOverload, templateTranslate);
 
     diagnostic.addError(getNodeLocation(callerNode.nodeRange),
         `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgs.length} were provided 💢`);
