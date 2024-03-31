@@ -17,25 +17,31 @@
         "vscode": "^1.75.0"
     },
     "activationEvents": [
-        "onLanguage:AngelScript",
-        "onLanguage:AngelPredefined"
+        "onLanguage:angelscript",
+        "onLanguage:angelscript-predefined"
     ],
     "main": "./client/out/extension",
     "contributes": {
         "languages": [
             {
-                "id": "AngelScript",
+                "id": "angelscript",
                 "extensions": [
                     ".as"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "aliases": [
+                    "AngelScript"
+                ]
             },
             {
-                "id": "AngelPredefined",
+                "id": "angelscript-predefined",
                 "filenames": [
                     "as.predefined"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "aliases": [
+                    "AngelScript Predefined"
+                ]
             }
         ],
         "configurationDefaults": {
@@ -47,7 +53,7 @@
         },
         "iconThemes": [
             {
-                "id": "angel-script-icon",
+                "id": "angelscript-icon",
                 "label": "AngelScript Icon",
                 "path": "./icons/icons-theme.json"
             }

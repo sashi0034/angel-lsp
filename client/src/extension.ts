@@ -35,8 +35,8 @@ export function activate(context: ExtensionContext) {
     const clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
         documentSelector: [
-            {scheme: 'file', language: 'AngelScript'},
-            {scheme: 'file', language: 'AngelPredefined'}
+            {scheme: 'file', language: 'angelscript'},
+            {scheme: 'file', language: 'angelscript-predefined'}
         ],
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace

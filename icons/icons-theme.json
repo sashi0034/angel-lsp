@@ -1,16 +1,16 @@
 {
     "iconDefinitions": {
-        "AngelPredefined": {
-            "iconPath": "./angel-predefined.png"
+        "angelscript-predefined": {
+            "iconPath": "./angelscript-predefined.png"
         },
-        "AngelScript": {
-            "iconPath": "./angel-script.png"
+        "angelscript": {
+            "iconPath": "./angelscript.png"
         }
     },
     "fileExtensions": {
-        "as": "AngelScript"
+        "as": "angelscript",
     },
     "fileNames": {
-        "as.predefined": "AngelPredefined"
+        "as.predefined": "angelscript-predefined",
     }
 }
