@@ -33,6 +33,7 @@ import {
     NodeFuncCall,
     NodeFuncDef,
     NodeIf,
+    NodeImport,
     NodeInitList,
     NodeInterface,
     NodeIntfMethod,
@@ -78,6 +79,13 @@ function parseScript(parsing: ParsingState): NodeScript {
     while (parsing.isEnd() === false) {
         if (parsing.next().text === ';') {
             parsing.confirm(HighlightTokenKind.Operator);
+            continue;
+        }
+
+        const parsedImport = parseImport(parsing);
+        if (parsedImport === ParseFailure.Pending) continue;
+        if (parsedImport !== ParseFailure.Mismatch) {
+            script.push(parsedImport);
             continue;
         }
 
@@ -198,6 +206,15 @@ function expectIdentifier(parsing: ParsingState, kind: HighlightTokenKind): Pars
         parsing.error("Expected identifier ❌");
     }
     return identifier;
+}
+
+function expectContextualKeyword(parsing: ParsingState, keyword: string): boolean {
+    if (parsing.next().text !== keyword) {
+        parsing.error(`Expected '${keyword}' ❌`);
+        return false;
+    }
+    parsing.confirm(HighlightTokenKind.Keyword);
+    return true;
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -609,6 +626,47 @@ function expectInitListOrExpr(parsing: ParsingState) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+function parseImport(parsing: ParsingState): TriedParse<NodeImport> {
+    const rangeStart = parsing.next();
+
+    if (parsing.next().text !== 'import') return ParseFailure.Mismatch;
+    parsing.confirm(HighlightTokenKind.Keyword);
+
+    const type = expectType(parsing);
+    if (type === undefined) return ParseFailure.Pending;
+
+    const isRef = parseRef(parsing);
+
+    const identifier = expectIdentifier(parsing, HighlightTokenKind.Variable);
+    if (identifier === undefined) return ParseFailure.Pending;
+
+    const paramList = expectParamList(parsing);
+    if (paramList === undefined) return ParseFailure.Pending;
+
+    const funcAttr = parseFuncAttr(parsing);
+
+    if (expectContextualKeyword(parsing, 'from') === false) return ParseFailure.Pending;
+
+    const path = parsing.next();
+    if (path.kind !== TokenKind.String) {
+        parsing.error("Expected string path ❌");
+        return ParseFailure.Pending;
+    }
+    parsing.confirm(HighlightTokenKind.String);
+
+    parsing.expect(';', HighlightTokenKind.Operator);
+
+    return {
+        nodeName: NodeName.Import,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        type: type,
+        isRef: isRef,
+        identifier: identifier,
+        paramList: paramList,
+        funcAttr: funcAttr,
+        path: path
+    };
+}
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function parseFuncDef(parsing: ParsingState): TriedParse<NodeFuncDef> {

@@ -139,7 +139,8 @@ export interface NodesBase {
 export type NodeScript = NodeScriptMember[];
 
 export type NodeScriptMember =
-    NodeEnum
+    NodeImport
+    | NodeEnum
     | NodeTypeDef
     | NodeClass
     | NodeMixin
@@ -242,6 +243,15 @@ export interface ParsedVariableInit {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+export interface NodeImport extends NodesBase {
+    nodeName: NodeName.Import;
+    type: NodeType;
+    isRef: boolean;
+    identifier: ParsingToken;
+    paramList: NodeParamList;
+    funcAttr: FunctionAttribute | undefined;
+    path: ParsingToken;
+}
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 export interface NodeFuncDef extends NodesBase {
