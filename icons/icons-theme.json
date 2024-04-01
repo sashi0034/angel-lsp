@@ -8,9 +8,9 @@
         }
     },
     "fileExtensions": {
-        "as": "angelscript",
+        "as": "angelscript"
     },
     "fileNames": {
-        "as.predefined": "angelscript-predefined",
+        "as.predefined": "angelscript-predefined"
     }
 }

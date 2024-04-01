@@ -58,6 +58,12 @@
                 "path": "./icons/icons-theme.json"
             }
         ],
+        "snippets": [
+            {
+                "language": "angelscript",
+                "path": "./snippets.json"
+            }
+        ],
         "configuration": {
             "type": "object",
             "title": "Example configuration",

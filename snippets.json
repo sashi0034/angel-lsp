@@ -1,0 +1,113 @@
+{
+    "If statement": {
+        "prefix": "if",
+        "body": [
+            "if (${1:CONDITION}) {",
+            "\t$2",
+            "}"
+        ],
+        "description": "If statement"
+    },
+    "For loop": {
+        "prefix": "for",
+        "body": [
+            "for (${1:int} ${2:i} = 0; ${2} < ${3:n}; ${2}++) {",
+            "\t$0",
+            "}"
+        ],
+        "description": "For loop"
+    },
+    "While loop": {
+        "prefix": "while",
+        "body": [
+            "while (${1:CONDITION}) {",
+            "\t$2",
+            "}"
+        ],
+        "description": "While loop"
+    },
+    "Return statement": {
+        "prefix": "return",
+        "body": [
+            "return $1;"
+        ],
+        "description": "Return statement"
+    },
+    "Break statement": {
+        "prefix": "break",
+        "body": [
+            "break;"
+        ],
+        "description": "Break statement"
+    },
+    "Continue statement": {
+        "prefix": "continue",
+        "body": [
+            "continue;"
+        ],
+        "description": "Continue statement"
+    },
+    "Do while loop": {
+        "prefix": "dowhile",
+        "body": [
+            "do {",
+            "\t$2",
+            "} while (${1:CONDITION});"
+        ],
+        "description": "Do while loop"
+    },
+    "Switch statement": {
+        "prefix": "switch",
+        "body": [
+            "switch (${1:EXPRESSION}) {",
+            "case ${2:VALUE}:",
+            "\t$3",
+            "\tbreak;",
+            "default:",
+            "\tbreak;",
+            "}"
+        ],
+        "description": "Switch statement"
+    },
+    "Try block": {
+        "prefix": "try",
+        "body": [
+            "try {",
+            "\t$1",
+            "} catch {",
+            "}"
+        ],
+        "description": "Try catch block"
+    },
+    "Cast": {
+        "prefix": "cast",
+        "body": [
+            "cast<${1:TYPE}>($2)"
+        ],
+        "description": "Cast to a type"
+    },
+    "Namespace definition": {
+        "prefix": "namespace",
+        "body": [
+            "namespace ${1:NAME} {",
+            "}"
+        ],
+        "description": "Namespace definition"
+    },
+    "Interface definition": {
+        "prefix": "interface",
+        "body": [
+            "interface ${1:NAME} {",
+            "}"
+        ],
+        "description": "Interface definition"
+    },
+    "Class definition": {
+        "prefix": "class",
+        "body": [
+            "class ${1:NAME} {",
+            "}"
+        ],
+        "description": "Class definition"
+    }
+}
