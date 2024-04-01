@@ -2,15 +2,29 @@ import {
     DeducedType,
     findSymbolShallowly,
     isSourcePrimitiveType,
-    PrimitiveType, SourceType, SymbolicFunction,
+    PrimitiveType, SourceType, stringifyDeducedType, SymbolicFunction,
     SymbolKind, SymbolScope
 } from "./symbolic";
-import {NodeName} from "./nodes";
+import {getNodeLocation, NodeName, NodesBase, ParsedRange} from "./nodes";
 import {findScopeShallowly} from "./scope";
+import {diagnostic} from "../code/diagnostic";
+
+export function checkTypeMatch(
+    src: DeducedType | undefined,
+    dest: DeducedType | undefined,
+    nodeRange: ParsedRange,
+): boolean {
+    if (src === undefined || dest === undefined) return false;
+
+    if (isTypeMatch(src, dest)) return true;
+
+    diagnostic.addError(getNodeLocation(nodeRange), `Type mismatch: '${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
+    return false;
+}
 
 export function isTypeMatch(
     src: DeducedType, dest: DeducedType
-) {
+): boolean {
     const srcType = src.symbol;
     const destType = dest.symbol;
     const srcNode = srcType.sourceType;
@@ -44,7 +58,7 @@ export function isTypeMatch(
     return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
 }
 
- function canConstructImplicitly(
+function canConstructImplicitly(
     src: DeducedType,
     destScope: SymbolScope | undefined,
     destIdentifier: string
@@ -62,7 +76,7 @@ export function isTypeMatch(
     return canConstructBy(constructor, src.symbol.sourceType);
 }
 
- function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
+function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];

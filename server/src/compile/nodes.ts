@@ -607,10 +607,12 @@ export interface ParsedArgument {
 export interface NodeAssign extends NodesBase {
     nodeName: NodeName.Assign;
     condition: NodeCondition;
-    tail: {
-        op: ParsingToken
-        assign: NodeAssign
-    } | undefined;
+    tail: ParsedAssignTail | undefined;
+}
+
+export interface ParsedAssignTail {
+    op: ParsingToken,
+    assign: NodeAssign
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]

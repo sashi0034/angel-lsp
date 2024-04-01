@@ -2,8 +2,10 @@
 
 import {
     funcHeadDestructor,
+    getIdentifierInType,
     getNextTokenIfExist,
-    getNodeLocation, getIdentifierInType,
+    getNodeLocation,
+    getRangedLocation,
     isFunctionHeadReturns,
     isMethodMemberInPostOp,
     NodeArgList,
@@ -24,8 +26,9 @@ import {
     NodeFor,
     NodeFunc,
     NodeFuncCall,
-    NodeIf,
-    NodeLiteral, NodeMixin,
+    NodeIf, NodeInitList,
+    NodeLiteral,
+    NodeMixin,
     NodeName,
     NodeNamespace,
     NodeParamList,
@@ -40,24 +43,25 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWhile,
-    ParsedEnumMember, getRangedLocation
+    ParsedEnumMember
 } from "./nodes";
 import {
-    builtinIntType,
     builtinBoolType,
+    builtinIntType,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
     isSourceNodeClass,
-    PrimitiveType, resolveTemplateType, resolveTemplateTypes,
+    PrimitiveType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
-    SymbolScope, TemplateTranslation,
-    tryGetBuiltInType, SourceType
+    SymbolScope,
+    TemplateTranslation,
+    tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
@@ -75,6 +79,7 @@ import {
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
+import {checkTypeMatch} from "./checkType";
 
 type HoistingQueue = (() => void)[];
 
@@ -229,19 +234,35 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
-    const type = analyzeType(scope, nodeVar.type);
+    const varType = analyzeType(scope, nodeVar.type);
     for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
         if (initializer !== undefined) {
-            if (initializer.nodeName === NodeName.Expr) analyzeExpr(scope, initializer);
-            if (initializer.nodeName === NodeName.ArgList) analyzeArgList(scope, initializer);
+            analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
         }
+
         const variable: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
-            type: type,
+            type: varType,
             declaredPlace: declaredVar.identifier,
         };
         insertSymbolicObject(scope.symbolMap, variable);
+    }
+}
+
+function analyzeVarInitializer(
+    scope: SymbolScope,
+    varType: DeducedType | undefined,
+    identifier: ParsingToken,
+    initializer: NodeInitList | NodeExpr | NodeArgList) {
+    if (initializer.nodeName === NodeName.InitList) {
+        analyzeInitList(scope, initializer);
+    } else if (initializer.nodeName === NodeName.Expr) {
+        const exprType = analyzeExpr(scope, initializer);
+        checkTypeMatch(varType, exprType, initializer.nodeRange);
+    } else if (initializer.nodeName === NodeName.ArgList) {
+        if (varType === undefined) return;
+        analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
     }
 }
 
@@ -360,8 +381,17 @@ function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], template
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-function analyzeINITLIST(scope: SymbolScope, ast: NodeExpr) {
-    // TODO
+function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
+    for (const init of initList.initList) {
+        if (init.nodeName === NodeName.Assign) {
+            analyzeAssign(scope, init);
+        } else if (init.nodeName === NodeName.InitList) {
+            analyzeInitList(scope, init);
+        }
+    }
+
+    // TODO: InitList 型判定
+    return undefined;
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
@@ -518,11 +548,11 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeExpr(scope: SymbolScope, ast: NodeExpr): DeducedType | undefined {
-    const lhs = analyzeExprTerm(scope, ast.head);
+function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefined {
+    const lhs = analyzeExprTerm(scope, expr.head);
     // TODO: 型チェック
-    if (ast.tail !== undefined) {
-        const rhs = analyzeExpr(scope, ast.tail.expression);
+    if (expr.tail !== undefined) {
+        const rhs = analyzeExpr(scope, expr.tail.expression);
         // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
     }
     return lhs;
@@ -574,20 +604,27 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-function analyzeConstructorByType(scope: SymbolScope, funcCall: NodeFuncCall, constructorType: SymbolicType): DeducedType | undefined {
-    const classScope = findScopeWithParent(scope, funcCall.identifier.text);
+function analyzeConstructorByType(
+    scope: SymbolScope,
+    callerIdentifier: ParsingToken,
+    callerArgList: NodeArgList,
+    constructorType: SymbolicType,
+    templateTranslate: TemplateTranslation | undefined
+): DeducedType | undefined {
+    const constructorIdentifier = constructorType.declaredPlace.text;
+    const classScope = findScopeWithParent(scope, constructorIdentifier);
     if (classScope === undefined) {
-        diagnostic.addError(funcCall.identifier.location, `Undefined class: ${funcCall.identifier.text} 💢`);
+        diagnostic.addError(callerIdentifier.location, `Undefined class: ${constructorIdentifier} 💢`);
         return undefined;
     }
 
-    const constructor = findSymbolShallowly(classScope, funcCall.identifier.text);
+    const constructor = findSymbolShallowly(classScope, constructorIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(funcCall.identifier.location, `Missing constructor: ${funcCall.identifier.text} 💢`);
+        diagnostic.addError(callerIdentifier.location, `Missing constructor: ${constructorIdentifier} 💢`);
         return undefined;
     }
 
-    analyzeFunctionCaller(scope, funcCall, constructor, undefined);
+    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, templateTranslate);
     return {symbol: constructorType, sourceScope: classScope};
 }
 
@@ -632,7 +669,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        return analyzeFunctionCaller(scope, exprPostOp.member, classMethod, exprValue.templateTranslate);
+        return analyzeFunctionCaller(scope, exprPostOp.member.identifier, exprPostOp.member.argList, classMethod, exprValue.templateTranslate);
     } else {
         // フィールド診断
         // TODO
@@ -671,7 +708,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     }
 
     if (calleeFunc.symbolKind === SymbolKind.Type) {
-        return analyzeConstructorByType(scope, funcCall, calleeFunc);
+        return analyzeConstructorByType(scope, funcCall.identifier, funcCall.argList, calleeFunc, undefined);
     }
 
     if (calleeFunc.symbolKind !== SymbolKind.Function) {
@@ -679,20 +716,23 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         return undefined;
     }
 
-    return analyzeFunctionCaller(scope, funcCall, calleeFunc, undefined);
+    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeFunc, undefined);
 }
 
 function analyzeFunctionCaller(
     scope: SymbolScope,
-    callerNode: NodeFuncCall | NodeConstructCall,
+    callerIdentifier: ParsingToken,
+    callerArgList: NodeArgList,
     calleeFunc: SymbolicFunction,
     templateTranslate: TemplateTranslation | undefined
 ) {
-    const callerArgs = analyzeArgList(scope, callerNode.argList);
+    const callerArgTypes = analyzeArgList(scope, callerArgList);
     return checkFunctionMatch({
         scope: scope,
-        callerNode: callerNode,
-        callerArgs: callerArgs,
+        callerIdentifier: callerIdentifier,
+        callerRange: callerArgList.nodeRange,
+        callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
+        callerArgTypes: callerArgTypes,
         calleeFunc: calleeFunc,
         templateTranslator: templateTranslate
     });
