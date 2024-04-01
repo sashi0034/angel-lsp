@@ -57,7 +57,7 @@ import {
     SymbolicVariable,
     SymbolKind,
     SymbolScope, TemplateTranslation,
-    tryGetBuiltInType
+    tryGetBuiltInType, SourceType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
@@ -123,16 +123,18 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     };
 
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
-    hoistEnumMembers(scope, nodeEnum.memberList);
+
+    hoistEnumMembers(scope, nodeEnum.memberList, {symbol: symbol, sourceScope: scope});
 }
 
-function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[]) {
+function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: DeducedType) {
     for (const member of memberList) {
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
-            type: {symbol: builtinIntType, sourceScope: undefined},
+            type: type,
         };
         insertSymbolicObject(parentScope.symbolMap, symbol);
     }
