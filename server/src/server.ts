@@ -27,6 +27,8 @@ import {serveSemanticTokens} from "./serve/semantiTokens";
 import {pathToFileURL} from "node:url";
 import {getDocumentPath} from "./serve/documentPath";
 import {serveReferences} from "./serve/reference";
+import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
+import {Location} from "vscode-languageserver";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -59,9 +61,10 @@ connection.onInitialize((params: InitializeParams) => {
     const result: InitializeResult = {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Incremental,
-            definitionProvider: true, // TODO
-            declarationProvider: true, // TODO
-            referencesProvider: true, // TODO
+            definitionProvider: true,
+            declarationProvider: true,
+            referencesProvider: true,
+            renameProvider: true,
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
@@ -180,17 +183,38 @@ connection.onDefinition((params) => {
 });
 
 // 参照表示
-connection.onReferences((params) => {
+function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
-    if (document === undefined) return;
+    if (document === undefined) return [];
 
     const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
-    if (analyzedScope === undefined) return;
+    if (analyzedScope === undefined) return [];
 
     const caret = params.position;
 
     const references = serveReferences(analyzedScope, getInspectedResultList().map(result => result.analyzedScope.fullScope), caret);
     return references.map(ref => getFileLocationOfToken(ref));
+}
+
+connection.onReferences((params) => {
+    return getReferenceLocations(params);
+});
+
+// リネーム機能
+connection.onRenameRequest((params) => {
+    const locations = getReferenceLocations(params);
+
+    const changes: { [uri: string]: TextEdit[] } = {};
+    locations.forEach(location => {
+        const uri = location.uri;
+        if (changes[uri] === undefined) changes[uri] = [];
+        changes[uri].push({
+            range: location.range,
+            newText: params.newName
+        });
+    });
+
+    return {changes};
 });
 
 // The content of a text document has changed. This event is emitted
