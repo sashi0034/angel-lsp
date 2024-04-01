@@ -1,19 +1,35 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
     HighlightInfo,
-    LocationInfo, ReservedWordProperty,
-    TokenComment, TokenIdentifier,
+    LocationInfo,
+    NumberLiterals,
+    ReservedWordProperty,
+    TokenComment,
+    TokenIdentifier,
     TokenizingToken,
     TokenKind,
-    TokenNumber, TokenReserved,
+    TokenNumber,
+    TokenReserved,
     TokenString
 } from "./tokens";
 import {diagnostic} from "../code/diagnostic";
 import {TokenizingState, UnknownBuffer} from "./tokenizingState";
 import {findReservedKeywordProperty, findReservedMarkProperty} from "./tokenReserves";
 
-function isDigit(str: string): boolean {
-    return /^[0-9]$/.test(str);
+function isDigit(c: string): boolean {
+    return /^[0-9]$/.test(c);
+}
+
+function isBinChara(c: string): boolean {
+    return /^[01]$/.test(c);
+}
+
+function isOctChara(c: string): boolean {
+    return /^[0-7]$/.test(c);
+}
+
+function isHexChar(c: string): boolean {
+    return /^[0-9a-f]$/.test(c);
 }
 
 function isAlphanumeric(c: string): boolean {
@@ -68,19 +84,8 @@ function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) 
 // 数値解析
 function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
     const start = reading.getCursor();
-    let isFloating = false;
 
-    for (; ;) {
-        if (reading.isEnd()) break;
-        const next = reading.next();
-        const floatStart = next === '.' && isFloating === false;
-        const floatEnd = next === 'f' && isFloating;
-        if (isDigit(next) || floatStart || floatEnd) {
-            reading.stepFor(1);
-            if (floatStart) isFloating = true;
-            if (floatEnd) break;
-        } else break;
-    }
+    const numeric = consumeNumber(reading);
 
     if (start === reading.getCursor()) return undefined;
 
@@ -89,8 +94,63 @@ function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumbe
         kind: TokenKind.Number,
         text: reading.substrFrom(start),
         location: location,
-        highlight: createHighlight(HighlightToken.Number, HighlightModifier.Nothing)
+        highlight: createHighlight(HighlightToken.Number, HighlightModifier.Nothing),
+        numeric: numeric
     };
+}
+
+function consumeNumber(reading: TokenizingState) {
+    if (/^[0-9.]/.test(reading.next()) === false) return NumberLiterals.Integer;
+
+    if (reading.next(0) === '0') {
+        if (/^[bB]$/.test(reading.next(1))) {
+            reading.stepFor(2);
+            while (reading.isEnd() === false && isBinChara(reading.next())) reading.stepNext();
+            return NumberLiterals.Integer;
+        } else if (/^[oO]$/.test(reading.next(1))) {
+            reading.stepFor(2);
+            while (reading.isEnd() === false && isOctChara(reading.next())) reading.stepNext();
+            return NumberLiterals.Integer;
+        } else if (/^[dD]$/.test(reading.next(1))) {
+            reading.stepFor(2);
+            while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+            return NumberLiterals.Integer;
+        } else if (/^[xX]$/.test(reading.next(1))) {
+            reading.stepFor(2);
+            while (reading.isEnd() === false && isHexChar(reading.next())) reading.stepNext();
+            return NumberLiterals.Integer;
+        }
+    }
+
+    // 0~9 を読み取る
+    while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+
+    let numeric = NumberLiterals.Integer;
+
+    // 小数点
+    if (reading.next() === '.') {
+        reading.stepNext();
+        while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+        numeric = NumberLiterals.Double;
+    }
+
+    // 指数
+    if (/^[eE]$/.test(reading.next())) {
+        reading.stepNext();
+        if (/^[+-]$/.test(reading.next())) reading.stepNext();
+        while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+        numeric = NumberLiterals.Double;
+    }
+
+    // 半精度浮動小数と認識
+    if (numeric === NumberLiterals.Double) {
+        if (/^[fF]$/.test(reading.next())) {
+            reading.stepNext();
+            return NumberLiterals.Float;
+        }
+    }
+
+    return numeric;
 }
 
 // 文字列解析

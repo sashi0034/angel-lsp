@@ -1,4 +1,11 @@
-import {createEmptyLocation, createVirtualHighlight, HighlightInfo, TokenizingToken, TokenKind} from "./tokens";
+import {
+    createEmptyLocation,
+    createVirtualHighlight,
+    HighlightInfo,
+    NumberLiterals,
+    TokenizingToken,
+    TokenKind
+} from "./tokens";
 import {findAllReservedWordProperty} from "./tokenReserves";
 
 export type ParsingToken = TokenizingToken & {
@@ -27,6 +34,11 @@ export function createVirtualToken(
         ...result,
         kind: TokenKind.Reserved,
         property: findAllReservedWordProperty(text)
+    };
+    else if (kind === TokenKind.Number) return {
+        ...result,
+        kind: TokenKind.Number,
+        numeric: NumberLiterals.Integer
     };
 
     return {

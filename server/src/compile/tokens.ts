@@ -96,8 +96,15 @@ export interface TokenIdentifier extends TokenBase {
     kind: TokenKind.Identifier;
 }
 
+export enum NumberLiterals {
+    Integer = 'Integer',
+    Float = 'Float',
+    Double = 'Double',
+}
+
 export interface TokenNumber extends TokenBase {
     kind: TokenKind.Number;
+    numeric: NumberLiterals;
 }
 
 export interface TokenString extends TokenBase {
