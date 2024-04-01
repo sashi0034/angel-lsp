@@ -1,5 +1,5 @@
-import {createVirtualHighlight, HighlightInfo, TokenizingToken, TokenKind} from "./tokens";
-import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {createEmptyLocation, createVirtualHighlight, HighlightInfo, TokenizingToken, TokenKind} from "./tokens";
+import {findAllReservedWordProperty} from "./tokenReserves";
 
 export type ParsingToken = TokenizingToken & {
     highlight: HighlightInfo;
@@ -11,18 +11,29 @@ function isVirtualToken(token: ParsingToken): boolean {
     return token.highlight === undefined;
 }
 
-export const dummyToken: ParsingToken = {
-    kind: TokenKind.Identifier,
-    text: '',
-    location: {
-        path: '',
-        start: {line: 0, character: 0},
-        end: {line: 0, character: 0},
-    },
-    highlight: createVirtualHighlight(),
-    index: 0,
-    next: undefined,
-} as const;
+export function createVirtualToken(
+    kind: TokenKind,
+    text: string
+): ParsingToken {
+    const result = {
+        text: text,
+        location: createEmptyLocation(),
+        highlight: createVirtualHighlight(),
+        index: -1,
+        next: undefined,
+    };
+
+    if (kind === TokenKind.Reserved) return {
+        ...result,
+        kind: TokenKind.Reserved,
+        property: findAllReservedWordProperty(text)
+    };
+
+    return {
+        ...result,
+        kind: kind
+    };
+}
 
 export function convertToParsingTokens(tokens: TokenizingToken[]): ParsingToken[] {
     // コメント除去
@@ -53,17 +64,11 @@ export function convertToParsingTokens(tokens: TokenizingToken[]): ParsingToken[
 }
 
 function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
-    return {
-        kind: TokenKind.String,
-        text: actualTokens[index].text + actualTokens[index + 1].text,
-        location: {
-            path: actualTokens[index].location.path,
-            start: actualTokens[index].location.start,
-            end: actualTokens[index + 1].location.end
-        },
-        highlight: createVirtualHighlight(),
-        index: -1,
-        next: undefined
-    };
+    const token = createVirtualToken(TokenKind.String, actualTokens[index].text + actualTokens[index + 1].text);
+    token.location.path = actualTokens[index].location.path;
+    token.location.start = actualTokens[index].location.start;
+    token.location.end = actualTokens[index + 1].location.end;
+
+    return token;
 }
 

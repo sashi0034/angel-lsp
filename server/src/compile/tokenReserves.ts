@@ -23,7 +23,7 @@ const logicOpSet = new Set(['&&', '||', '^^', 'and', 'or', 'xor']);
 
 const assignOpSet = new Set(['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>=']);
 
-const numberTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double']);
+export const numberTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double']);
 
 const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
 
@@ -40,6 +40,8 @@ function makeEmptyProperty(): ReservedWordProperty {
         isPrimeType: false,
     };
 }
+
+const emptyProperty = makeEmptyProperty();
 
 const reservedWordProperties = createProperties();
 
@@ -98,6 +100,7 @@ function createMarkPropertyTrie() {
     return markMap;
 }
 
+// 記号の予約語をプロパティ検索
 export function findReservedMarkProperty(str: string, start: number) {
     return reservedMarkProperties.find(str, start);
 }
@@ -112,6 +115,16 @@ function createKeywordPropertyMap() {
     return keywordMap;
 }
 
+// キーワードの予約語をプロパティ検索
 export function findReservedKeywordProperty(str: string) {
     return reservedKeywordProperties.get(str);
+}
+
+// 予約後全てからプロパティ検索
+export function findAllReservedWordProperty(str: string) {
+    const result = reservedWordProperties.get(str);
+    if (result !== undefined) return result;
+
+    console.error(`Reserved word property not found: ${str}`);
+    return emptyProperty;
 }

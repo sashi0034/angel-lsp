@@ -23,6 +23,14 @@ export interface LocationInfo extends Range {
     path: string;
 }
 
+export function createEmptyLocation(): LocationInfo {
+    return {
+        path: '',
+        start: {line: 0, character: 0},
+        end: {line: 0, character: 0},
+    };
+}
+
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;
     const endLine = range.end.line;

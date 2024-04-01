@@ -1,7 +1,8 @@
 import {LocationInfo, TokenKind} from "./tokens";
 import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName} from "./nodes";
-import {dummyToken, ParsingToken} from "./parsingToken";
+import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
+import {numberTypeSet} from "./tokenReserves";
 
 export enum SymbolKind {
     Type = 'Type',
@@ -83,7 +84,8 @@ export interface ScopeServiceInfo {
     completionHints: ComplementHints[];
 }
 
-export type SymbolScope = ScopeBirthInfo & ScopeContainInfo & ScopeServiceInfo;
+export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServiceInfo {
+}
 
 export interface SymbolAndScope {
     symbol: SymbolicObject;
@@ -163,19 +165,34 @@ export interface CompletionNamespace extends ComplementBase {
 
 export type ComplementHints = ComplementScope | ComplementType | CompletionNamespace;
 
-function createBuiltinType(name: PrimitiveType): SymbolicType {
+function createBuiltinType(virtualToken: ParsingToken, name: PrimitiveType): SymbolicType {
     return {
         symbolKind: SymbolKind.Type,
-        declaredPlace: dummyToken,
+        declaredPlace: virtualToken,
         sourceType: name,
     } as const;
 }
 
-export const builtinNumberType: SymbolicType = createBuiltinType(PrimitiveType.Number);
+const builtinNumberTypeMap: Map<string, SymbolicType> = (() => {
+    const map = new Map<string, SymbolicType>();
+    for (const name of numberTypeSet) {
+        map.set(name, createBuiltinType(createVirtualToken(TokenKind.Reserved, name), PrimitiveType.Number));
+    }
+    return map;
+})();
 
-export const builtinBoolType: SymbolicType = createBuiltinType(PrimitiveType.Bool);
+export const builtinIntType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'int'), PrimitiveType.Number);
 
-export const builtinVoidType: SymbolicType = createBuiltinType(PrimitiveType.Void);
+function assignBuiltinNumberType(key: string): SymbolicType {
+    const type = builtinNumberTypeMap.get(key);
+    if (type !== undefined) return type;
+    console.error(`Builtin number type not found: ${key}`);
+    return builtinIntType;
+}
+
+export const builtinBoolType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'bool'), PrimitiveType.Bool);
+
+export const builtinVoidType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'void'), PrimitiveType.Void);
 
 export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
@@ -183,7 +200,7 @@ export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined
     const identifier = token.text;
     if ((identifier === 'bool')) return builtinBoolType;
     else if ((identifier === 'void')) return builtinVoidType;
-    else if (token.kind === TokenKind.Reserved && token.property.isPrimeType) return builtinNumberType;
+    else if (token.kind === TokenKind.Reserved && token.property.isNumber) return assignBuiltinNumberType(identifier);
 
     return undefined;
 }

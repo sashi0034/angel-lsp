@@ -43,8 +43,8 @@ import {
     ParsedEnumMember
 } from "./nodes";
 import {
+    builtinIntType,
     builtinBoolType,
-    builtinNumberType,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
@@ -132,7 +132,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
-            type: {symbol: builtinNumberType, sourceScope: undefined},
+            type: {symbol: builtinIntType, sourceScope: undefined},
         };
         insertSymbolicObject(parentScope.symbolMap, symbol);
     }
@@ -647,7 +647,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
     if (literal.value.kind === TokenKind.Number) {
-        return {symbol: builtinNumberType, sourceScope: undefined};
+        // TODO: f がついたら float 判定などをする
+        return {symbol: builtinIntType, sourceScope: undefined};
     }
     const literalText = literal.value.text;
     if (literalText === 'true' || literalText === 'false') {
