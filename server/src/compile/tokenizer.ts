@@ -128,25 +128,29 @@ function consumeNumber(reading: TokenizingState) {
     let numeric = NumberLiterals.Integer;
 
     // 小数点
+    let f = 0;
     if (reading.next() === '.') {
-        reading.stepNext();
-        while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+        f++;
+        while (isDigit(reading.next(f))) f++;
         numeric = NumberLiterals.Double;
     }
 
     // 指数
-    if (/^[eE]$/.test(reading.next())) {
-        reading.stepNext();
-        if (/^[+-]$/.test(reading.next())) reading.stepNext();
-        while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+    if (/^[eE]$/.test(reading.next(f)) && /^[+-]$/.test(reading.next(f + 1)) && isDigit(reading.next(f + 2))) {
+        f += 3;
+        while (isDigit(reading.next(f))) f++;
         numeric = NumberLiterals.Double;
     }
 
-    // 半精度浮動小数と認識
-    if (numeric === NumberLiterals.Double) {
-        if (/^[fF]$/.test(reading.next())) {
-            reading.stepNext();
-            return NumberLiterals.Float;
+    if (f > 1) {
+        reading.stepFor(f);
+
+        // 半精度浮動小数と認識
+        if (numeric === NumberLiterals.Double) {
+            if (/^[fF]$/.test(reading.next())) {
+                reading.stepNext();
+                return NumberLiterals.Float;
+            }
         }
     }
 
