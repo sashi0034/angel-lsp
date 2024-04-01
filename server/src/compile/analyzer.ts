@@ -40,7 +40,7 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWhile,
-    ParsedEnumMember
+    ParsedEnumMember, getRangedLocation
 } from "./nodes";
 import {
     builtinIntType,
@@ -602,12 +602,7 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: DeducedType) {
-    const complementRange = getNodeLocation(exprPostOp.nodeRange);
-
-    // メンバが存在しない場合は、次のトークンまでを補完範囲とする
-    if (exprPostOp.member === undefined) {
-        complementRange.end = getNextTokenIfExist(exprPostOp.nodeRange.end).location.start;
-    }
+    const complementRange = getRangedLocation(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
 
     // クラスメンバ補完
     scope.completionHints.push({

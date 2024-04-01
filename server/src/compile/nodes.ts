@@ -27,12 +27,16 @@ export function getNextTokenIfExist(token: ParsingToken): ParsingToken {
     return token;
 }
 
-export function getNodeLocation(range: ParsedRange): LocationInfo {
+export function getRangedLocation(start: ParsingToken, end: ParsingToken): LocationInfo {
     return {
-        path: range.start.location.path,
-        start: range.start.location.start,
-        end: range.end.location.end
+        path: start.location.path,
+        start: start.location.start,
+        end: end.location.end
     };
+}
+
+export function getNodeLocation(range: ParsedRange): LocationInfo {
+    return getRangedLocation(range.start, range.end);
 }
 
 export interface EntityAttribute {
