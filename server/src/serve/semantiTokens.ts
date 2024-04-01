@@ -2,7 +2,7 @@ import {SemanticTokensBuilder} from "vscode-languageserver/node";
 import {TokenizingToken} from "../compile/tokens";
 import {SemanticTokens} from "vscode-languageserver-protocol";
 
-export function buildSemanticTokens(tokens: TokenizingToken[]): SemanticTokens {
+export function serveSemanticTokens(tokens: TokenizingToken[]): SemanticTokens {
     const builder = new SemanticTokensBuilder();
     tokens.forEach((token, i) => {
         pushTokenToBuilder(builder, token);

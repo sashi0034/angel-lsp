@@ -35,6 +35,10 @@ export function getInspectedResult(document: DocumentPath): InspectResult {
     return result;
 }
 
+export function getInspectedResultList(): InspectResult[] {
+    return Object.values(s_inspectedResults);
+}
+
 export function inspectFile(content: string, document: DocumentPath) {
     const path = document.path;
 

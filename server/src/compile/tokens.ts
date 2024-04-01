@@ -71,6 +71,16 @@ export interface TokenBase {
     highlight: HighlightInfo;
 }
 
+// インスタンスに依らないトークンの一致判定
+export function isSameToken(l: TokenBase, r: TokenBase): boolean {
+    return l.text === r.text
+        && l.location.path === r.location.path
+        && l.location.start.line === r.location.start.line
+        && l.location.start.character === r.location.start.character
+        && l.location.end.line === r.location.end.line
+        && l.location.end.character === r.location.end.character;
+}
+
 export function isVirtualToken(token: TokenBase): boolean {
     return token.highlight.token === HighlightToken.Invalid;
 }

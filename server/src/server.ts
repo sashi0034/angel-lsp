@@ -20,12 +20,13 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
-import {jumpDefinition} from "./serve/definition";
-import {getInspectedResult, inspectFile} from "./serve/inspector";
-import {searchCompletionItems} from "./serve/completion";
-import {buildSemanticTokens} from "./serve/semantiTokens";
+import {getFileLocationOfToken, serveDefinition} from "./serve/definition";
+import {getInspectedResult, getInspectedResultList, inspectFile} from "./serve/inspector";
+import {serveCompletions} from "./serve/completion";
+import {serveSemanticTokens} from "./serve/semantiTokens";
 import {pathToFileURL} from "node:url";
 import {getDocumentPath} from "./serve/documentPath";
+import {serveReferences} from "./serve/reference";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -159,24 +160,37 @@ connection.languages.diagnostics.on(async (params) => {
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return buildSemanticTokens(getInspectedResult(getDocumentPath(params)).tokenizedTokens);
+    return serveSemanticTokens(getInspectedResult(getDocumentPath(params)).tokenizedTokens);
 });
 
+// 定義ジャンプ
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
+
     const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
     if (analyzedScope === undefined) return;
+
     const caret = params.position;
-    const jumping = jumpDefinition(analyzedScope.fullScope, caret);
+
+    const jumping = serveDefinition(analyzedScope, caret);
     if (jumping === null) return;
-    return {
-        uri: pathToFileURL(jumping.location.path).toString(),
-        range: {
-            start: jumping.location.start,
-            end: jumping.location.end
-        }
-    };
+
+    return getFileLocationOfToken(jumping);
+});
+
+// 参照表示
+connection.onReferences((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (document === undefined) return;
+
+    const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
+    if (analyzedScope === undefined) return;
+
+    const caret = params.position;
+
+    const references = serveReferences(analyzedScope, getInspectedResultList().map(result => result.analyzedScope.fullScope), caret);
+    return references.map(ref => getFileLocationOfToken(ref));
 });
 
 // The content of a text document has changed. This event is emitted
@@ -200,7 +214,7 @@ connection.onCompletion(
         const path = getDocumentPath(params);
         const diagnosedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return searchCompletionItems(diagnosedScope.fullScope, params.position, path);
+        return serveCompletions(diagnosedScope.fullScope, params.position, path);
 
         // return [
         //     {

@@ -19,7 +19,7 @@ import {
 } from "../compile/scope";
 import {DocumentPath} from "./documentPath";
 
-export function searchCompletionItems(
+export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, documentPath: DocumentPath
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
