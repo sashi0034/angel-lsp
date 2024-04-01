@@ -329,6 +329,21 @@ export interface NodeType extends NodesBase {
     refModifier: ReferenceModifier | undefined,
 }
 
+export function stringifyNodeType(type: NodeType): string {
+    let str = type.isConst ? 'const ' : '';
+    str += type.dataType.identifier.text;
+    if (type.typeTemplates.length > 0) {
+        str += '<' + type.typeTemplates.map(stringifyNodeType).join(', ') + '>';
+    }
+    if (type.isArray) {
+        str += '[]';
+    }
+    if (type.refModifier !== undefined) {
+        str += (type.refModifier === ReferenceModifier.AtConst ? '@const' : '@');
+    }
+    return str;
+}
+
 export function getIdentifierInType(type: NodeType): ParsingToken {
     return type.dataType.identifier;
 }

@@ -44,7 +44,7 @@ export function isTypeMatch(
     return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
 }
 
-export function canConstructImplicitly(
+ function canConstructImplicitly(
     src: DeducedType,
     destScope: SymbolScope | undefined,
     destIdentifier: string
@@ -62,7 +62,7 @@ export function canConstructImplicitly(
     return canConstructBy(constructor, src.symbol.sourceType);
 }
 
-export function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
+ function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];

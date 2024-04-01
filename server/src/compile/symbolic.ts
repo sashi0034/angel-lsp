@@ -137,6 +137,21 @@ export interface DeducedType {
     templateTranslate?: TemplateTranslation;
 }
 
+export function stringifyDeducedType(type: DeducedType | undefined): string {
+    if (type === undefined) return '(undefined)';
+
+    let template = '';
+    if (type.templateTranslate !== undefined) {
+        template = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>`;
+    }
+
+    return type.symbol.declaredPlace.text + template;
+}
+
+export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): string {
+    return types.map(t => stringifyDeducedType(t)).join(', ');
+}
+
 export enum ComplementKind {
     Scope = 'Scope',
     Type = 'Type',
