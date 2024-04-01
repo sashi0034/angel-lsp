@@ -49,11 +49,18 @@ export interface SymbolicFunction extends SymbolicBase {
     returnType: DeducedType | undefined;
     parameterTypes: (DeducedType | undefined)[];
     nextOverload: SymbolicFunction | undefined;
+    isInstanceMember: boolean;
 }
 
 export interface SymbolicVariable extends SymbolicBase {
     symbolKind: SymbolKind.Variable;
     type: DeducedType | undefined;
+    isInstanceMember: boolean;
+}
+
+export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is SymbolicFunction | SymbolicVariable {
+    return (symbol.symbolKind === SymbolKind.Function || symbol.symbolKind === SymbolKind.Variable)
+        && symbol.isInstanceMember;
 }
 
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;

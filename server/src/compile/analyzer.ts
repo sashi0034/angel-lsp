@@ -100,9 +100,9 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
         } else if (nodeName === NodeName.Mixin) {
             hoistMixin(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Var) {
-            analyzeVar(parentScope, statement);
+            analyzeVar(parentScope, statement, false);
         } else if (nodeName === NodeName.Func) {
-            hoistFunc(parentScope, statement, analyzing, hoisting);
+            hoistFunc(parentScope, statement, analyzing, hoisting, false);
         } else if (nodeName === NodeName.Namespace) {
             hoistNamespace(parentScope, statement, analyzing);
         }
@@ -143,6 +143,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
             type: type,
+            isInstanceMember: false,
         };
         insertSymbolicObject(parentScope.symbolMap, symbol);
     }
@@ -186,9 +187,9 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
         if (member.nodeName === NodeName.VirtualProp) {
             // TODO
         } else if (member.nodeName === NodeName.Func) {
-            hoistFunc(scope, member, analyzing, hoisting);
+            hoistFunc(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.Var) {
-            analyzeVar(scope, member);
+            analyzeVar(scope, member, true);
         }
     }
 }
@@ -196,7 +197,9 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
+function hoistFunc(
+    parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: AnalyzingQueue, hoisting: HoistingQueue, isInstanceMember: boolean
+) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
     const symbol: SymbolicFunction = {
@@ -206,6 +209,7 @@ function hoistFunc(parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: Anal
         parameterTypes: [],
         sourceNode: nodeFunc,
         nextOverload: undefined,
+        isInstanceMember: isInstanceMember,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
@@ -236,7 +240,7 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
-function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
+function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
     let varType = analyzeType(scope, nodeVar.type);
     for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
@@ -251,6 +255,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
             symbolKind: SymbolKind.Variable,
             type: varType,
             declaredPlace: declaredVar.identifier,
+            isInstanceMember: isInstanceMember,
         };
         insertSymbolicObject(scope.symbolMap, variable);
     }
@@ -296,7 +301,7 @@ function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
-            analyzeVar(scope, statement);
+            analyzeVar(scope, statement, false);
         } else {
             analyzeStatement(scope, statement as NodeStatement);
         }
@@ -316,6 +321,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
             symbolKind: SymbolKind.Variable,
             type: type,
             declaredPlace: param.identifier,
+            isInstanceMember: false,
         });
     }
     return deducedTypes;
@@ -516,7 +522,7 @@ function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFor(scope: SymbolScope, ast: NodeFor) {
-    if (ast.initial.nodeName === NodeName.Var) analyzeVar(scope, ast.initial);
+    if (ast.initial.nodeName === NodeName.Var) analyzeVar(scope, ast.initial, false);
     else analyzeEexprStat(scope, ast.initial);
 
     analyzeEexprStat(scope, ast.condition);

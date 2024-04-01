@@ -1,7 +1,14 @@
 import {Position} from "vscode-languageserver";
-import {ComplementHints, ComplementKind, SymbolicObject, SymbolKind, SymbolScope} from "../compile/symbolic";
+import {
+    ComplementHints,
+    ComplementKind,
+    isSymbolInstanceMember,
+    SymbolicObject,
+    SymbolKind,
+    SymbolScope
+} from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {getNodeLocation, NodeName} from "../compile/nodes";
+import {NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/tokens";
 import {
     collectParentScopes,
@@ -26,17 +33,18 @@ export function searchCompletionItems(
 
     // 自身と親スコープにあるシンボルを補完候補として返す
     for (const scope of [...collectParentScopes(targetScope), targetScope]) {
-        items.push(...getCompletionSymbolsInScope(scope));
+        items.push(...getCompletionSymbolsInScope(scope, false));
     }
 
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope) {
+function getCompletionSymbolsInScope(scope: SymbolScope, isMember: boolean): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // スコープ内シンボルの補完
     for (const [symbolName, symbol] of scope.symbolMap) {
+        if (isMember && isSymbolInstanceMember(symbol) === false) continue;
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -94,7 +102,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         if (typeScope === undefined) return [];
 
         // スコープ内の補完候補を返す
-        return getCompletionSymbolsInScope(typeScope);
+        return getCompletionSymbolsInScope(typeScope, true);
     } else if (completion.complementKind === ComplementKind.Namespace) {
         // 補完対象の名前空間が属するスコープを探す
         const namespaceList = completion.namespaceList;
@@ -104,7 +112,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         if (namespaceScope === undefined) return [];
 
         // スコープ内の補完候補を返す
-        return getCompletionSymbolsInScope(namespaceScope);
+        return getCompletionSymbolsInScope(namespaceScope, false);
     }
     return undefined;
 }
