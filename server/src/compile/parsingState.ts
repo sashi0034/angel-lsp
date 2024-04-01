@@ -79,7 +79,8 @@ export class ParsingState {
     }
 
     public cache<T extends ParseCacheKind>(key: T): ParseCacher<T> {
-        const data = this.caches[this.cursorIndex];
+        const rangeStart = this.cursorIndex;
+        const data = this.caches[rangeStart];
         let restore: (() => ParseCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
             this.cursorIndex = data.rangeEnd;
@@ -87,7 +88,7 @@ export class ParsingState {
         };
 
         const store = (cache: ParseCacheTargets<T> | undefined) => {
-            this.caches[this.cursorIndex] = {
+            this.caches[rangeStart] = {
                 kind: key,
                 rangeEnd: this.cursorIndex,
                 data: cache,
