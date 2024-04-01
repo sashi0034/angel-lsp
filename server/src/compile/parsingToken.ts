@@ -83,4 +83,3 @@ function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: numbe
 
     return token;
 }
-

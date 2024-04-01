@@ -692,7 +692,13 @@ function analyzeFunctionCaller(
     templateTranslate: TemplateTranslation | undefined
 ) {
     const callerArgs = analyzeArgList(scope, callerNode.argList);
-    return checkFunctionMatch(scope, callerNode, callerArgs, calleeFunc, templateTranslate);
+    return checkFunctionMatch({
+        scope: scope,
+        callerNode: callerNode,
+        callerArgs: callerArgs,
+        calleeFunc: calleeFunc,
+        templateTranslator: templateTranslate
+    });
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
