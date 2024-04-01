@@ -13,7 +13,6 @@ import {
     NodeCase,
     NodeClass,
     NodeCondition,
-    NodeConstructCall,
     NodeDoWhile,
     NodeEnum,
     NodeExpr,
@@ -26,7 +25,8 @@ import {
     NodeFor,
     NodeFunc,
     NodeFuncCall,
-    NodeIf, NodeInitList,
+    NodeIf,
+    NodeInitList,
     NodeLiteral,
     NodeMixin,
     NodeName,
@@ -46,8 +46,8 @@ import {
     ParsedEnumMember
 } from "./nodes";
 import {
-    builtinBoolType,
-    builtinIntType,
+    builtinBoolType, builtinDoubleType, builtinFloatType,
+    builtinIntType, builtinStringType,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
@@ -64,7 +64,7 @@ import {
     tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "./tokens";
+import {NumberLiterals, TokenKind} from "./tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -259,7 +259,7 @@ function analyzeVarInitializer(
         analyzeInitList(scope, initializer);
     } else if (initializer.nodeName === NodeName.Expr) {
         const exprType = analyzeExpr(scope, initializer);
-        checkTypeMatch(varType, exprType, initializer.nodeRange);
+        checkTypeMatch(exprType, varType, initializer.nodeRange);
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined) return;
         analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
@@ -680,15 +680,27 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
-    if (literal.value.kind === TokenKind.Number) {
-        // TODO: f がついたら float 判定などをする
-        return {symbol: builtinIntType, sourceScope: undefined};
+    const literalValue = literal.value;
+    if (literalValue.kind === TokenKind.Number) {
+        switch (literalValue.numeric) {
+        case NumberLiterals.Integer:
+            return {symbol: builtinIntType, sourceScope: undefined};
+        case NumberLiterals.Float:
+            return {symbol: builtinFloatType, sourceScope: undefined};
+        case NumberLiterals.Double:
+            return {symbol: builtinDoubleType, sourceScope: undefined};
+        }
     }
-    const literalText = literal.value.text;
-    if (literalText === 'true' || literalText === 'false') {
+
+    if (literalValue.kind === TokenKind.String) {
+        return {symbol: builtinStringType, sourceScope: undefined};
+    }
+
+    if (literalValue.text === 'true' || literalValue.text === 'false') {
         return {symbol: builtinBoolType, sourceScope: undefined};
     }
-    // TODO
+
+    // FIXME: null へ対処?
     return undefined;
 }
 

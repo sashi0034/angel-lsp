@@ -1,6 +1,6 @@
 import {
     DeducedType,
-    findSymbolShallowly,
+    findSymbolShallowly, isSourceNodeClass,
     isSourcePrimitiveType,
     PrimitiveType, SourceType, stringifyDeducedType, SymbolicFunction,
     SymbolKind, SymbolScope
@@ -8,6 +8,7 @@ import {
 import {getNodeLocation, NodeName, NodesBase, ParsedRange} from "./nodes";
 import {findScopeShallowly} from "./scope";
 import {diagnostic} from "../code/diagnostic";
+import assert = require("assert");
 
 export function checkTypeMatch(
     src: DeducedType | undefined,
@@ -18,7 +19,7 @@ export function checkTypeMatch(
 
     if (isTypeMatch(src, dest)) return true;
 
-    diagnostic.addError(getNodeLocation(nodeRange), `Type mismatch: '${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
+    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
     return false;
 }
 
@@ -29,20 +30,8 @@ export function isTypeMatch(
     const destType = dest.symbol;
     const srcNode = srcType.sourceType;
 
-    if (srcNode === PrimitiveType.Template) {
-        return srcType.declaredPlace === destType.declaredPlace;
-    }
-
-    if (srcNode === PrimitiveType.Void) {
-        return false;
-    }
-
-    if (srcNode === PrimitiveType.Number) {
-        return destType.sourceType === PrimitiveType.Number;
-    }
-
-    if (srcNode === PrimitiveType.Bool) {
-        return destType.sourceType === PrimitiveType.Bool;
+    if (isSourcePrimitiveType(srcNode)) {
+        return canCastFromPrimitiveType(src, dest);
     }
 
     // TODO : 継承などに対応
@@ -56,6 +45,29 @@ export function isTypeMatch(
     // コンストラクタに当てはまるかで判定
     const destIdentifier = destType.sourceType.identifier.text;
     return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
+}
+
+function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {
+    const srcType = src.symbol;
+    const destType = dest.symbol;
+    const srcNode = srcType.sourceType;
+
+    switch (srcNode) {
+    case PrimitiveType.Template:
+        return srcType.declaredPlace === destType.declaredPlace;
+    case PrimitiveType.String: {
+        const destName = destType.declaredPlace.text;
+        return destName === "string" || destName === "String";
+    }
+    case PrimitiveType.Void:
+        return false;
+    case PrimitiveType.Number:
+        return destType.sourceType === PrimitiveType.Number;
+    case PrimitiveType.Bool:
+        return destType.sourceType === PrimitiveType.Bool;
+    default:
+        assert(false);
+    }
 }
 
 function canConstructImplicitly(

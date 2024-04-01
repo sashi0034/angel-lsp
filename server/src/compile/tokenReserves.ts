@@ -1,5 +1,6 @@
 import {ReservedWordProperty} from "./tokens";
 import {Trie} from "../utils/trie";
+import assert = require("assert");
 
 const reservedMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
@@ -124,7 +125,5 @@ export function findReservedKeywordProperty(str: string) {
 export function findAllReservedWordProperty(str: string) {
     const result = reservedWordProperties.get(str);
     if (result !== undefined) return result;
-
-    console.error(`Reserved word property not found: ${str}`);
-    return emptyProperty;
+    assert(false);
 }

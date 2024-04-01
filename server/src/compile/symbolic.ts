@@ -3,6 +3,7 @@ import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName} from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReserves";
+import assert = require("assert");
 
 export enum SymbolKind {
     Type = 'Type',
@@ -12,6 +13,7 @@ export enum SymbolKind {
 
 export enum PrimitiveType {
     Template = 'Template',
+    String = 'String',
     Bool = 'Bool',
     Number = 'Number',
     Void = 'Void',
@@ -196,13 +198,18 @@ const builtinNumberTypeMap: Map<string, SymbolicType> = (() => {
     return map;
 })();
 
-export const builtinIntType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'int'), PrimitiveType.Number);
+export const builtinStringType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.String, 'string'), PrimitiveType.String);
+
+export const builtinIntType = builtinNumberTypeMap.get('int')!;
+
+export const builtinFloatType = builtinNumberTypeMap.get('float')!;
+
+export const builtinDoubleType = builtinNumberTypeMap.get('double')!;
 
 function assignBuiltinNumberType(key: string): SymbolicType {
     const type = builtinNumberTypeMap.get(key);
     if (type !== undefined) return type;
-    console.error(`Builtin number type not found: ${key}`);
-    return builtinIntType;
+    assert(false);
 }
 
 export const builtinBoolType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'bool'), PrimitiveType.Bool);
