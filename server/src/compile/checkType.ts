@@ -1,11 +1,15 @@
 import {
     DeducedType,
-    findSymbolShallowly, isSourceNodeClass,
+    findSymbolShallowly,
     isSourcePrimitiveType,
-    PrimitiveType, SourceType, stringifyDeducedType, SymbolicFunction,
-    SymbolKind, SymbolScope
+    PrimitiveType,
+    SourceType,
+    stringifyDeducedType,
+    SymbolicFunction,
+    SymbolKind,
+    SymbolScope
 } from "./symbolic";
-import {getNodeLocation, NodeName, NodesBase, ParsedRange} from "./nodes";
+import {getNodeLocation, NodeName, ParsedRange} from "./nodes";
 import {findScopeShallowly} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
@@ -29,6 +33,9 @@ export function isTypeMatch(
     const srcType = src.symbol;
     const destType = dest.symbol;
     const srcNode = srcType.sourceType;
+    const destNode = destType.sourceType;
+
+    if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
         return canCastFromPrimitiveType(src, dest);
@@ -40,10 +47,10 @@ export function isTypeMatch(
     if (srcType.declaredPlace === destType.declaredPlace) return true;
 
     // 移動先の型がクラスでないなら NG
-    if (isSourcePrimitiveType(destType.sourceType) || destType.sourceType.nodeName !== NodeName.Class) return false;
+    if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
 
     // コンストラクタに当てはまるかで判定
-    const destIdentifier = destType.sourceType.identifier.text;
+    const destIdentifier = destNode.identifier.text;
     return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
 }
 
@@ -65,6 +72,10 @@ function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {
         return destType.sourceType === PrimitiveType.Number;
     case PrimitiveType.Bool:
         return destType.sourceType === PrimitiveType.Bool;
+    case PrimitiveType.Any:
+        return true;
+    case PrimitiveType.Auto:
+        return true;
     default:
         assert(false);
     }

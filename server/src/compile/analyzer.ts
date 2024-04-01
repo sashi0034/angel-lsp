@@ -46,8 +46,11 @@ import {
     ParsedEnumMember
 } from "./nodes";
 import {
-    builtinBoolType, builtinDoubleType, builtinFloatType,
-    builtinIntType, builtinStringType,
+    builtinBoolType,
+    builtinDoubleType,
+    builtinFloatType,
+    builtinIntType,
+    builtinStringType,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
@@ -234,11 +237,14 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
 function analyzeVar(scope: SymbolScope, nodeVar: NodeVar) {
-    const varType = analyzeType(scope, nodeVar.type);
+    let varType = analyzeType(scope, nodeVar.type);
     for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
         if (initializer !== undefined) {
-            analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+            const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+            if (varType?.symbol.sourceType === PrimitiveType.Auto && initType !== undefined) {
+                varType = initType;
+            }
         }
 
         const variable: SymbolicVariable = {
@@ -254,15 +260,17 @@ function analyzeVarInitializer(
     scope: SymbolScope,
     varType: DeducedType | undefined,
     identifier: ParsingToken,
-    initializer: NodeInitList | NodeExpr | NodeArgList) {
+    initializer: NodeInitList | NodeExpr | NodeArgList
+): DeducedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
-        analyzeInitList(scope, initializer);
+        return analyzeInitList(scope, initializer);
     } else if (initializer.nodeName === NodeName.Expr) {
         const exprType = analyzeExpr(scope, initializer);
         checkTypeMatch(exprType, varType, initializer.nodeRange);
+        return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined) return;
-        analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
+        if (varType === undefined) return undefined;
+        return analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
     }
 }
 
@@ -324,28 +332,29 @@ function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
+    const reservedType = analyzeReservedType(scope, nodeType);
+    if (reservedType !== undefined) return reservedType;
+
+    const typeIdentifier = nodeType.dataType.identifier;
+
     const searchScope = nodeType.scope !== undefined
         ? (analyzeScope(scope, nodeType.scope) ?? scope)
         : scope;
 
-    const dataTypeIdentifier = nodeType.dataType.identifier;
-    const foundBuiltin = tryGetBuiltInType(dataTypeIdentifier);
-    if (foundBuiltin !== undefined) return {symbol: foundBuiltin, sourceScope: undefined};
-
-    let foundSymbol = findSymbolWithParent(searchScope, dataTypeIdentifier.text);
+    let foundSymbol = findSymbolWithParent(searchScope, typeIdentifier.text);
     if (foundSymbol !== undefined
         && isSymbolConstructorInScope(foundSymbol.symbol, foundSymbol.scope)
         && foundSymbol.scope.parentScope !== undefined
     ) {
         // コンストラクタの場合は上の階層を探索
-        foundSymbol = findSymbolWithParent(foundSymbol.scope.parentScope, dataTypeIdentifier.text);
+        foundSymbol = findSymbolWithParent(foundSymbol.scope.parentScope, typeIdentifier.text);
     }
 
     if (foundSymbol === undefined) {
-        diagnostic.addError(nodeType.dataType.identifier.location, `Undefined type: ${nodeType.dataType.identifier.text} 💢`);
+        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not defined 💢`);
         return undefined;
     } else if (foundSymbol.symbol.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(nodeType.dataType.identifier.location, `Not a type: ${nodeType.dataType.identifier.text} 💢`);
+        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type 💢`);
         return undefined;
     }
 
@@ -361,6 +370,21 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         sourceScope: foundSymbol.scope,
         templateTranslate: typeTemplates
     };
+}
+
+// PRIMTYPE | '?' | 'auto'
+function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
+    const typeIdentifier = nodeType.dataType.identifier;
+    if (typeIdentifier.kind !== TokenKind.Reserved) return;
+
+    if (nodeType.scope !== undefined) {
+        diagnostic.addError(typeIdentifier.location, `Invalid scope 💢`);
+    }
+
+    const foundBuiltin = tryGetBuiltInType(typeIdentifier);
+    if (foundBuiltin !== undefined) return {symbol: foundBuiltin, sourceScope: undefined};
+
+    return undefined;
 }
 
 function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsingToken[] | undefined) {
@@ -434,7 +458,9 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

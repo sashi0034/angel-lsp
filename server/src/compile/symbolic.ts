@@ -17,6 +17,8 @@ export enum PrimitiveType {
     Bool = 'Bool',
     Number = 'Number',
     Void = 'Void',
+    Any = 'Any',
+    Auto = 'Auto',
 }
 
 export type SourceType = NodeEnum | NodeClass | PrimitiveType;
@@ -216,12 +218,18 @@ export const builtinBoolType: SymbolicType = createBuiltinType(createVirtualToke
 
 export const builtinVoidType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'void'), PrimitiveType.Void);
 
+export const builtinAnyType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, '?'), PrimitiveType.Any);
+
+export const builtinAutoType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'auto'), PrimitiveType.Auto);
+
 export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;
     if ((identifier === 'bool')) return builtinBoolType;
     else if ((identifier === 'void')) return builtinVoidType;
+    else if (identifier === '?') return builtinAnyType;
+    else if (identifier === 'auto') return builtinAutoType;
     else if (token.kind === TokenKind.Reserved && token.property.isNumber) return assignBuiltinNumberType(identifier);
 
     return undefined;
@@ -237,4 +245,3 @@ export function findSymbolWithParent(scope: SymbolScope, identifier: string): Sy
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier);
 }
-
