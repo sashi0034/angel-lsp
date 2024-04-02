@@ -10,7 +10,7 @@ import {
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
-    NodeCase,
+    NodeCase, NodeCast,
     NodeClass,
     NodeCondition,
     NodeDoWhile,
@@ -635,7 +635,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
     case NodeName.VarAccess:
         return analyzeVarAccess(scope, exprValue);
     case NodeName.Cast:
-        break;
+        return analyzeCast(scope, exprValue);
     case NodeName.Literal:
         return analyzeLiteral(scope, exprValue);
     case NodeName.Assign:
@@ -732,6 +732,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+function analyzeCast(scope: SymbolScope, cast: NodeCast): DeducedType | undefined {
+    const castedType = analyzeType(scope, cast.type);
+    analyzeAssign(scope, cast.assign);
+    return castedType;
+}
+
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
