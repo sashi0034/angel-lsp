@@ -2,7 +2,7 @@
 
 <h1 align="center">
   <br>
-  <a href="https://www.angelcode.com/angelscript/"><img src="icons\angelscript.png" alt="angelscript" width="200"></a>
+  <a href="https://www.angelcode.com/angelscript/"><img src="https://raw.githubusercontent.com/sashi0034/angel-lsp/main/icons/angelscript.png" alt="angelscript" width="200"></a>
   <br>
 </h1>
 
