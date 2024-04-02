@@ -611,7 +611,7 @@ export interface NodeAssign extends NodesBase {
 }
 
 export interface ParsedAssignTail {
-    op: ParsingToken,
+    operator: ParsingToken,
     assign: NodeAssign
 }
 

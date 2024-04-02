@@ -10,7 +10,7 @@ import {
 } from "./nodes";
 import {
     DeducedType,
-    resolveTemplateType,
+    resolveTemplateType, resolveTemplateTypes,
     stringifyDeducedType, stringifyDeducedTypes,
     SymbolicFunction,
     SymbolScope,
@@ -26,7 +26,7 @@ export interface FunctionMatchingArgs {
     callerArgRanges: ParsedRange[];
     callerArgTypes: (DeducedType | undefined)[];
     calleeFunc: SymbolicFunction;
-    templateTranslator: TemplateTranslation | undefined;
+    templateTranslators: (TemplateTranslation | undefined)[];
 }
 
 export function checkFunctionMatch(
@@ -44,7 +44,7 @@ export function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
     overloadedHead: SymbolicFunction
 ): DeducedType | undefined {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslator} = args;
+    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
     const calleeParams = calleeFunc.sourceNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length) {
@@ -59,7 +59,10 @@ export function checkFunctionMatchInternal(
 
             if (param.defaultExpr === undefined) {
                 // デフォルト値も存在しない場合
-                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
+                    ...args,
+                    calleeFunc: calleeFunc.nextOverload
+                }, overloadedHead);
                 if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
                     diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}' 💢`);
                 }
@@ -69,16 +72,17 @@ export function checkFunctionMatchInternal(
 
         let actualType = callerArgTypes[i];
         let expectedType = calleeFunc.parameterTypes[i];
-        if (templateTranslator !== undefined) {
-            actualType = resolveTemplateType(templateTranslator, actualType);
-            expectedType = resolveTemplateType(templateTranslator, expectedType);
-        }
+        actualType = resolveTemplateTypes(templateTranslators, actualType);
+        expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロードが存在するなら使用
-        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
+            ...args,
+            calleeFunc: calleeFunc.nextOverload
+        }, overloadedHead);
         if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
                 `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}' 💢`);
@@ -89,10 +93,13 @@ export function checkFunctionMatchInternal(
 }
 
 function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolicFunction) {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslator} = args;
+    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
 
     // オーバーロードが存在するなら採用
-    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
+        ...args,
+        calleeFunc: calleeFunc.nextOverload
+    }, overloadedHead);
     if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
         diagnostic.addError(getNodeLocation(callerRange),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided 💢`);

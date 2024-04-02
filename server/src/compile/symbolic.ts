@@ -41,6 +41,7 @@ export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
     sourceType: SourceType;
     templateTypes?: ParsingToken[];
+    membersScope: SymbolScope | undefined;
 }
 
 export interface SymbolicFunction extends SymbolicBase {
@@ -138,8 +139,9 @@ export function resolveTemplateType(
     return arg;
 }
 
-export function resolveTemplateTypes(templateTranslate: TemplateTranslation, args: (DeducedType | undefined)[]) {
-    return args.map(arg => resolveTemplateType(templateTranslate, arg));
+export function resolveTemplateTypes(templateTranslate: (TemplateTranslation | undefined)[], args: DeducedType | undefined) {
+    return templateTranslate
+        .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, args);
 }
 
 export interface DeducedType {
@@ -196,6 +198,7 @@ function createBuiltinType(virtualToken: ParsingToken, name: PrimitiveType): Sym
         symbolKind: SymbolKind.Type,
         declaredPlace: virtualToken,
         sourceType: name,
+        membersScope: undefined,
     } as const;
 }
 

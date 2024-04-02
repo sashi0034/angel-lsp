@@ -10,7 +10,8 @@ import {
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
-    NodeCase, NodeCast,
+    NodeCase,
+    NodeCast,
     NodeClass,
     NodeCondition,
     NodeDoWhile,
@@ -43,7 +44,7 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWhile,
-    ParsedEnumMember
+    ParsedEnumMember, ParsedRange
 } from "./nodes";
 import {
     builtinBoolType,
@@ -57,7 +58,8 @@ import {
     findSymbolWithParent,
     insertSymbolicObject,
     isSourceNodeClass, isSourcePrimitiveType,
-    PrimitiveType, stringifyDeducedType,
+    PrimitiveType,
+    stringifyDeducedType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -77,12 +79,14 @@ import {
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
-    findScopeWithParent, findScopeWithParentByNode,
+    findScopeWithParent,
+    findScopeWithParentByNode,
     isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
 import {checkTypeMatch, isTypeMatch} from "./checkType";
+import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
 
@@ -128,11 +132,13 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
         sourceType: nodeEnum,
+        membersScope: undefined,
     };
 
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
+    symbol.membersScope = scope;
 
     hoistEnumMembers(scope, nodeEnum.memberList, {symbol: symbol, sourceScope: scope});
 }
@@ -155,10 +161,12 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
         sourceType: nodeClass,
+        membersScope: undefined,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
+    symbol.membersScope = scope;
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
@@ -175,6 +183,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
             symbolKind: SymbolKind.Type,
             declaredPlace: getIdentifierInType(type),
             sourceType: PrimitiveType.Template,
+            membersScope: undefined,
         } satisfies SymbolicType);
 
         templateTypes.push(getIdentifierInType(type));
@@ -253,8 +262,8 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 
         const variable: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
-            type: varType,
             declaredPlace: declaredVar.identifier,
+            type: varType,
             isInstanceMember: isInstanceMember,
         };
         insertSymbolicObject(scope.symbolMap, variable);
@@ -319,8 +328,8 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         if (param.identifier === undefined) continue;
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
-            type: type,
             declaredPlace: param.identifier,
+            type: type,
             isInstanceMember: false,
         });
     }
@@ -594,11 +603,14 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefined {
-    const lhs = analyzeExprTerm(scope, expr.head);
-    // TODO: 型チェック
-    if (expr.tail !== undefined) {
-        const rhs = analyzeExpr(scope, expr.tail.expression);
-        // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
+    // 左から畳み込みを行う
+    let cursor = expr;
+    let lhs = analyzeExprTerm(scope, expr.head);
+    for (; ;) {
+        if (cursor.tail === undefined) break;
+        const rhs = analyzeExprTerm(scope, cursor.tail.expression.head);
+        lhs = analyzeExprOp(scope, cursor.tail.operator, lhs, rhs, cursor.head.nodeRange, cursor.tail.expression.head.nodeRange);
+        cursor = cursor.tail.expression;
     }
     return lhs;
 }
@@ -704,12 +716,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    const classIdentifier = exprValue.symbol.sourceType.identifier.text;
-    const classScope = findScopeWithParent(scope, classIdentifier);
-    if (classScope === undefined) {
-        diagnostic.addError(identifier.location, `'${classIdentifier}' is not defined 💢`);
-        return undefined;
-    }
+    const classScope = exprValue.symbol.membersScope;
+    if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
         // メソッド診断
@@ -807,7 +815,7 @@ function analyzeFunctionCaller(
         callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         callerArgTypes: callerArgTypes,
         calleeFunc: calleeFunc,
-        templateTranslator: templateTranslate
+        templateTranslators: [templateTranslate]
     });
 }
 
@@ -857,10 +865,15 @@ function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType 
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
-    const lhs = analyzeCondition(scope, assign.condition);
-    if (assign.tail === undefined) return lhs;
-    const rhs = analyzeAssign(scope, assign.tail.assign);
-    // if (lhs !== undefined && rhs !== undefined) checkTypeMatch(lhs, rhs);
+    // 左から畳み込みを行う
+    let cursor = assign;
+    let lhs = analyzeCondition(scope, assign.condition);
+    for (; ;) {
+        if (cursor.tail === undefined) break;
+        const rhs = analyzeCondition(scope, cursor.tail.assign.condition);
+        lhs = analyzeAssignOp(scope, cursor.tail.operator, lhs, rhs, cursor.condition.nodeRange, cursor.tail.assign.condition.nodeRange);
+        cursor = cursor.tail.assign;
+    }
     return lhs;
 }
 
@@ -886,6 +899,184 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     return undefined;
 }
 
+// EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
+function analyzeExprOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType | undefined, rhs: DeducedType | undefined,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    if (operator.kind !== TokenKind.Reserved) return undefined;
+    if (lhs === undefined || rhs === undefined) return undefined;
+
+    if (operator.property.isMathOp) {
+        return analyzeMathOp(scope, operator, lhs, rhs, leftRange, rightRange);
+    } else if (operator.property.isCompOp) {
+        return analyzeCompOp(scope, operator, lhs, rhs, leftRange, rightRange);
+    } else if (operator.property.isLogicOp) {
+        return analyzeLogicOp(scope, operator, lhs, rhs, leftRange, rightRange);
+    } else if (operator.property.isBitOp) {
+        return analyzeBitOp(scope, operator, lhs, rhs, leftRange, rightRange);
+    }
+    assert(false);
+}
+
+function analyzeOperatorAlias(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType, rhs: DeducedType,
+    leftRange: ParsedRange, rightRange: ParsedRange,
+    alias: string
+) {
+    if (isSourcePrimitiveType(lhs.symbol.sourceType)) {
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
+        return undefined;
+    }
+
+    if (lhs.sourceScope === undefined) return undefined;
+
+    const classScope = lhs.symbol.membersScope;
+    if (classScope === undefined) return undefined;
+
+    const aliasFunction = findSymbolShallowly(classScope, alias);
+    if (aliasFunction === undefined || aliasFunction.symbolKind !== SymbolKind.Function) {
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
+        return undefined;
+    }
+
+    return checkFunctionMatch({
+        scope: scope,
+        callerIdentifier: operator,
+        callerRange: {start: operator, end: operator},
+        callerArgRanges: [rightRange],
+        callerArgTypes: [rhs],
+        calleeFunc: aliasFunction,
+        templateTranslators: [lhs.templateTranslate, rhs.templateTranslate]
+    });
+}
+
+// BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+function analyzeBitOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType, rhs: DeducedType,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+
+    const alias = bitOpAliases.get(operator.text);
+    assert(alias !== undefined);
+
+    // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
+    return isSourcePrimitiveType(lhs.symbol.sourceType)
+        ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
+        : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
+}
+
+const bitOpAliases = new Map<string, [string, string]>([
+    ['&', ['opAnd', 'opAnd_r']],
+    ['|', ['opOr', 'opOr_r']],
+    ['^', ['opXor', 'opXor_r']],
+    ['<<', ['opShl', 'opShl_r']],
+    ['>>', ['opShr', 'opShr_r']],
+    ['>>>', ['opShrU', 'opShrU_r']]
+]);
+
+// MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
+function analyzeMathOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType, rhs: DeducedType,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+
+    const alias = mathOpAliases.get(operator.text);
+    assert(alias !== undefined);
+
+    // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
+    return isSourcePrimitiveType(lhs.symbol.sourceType)
+        ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
+        : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
+}
+
+const mathOpAliases = new Map<string, [string, string]>([
+    ['+', ['opAdd', 'opAdd_r']],
+    ['-', ['opSub', 'opSub_r']],
+    ['*', ['opMul', 'opMul_r']],
+    ['/', ['opDiv', 'opDiv_r']],
+    ['%', ['opMod', 'opMod_r']],
+    ['**', ['opPow', 'opPow_r']]
+]);
+
+// COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+function analyzeCompOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType, rhs: DeducedType,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    if (lhs.symbol.sourceType === rhs.symbol.sourceType) {
+        return {symbol: builtinBoolType, sourceScope: undefined};
+    }
+
+    const alias = compOpAliases.get(operator.text);
+    assert(alias !== undefined);
+    return analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias);
+}
+
+const compOpAliases = new Map<string, string>([
+    ['==', 'opEquals'],
+    ['!=', 'opEquals'],
+    ['<', 'opCmp'],
+    ['<=', 'opCmp'],
+    ['>', 'opCmp'],
+    ['>=', 'opCmp'],
+    ['is', 'opEquals'],
+    ['!is', 'opEquals'],
+]);
+
+// LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+function analyzeLogicOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType, rhs: DeducedType,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    checkTypeMatch(lhs, {symbol: builtinBoolType, sourceScope: undefined}, leftRange);
+    checkTypeMatch(rhs, {symbol: builtinBoolType, sourceScope: undefined}, rightRange);
+    return {symbol: builtinBoolType, sourceScope: undefined};
+}
+
+// ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+function analyzeAssignOp(
+    scope: SymbolScope, operator: ParsingToken,
+    lhs: DeducedType | undefined, rhs: DeducedType | undefined,
+    leftRange: ParsedRange, rightRange: ParsedRange
+): DeducedType | undefined {
+    if (lhs === undefined || rhs === undefined) return undefined;
+    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+
+    if (operator.text === '=') {
+        if (isTypeMatch(rhs, lhs)) return lhs;
+    }
+
+    const alias = assignOpAliases.get(operator.text);
+    assert(alias !== undefined);
+    return analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias);
+}
+
+const assignOpAliases = new Map<string, string>([
+    ['=', 'opAssign'],
+    ['+=', 'opAddAssign'],
+    ['-=', 'opSubAssign'],
+    ['*=', 'opMulAssign'],
+    ['/=', 'opDivAssign'],
+    ['%=', 'opModAssign'],
+    ['**=', 'opPowAssign'],
+    ['&=', 'opAndAssign'],
+    ['|=', 'opOrAssign'],
+    ['^=', 'opXorAssign'],
+    ['<<=', 'opShlAssign'],
+    ['>>=', 'opShrAssign'],
+    ['>>>=', 'opUShrAssign'],
+]);
+
+// 解析器のエントリーポイント
 export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {
     const globalScope: SymbolScope = createSymbolScope(undefined, undefined);
 

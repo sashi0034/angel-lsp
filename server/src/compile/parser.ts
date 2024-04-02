@@ -1971,7 +1971,7 @@ function parseAssign(parsing: ParsingState): NodeAssign | undefined {
     const condition = parseCondition(parsing);
     if (condition === undefined) return undefined;
 
-    const op = parseAssignOp(parsing);
+    const operator = parseAssignOp(parsing);
 
     const result: NodeAssign = {
         nodeName: NodeName.Assign,
@@ -1980,12 +1980,12 @@ function parseAssign(parsing: ParsingState): NodeAssign | undefined {
         tail: undefined
     };
 
-    if (op === undefined) return result;
+    if (operator === undefined) return result;
 
     const assign = parseAssign(parsing);
     if (assign === undefined) return result;
 
-    result.tail = {op: op, assign: assign};
+    result.tail = {operator: operator, assign: assign};
     result.nodeRange.end = parsing.prev();
 
     return result;
