@@ -7,7 +7,7 @@ import {
     getNodeLocation,
     getRangedLocation,
     isFunctionHeadReturns,
-    isMethodMemberInPostOp,
+    isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
     NodeCase,
@@ -680,31 +680,41 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         targetType: exprValue.symbol
     });
 
-    if (exprPostOp.member === undefined) return undefined;
+    const member = exprPostOp.member;
+    const isMemberMethod = isMemberMethodInPostOp(member);
 
-    if (isMethodMemberInPostOp(exprPostOp.member)) {
+    const identifier = isMemberMethod ? member.identifier : member;
+    if (identifier === undefined) return undefined;
+
+    if (isSourceNodeClass(exprValue.symbol.sourceType) === false) {
+        diagnostic.addError(identifier.location, `'${identifier.text}' is not a member 💢`);
+        return undefined;
+    }
+
+    const classIdentifier = exprValue.symbol.sourceType.identifier.text;
+    const classScope = findScopeWithParent(scope, classIdentifier);
+    if (classScope === undefined) {
+        diagnostic.addError(identifier.location, `'${classIdentifier}' is not defined 💢`);
+        return undefined;
+    }
+
+    if (isMemberMethod) {
         // メソッド診断
-        if (isSourceNodeClass(exprValue.symbol.sourceType) === false) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined member: ${exprPostOp.member.identifier.text}`);
+        const method = findSymbolShallowly(classScope, identifier.text);
+        if (method === undefined) {
+            diagnostic.addError(identifier.location, `'${identifier.text}' is not defined 💢`);
             return undefined;
         }
 
-        const classScope = findScopeWithParent(scope, exprValue.symbol.sourceType.identifier.text);
-        if (classScope === undefined) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Undefined class: ${exprValue.symbol.sourceType.identifier.text}`);
+        if (method.symbolKind !== SymbolKind.Function) {
+            diagnostic.addError(identifier.location, `'${identifier.text}' is not a method 💢`);
             return undefined;
         }
 
-        const classMethod = findSymbolShallowly(classScope, exprPostOp.member.identifier.text);
-        if (classMethod === undefined || classMethod.symbolKind !== SymbolKind.Function) {
-            diagnostic.addError(exprPostOp.member.identifier.location, `Missing method: ${exprPostOp.member.identifier.text}`);
-            return undefined;
-        }
-
-        return analyzeFunctionCaller(scope, exprPostOp.member.identifier, exprPostOp.member.argList, classMethod, exprValue.templateTranslate);
+        return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslate);
     } else {
         // フィールド診断
-        // TODO
+        return analyzeVariableAccess(classScope, identifier);
     }
 }
 
@@ -747,7 +757,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
     const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text)?.symbol;
     if (calleeFunc === undefined) {
-        diagnostic.addError(funcCall.identifier.location, `Undefined function: ${funcCall.identifier.text}`);
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined 💢`);
         return undefined;
     }
 
@@ -756,7 +766,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     }
 
     if (calleeFunc.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(funcCall.identifier.location, `Not a function: ${funcCall.identifier.text}`);
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function 💢`);
         return undefined;
     }
 
@@ -794,19 +804,23 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
         return undefined;
     }
 
-    const token = varAccess.identifier;
-    const declared = findSymbolWithParent(scope, token.text);
+    const varIdentifier = varAccess.identifier;
+    return analyzeVariableAccess(scope, varIdentifier);
+}
+
+function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken) {
+    const declared = findSymbolWithParent(scope, varIdentifier.text);
     if (declared === undefined) {
-        diagnostic.addError(token.location, `Undefined variable: ${token.text}`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined 💢`);
         return undefined;
     } else if (declared.symbol.symbolKind !== SymbolKind.Variable) {
-        diagnostic.addError(token.location, `Not a variable: ${token.text}`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not a variable 💢`);
         return undefined;
     }
 
     scope.referencedList.push({
         declaredSymbol: declared.symbol,
-        referencedToken: token
+        referencedToken: varIdentifier
     });
 
     if (declared.symbol.type === undefined) return undefined;

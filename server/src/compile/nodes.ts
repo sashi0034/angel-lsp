@@ -521,7 +521,7 @@ export interface NodeExprPostOp1 extends NodesBase {
     member: NodeFuncCall | ParsingToken | undefined;
 }
 
-export function isMethodMemberInPostOp(member: NodeFuncCall | ParsingToken | undefined): member is NodeFuncCall {
+export function isMemberMethodInPostOp(member: NodeFuncCall | ParsingToken | undefined): member is NodeFuncCall {
     return member !== undefined && 'nodeName' in member;
 }
 
