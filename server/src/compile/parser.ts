@@ -1401,26 +1401,26 @@ function parseIf(parsing: ParsingState): TriedParse<NodeIf> {
     const assign = expectAssign(parsing);
     if (assign === undefined) return ParseFailure.Pending;
 
-    if (parsing.expect(')', HighlightToken.Operator) === false) return ParseFailure.Pending;
-
-    const thenStat = expectStatement(parsing);
-    if (thenStat === undefined) return ParseFailure.Pending;
-
-    let elseStat = undefined;
-    if (parsing.next().text === 'else') {
-        parsing.confirm(HighlightToken.Keyword);
-
-        const parsedElse = expectStatement(parsing);
-        if (parsedElse !== undefined) elseStat = parsedElse;
-    }
-
-    return {
+    const result: NodeIf = {
         nodeName: NodeName.If,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         condition: assign,
-        thenStat: thenStat,
-        elseStat: elseStat
+        thenStat: undefined,
+        elseStat: undefined
     };
+
+    if (parsing.expect(')', HighlightToken.Operator) === false) return result;
+
+    result.thenStat = expectStatement(parsing);
+    if (result.thenStat === undefined) return result;
+
+    if (parsing.next().text === 'else') {
+        parsing.confirm(HighlightToken.Keyword);
+
+        result.elseStat = expectStatement(parsing);
+    }
+
+    return result;
 }
 
 // CONTINUE      ::= 'continue' ';'

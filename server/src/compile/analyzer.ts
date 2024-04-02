@@ -547,10 +547,12 @@ function analyzeDoWhile(scope: SymbolScope, ast: NodeDoWhile) {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function analyzeIf(scope: SymbolScope, ast: NodeIf) {
-    analyzeAssign(scope, ast.condition);
-    analyzeStatement(scope, ast.thenStat);
-    if (ast.elseStat !== undefined) analyzeStatement(scope, ast.elseStat);
+function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
+    const conditionType = analyzeAssign(scope, nodeIf.condition);
+    checkTypeMatch(conditionType, {symbol: builtinBoolType, sourceScope: undefined}, nodeIf.condition.nodeRange);
+
+    if (nodeIf.thenStat !== undefined) analyzeStatement(scope, nodeIf.thenStat);
+    if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
 }
 
 // CONTINUE      ::= 'continue' ';'
