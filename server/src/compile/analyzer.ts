@@ -44,20 +44,23 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWhile,
-    ParsedEnumMember, ParsedRange
+    ParsedEnumMember,
+    ParsedRange
 } from "./nodes";
 import {
+    hintsCompletionScope,
     builtinBoolType,
     builtinDoubleType,
     builtinFloatType,
     builtinIntType,
-    builtinStringType,
+    builtinStringType, builtinThisToken,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
-    isSourceNodeClass, isSourcePrimitiveType,
+    isSourceNodeClass,
+    isSourcePrimitiveType,
     PrimitiveType,
     stringifyDeducedType,
     SymbolicFunction,
@@ -86,6 +89,7 @@ import {
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
 import {checkTypeMatch, isTypeMatch} from "./checkType";
+import {HighlightToken} from "../code/highlight";
 import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
@@ -124,6 +128,8 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
     }
 
     hoistScript(scopeIterator, nodeNamespace.script, queue, queue);
+
+    hintsCompletionScope(parentScope, scopeIterator, nodeNamespace.nodeRange);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -168,12 +174,22 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
     symbol.membersScope = scope;
 
+    const thisVariable: SymbolicVariable = {
+        symbolKind: SymbolKind.Variable,
+        declaredPlace: builtinThisToken,
+        type: {symbol: symbol, sourceScope: scope},
+        isInstanceMember: false,
+    };
+    insertSymbolicObject(scope.symbolMap, thisVariable);
+
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
     });
+
+    hintsCompletionScope(parentScope, scope, nodeClass.nodeRange);
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
@@ -302,11 +318,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // スコープ内の補完情報を追加
-    scope.parentScope?.completionHints.push({
-        complementKind: ComplementKind.Scope,
-        complementLocation: getNodeLocation(statBlock.nodeRange),
-        targetScope: scope
-    });
+    hintsCompletionScope(scope.parentScope, scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -845,10 +857,13 @@ function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken) 
         return undefined;
     }
 
-    scope.referencedList.push({
-        declaredSymbol: declared.symbol,
-        referencedToken: varIdentifier
-    });
+    if (declared.symbol.declaredPlace.location.path !== '') {
+        // this といったキーワードでないなら追加
+        scope.referencedList.push({
+            declaredSymbol: declared.symbol,
+            referencedToken: varIdentifier
+        });
+    }
 
     if (declared.symbol.type === undefined) return undefined;
     return declared.symbol.type;
@@ -941,6 +956,9 @@ function analyzeOperatorAlias(
         diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
         return undefined;
     }
+
+    // FIXME: 仮想トークンを導入するときに修正が必要かも
+    operator.highlight.token = HighlightToken.Method;
 
     return checkFunctionMatch({
         scope: scope,

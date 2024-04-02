@@ -1,5 +1,5 @@
 import {LocationInfo, TokenKind} from "./tokens";
-import {NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName} from "./nodes";
+import {getNodeLocation, NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName, NodesBase, ParsedRange} from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReserves";
@@ -181,6 +181,14 @@ export interface ComplementScope extends ComplementBase {
     targetScope: SymbolScope;
 }
 
+export function hintsCompletionScope(parentScope: SymbolScope | undefined, targetScope: SymbolScope, nodeRange: ParsedRange) {
+    parentScope?.completionHints.push({
+        complementKind: ComplementKind.Scope,
+        complementLocation: getNodeLocation(nodeRange),
+        targetScope: targetScope
+    });
+}
+
 export interface ComplementType extends ComplementBase {
     complementKind: ComplementKind.Type;
     targetType: SymbolicType;
@@ -244,6 +252,8 @@ export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined
 
     return undefined;
 }
+
+export const builtinThisToken = createVirtualToken(TokenKind.Identifier, 'this');
 
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     return scope.symbolMap.get(identifier);
