@@ -56,7 +56,7 @@ import {
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
-    isSourceNodeClass,
+    isSourceNodeClass, isSourcePrimitiveType,
     PrimitiveType, stringifyDeducedType,
     SymbolicFunction,
     SymbolicType,
@@ -77,7 +77,7 @@ import {
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
-    findScopeWithParent,
+    findScopeWithParent, findScopeWithParentByNode,
     isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
@@ -570,7 +570,18 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
-    analyzeAssign(scope, nodeReturn.assign);
+    const returnType = analyzeAssign(scope, nodeReturn.assign);
+
+    const functionScope = findScopeWithParentByNode(scope, NodeName.Func);
+    if (functionScope === undefined || functionScope.ownerNode === undefined) return;
+
+    // TODO: 仮想プロパティやラムダ式に対応
+
+    if (functionScope.ownerNode.nodeName === NodeName.Func) {
+        const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.ownerNode.identifier.text);
+        if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
+        checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
+    }
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}

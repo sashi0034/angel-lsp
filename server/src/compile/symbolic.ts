@@ -23,7 +23,7 @@ export enum PrimitiveType {
 
 export type SourceType = NodeEnum | NodeClass | PrimitiveType;
 
-export function isSourcePrimitiveType(type: SourceType): type is PrimitiveType {
+export function isSourcePrimitiveType(type: SourceType | undefined): type is PrimitiveType {
     return typeof type === 'string';
 }
 

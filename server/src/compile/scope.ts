@@ -1,6 +1,6 @@
 import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
-import {NodeName} from "./nodes";
+import {NodeName, NodesBase} from "./nodes";
 import {ParsingToken} from "./parsingToken";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
@@ -18,6 +18,12 @@ export function findScopeWithParent(scope: SymbolScope, identifier: string): Sym
     if (child !== undefined) return child;
     if (scope.parentScope === undefined) return undefined;
     return findScopeWithParent(scope.parentScope, identifier);
+}
+
+export function findScopeWithParentByNode(scope: SymbolScope, nodeName: NodeName): SymbolScope | undefined {
+    if (scope.ownerNode?.nodeName === nodeName) return scope;
+    if (scope.parentScope === undefined) return undefined;
+    return findScopeWithParentByNode(scope.parentScope, nodeName);
 }
 
 export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {
