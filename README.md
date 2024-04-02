@@ -1,4 +1,4 @@
-# VSCode Extension for AngelScript Language Server
+# AngelScript Language Server for VSCode
 
 <h1 align="center">
   <br>
@@ -6,9 +6,19 @@
   <br>
 </h1>
 
-WIP
+# Freatures
+
+- Syntax Highlight for AngelScript
+- Go to Definition
+- Peek References
+- Symbol Rename
+- Symbol Completions
+- Type Checking
+
+Note: Still in the early stages of development, many features of AngelScript are not fully supported
+
 
 ---
 
 OpenSiv3D Support
-- Put [`as.predefined`](./examples/OpenSiv3D/as.predefined) directly under the workspace directory.
+- Put [`as.predefined`](./examples/OpenSiv3D/as.predefined) directly under the workspace directory for symbol completion.

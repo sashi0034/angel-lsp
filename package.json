@@ -1,9 +1,9 @@
 {
     "name": "angel-lsp",
     "description": "A language server for AngelScript",
-    "author": "Microsoft Corporation",
+    "author": "sashi0034",
     "license": "MIT",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
