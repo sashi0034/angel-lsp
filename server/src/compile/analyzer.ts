@@ -18,7 +18,7 @@ import {
     NodeEnum,
     NodeExpr,
     NodeExprPostOp,
-    NodeExprPostOp1,
+    NodeExprPostOp1, NodeExprPostOp2,
     NodeExprStat,
     NodeExprTerm,
     NodeExprTerm2,
@@ -643,7 +643,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
 
     for (const postOp of exprTerm.postOps) {
         if (exprValue === undefined) break;
-        exprValue = analyzeExprPostOp(scope, postOp, exprValue);
+        exprValue = analyzeExprPostOp(scope, postOp, exprValue, exprTerm.nodeRange);
     }
 
     return exprValue;
@@ -700,9 +700,11 @@ function analyzeConstructorByType(
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: DeducedType) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: DeducedType, exprRange: ParsedRange) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
+    } else if (exprPostOp.postOp === 2) {
+        return analyzeExprPostOp2(scope, exprPostOp, exprValue, exprRange);
     }
 }
 
@@ -749,6 +751,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         // フィールド診断
         return analyzeVariableAccess(classScope, identifier);
     }
+}
+
+// ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
+function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: DeducedType, exprRange: ParsedRange) {
+    const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
+    return analyzeOperatorAlias(scope, exprPostOp.nodeRange.end, exprValue, args, exprRange, exprPostOp.nodeRange, 'opIndex');
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -937,10 +945,12 @@ function analyzeExprOp(
 
 function analyzeOperatorAlias(
     scope: SymbolScope, operator: ParsingToken,
-    lhs: DeducedType, rhs: DeducedType,
+    lhs: DeducedType, rhs: DeducedType | (DeducedType | undefined)[],
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
 ) {
+    const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
+
     if (isSourcePrimitiveType(lhs.symbol.sourceType)) {
         diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
         return undefined;
@@ -957,17 +967,14 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    // FIXME: 仮想トークンを導入するときに修正が必要かも
-    operator.highlight.token = HighlightToken.Method;
-
     return checkFunctionMatch({
         scope: scope,
         callerIdentifier: operator,
         callerRange: {start: operator, end: operator},
         callerArgRanges: [rightRange],
-        callerArgTypes: [rhs],
+        callerArgTypes: rhsArgs,
         calleeFunc: aliasFunction,
-        templateTranslators: [lhs.templateTranslate, rhs.templateTranslate]
+        templateTranslators: [lhs.templateTranslate, ...rhsArgs.map(rhs => rhs?.templateTranslate)]
     });
 }
 
