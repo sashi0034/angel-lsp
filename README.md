@@ -9,14 +9,14 @@
 # Freatures
 
 - Syntax Highlight for AngelScript
+- Type Checking
 - Go to Definition
 - Peek References
 - Symbol Rename
 - Symbol Completions
-- Type Checking
+- Snippets
 
-Note: Still in the early stages of development, many features of AngelScript are not fully supported
-
+Note: Since it is still under development, many features of AngelScript are not fully supported.
 
 ---
 
