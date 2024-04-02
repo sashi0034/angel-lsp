@@ -556,15 +556,19 @@ function analyzeFor(scope: SymbolScope, ast: NodeFor) {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function analyzeWhile(scope: SymbolScope, ast: NodeWhile) {
-    analyzeAssign(scope, ast.assign);
-    analyzeStatement(scope, ast.statement);
+function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
+    const assignType = analyzeAssign(scope, nodeWhile.assign);
+    checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, nodeWhile.assign.nodeRange);
+
+    analyzeStatement(scope, nodeWhile.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function analyzeDoWhile(scope: SymbolScope, ast: NodeDoWhile) {
-    analyzeStatement(scope, ast.statement);
-    analyzeAssign(scope, ast.assign);
+function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
+    analyzeStatement(scope, doWhile.statement);
+
+    const assignType = analyzeAssign(scope, doWhile.assign);
+    checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, doWhile.assign.nodeRange);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
