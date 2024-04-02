@@ -233,7 +233,7 @@ export interface NodeInterface extends NodesBase {
     memberList: (NodeVirtualProp | NodeIntfMethod)[];
 }
 
-// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
+// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export interface NodeVar extends NodesBase {
     nodeName: NodeName.Var
     accessor: AccessModifier | undefined,
@@ -243,7 +243,7 @@ export interface NodeVar extends NodesBase {
 
 export interface ParsedVariableInit {
     identifier: ParsingToken;
-    initializer: NodeInitList | NodeExpr | NodeArgList | undefined;
+    initializer: NodeInitList | NodeAssign | NodeArgList | undefined;
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'

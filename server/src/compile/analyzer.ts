@@ -57,7 +57,7 @@ import {
     findSymbolWithParent,
     insertSymbolicObject,
     isSourceNodeClass,
-    PrimitiveType,
+    PrimitiveType, stringifyDeducedType,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -82,7 +82,7 @@ import {
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
-import {checkTypeMatch} from "./checkType";
+import {checkTypeMatch, isTypeMatch} from "./checkType";
 
 type HoistingQueue = (() => void)[];
 
@@ -239,7 +239,7 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
-// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
+// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
     let varType = analyzeType(scope, nodeVar.type);
     for (const declaredVar of nodeVar.variables) {
@@ -265,12 +265,12 @@ function analyzeVarInitializer(
     scope: SymbolScope,
     varType: DeducedType | undefined,
     identifier: ParsingToken,
-    initializer: NodeInitList | NodeExpr | NodeArgList
+    initializer: NodeInitList | NodeAssign | NodeArgList
 ): DeducedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
         return analyzeInitList(scope, initializer);
-    } else if (initializer.nodeName === NodeName.Expr) {
-        const exprType = analyzeExpr(scope, initializer);
+    } else if (initializer.nodeName === NodeName.Assign) {
+        const exprType = analyzeAssign(scope, initializer);
         checkTypeMatch(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
@@ -849,10 +849,22 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | un
 export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
+
+    checkTypeMatch(exprType, {symbol: builtinBoolType, sourceScope: undefined}, condition.expr.nodeRange);
+
     const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
     const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
-    // if (trueAssign !== undefined && falseAssign !== undefined) checkTypeMatch(trueAssign, falseAssign);
-    return trueAssign;
+
+    if (trueAssign === undefined && falseAssign !== undefined) return falseAssign;
+    if (trueAssign !== undefined && falseAssign === undefined) return trueAssign;
+    if (trueAssign === undefined || falseAssign === undefined) return undefined;
+
+    if (isTypeMatch(trueAssign, falseAssign)) return falseAssign;
+    if (isTypeMatch(falseAssign, trueAssign)) return trueAssign;
+
+    diagnostic.addError(getRangedLocation(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
+        `Type mismatches between '${stringifyDeducedType(trueAssign)}' and '${stringifyDeducedType(falseAssign)}' 💢`);
+    return undefined;
 }
 
 export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {

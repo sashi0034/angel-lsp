@@ -14,6 +14,22 @@ import {findScopeShallowly} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 
+// export function checkTypeIdentical(
+//     type1: DeducedType | undefined,
+//     type2: DeducedType | undefined,
+//     nodeRange: ParsedRange
+// ) {
+//     if (type1 === undefined || type2 === undefined) return false;
+//
+//     if (isSourcePrimitiveType(type1.symbol.sourceType) && isSourcePrimitiveType(type2.symbol.sourceType)) {
+//         if (type1.symbol.sourceType === type2.symbol.sourceType) return true;
+//     }
+//
+//     diagnostic.addError(getNodeLocation(nodeRange), `Type mismatch between '${stringifyDeducedType(type1)}' and '${stringifyDeducedType(type2)}' 💢`);
+//
+//     return false;
+// }
+
 export function checkTypeMatch(
     src: DeducedType | undefined,
     dest: DeducedType | undefined,

@@ -564,7 +564,7 @@ function expectInterfaceMembers(parsing: ParsingState): (NodeIntfMethod | NodeVi
     return members;
 }
 
-// VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
+// VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function parseVar(parsing: ParsingState): NodeVar | undefined {
     const rangeStart = parsing.next();
 
@@ -617,12 +617,12 @@ function expectInitListOrExpr(parsing: ParsingState) {
         return initList;
     }
 
-    const expr = expectExpr(parsing);
+    const expr = expectAssign(parsing);
     if (expr !== undefined) {
         return expr;
     }
 
-    parsing.error("Expected initializer list or expression ❌");
+    parsing.error("Expected initializer list or assignment ❌");
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
