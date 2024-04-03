@@ -192,6 +192,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
+        if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
     hintsCompletionScope(parentScope, scope, nodeClass.nodeRange);
@@ -212,8 +213,8 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     return templateTypes;
 }
 
-function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface) {
-    if (nodeClass.baseList.length === 0) return;
+function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface): (DeducedType | undefined)[] | undefined {
+    if (nodeClass.baseList.length === 0) return undefined;
 
     const baseList: (DeducedType | undefined)[] = [];
     for (const baseIdentifier of nodeClass.baseList) {
@@ -236,6 +237,19 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
         }
     }
     return baseList;
+}
+
+function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)[]) {
+    for (const baseType of baseList) {
+        if (baseType === undefined) continue;
+
+        const baseScope = baseType.symbol.membersScope;
+        if (baseScope === undefined) continue;
+
+        for (const [key, symbol] of baseScope.symbolMap) {
+            insertSymbolicObject(scope.symbolMap, symbol);
+        }
+    }
 }
 
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -311,6 +325,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
 
     hoisting.push(() => {
         hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
+        if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
     hintsCompletionScope(parentScope, scope, nodeInterface.nodeRange);
