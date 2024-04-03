@@ -108,7 +108,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
         } else if (nodeName === NodeName.Mixin) {
             hoistMixin(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Var) {
-            analyzeVar(parentScope, statement, false);
+            hoistVar(parentScope, statement, analyzing, false);
         } else if (nodeName === NodeName.Func) {
             hoistFunc(parentScope, statement, analyzing, hoisting, false);
         } else if (nodeName === NodeName.Namespace) {
@@ -214,7 +214,7 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
         } else if (member.nodeName === NodeName.Func) {
             hoistFunc(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.Var) {
-            analyzeVar(scope, member, true);
+            hoistVar(scope, member, analyzing, true);
         }
     }
 }
@@ -265,25 +265,36 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzingQueue, isInstanceMember: boolean) {
+    const varType = analyzeType(scope, nodeVar.type);
+
+    analyzing.push(() => {
+        for (const declaredVar of nodeVar.variables) {
+            const initializer = declaredVar.initializer;
+            if (initializer === undefined) continue;
+            analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+        }
+    });
+
+    insertVariables(scope, varType, nodeVar, isInstanceMember);
+}
+
 function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
     let varType = analyzeType(scope, nodeVar.type);
+
     for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
-        if (initializer !== undefined) {
-            const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
-            if (varType?.symbol.sourceType === PrimitiveType.Auto && initType !== undefined) {
-                varType = initType;
-            }
-        }
+        if (initializer === undefined) continue;
 
-        const variable: SymbolicVariable = {
-            symbolKind: SymbolKind.Variable,
-            declaredPlace: declaredVar.identifier,
-            type: varType,
-            isInstanceMember: isInstanceMember,
-        };
-        insertSymbolicObject(scope.symbolMap, variable);
+        const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+
+        // 自動推論の解決
+        if (varType?.symbol.sourceType === PrimitiveType.Auto && initType !== undefined) {
+            varType = initType;
+        }
     }
+
+    insertVariables(scope, varType, nodeVar, isInstanceMember);
 }
 
 function analyzeVarInitializer(
@@ -301,6 +312,18 @@ function analyzeVarInitializer(
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined) return undefined;
         return analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
+    }
+}
+
+function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
+    for (const declaredVar of nodeVar.variables) {
+        const variable: SymbolicVariable = {
+            symbolKind: SymbolKind.Variable,
+            declaredPlace: declaredVar.identifier,
+            type: varType,
+            isInstanceMember: isInstanceMember,
+        };
+        insertSymbolicObject(scope.symbolMap, variable);
     }
 }
 
