@@ -1,5 +1,15 @@
 import {LocationInfo, TokenKind} from "./tokens";
-import {getNodeLocation, NodeClass, NodeEnum, NodeFunc, NodeIf, NodeName, NodesBase, ParsedRange} from "./nodes";
+import {
+    getNodeLocation,
+    NodeClass,
+    NodeEnum,
+    NodeFunc,
+    NodeIf,
+    NodeInterface, NodeIntfMethod,
+    NodeName,
+    NodesBase,
+    ParsedRange
+} from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReserves";
@@ -21,15 +31,15 @@ export enum PrimitiveType {
     Auto = 'Auto',
 }
 
-export type SourceType = NodeEnum | NodeClass | PrimitiveType;
+export type SourceType = NodeEnum | NodeClass | NodeInterface | PrimitiveType;
 
 export function isSourcePrimitiveType(type: SourceType | undefined): type is PrimitiveType {
     return typeof type === 'string';
 }
 
-export function isSourceNodeClass(type: SourceType): type is NodeClass {
+export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClass {
     if (isSourcePrimitiveType(type)) return false;
-    return type.nodeName === NodeName.Class;
+    return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
 export interface SymbolicBase {
@@ -46,7 +56,7 @@ export interface SymbolicType extends SymbolicBase {
 
 export interface SymbolicFunction extends SymbolicBase {
     symbolKind: SymbolKind.Function;
-    sourceNode: NodeFunc;
+    sourceNode: NodeFunc | NodeIntfMethod;
     returnType: DeducedType | undefined;
     parameterTypes: (DeducedType | undefined)[];
     nextOverload: SymbolicFunction | undefined;
@@ -67,7 +77,7 @@ export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is Symbol
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export type SymbolOwnerNode = NodeEnum | NodeClass | NodeFunc | NodeIf;
+export type SymbolOwnerNode = NodeEnum | NodeClass | NodeInterface | NodeFunc | NodeIf;
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;

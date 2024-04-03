@@ -27,7 +27,7 @@ import {
     NodeFunc,
     NodeFuncCall,
     NodeIf,
-    NodeInitList,
+    NodeInitList, NodeInterface, NodeIntfMethod,
     NodeLiteral,
     NodeMixin,
     NodeName,
@@ -59,7 +59,7 @@ import {
     findSymbolShallowly,
     findSymbolWithParent,
     insertSymbolicObject,
-    isSourceNodeClass,
+    isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
     stringifyDeducedType,
@@ -107,6 +107,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
             hoistClass(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Mixin) {
             hoistMixin(parentScope, statement, analyzing, hoisting);
+        } else if (nodeName === NodeName.Interface) {
+            hoistInterface(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Var) {
             hoistVar(parentScope, statement, analyzing, false);
         } else if (nodeName === NodeName.Func) {
@@ -263,6 +265,34 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
+    const symbol: SymbolicType = {
+        symbolKind: SymbolKind.Type,
+        declaredPlace: nodeInterface.identifier,
+        sourceType: nodeInterface,
+        membersScope: undefined,
+    };
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+
+    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
+    symbol.membersScope = scope;
+
+    hoisting.push(() => {
+        hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
+    });
+
+    hintsCompletionScope(parentScope, scope, nodeInterface.nodeRange);
+}
+
+function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
+    for (const member of nodeInterface.memberList) {
+        if (member.nodeName === NodeName.VirtualProp) {
+            // TODO
+        } else if (member.nodeName === NodeName.IntfMethod) {
+            hoistIntfMethod(scope, member);
+        }
+    }
+}
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzingQueue, isInstanceMember: boolean) {
@@ -337,6 +367,18 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 }
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
+    const symbol: SymbolicFunction = {
+        symbolKind: SymbolKind.Function,
+        declaredPlace: intfMethod.identifier,
+        returnType: analyzeType(parentScope, intfMethod.returnType),
+        parameterTypes: [],
+        sourceNode: intfMethod,
+        nextOverload: undefined,
+        isInstanceMember: true,
+    };
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+}
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
@@ -396,7 +438,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         && isSymbolConstructorInScope(foundSymbol.symbol, foundSymbol.scope)
         && foundSymbol.scope.parentScope !== undefined
     ) {
-        // コンストラクタの場合は上の階層を探索
+        // 親の階層を辿っていくと、クラス型よりも先にコンストラクタがヒットする時があるので、その場合は更に上の階層から検索
         foundSymbol = findSymbolWithParent(foundSymbol.scope.parentScope, typeIdentifier.text);
     }
 
@@ -753,7 +795,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isSourceNodeClass(exprValue.symbol.sourceType) === false) {
+    if (isSourceNodeClassOrInterface(exprValue.symbol.sourceType) === false) {
         diagnostic.addError(identifier.location, `'${identifier.text}' is not a member 💢`);
         return undefined;
     }
