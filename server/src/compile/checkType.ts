@@ -6,11 +6,11 @@ import {
     resolveTemplateType,
     SourceType,
     stringifyDeducedType,
-    SymbolicFunction,
+    SymbolicFunction, SymbolicType,
     SymbolKind,
     SymbolScope
 } from "./symbolic";
-import {getNodeLocation, NodeName, ParsedRange} from "./nodes";
+import {getNodeLocation, NodeName, NodesBase, ParsedRange} from "./nodes";
 import {findScopeShallowly} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
@@ -58,10 +58,11 @@ export function isTypeMatchInternal(
         return canCastFromPrimitiveType(src, dest);
     }
 
-    // TODO : 継承などに対応
-
     // 同じ型を指しているなら OK
     if (srcType.declaredPlace === destType.declaredPlace) return true;
+
+    // 継承した型のいずれかが移動先に当てはまるなら OK
+    if (canCastStatically(srcNode, destNode, srcType, destType)) return true;
 
     // 移動先の型がクラスでないなら NG
     if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
@@ -69,6 +70,18 @@ export function isTypeMatchInternal(
     // コンストラクタに当てはまるかで判定
     const destIdentifier = destNode.identifier.text;
     return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
+}
+
+function canCastStatically(
+    srcNode: NodesBase, destNode: SourceType, srcType: SymbolicType, destType: SymbolicType
+): boolean {
+    if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
+        if (srcType.baseList === undefined) return false;
+        for (const srcBase of srcType.baseList) {
+            if (srcBase === destType) return true;
+        }
+    }
+    return false;
 }
 
 function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {

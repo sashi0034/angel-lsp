@@ -51,7 +51,7 @@ export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
     sourceType: SourceType;
     templateTypes?: ParsingToken[];
-    baseList?: SymbolicType[];
+    baseList?: (SymbolicType | undefined)[];
     membersScope: SymbolScope | undefined;
 }
 

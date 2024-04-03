@@ -187,6 +187,9 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
 
+    const baseList = hoistBaseList(scope, nodeClass);
+    if (baseList !== undefined) symbol.baseList = baseList;
+
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
     });
@@ -209,8 +212,24 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     return templateTypes;
 }
 
-function hoistClassBaseList(scope: SymbolScope, nodeClass: NodeClass) {
+function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface) {
+    if (nodeClass.baseList.length === 0) return;
 
+    const baseList: (SymbolicType | undefined)[] = [];
+    for (const baseIdentifier of nodeClass.baseList) {
+        const baseType = findSymbolWithParent(scope, baseIdentifier.text);
+
+        if (baseType === undefined) {
+            diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
+            baseList.push(undefined);
+        } else if (baseType.symbol.symbolKind !== SymbolKind.Type) {
+            diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
+            baseList.push(undefined);
+        } else {
+            baseList.push(baseType.symbol);
+        }
+    }
+    return baseList;
 }
 
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -280,6 +299,9 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
     symbol.membersScope = scope;
+
+    const baseList = hoistBaseList(scope, nodeInterface);
+    if (baseList !== undefined) symbol.baseList = baseList;
 
     hoisting.push(() => {
         hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
