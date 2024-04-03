@@ -3,6 +3,7 @@ import {
     findSymbolShallowly,
     isSourcePrimitiveType,
     PrimitiveType,
+    resolveTemplateType,
     SourceType,
     stringifyDeducedType,
     SymbolicFunction,
@@ -13,22 +14,6 @@ import {getNodeLocation, NodeName, ParsedRange} from "./nodes";
 import {findScopeShallowly} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
-
-// export function checkTypeIdentical(
-//     type1: DeducedType | undefined,
-//     type2: DeducedType | undefined,
-//     nodeRange: ParsedRange
-// ) {
-//     if (type1 === undefined || type2 === undefined) return false;
-//
-//     if (isSourcePrimitiveType(type1.symbol.sourceType) && isSourcePrimitiveType(type2.symbol.sourceType)) {
-//         if (type1.symbol.sourceType === type2.symbol.sourceType) return true;
-//     }
-//
-//     diagnostic.addError(getNodeLocation(nodeRange), `Type mismatch between '${stringifyDeducedType(type1)}' and '${stringifyDeducedType(type2)}' 💢`);
-//
-//     return false;
-// }
 
 export function checkTypeMatch(
     src: DeducedType | undefined,
@@ -44,6 +29,22 @@ export function checkTypeMatch(
 }
 
 export function isTypeMatch(
+    src: DeducedType, dest: DeducedType
+): boolean {
+    let resolvedSrc: DeducedType | undefined = src;
+    if (src.templateTranslate !== undefined && src.symbol.sourceType === PrimitiveType.Template)
+        resolvedSrc = resolveTemplateType(src.templateTranslate, src);
+
+    let resolvedDest: DeducedType | undefined = dest;
+    if (dest.templateTranslate !== undefined && dest.symbol.sourceType === PrimitiveType.Template)
+        resolvedDest = resolveTemplateType(dest.templateTranslate, dest);
+
+    if (resolvedSrc === undefined || resolvedDest === undefined) return true;
+
+    return isTypeMatchInternal(resolvedSrc, resolvedDest);
+}
+
+export function isTypeMatchInternal(
     src: DeducedType, dest: DeducedType
 ): boolean {
     const srcType = src.symbol;
@@ -74,10 +75,11 @@ function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {
     const srcType = src.symbol;
     const destType = dest.symbol;
     const srcNode = srcType.sourceType;
+    const destNode = destType.sourceType;
 
     switch (srcNode) {
     case PrimitiveType.Template:
-        return srcType.declaredPlace === destType.declaredPlace;
+        return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
     case PrimitiveType.String: {
         const destName = destType.declaredPlace.text;
         return destName === "string" || destName === "String";

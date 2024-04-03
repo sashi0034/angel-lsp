@@ -1,17 +1,10 @@
 import {diagnostic} from "../code/diagnostic";
-import {
-    getNodeLocation, getRangedLocation,
-    NodeArgList,
-    NodeConstructCall,
-    NodeFuncCall,
-    NodeName,
-    ParsedRange,
-    stringifyNodeType
-} from "./nodes";
+import {getNodeLocation, ParsedRange, stringifyNodeType} from "./nodes";
 import {
     DeducedType,
-    resolveTemplateType, resolveTemplateTypes,
-    stringifyDeducedType, stringifyDeducedTypes,
+    PrimitiveType, resolveTemplateTypes,
+    stringifyDeducedType,
+    stringifyDeducedTypes,
     SymbolicFunction,
     SymbolScope,
     TemplateTranslation
@@ -70,10 +63,8 @@ export function checkFunctionMatchInternal(
             }
         }
 
-        let actualType = callerArgTypes[i];
-        let expectedType = calleeFunc.parameterTypes[i];
-        actualType = resolveTemplateTypes(templateTranslators, actualType);
-        expectedType = resolveTemplateTypes(templateTranslators, expectedType);
+        const actualType = callerArgTypes[i];
+        const expectedType = calleeFunc.parameterTypes[i];
 
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
@@ -89,6 +80,9 @@ export function checkFunctionMatchInternal(
         }
     }
 
+    if (calleeFunc.returnType?.symbol.sourceType === PrimitiveType.Template) {
+        return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
+    }
     return calleeFunc.returnType;
 }
 
