@@ -1,16 +1,15 @@
 import {TokenizingToken, TokenKind} from "../compile/tokens";
-import {profiler} from "../debug/profiler";
+import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
-import {URI} from "vscode-languageserver";
 import {convertToParsingTokens, ParsingToken} from "../compile/parsingToken";
-import {fileURLToPath} from 'url';
 import {findFileInCurrentDirectory} from "../utils/findFile";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
 import {DocumentPath} from "./documentPath";
+import {tracer} from "../code/tracer";
 
 interface InspectResult {
     diagnostics: Diagnostic[];
@@ -60,23 +59,25 @@ function checkInspectPredefined() {
 }
 
 function inspectInternal(content: string, path: string): InspectResult {
+    tracer.message(`🔬 Inspect "${path}"`);
+
     diagnostic.reset();
 
-    profiler.restart();
+    const profiler = new Profiler("Inspector");
 
     // 字句解析
     const tokenizedTokens = tokenize(content, path);
-    profiler.stamp("tokenizer");
+    profiler.stamp("Tokenizer");
 
     // 構文解析
     const parsed = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
-    profiler.stamp("parser");
+    profiler.stamp("Parser");
 
     // 型解析
     const includedScopes = getIncludedScope(path);
 
     const analyzedScope = analyzeFromParsed(parsed, path, includedScopes);
-    profiler.stamp("analyzer");
+    profiler.stamp("Analyzer");
 
     return {
         diagnostics: diagnostic.get(),

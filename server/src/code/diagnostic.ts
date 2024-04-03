@@ -28,4 +28,4 @@ export const diagnostic = {
     reset,
     get,
     addError,
-};
+} as const;

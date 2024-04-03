@@ -29,6 +29,7 @@ import {getDocumentPath} from "./serve/documentPath";
 import {serveReferences} from "./serve/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
+import {changeGlobalSettings} from "./code/settings";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -94,9 +95,9 @@ connection.onInitialize((params: InitializeParams) => {
     return result;
 });
 
-function loadSettings() {
+function reloadSettings() {
     connection.workspace.getConfiguration('angelScript').then((config) => {
-        globalSettings = <LanguageServerConfigurations>(config || defaultSettings);
+        changeGlobalSettings(config);
     });
 }
 
@@ -112,40 +113,21 @@ connection.onInitialized(() => {
     }
 
     // ワークスペース設定の読み込み
-    loadSettings();
+    reloadSettings();
 });
-
-interface LanguageServerConfigurations {
-    maxNumberOfProblems: number;
-    trace: {
-        server: 'off' | 'messages' | 'verbose';
-    };
-}
 
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
-const defaultSettings: LanguageServerConfigurations = {
-    maxNumberOfProblems: 1000,
-    trace: {
-        server: 'off'
-    }
-};
-
-let globalSettings: LanguageServerConfigurations = defaultSettings;
-
-// Cache the settings of all open documents
-const documentSettings: Map<string, Thenable<LanguageServerConfigurations>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
-    loadSettings();
+    reloadSettings();
 
     connection.languages.diagnostics.refresh();
 });
 
 // Only keep settings for open documents
 documents.onDidClose(e => {
-    documentSettings.delete(e.document.uri);
 });
 
 connection.languages.diagnostics.on(async (params) => {
@@ -213,10 +195,6 @@ connection.onRenameRequest((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    if (globalSettings.trace.server === 'verbose') {
-        connection.console.log(`Document got changed: ${change.document.uri}`);
-    }
-
     inspectFile(change.document.getText(), getDocumentPath(change));
 });
 
