@@ -402,23 +402,23 @@ export interface NodeBreak extends NodesBase {
 export interface NodeFor extends NodesBase {
     nodeName: NodeName.For
     initial: NodeVar | NodeExprStat,
-    condition: NodeExprStat,
+    condition: NodeExprStat | undefined
     incrementList: NodeAssign[],
-    statement: NodeStatement
+    statement: NodeStatement | undefined
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 export interface NodeWhile extends NodesBase {
     nodeName: NodeName.While
     assign: NodeAssign,
-    statement: NodeStatement
+    statement: NodeStatement | undefined
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 export interface NodeDoWhile extends NodesBase {
     nodeName: NodeName.DoWhile
     statement: NodeStatement,
-    assign: NodeAssign
+    assign: NodeAssign | undefined
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
@@ -562,7 +562,7 @@ export interface NodeCast extends NodesBase {
 export interface NodeLambda extends NodesBase {
     nodeName: NodeName.Lambda;
     paramList: ParsedLambdaParams[],
-    statBlock: NodeStatBlock
+    statBlock: NodeStatBlock | undefined
 }
 
 export interface ParsedLambdaParams {

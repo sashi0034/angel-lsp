@@ -43,7 +43,7 @@ import {
     NodeName,
     NodeNamespace,
     NodeParamList,
-    NodeReturn,
+    NodeReturn, NodesBase,
     NodeScope,
     NodeScript,
     NodeStatBlock,
@@ -1297,41 +1297,38 @@ function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightToken.Keyword);
 
-    parsing.expect('(', HighlightToken.Operator);
+    if (parsing.expect('(', HighlightToken.Operator) === false) return ParseFailure.Pending;
 
     const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing);
     if (initial === undefined) {
-        parsing.error("Expected initial expression or variable declaration ❌");
+        parsing.error("Expected initial expression statement or variable declaration ❌");
         return ParseFailure.Pending;
     }
 
-    const condition = parseExprStat(parsing);
-    if (condition === undefined) {
-        parsing.error("Expected condition expression ❌");
-        return ParseFailure.Pending;
-    }
-
-    const increment: NodeAssign[] = [];
-    while (parsing.isEnd() === false) {
-        if (expectContinuousOrClose(parsing, ',', ')', increment.length > 0) === BreakThrough.Break) break;
-
-        const assign = increment.length > 0 ? expectAssign(parsing) : parseAssign(parsing);
-        if (assign === undefined) break;
-
-        increment.push(assign);
-    }
-
-    const statement = expectStatement(parsing);
-    if (statement === undefined) return ParseFailure.Pending;
-
-    return {
+    const result: NodeFor = {
         nodeName: NodeName.For,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         initial: initial,
-        condition: condition,
-        incrementList: increment,
-        statement: statement
+        condition: undefined,
+        incrementList: [],
+        statement: undefined
     };
+
+    result.condition = expectExprStat(parsing);
+    if (result.condition === undefined) return appliedNodeEnd(parsing, result);
+
+    while (parsing.isEnd() === false) {
+        if (expectContinuousOrClose(parsing, ',', ')', result.incrementList.length > 0) === BreakThrough.Break) break;
+
+        const assign = expectAssign(parsing);
+        if (assign === undefined) break;
+
+        result.incrementList.push(assign);
+    }
+
+    result.statement = expectStatement(parsing);
+    return appliedNodeEnd(parsing, result);
+    ;
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -1340,25 +1337,22 @@ function parseWhile(parsing: ParsingState): TriedParse<NodeWhile> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightToken.Keyword);
 
-    parsing.expect('(', HighlightToken.Operator);
+    if (parsing.expect('(', HighlightToken.Operator) === false) return ParseFailure.Pending;
 
-    const assign = parseAssign(parsing);
-    if (assign === undefined) {
-        parsing.error("Expected condition expression ❌");
-        return ParseFailure.Pending;
-    }
+    const assign = expectAssign(parsing);
+    if (assign === undefined) return ParseFailure.Pending;
 
-    parsing.expect(')', HighlightToken.Operator);
-
-    const statement = expectStatement(parsing);
-    if (statement === undefined) return ParseFailure.Pending;
-
-    return {
+    const result: NodeWhile = {
         nodeName: NodeName.While,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign,
-        statement: statement
+        statement: undefined
     };
+
+    if (parsing.expect(')', HighlightToken.Operator) === false) return appliedNodeEnd(parsing, result);
+
+    result.statement = expectStatement(parsing);
+    return appliedNodeEnd(parsing, result);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
@@ -1370,24 +1364,23 @@ function parseDoWhile(parsing: ParsingState): TriedParse<NodeDoWhile> {
     const statement = expectStatement(parsing);
     if (statement === undefined) return ParseFailure.Pending;
 
-    if (parsing.expect('while', HighlightToken.Keyword) === false) return ParseFailure.Pending;
-    if (parsing.expect('(', HighlightToken.Operator) === false) return ParseFailure.Pending;
-
-    const assign = parseAssign(parsing);
-    if (assign === undefined) {
-        parsing.error("Expected condition expression ❌");
-        return ParseFailure.Pending;
-    }
-
-    if (parsing.expect(')', HighlightToken.Operator) === false) return ParseFailure.Pending;
-    if (parsing.expect(';', HighlightToken.Operator) === false) return ParseFailure.Pending;
-
-    return {
+    const result: NodeDoWhile = {
         nodeName: NodeName.DoWhile,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         statement: statement,
-        assign: assign
+        assign: undefined
     };
+
+    if (parsing.expect('while', HighlightToken.Keyword) === false) return appliedNodeEnd(parsing, result);
+    if (parsing.expect('(', HighlightToken.Operator) === false) return appliedNodeEnd(parsing, result);
+
+    result.assign = expectAssign(parsing);
+    if (result.assign === undefined) return appliedNodeEnd(parsing, result);
+
+    if (parsing.expect(')', HighlightToken.Operator) === false) return appliedNodeEnd(parsing, result);
+
+    parsing.expect(';', HighlightToken.Operator);
+    return appliedNodeEnd(parsing, result);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
@@ -1409,10 +1402,10 @@ function parseIf(parsing: ParsingState): TriedParse<NodeIf> {
         elseStat: undefined
     };
 
-    if (parsing.expect(')', HighlightToken.Operator) === false) return result;
+    if (parsing.expect(')', HighlightToken.Operator) === false) return appliedNodeEnd(parsing, result);
 
     result.thenStat = expectStatement(parsing);
-    if (result.thenStat === undefined) return result;
+    if (result.thenStat === undefined) return appliedNodeEnd(parsing, result);
 
     if (parsing.next().text === 'else') {
         parsing.confirm(HighlightToken.Keyword);
@@ -1420,7 +1413,12 @@ function parseIf(parsing: ParsingState): TriedParse<NodeIf> {
         result.elseStat = expectStatement(parsing);
     }
 
-    return result;
+    return appliedNodeEnd(parsing, result);
+}
+
+function appliedNodeEnd<T extends NodesBase>(parsing: ParsingState, node: T): T {
+    node.nodeRange.end = parsing.prev();
+    return node;
 }
 
 // CONTINUE      ::= 'continue' ';'
@@ -1453,6 +1451,14 @@ function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
     };
 }
 
+function expectExprStat(parsing: ParsingState): NodeExprStat | undefined {
+    const exprStat = parseExprStat(parsing);
+    if (exprStat === undefined) {
+        parsing.error("Expected expression statement ❌");
+    }
+    return exprStat;
+}
+
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 function parseTry(parsing: ParsingState): TriedParse<NodeTry> {
     if (parsing.next().text !== 'try') return ParseFailure.Mismatch;
@@ -1462,16 +1468,17 @@ function parseTry(parsing: ParsingState): TriedParse<NodeTry> {
     const tryBlock = expectStatBlock(parsing);
     if (tryBlock === undefined) return ParseFailure.Pending;
 
-    if (parsing.expect('catch', HighlightToken.Keyword) === false) return ParseFailure.Pending;
-
-    const catchBlock = expectStatBlock(parsing);
-
-    return {
+    const result: NodeTry = {
         nodeName: NodeName.Try,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         tryBlock: tryBlock,
-        catchBlock: catchBlock
+        catchBlock: undefined
     };
+
+    if (parsing.expect('catch', HighlightToken.Keyword) === false) return appliedNodeEnd(parsing, result);
+
+    result.catchBlock = expectStatBlock(parsing);
+    return appliedNodeEnd(parsing, result);
 }
 
 // RETURN        ::= 'return' [ASSIGN] ';'
@@ -1820,39 +1827,38 @@ function parseCast(parsing: ParsingState): TriedParse<NodeCast> {
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
+    // ラムダ式の判定は、呼び出し末尾の「(」の後に「{」があるかどうかで判定する
     if (canParseLambda(parsing) === false) return ParseFailure.Mismatch;
+
     const rangeStart = parsing.next();
     parsing.confirm(HighlightToken.Builtin);
+
     parsing.expect('(', HighlightToken.Operator);
 
-    const params: ParsedLambdaParams[] = [];
+    const result: NodeLambda = {
+        nodeName: NodeName.Lambda,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
+        paramList: [],
+        statBlock: undefined
+    };
+
     while (parsing.isEnd() === false) {
-        if (expectCommaOrParensClose(parsing, params.length > 0) === BreakThrough.Break) break;
+        if (expectCommaOrParensClose(parsing, result.paramList.length > 0) === BreakThrough.Break) break;
 
         if (parsing.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parsing.next(1).text)) {
             parsing.confirm(HighlightToken.Parameter);
-            params.push({type: undefined, typeMod: undefined, identifier: parsing.next()});
+            result.paramList.push({type: undefined, typeMod: undefined, identifier: parsing.next()});
             continue;
         }
 
         const type = parseType(parsing);
         const typeMod = type !== undefined ? parseTypeMod(parsing) : undefined;
         const identifier: ParsingToken | undefined = parseIdentifier(parsing, HighlightToken.Parameter);
-        params.push({type: type, typeMod: typeMod, identifier: identifier});
+        result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
-    const statBlock = parseStatBlock(parsing);
-    if (statBlock === undefined) {
-        parsing.backtrack(rangeStart);
-        return ParseFailure.Pending;
-    }
-
-    return {
-        nodeName: NodeName.Lambda,
-        nodeRange: {start: rangeStart, end: parsing.prev()},
-        paramList: params,
-        statBlock: statBlock
-    };
+    result.statBlock = expectStatBlock(parsing);
+    return appliedNodeEnd(parsing, result);
 };
 
 function canParseLambda(parsing: ParsingState): boolean {

@@ -542,17 +542,17 @@ function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
 // BREAK         ::= 'break' ';'
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function analyzeFor(scope: SymbolScope, ast: NodeFor) {
-    if (ast.initial.nodeName === NodeName.Var) analyzeVar(scope, ast.initial, false);
-    else analyzeEexprStat(scope, ast.initial);
+function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
+    if (nodeFor.initial.nodeName === NodeName.Var) analyzeVar(scope, nodeFor.initial, false);
+    else analyzeEexprStat(scope, nodeFor.initial);
 
-    analyzeEexprStat(scope, ast.condition);
+    if (nodeFor.condition !== undefined) analyzeEexprStat(scope, nodeFor.condition);
 
-    for (const inc of ast.incrementList) {
+    for (const inc of nodeFor.incrementList) {
         analyzeAssign(scope, inc);
     }
 
-    analyzeStatement(scope, ast.statement);
+    if (nodeFor.statement !== undefined) analyzeStatement(scope, nodeFor.statement);
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -560,13 +560,14 @@ function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
     checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, nodeWhile.assign.nodeRange);
 
-    analyzeStatement(scope, nodeWhile.statement);
+    if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
     analyzeStatement(scope, doWhile.statement);
 
+    if (doWhile.assign === undefined) return;
     const assignType = analyzeAssign(scope, doWhile.assign);
     checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, doWhile.assign.nodeRange);
 }
