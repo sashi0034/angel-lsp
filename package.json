@@ -12,7 +12,7 @@
     "publisher": "sashi0034",
     "categories": [],
     "keywords": [
-        "multi-root ready"
+        "angelscript"
     ],
     "engines": {
         "vscode": "^1.75.0"
@@ -69,15 +69,15 @@
         ],
         "configuration": {
             "type": "object",
-            "title": "Example configuration",
+            "title": "AngelScript configuration",
             "properties": {
-                "languageServerExample.maxNumberOfProblems": {
+                "angelScript.maxNumberOfProblems": {
                     "scope": "resource",
                     "type": "number",
                     "default": 100,
                     "description": "Controls the maximum number of problems produced by the server."
                 },
-                "languageServerExample.trace.server": {
+                "angelScript.trace.server": {
                     "scope": "window",
                     "type": "string",
                     "enum": [
