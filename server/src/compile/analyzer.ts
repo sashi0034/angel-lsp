@@ -69,7 +69,7 @@ import {
     SymbolKind,
     SymbolScope,
     TemplateTranslation,
-    tryGetBuiltInType
+    tryGetBuiltInType, getSymbolAndScopeIfExist
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
@@ -207,6 +207,10 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
         templateTypes.push(getIdentifierInType(type));
     }
     return templateTypes;
+}
+
+function hoistClassBaseList(scope: SymbolScope, nodeClass: NodeClass) {
+
 }
 
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -439,7 +443,8 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         && foundSymbol.scope.parentScope !== undefined
     ) {
         // 親の階層を辿っていくと、クラス型よりも先にコンストラクタがヒットする時があるので、その場合は更に上の階層から検索
-        foundSymbol = findSymbolWithParent(foundSymbol.scope.parentScope, typeIdentifier.text);
+        foundSymbol = getSymbolAndScopeIfExist(
+            findSymbolShallowly(foundSymbol.scope.parentScope, typeIdentifier.text), foundSymbol.scope.parentScope);
     }
 
     if (foundSymbol === undefined) {

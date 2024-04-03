@@ -2,7 +2,8 @@ import {diagnostic} from "../code/diagnostic";
 import {getNodeLocation, ParsedRange, stringifyNodeType} from "./nodes";
 import {
     DeducedType,
-    PrimitiveType, resolveTemplateTypes,
+    PrimitiveType,
+    resolveTemplateTypes,
     stringifyDeducedType,
     stringifyDeducedTypes,
     SymbolicFunction,
@@ -63,8 +64,10 @@ export function checkFunctionMatchInternal(
             }
         }
 
-        const actualType = callerArgTypes[i];
-        const expectedType = calleeFunc.parameterTypes[i];
+        let actualType = callerArgTypes[i];
+        let expectedType = calleeFunc.parameterTypes[i];
+        if (actualType?.symbol.sourceType === PrimitiveType.Template) actualType = resolveTemplateTypes(templateTranslators, actualType);
+        if (expectedType?.symbol.sourceType === PrimitiveType.Template) expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;

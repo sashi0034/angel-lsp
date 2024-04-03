@@ -51,6 +51,7 @@ export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
     sourceType: SourceType;
     templateTypes?: ParsingToken[];
+    baseList?: SymbolicType[];
     membersScope: SymbolScope | undefined;
 }
 
@@ -149,9 +150,9 @@ export function resolveTemplateType(
     return arg;
 }
 
-export function resolveTemplateTypes(templateTranslate: (TemplateTranslation | undefined)[], args: DeducedType | undefined) {
+export function resolveTemplateTypes(templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined) {
     return templateTranslate
-        .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, args);
+        .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
 }
 
 export interface DeducedType {
@@ -267,6 +268,11 @@ export const builtinThisToken = createVirtualToken(TokenKind.Identifier, 'this')
 
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     return scope.symbolMap.get(identifier);
+}
+
+export function getSymbolAndScopeIfExist(symbol: SymbolicObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
+    if (symbol === undefined) return undefined;
+    return {symbol: symbol, scope: scope};
 }
 
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
