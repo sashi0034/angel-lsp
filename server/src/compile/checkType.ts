@@ -78,7 +78,7 @@ function canCastStatically(
     if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
-            if (srcBase === destType) return true;
+            if (srcBase?.symbol === destType) return true;
         }
     }
     return false;

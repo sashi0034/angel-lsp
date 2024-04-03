@@ -215,7 +215,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
 function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface) {
     if (nodeClass.baseList.length === 0) return;
 
-    const baseList: (SymbolicType | undefined)[] = [];
+    const baseList: (DeducedType | undefined)[] = [];
     for (const baseIdentifier of nodeClass.baseList) {
         const baseType = findSymbolWithParent(scope, baseIdentifier.text);
 
@@ -226,7 +226,13 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
-            baseList.push(baseType.symbol);
+            // 継承元を発見
+            baseList.push({symbol: baseType.symbol, sourceScope: baseType.scope});
+
+            scope.referencedList.push({
+                declaredSymbol: baseType.symbol,
+                referencedToken: baseIdentifier
+            });
         }
     }
     return baseList;
