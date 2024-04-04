@@ -1487,15 +1487,22 @@ function parseReturn(parsing: ParsingState): TriedParse<NodeReturn> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightToken.Keyword);
 
-    const assign = expectAssign(parsing);
-    if (assign === undefined) return ParseFailure.Pending;
-
-    parsing.expect(';', HighlightToken.Operator);
-    return {
+    const result: NodeReturn = {
         nodeName: NodeName.Return,
         nodeRange: {start: rangeStart, end: parsing.prev()},
-        assign: assign
+        assign: undefined
     };
+
+    if (parsing.next().text === ';') {
+        parsing.confirm(HighlightToken.Operator);
+        return appliedNodeEnd(parsing, result);
+    }
+
+    result.assign = expectAssign(parsing);
+    if (result.assign === undefined) return appliedNodeEnd(parsing, result);
+
+    parsing.expect(';', HighlightToken.Operator);
+    return appliedNodeEnd(parsing, result);
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}

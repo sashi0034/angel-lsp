@@ -450,7 +450,7 @@ export interface NodeTry extends NodesBase {
 // RETURN        ::= 'return' [ASSIGN] ';'
 export interface NodeReturn extends NodesBase {
     nodeName: NodeName.Return;
-    assign: NodeAssign;
+    assign: NodeAssign | undefined;
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}

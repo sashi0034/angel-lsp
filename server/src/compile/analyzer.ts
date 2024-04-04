@@ -709,7 +709,7 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
-    const returnType = analyzeAssign(scope, nodeReturn.assign);
+    const returnType = nodeReturn.assign === undefined ? undefined : analyzeAssign(scope, nodeReturn.assign);
 
     const functionScope = findScopeWithParentByNode(scope, NodeName.Func);
     if (functionScope === undefined || functionScope.ownerNode === undefined) return;
@@ -719,7 +719,12 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
         const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.ownerNode.identifier.text);
         if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
-        checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
+        if (functionReturn.returnType?.symbol.sourceType === PrimitiveType.Void) {
+            if (nodeReturn.assign === undefined) return;
+            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value 💢`);
+        } else {
+            checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
+        }
     }
 }
 
