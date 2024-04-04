@@ -52,6 +52,7 @@ export interface SymbolicType extends SymbolicBase {
     sourceType: SourceType;
     templateTypes?: ParsingToken[];
     baseList?: (DeducedType | undefined)[];
+    isHandler?: boolean,
     membersScope: SymbolScope | undefined;
 }
 
@@ -142,34 +143,56 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
 export type TemplateTranslation = Map<ParsingToken, DeducedType | undefined>;
 
 export function resolveTemplateType(
-    templateTranslate: TemplateTranslation, arg: DeducedType | undefined
+    templateTranslate: TemplateTranslation, type: DeducedType | undefined
 ): DeducedType | undefined {
-    if (arg !== undefined && templateTranslate.has(arg.symbol.declaredPlace)) {
-        return templateTranslate.get(arg.symbol.declaredPlace);
+    if (type === undefined) return undefined;
+
+    if (type.symbolType.symbolKind === SymbolKind.Function) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+
+    if (type.symbolType.sourceType !== PrimitiveType.Template) return type;
+
+    if (templateTranslate.has(type.symbolType.declaredPlace)) {
+        return templateTranslate.get(type.symbolType.declaredPlace);
     }
-    return arg;
+    return type;
 }
 
-export function resolveTemplateTypes(templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined) {
+export function resolveTemplateTypes(
+    templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined
+) {
     return templateTranslate
         .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
 }
 
 export interface DeducedType {
-    symbol: SymbolicType;
+    symbolType: SymbolicType | SymbolicFunction;
     sourceScope: SymbolScope | undefined;
+    isHandler?: boolean;
     templateTranslate?: TemplateTranslation;
+}
+
+export function isDeducedAutoType(type: DeducedType | undefined): boolean {
+    return type !== undefined && type.symbolType.symbolKind === SymbolKind.Type && type.symbolType.sourceType === PrimitiveType.Auto;
 }
 
 export function stringifyDeducedType(type: DeducedType | undefined): string {
     if (type === undefined) return '(undefined)';
 
-    let template = '';
-    if (type.templateTranslate !== undefined) {
-        template = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>`;
+    let surffix = '';
+    if (type.isHandler === true) return surffix = `${surffix}@`;
+
+    if (type.symbolType.symbolKind === SymbolKind.Function) {
+        const func: SymbolicFunction = type.symbolType;
+        const returnType = func.returnType;
+        const params = func.parameterTypes.map(t => stringifyDeducedType(t)).join(', ');
+        return `${stringifyDeducedType(returnType)}(${params})` + surffix;
     }
 
-    return type.symbol.declaredPlace.text + template;
+    if (type.templateTranslate !== undefined) {
+        surffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>${surffix}`;
+    }
+
+    return type.symbolType.declaredPlace.text + surffix;
 }
 
 export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): string {

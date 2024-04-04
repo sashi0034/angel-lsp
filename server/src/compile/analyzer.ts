@@ -18,7 +18,8 @@ import {
     NodeEnum,
     NodeExpr,
     NodeExprPostOp,
-    NodeExprPostOp1, NodeExprPostOp2,
+    NodeExprPostOp1,
+    NodeExprPostOp2,
     NodeExprStat,
     NodeExprTerm,
     NodeExprTerm2,
@@ -27,7 +28,9 @@ import {
     NodeFunc,
     NodeFuncCall,
     NodeIf,
-    NodeInitList, NodeInterface, NodeIntfMethod,
+    NodeInitList,
+    NodeInterface,
+    NodeIntfMethod,
     NodeLiteral,
     NodeMixin,
     NodeName,
@@ -48,17 +51,20 @@ import {
     ParsedRange
 } from "./nodes";
 import {
-    hintsCompletionScope,
     builtinBoolType,
     builtinDoubleType,
     builtinFloatType,
     builtinIntType,
-    builtinStringType, builtinThisToken,
+    builtinStringType,
+    builtinThisToken,
     ComplementKind,
     DeducedType,
     findSymbolShallowly,
     findSymbolWithParent,
+    getSymbolAndScopeIfExist,
+    hintsCompletionScope,
     insertSymbolicObject,
+    isDeducedAutoType,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
@@ -69,7 +75,7 @@ import {
     SymbolKind,
     SymbolScope,
     TemplateTranslation,
-    tryGetBuiltInType, getSymbolAndScopeIfExist
+    tryGetBuiltInType
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
@@ -89,7 +95,6 @@ import {
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
 import {checkTypeMatch, isTypeMatch} from "./checkType";
-import {HighlightToken} from "../code/highlight";
 import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
@@ -148,7 +153,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
     symbol.membersScope = scope;
 
-    hoistEnumMembers(scope, nodeEnum.memberList, {symbol: symbol, sourceScope: scope});
+    hoistEnumMembers(scope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: DeducedType) {
@@ -179,7 +184,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const thisVariable: SymbolicVariable = {
         symbolKind: SymbolKind.Variable,
         declaredPlace: builtinThisToken,
-        type: {symbol: symbol, sourceScope: scope},
+        type: {symbolType: symbol, sourceScope: scope},
         isInstanceMember: false,
     };
     insertSymbolicObject(scope.symbolMap, thisVariable);
@@ -228,7 +233,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             baseList.push(undefined);
         } else {
             // 継承元を発見
-            baseList.push({symbol: baseType.symbol, sourceScope: baseType.scope});
+            baseList.push({symbolType: baseType.symbol, sourceScope: baseType.scope});
 
             scope.referencedList.push({
                 declaredSymbol: baseType.symbol,
@@ -242,8 +247,9 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
+        if (baseType.symbolType.symbolKind === SymbolKind.Function) continue;
 
-        const baseScope = baseType.symbol.membersScope;
+        const baseScope = baseType.symbolType.membersScope;
         if (baseScope === undefined) continue;
 
         for (const [key, symbol] of baseScope.symbolMap) {
@@ -366,7 +372,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
         // 自動推論の解決
-        if (varType?.symbol.sourceType === PrimitiveType.Auto && initType !== undefined) {
+        if (initType !== undefined && isDeducedAutoType(varType)) {
             varType = initType;
         }
     }
@@ -387,8 +393,8 @@ function analyzeVarInitializer(
         checkTypeMatch(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined) return undefined;
-        return analyzeConstructorByType(scope, identifier, initializer, varType.symbol, varType.templateTranslate);
+        if (varType === undefined || varType.symbolType.symbolKind === SymbolKind.Function) return undefined;
+        return analyzeConstructorByType(scope, identifier, initializer, varType.symbolType, varType.templateTranslate);
     }
 }
 
@@ -506,7 +512,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
     });
 
     return {
-        symbol: foundSymbol.symbol,
+        symbolType: foundSymbol.symbol,
         sourceScope: foundSymbol.scope,
         templateTranslate: typeTemplates
     };
@@ -522,7 +528,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedTyp
     }
 
     const foundBuiltin = tryGetBuiltInType(typeIdentifier);
-    if (foundBuiltin !== undefined) return {symbol: foundBuiltin, sourceScope: undefined};
+    if (foundBuiltin !== undefined) return {symbolType: foundBuiltin, sourceScope: undefined};
 
     return undefined;
 }
@@ -671,7 +677,7 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
-    checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, nodeWhile.assign.nodeRange);
+    checkTypeMatch(assignType, {symbolType: builtinBoolType, sourceScope: undefined}, nodeWhile.assign.nodeRange);
 
     if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
@@ -682,13 +688,13 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
 
     if (doWhile.assign === undefined) return;
     const assignType = analyzeAssign(scope, doWhile.assign);
-    checkTypeMatch(assignType, {symbol: builtinBoolType, sourceScope: undefined}, doWhile.assign.nodeRange);
+    checkTypeMatch(assignType, {symbolType: builtinBoolType, sourceScope: undefined}, doWhile.assign.nodeRange);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
-    checkTypeMatch(conditionType, {symbol: builtinBoolType, sourceScope: undefined}, nodeIf.condition.nodeRange);
+    checkTypeMatch(conditionType, {symbolType: builtinBoolType, sourceScope: undefined}, nodeIf.condition.nodeRange);
 
     if (nodeIf.thenStat !== undefined) analyzeStatement(scope, nodeIf.thenStat);
     if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
@@ -719,7 +725,9 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
         const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.ownerNode.identifier.text);
         if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
-        if (functionReturn.returnType?.symbol.sourceType === PrimitiveType.Void) {
+
+        const expectedReturn = functionReturn.returnType?.symbolType;
+        if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.sourceType === PrimitiveType.Void) {
             if (nodeReturn.assign === undefined) return;
             diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value 💢`);
         } else {
@@ -817,7 +825,7 @@ function analyzeConstructorByType(
     }
 
     analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, templateTranslate);
-    return {symbol: constructorType, sourceScope: classScope};
+    return {symbolType: constructorType, sourceScope: classScope};
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
@@ -833,13 +841,18 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: DeducedType) {
+    if (exprValue.symbolType.symbolKind !== SymbolKind.Type) {
+        diagnostic.addError(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type 💢`);
+        return undefined;
+    }
+
     const complementRange = getRangedLocation(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
 
     // クラスメンバ補完
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
-        targetType: exprValue.symbol
+        targetType: exprValue.symbolType
     });
 
     const member = exprPostOp.member;
@@ -848,12 +861,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isSourceNodeClassOrInterface(exprValue.symbol.sourceType) === false) {
+    if (isSourceNodeClassOrInterface(exprValue.symbolType.sourceType) === false) {
         diagnostic.addError(identifier.location, `'${identifier.text}' is not a member 💢`);
         return undefined;
     }
 
-    const classScope = exprValue.symbol.membersScope;
+    const classScope = exprValue.symbolType.membersScope;
     if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
@@ -896,20 +909,20 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType |
     if (literalValue.kind === TokenKind.Number) {
         switch (literalValue.numeric) {
         case NumberLiterals.Integer:
-            return {symbol: builtinIntType, sourceScope: undefined};
+            return {symbolType: builtinIntType, sourceScope: undefined};
         case NumberLiterals.Float:
-            return {symbol: builtinFloatType, sourceScope: undefined};
+            return {symbolType: builtinFloatType, sourceScope: undefined};
         case NumberLiterals.Double:
-            return {symbol: builtinDoubleType, sourceScope: undefined};
+            return {symbolType: builtinDoubleType, sourceScope: undefined};
         }
     }
 
     if (literalValue.kind === TokenKind.String) {
-        return {symbol: builtinStringType, sourceScope: undefined};
+        return {symbolType: builtinStringType, sourceScope: undefined};
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
-        return {symbol: builtinBoolType, sourceScope: undefined};
+        return {symbolType: builtinBoolType, sourceScope: undefined};
     }
 
     // FIXME: null へ対処?
@@ -1028,7 +1041,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
 
-    checkTypeMatch(exprType, {symbol: builtinBoolType, sourceScope: undefined}, condition.expr.nodeRange);
+    checkTypeMatch(exprType, {symbolType: builtinBoolType, sourceScope: undefined}, condition.expr.nodeRange);
 
     const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
     const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
@@ -1072,16 +1085,21 @@ function analyzeOperatorAlias(
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
 ) {
+    if (lhs.symbolType.symbolKind !== SymbolKind.Type) {
+        diagnostic.addError(operator.location, `Invalid operation 💢`);
+        return undefined;
+    }
+
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
-    if (isSourcePrimitiveType(lhs.symbol.sourceType)) {
+    if (isSourcePrimitiveType(lhs.symbolType.sourceType)) {
         diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
         return undefined;
     }
 
     if (lhs.sourceScope === undefined) return undefined;
 
-    const classScope = lhs.symbol.membersScope;
+    const classScope = lhs.symbolType.membersScope;
     if (classScope === undefined) return undefined;
 
     const aliasFunction = findSymbolShallowly(classScope, alias);
@@ -1107,13 +1125,15 @@ function analyzeBitOp(
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
-    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+    }
 
     const alias = bitOpAliases.get(operator.text);
     assert(alias !== undefined);
 
     // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
-    return isSourcePrimitiveType(lhs.symbol.sourceType)
+    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1133,13 +1153,15 @@ function analyzeMathOp(
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
-    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+    }
 
     const alias = mathOpAliases.get(operator.text);
     assert(alias !== undefined);
 
     // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
-    return isSourcePrimitiveType(lhs.symbol.sourceType)
+    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1159,8 +1181,10 @@ function analyzeCompOp(
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
-    if (lhs.symbol.sourceType === rhs.symbol.sourceType) {
-        return {symbol: builtinBoolType, sourceScope: undefined};
+    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+        if (lhs.symbolType.sourceType === rhs.symbolType.sourceType) {
+            return {symbolType: builtinBoolType, sourceScope: undefined};
+        }
     }
 
     const alias = compOpAliases.get(operator.text);
@@ -1185,9 +1209,9 @@ function analyzeLogicOp(
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
-    checkTypeMatch(lhs, {symbol: builtinBoolType, sourceScope: undefined}, leftRange);
-    checkTypeMatch(rhs, {symbol: builtinBoolType, sourceScope: undefined}, rightRange);
-    return {symbol: builtinBoolType, sourceScope: undefined};
+    checkTypeMatch(lhs, {symbolType: builtinBoolType, sourceScope: undefined}, leftRange);
+    checkTypeMatch(rhs, {symbolType: builtinBoolType, sourceScope: undefined}, rightRange);
+    return {symbolType: builtinBoolType, sourceScope: undefined};
 }
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
@@ -1197,7 +1221,9 @@ function analyzeAssignOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
-    if (lhs.symbol.sourceType === PrimitiveType.Number && rhs.symbol.sourceType === PrimitiveType.Number) return lhs;
+    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+    }
 
     if (operator.text === '=') {
         if (isTypeMatch(rhs, lhs)) return lhs;

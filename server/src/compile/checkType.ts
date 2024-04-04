@@ -6,7 +6,8 @@ import {
     resolveTemplateType,
     SourceType,
     stringifyDeducedType,
-    SymbolicFunction, SymbolicType,
+    SymbolicFunction,
+    SymbolicType,
     SymbolKind,
     SymbolScope
 } from "./symbolic";
@@ -32,11 +33,11 @@ export function isTypeMatch(
     src: DeducedType, dest: DeducedType
 ): boolean {
     let resolvedSrc: DeducedType | undefined = src;
-    if (src.templateTranslate !== undefined && src.symbol.sourceType === PrimitiveType.Template)
+    if (src.templateTranslate !== undefined)
         resolvedSrc = resolveTemplateType(src.templateTranslate, src);
 
     let resolvedDest: DeducedType | undefined = dest;
-    if (dest.templateTranslate !== undefined && dest.symbol.sourceType === PrimitiveType.Template)
+    if (dest.templateTranslate !== undefined)
         resolvedDest = resolveTemplateType(dest.templateTranslate, dest);
 
     if (resolvedSrc === undefined || resolvedDest === undefined) return true;
@@ -47,15 +48,23 @@ export function isTypeMatch(
 export function isTypeMatchInternal(
     src: DeducedType, dest: DeducedType
 ): boolean {
-    const srcType = src.symbol;
-    const destType = dest.symbol;
+    const srcType = src.symbolType;
+    const destType = dest.symbolType;
+
+    // 関数ハンドラ型のチェック
+    if (srcType.symbolKind === SymbolKind.Function) {
+        return destType.symbolKind === SymbolKind.Function; // TODO: 引数と戻り値のチェック
+    } else if (destType.symbolKind === SymbolKind.Function) {
+        return false;
+    }
+
     const srcNode = srcType.sourceType;
     const destNode = destType.sourceType;
 
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
-        return canCastFromPrimitiveType(src, dest);
+        return canCastFromPrimitiveType(srcType, destType);
     }
 
     // 同じ型を指しているなら OK
@@ -69,7 +78,7 @@ export function isTypeMatchInternal(
 
     // コンストラクタに当てはまるかで判定
     const destIdentifier = destNode.identifier.text;
-    return canConstructImplicitly(src, dest.sourceScope, destIdentifier);
+    return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
 }
 
 function canCastStatically(
@@ -78,15 +87,15 @@ function canCastStatically(
     if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbol === destType) return true;
+            if (srcBase?.symbolType === destType) return true;
         }
     }
     return false;
 }
 
-function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {
-    const srcType = src.symbol;
-    const destType = dest.symbol;
+function canCastFromPrimitiveType(
+    srcType: SymbolicType, destType: SymbolicType
+) {
     const srcNode = srcType.sourceType;
     const destNode = destType.sourceType;
 
@@ -113,7 +122,7 @@ function canCastFromPrimitiveType(src: DeducedType, dest: DeducedType) {
 }
 
 function canConstructImplicitly(
-    src: DeducedType,
+    srcType: SymbolicType,
     destScope: SymbolScope | undefined,
     destIdentifier: string
 ) {
@@ -127,14 +136,17 @@ function canConstructImplicitly(
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
 
-    return canConstructBy(constructor, src.symbol.sourceType);
+    return canConstructBy(constructor, srcType.sourceType);
 }
 
 function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
-        if (paramType !== undefined && paramType.symbol.sourceType === srcType) {
+        if (paramType !== undefined
+            && paramType.symbolType.symbolKind === SymbolKind.Type
+            && paramType.symbolType.sourceType === srcType
+        ) {
             return true;
         }
     }

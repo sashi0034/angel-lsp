@@ -7,6 +7,7 @@ import {
     stringifyDeducedType,
     stringifyDeducedTypes,
     SymbolicFunction,
+    SymbolKind,
     SymbolScope,
     TemplateTranslation
 } from "./symbolic";
@@ -66,27 +67,23 @@ export function checkFunctionMatchInternal(
 
         let actualType = callerArgTypes[i];
         let expectedType = calleeFunc.parameterTypes[i];
-        if (actualType?.symbol.sourceType === PrimitiveType.Template) actualType = resolveTemplateTypes(templateTranslators, actualType);
-        if (expectedType?.symbol.sourceType === PrimitiveType.Template) expectedType = resolveTemplateTypes(templateTranslators, expectedType);
+        actualType = resolveTemplateTypes(templateTranslators, actualType);
+        expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
         if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロードが存在するなら使用
-        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
-            ...args,
-            calleeFunc: calleeFunc.nextOverload
-        }, overloadedHead);
+        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal(
+            {...args, calleeFunc: calleeFunc.nextOverload},
+            overloadedHead);
         if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
                 `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}' 💢`);
         }
     }
 
-    if (calleeFunc.returnType?.symbol.sourceType === PrimitiveType.Template) {
-        return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
-    }
-    return calleeFunc.returnType;
+    return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
 }
 
 function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolicFunction) {
