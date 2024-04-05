@@ -3,7 +3,7 @@ import {
     getNodeLocation,
     NodeClass,
     NodeEnum,
-    NodeFunc,
+    NodeFunc, NodeFuncDef,
     NodeIf,
     NodeInterface, NodeIntfMethod,
     NodeName,
@@ -58,7 +58,7 @@ export interface SymbolicType extends SymbolicBase {
 
 export interface SymbolicFunction extends SymbolicBase {
     symbolKind: SymbolKind.Function;
-    sourceNode: NodeFunc | NodeIntfMethod;
+    sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
     returnType: DeducedType | undefined;
     parameterTypes: (DeducedType | undefined)[];
     nextOverload: SymbolicFunction | undefined;

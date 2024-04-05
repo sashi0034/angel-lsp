@@ -1,13 +1,13 @@
 {
-	"name": "lsp-sample-client",
+	"name": "angel-lsp-client",
 	"description": "VSCode part of a language server",
-	"author": "Microsoft Corporation",
+	"author": "sashi0034",
 	"license": "MIT",
 	"version": "0.0.1",
-	"publisher": "vscode",
+	"publisher": "sashi0034",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/sashi0034/angel-lsp"
 	},
 	"engines": {
 		"vscode": "^1.75.0"

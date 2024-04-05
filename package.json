@@ -20,7 +20,8 @@
     "icon": "icons/angelscript.png",
     "activationEvents": [
         "onLanguage:angelscript",
-        "onLanguage:angelscript-predefined"
+        "onLanguage:angelscript-predefined",
+        "workspaceContains:**/*.as"
     ],
     "main": "./client/out/extension",
     "contributes": {

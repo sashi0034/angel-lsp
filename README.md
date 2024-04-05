@@ -16,7 +16,7 @@
 - Symbol Completions
 - Snippets
 
-Note: Since it is still under development, many features of AngelScript are not fully supported.
+> Note: Since it is still under development, many features of AngelScript are not fully supported.
 
 ---
 

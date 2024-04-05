@@ -26,7 +26,7 @@ import {
     NodeExprValue,
     NodeFor,
     NodeFunc,
-    NodeFuncCall,
+    NodeFuncCall, NodeFuncDef,
     NodeIf,
     NodeInitList,
     NodeInterface,
@@ -69,7 +69,7 @@ import {
     isSourcePrimitiveType,
     PrimitiveType,
     stringifyDeducedType,
-    SymbolicFunction,
+    SymbolicFunction, SymbolicObject,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
@@ -114,6 +114,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
             hoistMixin(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Interface) {
             hoistInterface(parentScope, statement, analyzing, hoisting);
+        } else if (nodeName === NodeName.FuncDef) {
+            hoistFuncDef(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Var) {
             hoistVar(parentScope, statement, analyzing, false);
         } else if (nodeName === NodeName.Func) {
@@ -411,7 +413,25 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
+    const symbol: SymbolicFunction = {
+        symbolKind: SymbolKind.Function,
+        declaredPlace: funcDef.identifier,
+        returnType: analyzeType(parentScope, funcDef.returnType),
+        parameterTypes: [],
+        sourceNode: funcDef,
+        nextOverload: undefined,
+        isInstanceMember: false,
+    };
+    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+
+    hoisting.push(() => {
+        symbol.parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
+    });
+}
+
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 
 // MIXIN         ::= 'mixin' CLASS
@@ -486,34 +506,47 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         ? (analyzeScope(scope, nodeType.scope) ?? scope)
         : scope;
 
-    let foundSymbol = findSymbolWithParent(searchScope, typeIdentifier.text);
-    if (foundSymbol !== undefined
-        && isSymbolConstructorInScope(foundSymbol.symbol, foundSymbol.scope)
-        && foundSymbol.scope.parentScope !== undefined
+    let symbolAndScope = findSymbolWithParent(searchScope, typeIdentifier.text);
+    if (symbolAndScope !== undefined
+        && isSymbolConstructorInScope(symbolAndScope.symbol, symbolAndScope.scope)
+        && symbolAndScope.scope.parentScope !== undefined
     ) {
         // 親の階層を辿っていくと、クラス型よりも先にコンストラクタがヒットする時があるので、その場合は更に上の階層から検索
-        foundSymbol = getSymbolAndScopeIfExist(
-            findSymbolShallowly(foundSymbol.scope.parentScope, typeIdentifier.text), foundSymbol.scope.parentScope);
+        symbolAndScope = getSymbolAndScopeIfExist(
+            findSymbolShallowly(symbolAndScope.scope.parentScope, typeIdentifier.text), symbolAndScope.scope.parentScope);
     }
-
-    if (foundSymbol === undefined) {
+    if (symbolAndScope === undefined) {
         diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not defined 💢`);
         return undefined;
-    } else if (foundSymbol.symbol.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type 💢`);
-        return undefined;
     }
 
-    const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.symbol.templateTypes);
+    const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
+    if (foundSymbol.symbolKind === SymbolKind.Function && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
+        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined);
+    } else if (foundSymbol.symbolKind !== SymbolKind.Type) {
+        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type 💢`);
+        return undefined;
+    } else {
+        const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.templateTypes);
+        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, typeTemplates);
+    }
+}
 
+function completeAnalyzingType(
+    scope: SymbolScope,
+    identifier: ParsingToken,
+    foundSymbol: SymbolicType | SymbolicFunction,
+    foundScope: SymbolScope,
+    typeTemplates: TemplateTranslation | undefined
+): DeducedType | undefined {
     scope.referencedList.push({
-        declaredSymbol: foundSymbol.symbol,
-        referencedToken: nodeType.dataType.identifier
+        declaredSymbol: foundSymbol,
+        referencedToken: identifier
     });
 
     return {
-        symbolType: foundSymbol.symbol,
-        sourceScope: foundSymbol.scope,
+        symbolType: foundSymbol,
+        sourceScope: foundScope,
         templateTranslate: typeTemplates
     };
 }
