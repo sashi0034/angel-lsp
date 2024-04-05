@@ -740,7 +740,11 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 
 // EXPRSTAT      ::= [ASSIGN] ';'
 function analyzeEexprStat(scope: SymbolScope, exprStat: NodeExprStat) {
-    if (exprStat.assign !== undefined) analyzeAssign(scope, exprStat.assign);
+    if (exprStat.assign === undefined) return;
+    const assign = analyzeAssign(scope, exprStat.assign);
+    if (assign?.isHandler !== true && assign?.symbolType.symbolKind === SymbolKind.Function) {
+        diagnostic.addError(getNodeLocation(exprStat.assign.nodeRange), `Function call without handler 💢`);
+    }
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
