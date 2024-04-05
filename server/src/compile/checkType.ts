@@ -21,8 +21,6 @@ export function checkTypeMatch(
     dest: DeducedType | undefined,
     nodeRange: ParsedRange,
 ): boolean {
-    if (src === undefined || dest === undefined) return false;
-
     if (isTypeMatch(src, dest)) return true;
 
     diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
@@ -30,8 +28,10 @@ export function checkTypeMatch(
 }
 
 export function isTypeMatch(
-    src: DeducedType, dest: DeducedType
+    src: DeducedType | undefined, dest: DeducedType | undefined
 ): boolean {
+    if (src === undefined || dest === undefined) return true;
+
     let resolvedSrc: DeducedType | undefined = src;
     if (src.templateTranslate !== undefined)
         resolvedSrc = resolveTemplateType(src.templateTranslate, src);
@@ -53,7 +53,8 @@ export function isTypeMatchInternal(
 
     // 関数ハンドラ型のチェック
     if (srcType.symbolKind === SymbolKind.Function) {
-        return destType.symbolKind === SymbolKind.Function; // TODO: 引数と戻り値のチェック
+        // if (dest.isHandler === false) return false; // FIXME: ハンドラチェック?
+        return isFunctionHandlerMatch(srcType, destType);
     } else if (destType.symbolKind === SymbolKind.Function) {
         return false;
     }
@@ -79,6 +80,19 @@ export function isTypeMatchInternal(
     // コンストラクタに当てはまるかで判定
     const destIdentifier = destNode.identifier.text;
     return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
+}
+
+function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicType | SymbolicFunction) {
+    if (destType.symbolKind !== SymbolKind.Function) return false;
+    if (isTypeMatch(srcType.returnType, destType.returnType) === false) return false;
+    if (srcType.parameterTypes.length !== destType.parameterTypes.length) return false;
+    for (let i = 0; i < srcType.parameterTypes.length; i++) {
+        if (isTypeMatch(srcType.parameterTypes[i], destType.parameterTypes[i]) === false) return false;
+    }
+
+    // FIXME: 関数ハンドラのオーバーロードなどの影響について要検証
+
+    return true;
 }
 
 function canCastStatically(

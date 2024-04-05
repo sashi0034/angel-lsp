@@ -523,13 +523,13 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
     if (foundSymbol.symbolKind === SymbolKind.Function && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
-        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined);
+        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
     } else if (foundSymbol.symbolKind !== SymbolKind.Type) {
         diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type 💢`);
         return undefined;
     } else {
         const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.templateTypes);
-        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, typeTemplates);
+        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined, typeTemplates);
     }
 }
 
@@ -538,7 +538,8 @@ function completeAnalyzingType(
     identifier: ParsingToken,
     foundSymbol: SymbolicType | SymbolicFunction,
     foundScope: SymbolScope,
-    typeTemplates: TemplateTranslation | undefined
+    isHandler?: boolean,
+    typeTemplates?: TemplateTranslation | undefined,
 ): DeducedType | undefined {
     scope.referencedList.push({
         declaredSymbol: foundSymbol,
@@ -548,6 +549,7 @@ function completeAnalyzingType(
     return {
         symbolType: foundSymbol,
         sourceScope: foundScope,
+        isHandler: isHandler,
         templateTranslate: typeTemplates
     };
 }

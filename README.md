@@ -18,7 +18,15 @@
 
 > Note: Since it is still under development, many features of AngelScript are not fully supported.
 
+# TODO
+
+- Fix parser bugs such as '>>' in templates and '!is'.
+- Handler checking
+- Support for 'tpedef', getter and setter.
+- Formatter
+
 ---
 
 OpenSiv3D Support
+
 - Put [`as.predefined`](./examples/OpenSiv3D/as.predefined) directly under the workspace directory for symbol completion.

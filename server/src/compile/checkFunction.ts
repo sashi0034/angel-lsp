@@ -70,7 +70,6 @@ export function checkFunctionMatchInternal(
         actualType = resolveTemplateTypes(templateTranslators, actualType);
         expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
-        if (actualType === undefined || expectedType === undefined) continue;
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // オーバーロードが存在するなら使用

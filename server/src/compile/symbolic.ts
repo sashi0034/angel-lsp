@@ -178,21 +178,21 @@ export function isDeducedAutoType(type: DeducedType | undefined): boolean {
 export function stringifyDeducedType(type: DeducedType | undefined): string {
     if (type === undefined) return '(undefined)';
 
-    let surffix = '';
-    if (type.isHandler === true) return surffix = `${surffix}@`;
+    let suffix = '';
+    if (type.isHandler === true) suffix = `${suffix}@`;
 
     if (type.symbolType.symbolKind === SymbolKind.Function) {
         const func: SymbolicFunction = type.symbolType;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyDeducedType(t)).join(', ');
-        return `${stringifyDeducedType(returnType)}(${params})` + surffix;
+        return `${stringifyDeducedType(returnType)}(${params})` + suffix;
     }
 
     if (type.templateTranslate !== undefined) {
-        surffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>${surffix}`;
+        suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>${suffix}`;
     }
 
-    return type.symbolType.declaredPlace.text + surffix;
+    return type.symbolType.declaredPlace.text + suffix;
 }
 
 export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): string {
