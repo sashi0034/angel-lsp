@@ -26,7 +26,8 @@ import {
     NodeExprValue,
     NodeFor,
     NodeFunc,
-    NodeFuncCall, NodeFuncDef,
+    NodeFuncCall,
+    NodeFuncDef,
     NodeIf,
     NodeInitList,
     NodeInterface,
@@ -69,7 +70,7 @@ import {
     isSourcePrimitiveType,
     PrimitiveType,
     stringifyDeducedType,
-    SymbolicFunction, SymbolicObject,
+    SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
@@ -981,6 +982,10 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         return analyzeConstructorByType(scope, funcCall.identifier, funcCall.argList, calleeFunc, undefined);
     }
 
+    if (calleeFunc.symbolKind === SymbolKind.Variable && calleeFunc.type?.symbolType.symbolKind === SymbolKind.Function) {
+        return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeFunc.type.symbolType, undefined);
+    }
+
     if (calleeFunc.symbolKind !== SymbolKind.Function) {
         diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function 💢`);
         return undefined;
@@ -1024,13 +1029,15 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
     return analyzeVariableAccess(scope, varIdentifier);
 }
 
-function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken) {
+function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken): DeducedType | undefined {
     const declared = findSymbolWithParent(scope, varIdentifier.text);
     if (declared === undefined) {
         diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined 💢`);
         return undefined;
-    } else if (declared.symbol.symbolKind !== SymbolKind.Variable) {
-        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not a variable 💢`);
+    }
+
+    if (declared.symbol.symbolKind === SymbolKind.Type) {
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' does not name a value 💢`);
         return undefined;
     }
 
@@ -1042,8 +1049,11 @@ function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken) 
         });
     }
 
-    if (declared.symbol.type === undefined) return undefined;
-    return declared.symbol.type;
+    if (declared.symbol.symbolKind === SymbolKind.Variable) {
+        return declared.symbol.type;
+    } else {
+        return {symbolType: declared.symbol, sourceScope: declared.scope};
+    }
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
