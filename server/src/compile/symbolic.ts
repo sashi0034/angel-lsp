@@ -117,24 +117,31 @@ export interface SymbolAndScope {
 }
 
 export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): boolean {
+    const result = tryInsertSymbolicObject(map, symbol);
+    if (result !== undefined) {
+        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${symbol.declaredPlace.text}' is already defined 💢`);
+    }
+    return result === undefined;
+}
+
+// 挿入が成功したなら undefined を返す。失敗したらそのキーに対応する既存のシンボルを返す
+export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): SymbolicObject | undefined {
     const identifier = symbol.declaredPlace.text;
     const hit = map.get(identifier);
     if (hit === undefined) {
         map.set(identifier, symbol);
-        return true;
+        return undefined;
     }
+
     const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
-    if (canOverload === false) {
-        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${identifier}' is already defined 💢`);
-        return false;
-    }
+    if (canOverload === false) return hit;
 
     // 関数はオーバーロードとして追加が可能
     let cursor = hit;
     for (; ;) {
         if (cursor.nextOverload === undefined) {
             cursor.nextOverload = symbol;
-            return true;
+            return undefined;
         }
         cursor = cursor.nextOverload;
     }

@@ -1341,7 +1341,6 @@ function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
 
     result.statement = expectStatement(parsing);
     return appliedNodeEnd(parsing, result);
-    ;
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT

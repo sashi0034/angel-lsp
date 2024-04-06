@@ -76,7 +76,7 @@ import {
     SymbolKind,
     SymbolScope,
     TemplateTranslation,
-    tryGetBuiltInType
+    tryGetBuiltInType, tryInsertSymbolicObject
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
@@ -256,7 +256,11 @@ function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)
         if (baseScope === undefined) continue;
 
         for (const [key, symbol] of baseScope.symbolMap) {
-            insertSymbolicObject(scope.symbolMap, symbol);
+            if (key === 'this') continue;
+            const errored = tryInsertSymbolicObject(scope.symbolMap, symbol);
+            if (errored !== undefined) {
+                diagnostic.addError(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
+            }
         }
     }
 }
