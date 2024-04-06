@@ -976,6 +976,10 @@ class Color{
 	Color& opAssign(const HSV&in);
 	Color opCom() const;
 	bool opEquals(const Color&in) const;
+	Color withR(uint);
+	Color withG(uint);
+	Color withB(uint);
+	Color withA(uint);
 	Color& setR(uint);
 	Color& setG(uint);
 	Color& setB(uint);
@@ -985,7 +989,6 @@ class Color{
 	Color& set(uint, uint = 255);
 	Color& set(uint, uint, uint, uint = 255);
 	Color& set(Color);
-	Color withAlpha(uint);
 	uint8 grayscale0_255() const;
 	double grayscale() const;
 	uint8 minRGBComponent() const;
@@ -1030,6 +1033,10 @@ class ColorF{
 	ColorF& opMulAssign(const ColorF&in);
 	ColorF opMul_r(double) const;
 	bool opEquals(const ColorF&in) const;
+	ColorF withR(double) const;
+	ColorF withG(double) const;
+	ColorF withB(double) const;
+	ColorF withA(double) const;
 	ColorF& setR(double);
 	ColorF& setG(double);
 	ColorF& setB(double);
@@ -1039,7 +1046,6 @@ class ColorF{
 	ColorF& set(double, double = 1.0);
 	ColorF& set(double, double, double, double = 1.0);
 	ColorF& set(const ColorF&in);
-	ColorF withAlpha(double);
 	double grayscale() const;
 	double minRGBComponent() const;
 	double maxRGBComponent() const;
@@ -1081,6 +1087,10 @@ class HSV{
 	HSV opAdd(const HSV&in) const;
 	HSV opSub(const HSV&in) const;
 	bool opEquals(const ColorF&in) const;
+	HSV withH(double) const;
+	HSV withS(double) const;
+	HSV withV(double) const;
+	HSV withA(double) const;
 	HSV& setH(double);
 	HSV& setS(double);
 	HSV& setV(double);
@@ -1088,7 +1098,6 @@ class HSV{
 	HSV& setHSV(double, double, double);
 	HSV& set(double, double, double, double = 1.0);
 	HSV& set(const HSV&in);
-	HSV withAlpha(double) const;
 	HSV lerp(const HSV&in, double) const;
 	uint64 hash() const;
 	ColorF removeSRGBCurve() const;
@@ -1139,6 +1148,8 @@ class Point{
 	int minComponent() const;
 	int maxComponent() const;
 	void clear();
+	Point withX(int) const;
+	Point withY(int) const;
 	Point& set(int, int);
 	Point& set(Point);
 	Point movedBy(int, int) const;
@@ -1234,6 +1245,8 @@ class Float2{
 	float minComponent() const;
 	float maxComponent() const;
 	void clear();
+	Float2 withX(float) const;
+	Float2 withY(float) const;
 	Float2& set(float, float);
 	Float2& set(Float2);
 	Float2 movedBy(float, float) const;
@@ -1326,6 +1339,8 @@ class Vec2{
 	double minComponent() const;
 	double maxComponent() const;
 	void clear();
+	Vec2 withX(double) const;
+	Vec2 withY(double) const;
 	Vec2& set(double, double);
 	Vec2& set(Vec2);
 	Vec2 movedBy(double, double) const;
@@ -1419,6 +1434,9 @@ class Float3{
 	float minComponent() const;
 	float maxComponent() const;
 	void clear();
+	Float3 withX(float) const;
+	Float3 withY(float) const;
+	Float3 withZ(float) const;
 	Float3& set(float, float, float);
 	Float3& set(Float3);
 	Float3 movedBy(float, float, float) const;
@@ -1503,6 +1521,9 @@ class Vec3{
 	double minComponent() const;
 	double maxComponent() const;
 	void clear();
+	Vec3 withX(double) const;
+	Vec3 withY(double) const;
+	Vec3 withZ(double) const;
 	Vec3& set(double, double, double);
 	Vec3& set(Vec3);
 	Vec3 movedBy(double, double, double) const;
@@ -1591,6 +1612,10 @@ class Float4{
 	float minComponent() const;
 	float maxComponent() const;
 	void clear();
+	Float4 withX(float) const;
+	Float4 withY(float) const;
+	Float4 withZ(float) const;
+	Float4 withW(float) const;
 	Float4& set(const Float2&in, const Float2&in);
 	Float4& set(const Float2&in, float, float);
 	Float4& set(float, const Float2&in, float);
@@ -1695,6 +1720,10 @@ class Vec4{
 	double minComponent() const;
 	double maxComponent() const;
 	void clear();
+	Vec4 withX(double) const;
+	Vec4 withY(double) const;
+	Vec4 withZ(double) const;
+	Vec4 withW(double) const;
 	Vec4& set(const Vec2&in, const Vec2&in);
 	Vec4& set(const Vec2&in, double, double);
 	Vec4& set(double, const Vec2&in, double);
@@ -1772,6 +1801,8 @@ class Circular{
 	Vec2 opNeg() const;
 	Vec2 opAdd(Vec2) const;
 	Vec2 opSub(Vec2) const;
+	Circular withR(double) const;
+	Circular withTheta(double) const;
 	Circular rotated(double) const;
 	Circular& rotate(double);
 	Float2 toFloat2() const;
@@ -1792,6 +1823,10 @@ class OffsetCircular{
 	Vec2 opSub(Vec2) const;
 	OffsetCircular& opAddAssign(Vec2);
 	OffsetCircular& opSubAssign(Vec2);
+	OffsetCircular withCenter(double, double) const;
+	OffsetCircular withCenter(Vec2) const;
+	OffsetCircular withR(double) const;
+	OffsetCircular withTheta(double) const;
 	OffsetCircular movedBy(double, double) const;
 	OffsetCircular movedBy(Vec2) const;
 	OffsetCircular& moveBy(double, double);
@@ -3131,7 +3166,7 @@ class Texture{
 	int width() const;
 	int height() const;
 	Point size() const;
-	bool isMipped() const;
+	bool hasMipMap() const;
 	bool srgbSampling() const;
 	bool isSDF() const;
 	bool hasDepth() const;
@@ -3302,7 +3337,7 @@ class DynamicTexture{
 	int width() const;
 	int height() const;
 	Point size() const;
-	bool isMipped() const;
+	bool hasMipMap() const;
 	bool srgbSampling() const;
 	bool isSDF() const;
 	bool hasDepth() const;
@@ -3376,7 +3411,7 @@ class VideoTexture{
 	int width() const;
 	int height() const;
 	Point size() const;
-	bool isMipped() const;
+	bool hasMipMap() const;
 	Rect region(int, int) const;
 	Rect region(Point = Point ( 0 , 0 )) const;
 	RectF region(double, double) const;
@@ -4640,11 +4675,66 @@ namespace Dialog { Texture OpenTexture(TextureDesc, const String&in = "", const 
 namespace Dialog { Wave OpenWave(const String&in = "", const String&in = ""); }
 namespace Dialog { Audio OpenAudio(const String&in = "", const String&in = ""); }
 namespace Dialog { Audio OpenAudio(AudioFileStreaming, const String&in = "", const String&in = ""); }
-namespace Arg { topLeft_ topLeft; }
-namespace Arg { center_ center; }
-namespace Arg { sampleRate_ sampleRate; }
+namespace StartImmediately { bool Yes; }
+namespace StartImmediately { bool No; }
+namespace Centering { bool Yes; }
+namespace Centering { bool No; }
+namespace CloseRing { bool Yes; }
+namespace CloseRing { bool No; }
+namespace SkipValidation { bool Yes; }
+namespace SkipValidation { bool No; }
+namespace TransformCursor { bool Yes; }
+namespace TransformCursor { bool No; }
+namespace AllowScaleUp { bool Yes; }
+namespace AllowScaleUp { bool No; }
+namespace Loop { bool Yes; }
+namespace Loop { bool No; }
+namespace InvertColor { bool Yes; }
+namespace InvertColor { bool No; }
+namespace AllowHoles { bool Yes; }
+namespace AllowHoles { bool No; }
+namespace Antialiased { bool Yes; }
+namespace Antialiased { bool No; }
+namespace Arg { Arg::topLeft_ topLeft; }
+namespace Arg { Arg::center_ center; }
+namespace Arg { Arg::sampleRate_ sampleRate; }
 None_t none;
 None_t unspecified;
+namespace Math { float PiF; }
+namespace Math { double Pi; }
+namespace Math { float QuarterPiF; }
+namespace Math { double QuarterPi; }
+namespace Math { float OneThirdPiF; }
+namespace Math { double OneThirdPi; }
+namespace Math { float HalfPiF; }
+namespace Math { double HalfPi; }
+namespace Math { float TwoPiF; }
+namespace Math { double TwoPi; }
+namespace Math { float TauF; }
+namespace Math { double Tau; }
+namespace Math { float InvTwoPiF; }
+namespace Math { double InvTwoPi; }
+namespace Math { float InvPiF; }
+namespace Math { double InvPi; }
+namespace Math { float InvSqrtPiF; }
+namespace Math { double InvSqrtPi; }
+namespace Math { double E; }
+namespace Math { double Log2E; }
+namespace Math { double Log10E; }
+namespace Math { double Ln2; }
+namespace Math { double Ln10; }
+namespace Math { double Sqrt2; }
+namespace Math { double Sqrt3; }
+namespace Math { double InvSqrt2; }
+namespace Math { double InvSqrt3; }
+namespace Math { double EGamma; }
+namespace Math { double Phi; }
+namespace Math { float QNaNF; }
+namespace Math { double QNaN; }
+namespace Math { float NaNF; }
+namespace Math { double NaN; }
+namespace Math { float InfF; }
+namespace Math { double Inf; }
 namespace Palette { Color Black; }
 namespace Palette { Color Dimgray; }
 namespace Palette { Color Dimgrey; }
@@ -5097,15 +5187,29 @@ namespace TextureFormat { TexturePixelFormat R16G16B16A16_Float; }
 namespace TextureFormat { TexturePixelFormat R32G32_Float; }
 namespace TextureFormat { TexturePixelFormat R32G32B32A32_Float; }
 namespace Emoji { Point ImageSize; }
+namespace Wave { uint MinSampleRate; }
+namespace Wave { uint DefaultSampleRate; }
+namespace Wave { uint MaxSampleRate; }
 MixBus MixBus0;
 MixBus MixBus1;
 MixBus MixBus2;
 MixBus MixBus3;
 namespace Audio { AudioFileStreaming Stream; }
 Print_impl Print;
+namespace UserAction { uint CloseButtonClicked; }
+namespace UserAction { uint EscapeKeyDown; }
+namespace UserAction { uint WindowDeactivated; }
+namespace UserAction { uint AnyKeyDown; }
+namespace UserAction { uint MouseButtonDown; }
+namespace UserAction { uint AnyKeyOrMouseDown; }
+namespace UserAction { uint Default; }
+namespace UserAction { uint NoAction; }
 namespace Window { Point DefaultClientSize; }
 namespace Scene { Point DefaultSceneSize; }
 namespace Scene { ResizeMode DefaultResizeMode; }
 namespace Scene { ColorF DefaultBackgroundColor; }
 namespace Scene { ColorF DefaultLetterBoxColor; }
+namespace Scene { double DefaultMaxDeltaTime; }
 Say_impl Say;
+typedef uint64 size_t;
+typedef uint GlyphIndex;

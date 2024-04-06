@@ -613,6 +613,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
             found = findScopeShallowly(scopeIterator, nextScope.text);
+            if (found?.ownerNode?.nodeName === NodeName.Func) found = undefined;
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
                 // グローバルスコープでないなら、上の階層を更に探索
