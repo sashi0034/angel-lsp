@@ -1865,8 +1865,8 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
         if (expectCommaOrParensClose(parsing, result.paramList.length > 0) === BreakThrough.Break) break;
 
         if (parsing.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parsing.next(1).text)) {
-            parsing.confirm(HighlightToken.Parameter);
             result.paramList.push({type: undefined, typeMod: undefined, identifier: parsing.next()});
+            parsing.confirm(HighlightToken.Parameter);
             continue;
         }
 

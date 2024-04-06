@@ -32,6 +32,7 @@ import {
     NodeInitList,
     NodeInterface,
     NodeIntfMethod,
+    NodeLambda,
     NodeLiteral,
     NodeMixin,
     NodeName,
@@ -72,7 +73,8 @@ import {
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
-    stringifyDeducedType, stringifyDeducedTypes,
+    stringifyDeducedType,
+    stringifyDeducedTypes,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -826,9 +828,9 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 
 // RETURN        ::= 'return' [ASSIGN] ';'
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
-    const returnType = nodeReturn.assign === undefined ? undefined : analyzeAssign(scope, nodeReturn.assign);
+    const returnType = nodeReturn.assign !== undefined ? analyzeAssign(scope, nodeReturn.assign) : undefined;
 
-    const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp]);
+    const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
     if (functionScope === undefined || functionScope.ownerNode === undefined) return;
 
     // TODO: ラムダ式に対応
@@ -921,7 +923,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
     case NodeName.Assign:
         return analyzeAssign(scope, exprValue);
     case NodeName.Lambda:
-        break;
+        return analyzeLambda(scope, exprValue);
     default:
         break;
     }
@@ -939,7 +941,7 @@ function analyzeConstructorCaller(
     if (constructorType.sourceScope === undefined) return undefined;
 
     const classScope = findScopeShallowly(constructorType.sourceScope, constructorIdentifier);
-    const constructor = classScope === undefined ? undefined : findSymbolShallowly(classScope, constructorIdentifier);
+    const constructor = classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
         if (callerArgList.argList.length === 0) {
             // デフォルトコンストラクタ
@@ -1030,6 +1032,27 @@ function analyzeCast(scope: SymbolScope, cast: NodeCast): DeducedType | undefine
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | undefined {
+    const childScope = createSymbolScopeAndInsert(lambda, scope, createAnonymousIdentifier());
+
+    // 引数をスコープに追加
+    for (const param of lambda.paramList) {
+        if (param.identifier === undefined) continue;
+        insertSymbolicObject(childScope.symbolMap, {
+            symbolKind: SymbolKind.Variable,
+            declaredPlace: param.identifier,
+            type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
+            isInstanceMember: false,
+        });
+    }
+
+    if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);
+
+    // TODO: 左辺からラムダ式の型を推定したい
+
+    return undefined;
+}
+
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
     const literalValue = literal.value;

@@ -5,9 +5,9 @@ import {
     NodeEnum,
     NodeFunc, NodeFuncDef,
     NodeIf,
-    NodeInterface, NodeIntfMethod,
+    NodeInterface, NodeIntfMethod, NodeLambda,
     NodeName,
-    NodesBase, NodeVirtualProp,
+    NodeVirtualProp,
     ParsedRange
 } from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
@@ -85,7 +85,8 @@ export type SymbolOwnerNode =
     | NodeVirtualProp
     | NodeInterface
     | NodeFunc
-    | NodeIf;
+    | NodeIf
+    | NodeLambda;
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;
