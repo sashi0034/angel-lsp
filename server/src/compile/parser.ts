@@ -43,7 +43,8 @@ import {
     NodeName,
     NodeNamespace,
     NodeParamList,
-    NodeReturn, NodesBase,
+    NodeReturn,
+    NodesBase,
     NodeScope,
     NodeScript,
     NodeStatBlock,
@@ -59,7 +60,6 @@ import {
     ParsedArgument,
     ParsedEnumMember,
     ParsedGetterSetter,
-    ParsedLambdaParams,
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
@@ -915,21 +915,28 @@ function isCommaOrParensClose(character: string): boolean {
     return character === ',' || character === ')';
 }
 
-function expectContinuousOrClose(
+function parseContinuousOrClose(
     parsing: ParsingState, continuousOp: string, closeOp: string, canColon: boolean
-): BreakThrough {
+): BreakThrough | undefined {
     const next = parsing.next().text;
     if (next === closeOp) {
         parsing.confirm(HighlightToken.Operator);
         return BreakThrough.Break;
     } else if (canColon) {
-        if (next !== continuousOp) {
-            parsing.error(`Expected '${continuousOp}' or '${closeOp}' ❌`);
-            return BreakThrough.Break;
-        }
+        if (next !== continuousOp) return undefined;
         parsing.confirm(HighlightToken.Operator);
     }
     return BreakThrough.Through;
+}
+
+function expectContinuousOrClose(
+    parsing: ParsingState, continuousOp: string, closeOp: string, canColon: boolean
+): BreakThrough {
+    const parsed = parseContinuousOrClose(parsing, continuousOp, closeOp, canColon);
+    if (parsed !== undefined) return parsed;
+
+    parsing.error(`Expected '${continuousOp}' or '${closeOp}' ❌`);
+    return BreakThrough.Break;
 }
 
 function parseCloseOperator(parsing: ParsingState, closeOp: string): BreakThrough {
@@ -1036,7 +1043,13 @@ function parseTypeTemplates(parsing: ParsingState): NodeType[] | undefined {
 
         typeTemplates.push(type);
 
-        if (expectContinuousOrClose(parsing, ',', '>', typeTemplates.length > 0) === BreakThrough.Break) break;
+        const continuous = parseContinuousOrClose(parsing, ',', '>', typeTemplates.length > 0);
+        if (continuous === BreakThrough.Break) break;
+        else if (continuous === undefined) {
+            parsing.backtrack(rangeStart);
+            cache.store(undefined);
+            return undefined;
+        }
     }
 
     cache.store(typeTemplates);
