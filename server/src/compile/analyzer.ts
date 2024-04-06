@@ -858,13 +858,14 @@ function analyzeConstructorByType(
     const constructorIdentifier = constructorType.declaredPlace.text;
     const classScope = findScopeWithParent(scope, constructorIdentifier);
     if (classScope === undefined) {
-        diagnostic.addError(callerIdentifier.location, `Undefined class: ${constructorIdentifier} 💢`);
+        diagnostic.addError(callerIdentifier.location, `Class '${constructorIdentifier}' is not defined 💢`);
         return undefined;
     }
 
     const constructor = findSymbolShallowly(classScope, constructorIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(callerIdentifier.location, `Missing constructor: ${constructorIdentifier} 💢`);
+        if (callerArgList.argList.length === 0) return {symbolType: constructorType, sourceScope: classScope}; // デフォルトコンストラクタ
+        diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing 💢`);
         return undefined;
     }
 
