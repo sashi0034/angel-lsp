@@ -26,8 +26,10 @@ void printClassTypeList(const AngelScript::asIScriptEngine& engine)
 	{
 		const auto t = engine.GetObjectTypeByIndex(i);
 		if (not t) continue;
+
 		const std::string_view ns = t->GetNamespace();
 		if (not ns.empty()) std::cout << std::format("namespace {} {{\n", ns);
+
 		std::cout << std::format("class {}", t->GetName());
 		if (t->GetSubTypeCount() > 0)
 		{
@@ -41,6 +43,7 @@ void printClassTypeList(const AngelScript::asIScriptEngine& engine)
 
 			std::cout << ">";
 		}
+
 		std::cout << "{\n";
 		for (int j = 0; j < t->GetBehaviourCount(); ++j)
 		{
@@ -49,17 +52,21 @@ void printClassTypeList(const AngelScript::asIScriptEngine& engine)
 			if (behaviours == AngelScript::asBEHAVE_CONSTRUCT
 				|| behaviours == AngelScript::asBEHAVE_DESTRUCT)
 			{
-				std::cout << std::format("\t{};\n", f->GetDeclaration(false, true, false));
+				std::cout << std::format("\t{};\n", f->GetDeclaration(false, true, true));
 			}
 		}
 		for (int j = 0; j < t->GetMethodCount(); ++j)
 		{
 			const auto m = t->GetMethodByIndex(j);
-			std::cout << std::format("\t{};\n", m->GetDeclaration(false, true, false));
+			std::cout << std::format("\t{};\n", m->GetDeclaration(false, true, true));
 		}
 		for (int j = 0; j < t->GetPropertyCount(); ++j)
 		{
 			std::cout << std::format("\t{};\n", t->GetPropertyDeclaration(j, true));
+		}
+		for (int j = 0; j < t->GetChildFuncdefCount(); ++j)
+		{
+			std::cout << std::format("\tfuncdef {};\n", t->GetChildFuncdef(j)->GetFuncdefSignature()->GetDeclaration(false));
 		}
 		std::cout << "}\n";
 		if (not ns.empty()) std::cout << "}\n";
@@ -74,7 +81,7 @@ void printGlobalFunctionList(const AngelScript::asIScriptEngine& engine)
 		if (not f) continue;
 		const std::string_view ns = f->GetNamespace();
 		if (not ns.empty()) std::cout << std::format("namespace {} {{ ", ns);
-		std::cout << std::format("{};", f->GetDeclaration(false, false, false));
+		std::cout << std::format("{};", f->GetDeclaration(false, false, true));
 		if (not ns.empty()) std::cout << " }";
 		std::cout << "\n";
 	}

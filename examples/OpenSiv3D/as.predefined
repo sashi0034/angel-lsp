@@ -560,8 +560,8 @@ enum Target {
 }
 class Array<T>{
 	Array<T>& opAssign(const Array<T>&in);
-	T& opIndex(uint);
-	const T& opIndex(uint) const;
+	T& opIndex(uint index);
+	const T& opIndex(uint index) const;
 	Array<T>& opShl(const T&in);
 	T& choice();
 	const T& choice() const;
@@ -572,36 +572,37 @@ class Array<T>{
 	uint size() const;
 	bool empty() const;
 	bool isEmpty() const;
-	void reserve(uint);
-	void resize(uint);
+	void reserve(uint length);
+	void resize(uint length);
 	void push_front(const T&in);
 	void push_back(const T&in);
 	void pop_front();
 	void pop_back();
 	void clear();
-	void insert(uint, const T&in);
-	void insert(uint, const Array<T>&inout);
-	void insertAt(uint, const T&in);
-	void insertAt(uint, const Array<T>&inout);
-	void removeAt(uint);
+	void insert(uint index, const T&in value);
+	void insert(uint index, const Array<T>&inout arr);
+	void insertAt(uint index, const T&in value);
+	void insertAt(uint index, const Array<T>&inout arr);
+	void removeAt(uint index);
 	uint count() const;
 	void sort();
 	void sortAsc();
-	void sortAsc(uint, uint);
+	void sortAsc(uint startAt, uint count);
 	void sortDesc();
-	void sortDesc(uint, uint);
+	void sortDesc(uint startAt, uint count);
 	void reverse();
-	int find(const T&in) const;
-	int find(uint, const T&in) const;
-	int findByRef(const T&in) const;
-	int findByRef(uint, const T&in) const;
+	int find(const T&in value) const;
+	int find(uint startAt, const T&in value) const;
+	int findByRef(const T&in value) const;
+	int findByRef(uint startAt, const T&in value) const;
 	bool opEquals(const Array<T>&in) const;
-	void sort(Array::less&in, uint = 0, uint = uint ( - 1 ));
+	void sort(Array::less&in, uint startAt = 0, uint count = uint ( - 1 ));
+	funcdef bool less(const T&in, const T&in);
 }
 class Grid<T>{
 	T& opIndex(uint, uint);
 	const T& opIndex(uint, uint) const;
-	void resize(uint, uint);
+	void resize(uint width, uint height);
 	uint width() const;
 	uint height() const;
 	void fill(const T&in);
@@ -670,9 +671,9 @@ class String{
 	void resize(uint);
 	bool empty() const;
 	bool isEmpty() const;
-	String& opShl(uint);
-	void push_front(uint);
-	void push_back(uint);
+	String& opShl(uint ch);
+	void push_front(uint ch);
+	void push_back(uint ch);
 	void pop_front();
 	void pop_front_N(uint64);
 	void pop_back();
@@ -681,15 +682,15 @@ class String{
 	const char32& front() const;
 	char32& back();
 	const char32& back() const;
-	String substr(uint = 0, int = - 1) const;
-	void insert(uint, const String&in);
-	void erase(uint, int = - 1);
-	int indexOf(const String&in, uint = 0) const;
-	int lastIndexOf(const String&in, int = - 1) const;
-	int indexOfAny(const String&in, uint = 0) const;
-	int indexNotOfAny(const String&in, uint = 0) const;
-	int lastIndexOfAny(const String&in, int = - 1) const;
-	int lastIndexNotOfAny(const String&in, int = - 1) const;
+	String substr(uint start = 0, int count = - 1) const;
+	void insert(uint pos, const String&in other);
+	void erase(uint pos, int count = - 1);
+	int indexOf(const String&in, uint start = 0) const;
+	int lastIndexOf(const String&in, int start = - 1) const;
+	int indexOfAny(const String&in, uint start = 0) const;
+	int indexNotOfAny(const String&in, uint start = 0) const;
+	int lastIndexOfAny(const String&in, int start = - 1) const;
+	int lastIndexNotOfAny(const String&in, int start = - 1) const;
 }
 class None_t{
 	None_t();
@@ -697,7 +698,7 @@ class None_t{
 class Optional<T>{
 	~Optional();
 	Optional(int&in);
-	Optional(int&in, const T&in);
+	Optional(int&in, const T&in value);
 	Optional(int&in, None_t);
 	Optional<T>& opAssign(const Optional<T>&in);
 	Optional<T>& opAssign(const T&in);
@@ -705,11 +706,11 @@ class Optional<T>{
 	Optional<T>& opEquals(None_t) const;
 	T& value();
 	const T& value() const;
-	const T& value_or(const T&in) const;
+	const T& value_or(const T&in value) const;
 	bool opImplConv() const;
 	bool has_value() const;
 	void reset();
-	void reset(const T&in);
+	void reset(const T&in value);
 }
 class Duration{
 	Duration();
@@ -721,13 +722,13 @@ class Duration{
 class Date{
 	Date();
 	Date(const Date&in);
-	Date(int, int = 1, int = 1);
+	Date(int year, int month = 1, int day = 1);
 	bool isToday() const;
 	bool isLeapYear() const;
 	int daysInYear() const;
 	int daysInMonth() const;
 	bool isValid() const;
-	String format(const String&in = "yyyy-MM-dd") const;
+	String format(const String&in format = "yyyy-MM-dd") const;
 	int opCmp(const Date&in) const;
 	uint64 hash() const;
 	int year;
@@ -737,14 +738,14 @@ class Date{
 class DateTime{
 	DateTime();
 	DateTime(const DateTime&in);
-	DateTime(int, int, int, int = 0, int = 0, int = 0, int = 0);
-	DateTime(const Date&in, int = 0, int = 0, int = 0, int = 0);
+	DateTime(int year, int month, int day, int _hour = 0, int minute = 0, int second = 0, int milliseconds = 0);
+	DateTime(const Date&in date, int _hour = 0, int minute = 0, int second = 0, int milliseconds = 0);
 	bool isToday() const;
 	bool isLeapYear() const;
 	int daysInYear() const;
 	int daysInMonth() const;
 	bool isValid() const;
-	String format(const String&in = "yyyy-MM-dd HH:mm:ss") const;
+	String format(const String&in format = "yyyy-MM-dd HH:mm:ss") const;
 	int opCmp(const DateTime&in) const;
 	uint64 hash() const;
 	int year;
@@ -758,8 +759,8 @@ class DateTime{
 class Stopwatch{
 	~Stopwatch();
 	Stopwatch();
-	Stopwatch(bool);
-	Stopwatch(const Duration&in, bool = false);
+	Stopwatch(bool startImmediately);
+	Stopwatch(const Duration&in, bool startImmediately = false);
 	bool isStarted() const;
 	bool isPaused() const;
 	bool isRunning() const;
@@ -788,15 +789,15 @@ class Stopwatch{
 	int64 us64() const;
 	double usF() const;
 	Duration elapsed() const;
-	String format(const String&in = "H:mm:ss.xx");
+	String format(const String&in format = "H:mm:ss.xx");
 	int opCmp(const Duration&in) const;
 }
 class VariableSpeedStopwatch{
 	~VariableSpeedStopwatch();
 	VariableSpeedStopwatch();
-	VariableSpeedStopwatch(bool);
-	VariableSpeedStopwatch(double, bool = false);
-	VariableSpeedStopwatch(const Duration&in, double = 1.0, bool = false);
+	VariableSpeedStopwatch(bool startImmediately);
+	VariableSpeedStopwatch(double speed, bool startImmediately = false);
+	VariableSpeedStopwatch(const Duration&in, double speed = 1.0, bool startImmediately = false);
 	bool isStarted() const;
 	bool isPaused() const;
 	bool isRunning() const;
@@ -806,7 +807,7 @@ class VariableSpeedStopwatch{
 	void reset();
 	void restart();
 	void set(const Duration&in);
-	void setSpeed(double);
+	void setSpeed(double speed);
 	double getSpeed() const;
 	int d() const;
 	int64 d64() const;
@@ -827,13 +828,13 @@ class VariableSpeedStopwatch{
 	int64 us64() const;
 	double usF() const;
 	Duration elapsed() const;
-	String format(const String&in = "H:mm:ss.xx");
+	String format(const String&in format = "H:mm:ss.xx");
 	int opCmp(const Duration&in) const;
 }
 class Timer{
 	~Timer();
 	Timer();
-	Timer(const Duration&in, bool = false);
+	Timer(const Duration&in, bool startImmediately = false);
 	bool isStarted() const;
 	bool isPaused() const;
 	bool isRunning() const;
@@ -868,7 +869,7 @@ class Timer{
 	Duration remaining() const;
 	double progress1_0() const;
 	double progress0_1() const;
-	String format(const String&in = "H:mm:ss.xx");
+	String format(const String&in format = "H:mm:ss.xx");
 	int opCmp(const Duration&in) const;
 }
 class MillisecClock{
@@ -916,7 +917,7 @@ class TextReader{
 	String path() const;
 }
 class TextWriterBuffer{
-	TextWriterBuffer& opShl(const String&in);
+	TextWriterBuffer& opShl(const String&in text);
 	TextWriterBuffer& opShl(const ?&in);
 }
 class TextWriter{
@@ -924,9 +925,9 @@ class TextWriter{
 	TextWriter();
 	TextWriter(const TextWriter&in);
 	TextWriter(const String&in, TextEncoding);
-	TextWriter(const String&in, OpenMode = OpenMode :: Trunc, TextEncoding = TextEncoding :: UTF8_WITH_BOM);
+	TextWriter(const String&in, OpenMode openMode = OpenMode :: Trunc, TextEncoding encoding = TextEncoding :: UTF8_WITH_BOM);
 	bool open(const String&in, TextEncoding);
-	bool open(const String&in, OpenMode = OpenMode :: Trunc, TextEncoding = TextEncoding :: UTF8_WITH_BOM);
+	bool open(const String&in, OpenMode openMode = OpenMode :: Trunc, TextEncoding encoding = TextEncoding :: UTF8_WITH_BOM);
 	void close() const;
 	bool isOpen() const;
 	bool opImplConv() const;
@@ -935,7 +936,7 @@ class TextWriter{
 	void write(const String&inout);
 	void writeln(uint);
 	void writeln(const String&inout);
-	TextWriterBuffer@ opShl(const String&in) const;
+	TextWriterBuffer@ opShl(const String&in text) const;
 	TextWriterBuffer@ opShl(const ?&in) const;
 	TextEncoding encoding() const;
 	String path() const;
@@ -963,31 +964,31 @@ class INI{
 }
 class Color{
 	Color(const Color&in);
-	Color(uint8, uint8, uint8, uint8 = 255);
-	Color(uint8, uint8 = 255);
-	Color(const Color&in, uint8);
+	Color(uint8 r, uint8 g, uint8 b, uint8 a = 255);
+	Color(uint8 rgb, uint8 a = 255);
+	Color(const Color&in, uint8 a);
 	Color(const ColorF&in);
-	Color(const ColorF&in, uint8);
+	Color(const ColorF&in, uint8 a);
 	Color(const HSV&in);
-	Color(const HSV&in, uint8);
+	Color(const HSV&in, uint8 a);
 	Color(const String&in);
 	Color& opAssign(const Color&in);
 	Color& opAssign(const ColorF&in);
 	Color& opAssign(const HSV&in);
 	Color opCom() const;
 	bool opEquals(const Color&in) const;
-	Color withR(uint);
-	Color withG(uint);
-	Color withB(uint);
-	Color withA(uint);
-	Color& setR(uint);
-	Color& setG(uint);
-	Color& setB(uint);
-	Color& setA(uint);
-	Color& setRGB(uint);
-	Color& setRGB(uint, uint, uint);
-	Color& set(uint, uint = 255);
-	Color& set(uint, uint, uint, uint = 255);
+	Color withR(uint r);
+	Color withG(uint g);
+	Color withB(uint b);
+	Color withA(uint a);
+	Color& setR(uint r);
+	Color& setG(uint g);
+	Color& setB(uint b);
+	Color& setA(uint a);
+	Color& setRGB(uint rgb);
+	Color& setRGB(uint r, uint g, uint b);
+	Color& set(uint rgb, uint a = 255);
+	Color& set(uint r, uint g, uint b, uint a = 255);
 	Color& set(Color);
 	uint8 grayscale0_255() const;
 	double grayscale() const;
@@ -1009,15 +1010,15 @@ class Color{
 }
 class ColorF{
 	ColorF(const ColorF&in);
-	ColorF(double, double, double, double = 1.0);
-	ColorF(double, double = 1.0);
+	ColorF(double r, double g, double b, double a = 1.0);
+	ColorF(double rgb, double a = 1.0);
 	ColorF(const ColorF&in, double);
-	ColorF(const Vec3&in, double = 1.0);
+	ColorF(const Vec3&in, double a = 1.0);
 	ColorF(const Vec4&in);
 	ColorF(const Color&in);
-	ColorF(const Color&in, double);
+	ColorF(const Color&in, double a);
 	ColorF(const HSV&in);
-	ColorF(const HSV&in, double);
+	ColorF(const HSV&in, double a);
 	ColorF(const String&in);
 	double elem(uint64) const;
 	ColorF& opAssign(const ColorF&in);
@@ -1037,14 +1038,14 @@ class ColorF{
 	ColorF withG(double) const;
 	ColorF withB(double) const;
 	ColorF withA(double) const;
-	ColorF& setR(double);
-	ColorF& setG(double);
-	ColorF& setB(double);
-	ColorF& setA(double);
-	ColorF& setRGB(double);
-	ColorF& setRGB(double, double, double);
-	ColorF& set(double, double = 1.0);
-	ColorF& set(double, double, double, double = 1.0);
+	ColorF& setR(double r);
+	ColorF& setG(double g);
+	ColorF& setB(double b);
+	ColorF& setA(double a);
+	ColorF& setRGB(double rgb);
+	ColorF& setRGB(double r, double g, double b);
+	ColorF& set(double rgb, double a = 1.0);
+	ColorF& set(double r, double g, double b, double a = 1.0);
 	ColorF& set(const ColorF&in);
 	double grayscale() const;
 	double minRGBComponent() const;
@@ -1078,25 +1079,25 @@ class ColorF{
 class HSV{
 	HSV();
 	HSV(const HSV&in);
-	HSV(double, double = 1.0);
-	HSV(double, double, double, double = 1.0);
-	HSV(const HSV&in, double);
+	HSV(double h, double a = 1.0);
+	HSV(double h, double s, double v, double a = 1.0);
+	HSV(const HSV&in, double a);
 	HSV(const Color&in);
 	HSV(const ColorF&in);
 	double elem(uint64) const;
 	HSV opAdd(const HSV&in) const;
 	HSV opSub(const HSV&in) const;
 	bool opEquals(const ColorF&in) const;
-	HSV withH(double) const;
-	HSV withS(double) const;
-	HSV withV(double) const;
-	HSV withA(double) const;
-	HSV& setH(double);
-	HSV& setS(double);
-	HSV& setV(double);
-	HSV& setA(double);
-	HSV& setHSV(double, double, double);
-	HSV& set(double, double, double, double = 1.0);
+	HSV withH(double h) const;
+	HSV withS(double s) const;
+	HSV withV(double v) const;
+	HSV withA(double a) const;
+	HSV& setH(double h);
+	HSV& setS(double s);
+	HSV& setV(double v);
+	HSV& setA(double a);
+	HSV& setHSV(double h, double s, double v);
+	HSV& set(double h, double s, double v, double a = 1.0);
 	HSV& set(const HSV&in);
 	HSV lerp(const HSV&in, double) const;
 	uint64 hash() const;
@@ -1115,7 +1116,7 @@ class HSV{
 }
 class Point{
 	Point(const Point&in);
-	Point(int, int);
+	Point(int x, int y);
 	int elem(uint64) const;
 	Point opNeg() const;
 	Point opAdd(Point) const;
@@ -1218,7 +1219,7 @@ class Point{
 }
 class Float2{
 	Float2(const Float2&in);
-	Float2(float, float);
+	Float2(float x, float y);
 	Float2(const Point&in);
 	Float2(const Vec2&in);
 	float elem(uint64) const;
@@ -1263,9 +1264,9 @@ class Float2{
 	float manhattanLength() const;
 	float manhattanDistanceFrom(float, float) const;
 	float manhattanDistanceFrom(Float2) const;
-	float distanceFrom(float, float) const;
+	float distanceFrom(float x, float y) const;
 	float distanceFrom(Float2) const;
-	float distanceFromSq(float, float) const;
+	float distanceFromSq(float x, float y) const;
 	float distanceFromSq(Float2) const;
 	Float2 withLength(float) const;
 	Float2& setLength(float);
@@ -1312,7 +1313,7 @@ class Float2{
 }
 class Vec2{
 	Vec2(const Vec2&in);
-	Vec2(double, double);
+	Vec2(double x, double y);
 	Vec2(const Point&in);
 	Vec2(const Float2&in);
 	double elem(uint64) const;
@@ -1357,9 +1358,9 @@ class Vec2{
 	double manhattanLength() const;
 	double manhattanDistanceFrom(double, double) const;
 	double manhattanDistanceFrom(Vec2) const;
-	double distanceFrom(double, double) const;
+	double distanceFrom(double x, double y) const;
 	double distanceFrom(Vec2) const;
-	double distanceFromSq(double, double) const;
+	double distanceFromSq(double x, double y) const;
 	double distanceFromSq(Vec2) const;
 	Vec2 withLength(double) const;
 	Vec2& setLength(double);
@@ -1407,7 +1408,7 @@ class Vec2{
 class Float3{
 	Float3(const Float3&in);
 	Float3(const Vec3&in);
-	Float3(float, float, float);
+	Float3(float x, float y, float z);
 	Float3(const Float2&in, float);
 	Float3(float, const Float2&in);
 	float elem(uint64) const;
@@ -1454,9 +1455,9 @@ class Float3{
 	float manhattanLength() const;
 	float manhattanDistanceFrom(float, float, float) const;
 	float manhattanDistanceFrom(Float3) const;
-	float distanceFrom(float, float, float) const;
+	float distanceFrom(float x, float y, float z) const;
 	float distanceFrom(Float3) const;
-	float distanceFromSq(float, float, float) const;
+	float distanceFromSq(float x, float y, float z) const;
 	float distanceFromSq(Float3) const;
 	Float3 withLength(float) const;
 	Float3& setLength(float);
@@ -1494,7 +1495,7 @@ class Float3{
 class Vec3{
 	Vec3(const Vec3&in);
 	Vec3(const Float3&in);
-	Vec3(double, double, double);
+	Vec3(double x, double y, double z);
 	Vec3(const Vec2&in, double);
 	Vec3(double, const Vec2&in);
 	double elem(uint64) const;
@@ -1541,9 +1542,9 @@ class Vec3{
 	double manhattanLength() const;
 	double manhattanDistanceFrom(double, double, double) const;
 	double manhattanDistanceFrom(Vec3) const;
-	double distanceFrom(double, double, double) const;
+	double distanceFrom(double x, double y, double z) const;
 	double distanceFrom(Vec3) const;
-	double distanceFromSq(double, double, double) const;
+	double distanceFromSq(double x, double y, double z) const;
 	double distanceFromSq(Vec3) const;
 	Vec3 withLength(double) const;
 	Vec3& setLength(double);
@@ -1580,7 +1581,7 @@ class Vec3{
 }
 class Float4{
 	Float4(const Float4&in);
-	Float4(float, float, float, float);
+	Float4(float x, float y, float z, float w);
 	Float4(float, float, const Float2&in);
 	Float4(float, const Float2&in, float);
 	Float4(const Float2&in, float, float);
@@ -1635,9 +1636,9 @@ class Float4{
 	float manhattanLength() const;
 	float manhattanDistanceFrom(float, float, float, float) const;
 	float manhattanDistanceFrom(Float4) const;
-	float distanceFrom(float, float, float, float) const;
+	float distanceFrom(float x, float y, float z, float w) const;
 	float distanceFrom(Float4) const;
-	float distanceFromSq(float, float, float, float) const;
+	float distanceFromSq(float x, float y, float z, float w) const;
 	float distanceFromSq(Float4) const;
 	Float4 withLength(float) const;
 	Float4& setLength(float);
@@ -1688,7 +1689,7 @@ class Float4{
 }
 class Vec4{
 	Vec4(const Vec4&in);
-	Vec4(double, double, double, double);
+	Vec4(double x, double y, double z, double w);
 	Vec4(double, double, const Vec2&in);
 	Vec4(double, const Vec2&in, double);
 	Vec4(const Vec2&in, double, double);
@@ -1743,9 +1744,9 @@ class Vec4{
 	double manhattanLength() const;
 	double manhattanDistanceFrom(double, double, double, double) const;
 	double manhattanDistanceFrom(Vec4) const;
-	double distanceFrom(double, double, double, double) const;
+	double distanceFrom(double x, double y, double z, double w) const;
 	double distanceFrom(Vec4) const;
-	double distanceFromSq(double, double, double, double) const;
+	double distanceFromSq(double x, double y, double z, double w) const;
 	double distanceFromSq(Vec4) const;
 	Vec4 withLength(double) const;
 	Vec4& setLength(double);
@@ -1796,7 +1797,7 @@ class Vec4{
 }
 class Circular{
 	Circular(const Circular&in);
-	Circular(double, double);
+	Circular(double r, double theta);
 	Circular(const Vec2&in);
 	Vec2 opNeg() const;
 	Vec2 opAdd(Vec2) const;
@@ -1817,7 +1818,7 @@ class Circular{
 }
 class OffsetCircular{
 	OffsetCircular(const OffsetCircular&in);
-	OffsetCircular(const Vec2&in, double = 0.0, double = 0.0);
+	OffsetCircular(const Vec2&in, double r = 0.0, double theta = 0.0);
 	OffsetCircular(const Vec2&in, const Vec2&in);
 	Vec2 opAdd(Vec2) const;
 	Vec2 opSub(Vec2) const;
@@ -1854,10 +1855,10 @@ class Mat3x2{
 	bool opEquals(const Mat3x2&in) const;
 	Mat3x2 translated(Float2) const;
 	Mat3x2 translated(double, double) const;
-	Mat3x2 scaled(double, Float2 = Float2 ( 0 , 0 )) const;
-	Mat3x2 scaled(Float2, Float2 = Float2 ( 0 , 0 )) const;
-	Mat3x2 scaled(double, double, Float2 = Float2 ( 0 , 0 )) const;
-	Mat3x2 rotated(double, Float2 = Float2 ( 0 , 0 )) const;
+	Mat3x2 scaled(double, Float2 center = Float2 ( 0 , 0 )) const;
+	Mat3x2 scaled(Float2, Float2 center = Float2 ( 0 , 0 )) const;
+	Mat3x2 scaled(double, double, Float2 center = Float2 ( 0 , 0 )) const;
+	Mat3x2 rotated(double, Float2 center = Float2 ( 0 , 0 )) const;
 	Mat3x2 shearedX(double) const;
 	Mat3x2 shearedY(double) const;
 	float determinant() const;
@@ -1890,8 +1891,8 @@ class Bezier2{
 	Vec2 point(uint64) const;
 	Vec2 getPos(double) const;
 	Vec2 getTangent(double) const;
-	LineString getLineString(int = 24) const;
-	LineString getLineString(double, double, int = 24) const;
+	LineString getLineString(int quality = 24) const;
+	LineString getLineString(double start, double end, int quality = 24) const;
 	RectF boundingRect() const;
 	uint64 hash() const;
 	bool intersects(const Point&in) const;
@@ -1903,9 +1904,9 @@ class Bezier2{
 	bool intersects(const Ellipse&in) const;
 	bool intersects(const Triangle&in) const;
 	bool intersects(const Quad&in) const;
-	const Bezier2& draw(const ColorF&in = Palette :: White, int = 24) const;
-	const Bezier2& draw(double, const ColorF&in = Palette :: White, int = 24) const;
-	const Bezier2& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int = 24) const;
+	const Bezier2& draw(const ColorF&in = Palette :: White, int quality = 24) const;
+	const Bezier2& draw(double, const ColorF&in = Palette :: White, int quality = 24) const;
+	const Bezier2& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int quality = 24) const;
 	Vec2 p0;
 	Vec2 p1;
 	Vec2 p2;
@@ -1918,16 +1919,16 @@ class Bezier3{
 	Vec2 point(uint64) const;
 	Vec2 getPos(double) const;
 	Vec2 getTangent(double) const;
-	LineString getLineString(int = 24) const;
-	LineString getLineString(double, double, int = 24) const;
+	LineString getLineString(int quality = 24) const;
+	LineString getLineString(double start, double end, int quality = 24) const;
 	RectF boundingRect() const;
 	uint64 hash() const;
 	bool intersects(const Line&in) const;
 	bool intersects(const Circle&in) const;
 	bool intersects(const Ellipse&in) const;
-	const Bezier2& draw(const ColorF&in = Palette :: White, int = 24) const;
-	const Bezier2& draw(double, const ColorF&in = Palette :: White, int = 24) const;
-	const Bezier2& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int = 24) const;
+	const Bezier2& draw(const ColorF&in = Palette :: White, int quality = 24) const;
+	const Bezier2& draw(double, const ColorF&in = Palette :: White, int quality = 24) const;
+	const Bezier2& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int quality = 24) const;
 	Vec2 p0;
 	Vec2 p1;
 	Vec2 p2;
@@ -1935,9 +1936,9 @@ class Bezier3{
 }
 class Line{
 	Line(const Line&in);
-	Line(double, double, double, double);
-	Line(const Vec2&in, double, double);
-	Line(double, double, const Vec2&in);
+	Line(double x0, double y0, double x1, double y1);
+	Line(const Vec2&in, double x1, double y1);
+	Line(double x0, double y0, const Vec2&in);
 	Line(const Vec2&in, const Vec2&in);
 	bool opEquals(const Line&in) const;
 	Line& set(double, double, double, double);
@@ -1989,12 +1990,12 @@ class Line{
 	const Line& draw(double, const ColorF&in, const ColorF&in) const;
 	const Line& draw(const LineStyle&in, double, const ColorF&in = Palette :: White) const;
 	const Line& draw(const LineStyle&in, double, const ColorF&in, const ColorF&in) const;
-	const Line& drawArrow(double = 1.0, const Vec2&in = Vec2 ( 5.0 , 5.0 ), const ColorF&in = Palette :: White) const;
-	const Line& drawDoubleHeadedArrow(double = 1.0, const Vec2&in = Vec2 ( 5.0 , 5.0 ), const ColorF&in = Palette :: White) const;
+	const Line& drawArrow(double width = 1.0, const Vec2&in headSize = Vec2 ( 5.0 , 5.0 ), const ColorF&in = Palette :: White) const;
+	const Line& drawDoubleHeadedArrow(double width = 1.0, const Vec2&in headSize = Vec2 ( 5.0 , 5.0 ), const ColorF&in = Palette :: White) const;
 	const Line& paint(Image&inout, const Color&in) const;
 	const Line& paint(Image&inout, int, const Color&in) const;
-	const Line& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const Line& overwrite(Image&inout, int, const Color&in, bool = Antialiased :: Yes) const;
+	const Line& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Line& overwrite(Image&inout, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	const Line& paintArrow(Image&inout, double, const Vec2&in, const Color&in) const;
 	const Line& overwriteArrow(Image&inout, double, const Vec2&in, const Color&in) const;
 	const Line& paintDoubleHeadedArrow(Image&inout, double, const Vec2&in, const Color&in) const;
@@ -2004,17 +2005,17 @@ class Line{
 }
 class Rect{
 	Rect(const Rect&in);
-	Rect(int);
-	Rect(int, int);
+	Rect(int size);
+	Rect(int w, int h);
 	Rect(const Point&in);
-	Rect(int, int, int);
-	Rect(int, int, int, int);
-	Rect(int, int, const Point&in);
-	Rect(const Point&in, int);
-	Rect(const Point&in, int, int);
+	Rect(int x, int y, int size);
+	Rect(int x, int y, int w, int h);
+	Rect(int x, int y, const Point&in);
+	Rect(const Point&in, int size);
+	Rect(const Point&in, int w, int h);
 	Rect(const Point&in, const Point&in);
-	Rect(Arg::center_Vec2, int);
-	Rect(Arg::center_Vec2, int, int);
+	Rect(Arg::center_Vec2, int size);
+	Rect(Arg::center_Vec2, int w, int h);
 	Rect(Arg::center_Vec2, const Point&in);
 	bool opEquals(const Rect&in) const;
 	Rect& setPos(int, int);
@@ -2079,7 +2080,7 @@ class Rect{
 	RoundRect rounded(double) const;
 	Polygon rounded(double, double, double, double) const;
 	Quad asQuad() const;
-	LineString outline(bool = CloseRing :: No) const;
+	LineString outline(bool closeRing = CloseRing :: No) const;
 	LineString outline(double, double) const;
 	Polygon asPolygon() const;
 	RectF lerp(const Rect&in, double) const;
@@ -2120,11 +2121,11 @@ class Rect{
 	bool rightReleased() const;
 	bool mouseOver() const;
 	const Rect& draw(const ColorF&in = Palette :: White) const;
-	const Rect& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Rect& drawFrame(double, const ColorF&in, const ColorF&in) const;
-	const Rect& drawFrame(double, double, const ColorF&in = Palette :: White) const;
-	const Rect& drawFrame(double, double, const ColorF&in, const ColorF&in) const;
-	const Rect& drawShadow(const Vec2&in, double, double = 0.0, const ColorF&in = ColorF ( 0.0 , 0.5 ), bool = true) const;
+	const Rect& drawFrame(double thickness = 1.0, const ColorF&in = Palette :: White) const;
+	const Rect& drawFrame(double thickness, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Rect& drawFrame(double inner, double outer, const ColorF&in = Palette :: White) const;
+	const Rect& drawFrame(double inner, double outer, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Rect& drawShadow(const Vec2&in offset, double blurRadius, double spread = 0.0, const ColorF&in color = ColorF ( 0.0 , 0.5 ), bool fill = true) const;
 	TexturedQuad opCall(const Texture&in) const;
 	TexturedQuad opCall(const TextureRegion&in) const;
 	const Rect& paint(Image&inout, const Color&in) const;
@@ -2141,17 +2142,17 @@ class Rect{
 class RectF{
 	RectF(const RectF&in);
 	RectF(const Rect&in);
-	RectF(double);
-	RectF(double, double);
+	RectF(double size);
+	RectF(double w, double h);
 	RectF(const Vec2&in);
-	RectF(double, double, double);
-	RectF(double, double, double, double);
-	RectF(double, double, const Vec2&in);
-	RectF(const Vec2&in, double);
-	RectF(const Vec2&in, double, double);
+	RectF(double x, double y, double size);
+	RectF(double x, double y, double w, double h);
+	RectF(double x, double y, const Vec2&in);
+	RectF(const Vec2&in, double size);
+	RectF(const Vec2&in, double w, double h);
 	RectF(const Vec2&in, const Vec2&in);
-	RectF(Arg::center_Vec2, int);
-	RectF(Arg::center_Vec2, int, int);
+	RectF(Arg::center_Vec2, int size);
+	RectF(Arg::center_Vec2, int w, int h);
 	RectF(Arg::center_Vec2, const Point&in);
 	bool opEquals(const RectF&in) const;
 	RectF& setPos(double, double);
@@ -2218,7 +2219,7 @@ class RectF{
 	Polygon rounded(double, double, double, double) const;
 	Rect asRect() const;
 	Quad asQuad() const;
-	LineString outline(bool = CloseRing :: No) const;
+	LineString outline(bool closeRing = CloseRing :: No) const;
 	LineString outline(double, double) const;
 	Polygon asPolygon() const;
 	RectF lerp(const RectF&in, double) const;
@@ -2257,11 +2258,11 @@ class RectF{
 	bool rightReleased() const;
 	bool mouseOver() const;
 	const RectF& draw(const ColorF&in = Palette :: White) const;
-	const RectF& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const RectF& drawFrame(double, const ColorF&in, const ColorF&in) const;
-	const RectF& drawFrame(double, double, const ColorF&in = Palette :: White) const;
-	const RectF& drawFrame(double, double, const ColorF&in, const ColorF&in) const;
-	const RectF& drawShadow(const Vec2&in, double, double = 0.0, const ColorF&in = ColorF ( 0.0 , 0.5 ), bool = true) const;
+	const RectF& drawFrame(double thickness = 1.0, const ColorF&in = Palette :: White) const;
+	const RectF& drawFrame(double thickness, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const RectF& drawFrame(double inner, double outer, const ColorF&in = Palette :: White) const;
+	const RectF& drawFrame(double inner, double outer, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const RectF& drawShadow(const Vec2&in offset, double blurRadius, double spread = 0.0, const ColorF&in color = ColorF ( 0.0 , 0.5 ), bool fill = true) const;
 	TexturedQuad opCall(const Texture&in) const;
 	TexturedQuad opCall(const TextureRegion&in) const;
 	const RectF& paint(Image&inout, const Color&in) const;
@@ -2288,7 +2289,7 @@ class Circle{
 	Circle& setCenter(Vec2);
 	Circle& setPos(double, double);
 	Circle& setPos(Vec2);
-	Circle& setR(double);
+	Circle& setR(double r);
 	Circle movedBy(double, double) const;
 	Circle movedBy(Vec2) const;
 	Circle& moveBy(double, double);
@@ -2307,9 +2308,9 @@ class Circle{
 	double perimeter() const;
 	RectF boundingRect() const;
 	Vec2 getPointByAngle(double) const;
-	Polygon asPolygon(uint = 24) const;
-	Polygon pieAsPolygon(double, double, uint = 24) const;
-	Polygon arcAsPolygon(double, double, double, double, uint = 24) const;
+	Polygon asPolygon(uint quality = 24) const;
+	Polygon pieAsPolygon(double, double, uint quality = 24) const;
+	Polygon arcAsPolygon(double, double, double, double, uint quality = 24) const;
 	Circle lerp(const Circle&in, double) const;
 	uint64 hash() const;
 	bool intersects(const Point&in) const;
@@ -2344,25 +2345,25 @@ class Circle{
 	bool rightPressed() const;
 	bool rightReleased() const;
 	bool mouseOver() const;
-	const Circle& draw(const ColorF&in = Palette :: White) const;
-	const Circle& draw(const ColorF&in, const ColorF&in) const;
-	const Circle& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Circle& drawFrame(double, const ColorF&in, const ColorF&in) const;
-	const Circle& drawFrame(double, double, const ColorF&in = Palette :: White) const;
-	const Circle& drawFrame(double, double, const ColorF&in, const ColorF&in) const;
-	const Circle& drawPie(double, double, const ColorF&in = Palette :: White) const;
-	const Circle& drawPie(double, double, const ColorF&in, const ColorF&in) const;
-	const Circle& drawArc(double, double, double = 1.0, double = 0.0, const ColorF&in = Palette :: White) const;
-	const Circle& drawArc(double, double, double, double, const ColorF&in, const ColorF&in) const;
-	const Circle& drawArc(const LineStyle&in, double, double, double = 1.0, double = 0.0, const ColorF&in = Palette :: White) const;
-	const Circle& drawArc(const LineStyle&in, double, double, double, double, const ColorF&in, const ColorF&in) const;
-	const Circle& drawShadow(const Vec2&in, double, double = 0.0, const ColorF&in = ColorF ( 0.0 , 0.5 )) const;
+	const Circle& draw(const ColorF&in color = Palette :: White) const;
+	const Circle& draw(const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawFrame(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	const Circle& drawFrame(double thickness, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawFrame(double inner, double outer, const ColorF&in color = Palette :: White) const;
+	const Circle& drawFrame(double inner, double outer, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawPie(double startAngle, double angle, const ColorF&in color = Palette :: White) const;
+	const Circle& drawPie(double startAngle, double angle, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawArc(double startAngle, double angle, double innerThickness = 1.0, double outerThickness = 0.0, const ColorF&in color = Palette :: White) const;
+	const Circle& drawArc(double startAngle, double angle, double innerThickness, double outerThickness, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawArc(const LineStyle&in, double startAngle, double angle, double innerThickness = 1.0, double outerThickness = 0.0, const ColorF&in color = Palette :: White) const;
+	const Circle& drawArc(const LineStyle&in, double startAngle, double angle, double innerThickness, double outerThickness, const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Circle& drawShadow(const Vec2&in offset, double blurRadius, double spread = 0.0, const ColorF&in color = ColorF ( 0.0 , 0.5 )) const;
 	TexturedCircle opCall(const Texture&in) const;
 	TexturedCircle opCall(const TextureRegion&in) const;
-	const Circle& paint(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const Circle& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const Circle& paintFrame(Image&inout, double, double, const Color&in, bool = Antialiased :: Yes) const;
-	const Circle& overwriteFrame(Image&inout, double, double, const Color&in, bool = Antialiased :: Yes) const;
+	const Circle& paint(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Circle& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Circle& paintFrame(Image&inout, double, double, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Circle& overwriteFrame(Image&inout, double, double, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	double x;
 	double y;
 	double r;
@@ -2370,41 +2371,41 @@ class Circle{
 }
 class Ellipse{
 	Ellipse(const Ellipse&in);
-	Ellipse(double);
-	Ellipse(double, double);
-	Ellipse(double, double, double);
-	Ellipse(double, double, double, double);
-	Ellipse(const Vec2&in);
-	Ellipse(const Vec2&in, double);
-	Ellipse(const Vec2&in, double, double);
-	Ellipse(double, double, const Vec2&in);
-	Ellipse(const Vec2&in, const Vec2&in);
+	Ellipse(double r);
+	Ellipse(double a, double b);
+	Ellipse(double x, double y, double r);
+	Ellipse(double x, double y, double a, double b);
+	Ellipse(const Vec2&in center);
+	Ellipse(const Vec2&in center, double r);
+	Ellipse(const Vec2&in center, double a, double b);
+	Ellipse(double x, double y, const Vec2&in axis);
+	Ellipse(const Vec2&in center, const Vec2&in axis);
 	Ellipse(const Circle&in);
 	Ellipse(const RectF&in);
 	bool opEquals(const RectF&in) const;
-	Ellipse& set(double, double, double, double);
-	Ellipse& set(const Vec2&in, double);
-	Ellipse& set(const Vec2&in, double, double);
-	Ellipse& set(double, double, const Vec2&in);
-	Ellipse& set(const Vec2&in, const Vec2&in);
+	Ellipse& set(double x, double y, double a, double b);
+	Ellipse& set(const Vec2&in center, double r);
+	Ellipse& set(const Vec2&in center, double a, double b);
+	Ellipse& set(double x, double y, const Vec2&in axis);
+	Ellipse& set(const Vec2&in center, const Vec2&in axis);
 	Ellipse& set(const Circle&in);
 	Ellipse& set(const RectF&in);
 	Ellipse& set(const Ellipse&in);
-	Ellipse& setCenter(double, double);
+	Ellipse& setCenter(double x, double y);
 	Ellipse& setCenter(const Vec2&in);
-	Ellipse& setPos(double, double);
-	Ellipse& setPos(const Vec2&in);
+	Ellipse& setPos(double x, double y);
+	Ellipse& setPos(const Vec2&in center);
 	Ellipse& setAxes(double);
 	Ellipse& setAxes(double, double);
 	Ellipse& setAxes(const Vec2&in);
-	Ellipse movedBy(double, double) const;
-	Ellipse movedBy(const Vec2&in) const;
-	Ellipse& moveBy(double, double);
-	Ellipse& moveBy(const Vec2&in);
-	Ellipse stretched(double) const;
-	Ellipse stretched(double, double) const;
-	Ellipse scaled(double) const;
-	Ellipse scaled(double, double) const;
+	Ellipse movedBy(double x, double y) const;
+	Ellipse movedBy(const Vec2&in xy) const;
+	Ellipse& moveBy(double x, double y);
+	Ellipse& moveBy(const Vec2&in xy);
+	Ellipse stretched(double size) const;
+	Ellipse stretched(double x, double y) const;
+	Ellipse scaled(double s) const;
+	Ellipse scaled(double sx, double sy) const;
 	Vec2 top() const;
 	Vec2 right() const;
 	Vec2 bottom() const;
@@ -2414,7 +2415,7 @@ class Ellipse{
 	double area() const;
 	Circle boundingCircle() const;
 	RectF boundingRect() const;
-	Polygon asPolygon(uint = 24) const;
+	Polygon asPolygon(uint quality = 24) const;
 	Ellipse lerp(const Ellipse&in, double) const;
 	uint64 hash() const;
 	bool intersects(const Point&in) const;
@@ -2447,10 +2448,10 @@ class Ellipse{
 	bool rightPressed() const;
 	bool rightReleased() const;
 	bool mouseOver() const;
-	const Ellipse& draw(const ColorF&in = Palette :: White) const;
-	const Ellipse& draw(const ColorF&in, const ColorF&in) const;
-	const Ellipse& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Ellipse& drawFrame(double, double, const ColorF&in = Palette :: White) const;
+	const Ellipse& draw(const ColorF&in color = Palette :: White) const;
+	const Ellipse& draw(const ColorF&in innerColor, const ColorF&in outerColor) const;
+	const Ellipse& drawFrame(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	const Ellipse& drawFrame(double inner, double outer, const ColorF&in color = Palette :: White) const;
 	const Ellipse& paint(Image&inout, const Color&in) const;
 	const Ellipse& overwrite(Image&inout, const Color&in) const;
 	double x;
@@ -2461,13 +2462,13 @@ class Ellipse{
 }
 class Triangle{
 	Triangle(const Triangle&in);
-	Triangle(double);
-	Triangle(double, double);
-	Triangle(double, double, double);
-	Triangle(const Vec2&in, double);
-	Triangle(double, double, double, double);
-	Triangle(const Vec2&in, double, double);
-	Triangle(double, double, double, double, double, double);
+	Triangle(double sides);
+	Triangle(double sides, double angle);
+	Triangle(double x, double y, double sides);
+	Triangle(const Vec2&in, double sides);
+	Triangle(double x, double y, double sides, double angle);
+	Triangle(const Vec2&in, double sides, double angle);
+	Triangle(double x0, double y0, double x1, double y1, double x2, double y2);
 	Triangle(const Vec2&in, const Vec2&in, const Vec2&in);
 	bool opEquals(const Triangle&in) const;
 	Triangle& set(double, double, double, double, double, double);
@@ -2506,7 +2507,7 @@ class Triangle{
 	Circle getInscribedCircle() const;
 	Polygon calculateBuffer(double) const;
 	Polygon calculateRoundBuffer(double) const;
-	LineString outline(bool = CloseRing :: No) const;
+	LineString outline(bool closeRing = CloseRing :: No) const;
 	LineString outline(double, double) const;
 	Polygon asPolygon() const;
 	Triangle lerp(const Triangle&in, double) const;
@@ -2540,19 +2541,19 @@ class Triangle{
 	bool mouseOver() const;
 	const Triangle& draw(const ColorF&in = Palette :: White) const;
 	const Triangle& draw(const ColorF&in, const ColorF&in, const ColorF&in) const;
-	const Triangle& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Triangle& drawFrame(double, double, const ColorF&in = Palette :: White) const;
+	const Triangle& drawFrame(double thickness = 1.0, const ColorF&in = Palette :: White) const;
+	const Triangle& drawFrame(double innerThickness, double outerThickness, const ColorF&in = Palette :: White) const;
 	const Triangle& paint(Image&inout, const Color&in) const;
-	const Triangle& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
+	const Triangle& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	const Triangle& paintFrame(Image&inout, int, const Color&in) const;
-	const Triangle& overwriteFrame(Image&inout, int, const Color&in, bool = Antialiased :: Yes) const;
+	const Triangle& overwriteFrame(Image&inout, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	Vec2 p0;
 	Vec2 p1;
 	Vec2 p2;
 }
 class Quad{
 	Quad(const Quad&in);
-	Quad(double, double, double, double, double, double, double, double);
+	Quad(double x0, double y0, double x1, double y1, double x2, double y2, double x3, double y3);
 	Quad(const Vec2&in, const Vec2&in, const Vec2&in, const Vec2&in);
 	Quad(const Rect&in);
 	Quad(const RectF&in);
@@ -2589,7 +2590,7 @@ class Quad{
 	RectF boundingRect() const;
 	Polygon calculateBuffer(double) const;
 	Polygon calculateRoundBuffer(double) const;
-	LineString outline(bool = CloseRing :: No) const;
+	LineString outline(bool closeRing = CloseRing :: No) const;
 	LineString outline(double, double) const;
 	Polygon asPolygon() const;
 	Quad lerp(const Quad&in, double) const;
@@ -2623,14 +2624,14 @@ class Quad{
 	bool mouseOver() const;
 	const Quad& draw(const ColorF&in = Palette :: White) const;
 	const Quad& draw(const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	const Quad& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Quad& drawFrame(double, double, const ColorF&in = Palette :: White) const;
+	const Quad& drawFrame(double thickness = 1.0, const ColorF&in = Palette :: White) const;
+	const Quad& drawFrame(double innerThickness, double outerThickness, const ColorF&in = Palette :: White) const;
 	TexturedQuad opCall(const Texture&in) const;
 	TexturedQuad opCall(const TextureRegion&in) const;
 	const Quad& paint(Image&inout, const Color&in) const;
-	const Quad& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
+	const Quad& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	const Quad& paintFrame(Image&inout, int, const Color&in) const;
-	const Quad& overwriteFrame(Image&inout, int, const Color&in, bool = Antialiased :: Yes) const;
+	const Quad& overwriteFrame(Image&inout, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	Vec2 p0;
 	Vec2 p1;
 	Vec2 p2;
@@ -2638,12 +2639,12 @@ class Quad{
 }
 class RoundRect{
 	RoundRect(const RoundRect&in);
-	RoundRect(double, double, double, double, double);
-	RoundRect(const Vec2&in, double, double, double);
-	RoundRect(double, double, const Vec2&in, double);
-	RoundRect(const Vec2&in, double, double);
-	RoundRect(const Vec2&in, const Vec2&in, double);
-	RoundRect(const RectF&in, double);
+	RoundRect(double _x, double _y, double _w, double _h, double _r);
+	RoundRect(const Vec2&in, double _w, double _h, double _r);
+	RoundRect(double _x, double _y, const Vec2&in, double _r);
+	RoundRect(const Vec2&in, double size, double r);
+	RoundRect(const Vec2&in, const Vec2&in, double r);
+	RoundRect(const RectF&in, double r);
 	bool opEquals(const RoundRect&in) const;
 	RoundRect& set(double, double, double, double, double);
 	RoundRect& set(const Vec2&in, double, double, double);
@@ -2672,7 +2673,7 @@ class RoundRect{
 	Vec2 center() const;
 	double area() const;
 	double perimeter() const;
-	Polygon asPolygon(uint = 24) const;
+	Polygon asPolygon(uint quality = 24) const;
 	RoundRect lerp(const RoundRect&in, double) const;
 	uint64 hash() const;
 	bool intersects(const Point&in) const;
@@ -2695,15 +2696,15 @@ class RoundRect{
 	bool rightReleased() const;
 	bool mouseOver() const;
 	const RoundRect& draw(const ColorF&in = Palette :: White) const;
-	const RoundRect& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const RoundRect& drawFrame(double, double, const ColorF&in = Palette :: White) const;
-	const RoundRect& drawShadow(const Vec2&in, double, double = 0.0, const ColorF&in = ColorF ( 0.0 , 0.5 ), bool = true) const;
+	const RoundRect& drawFrame(double thickness = 1.0, const ColorF&in = Palette :: White) const;
+	const RoundRect& drawFrame(double innerThickness, double outerThickness, const ColorF&in = Palette :: White) const;
+	const RoundRect& drawShadow(const Vec2&in offset, double blurRadius, double spread = 0.0, const ColorF&in color = ColorF ( 0.0 , 0.5 ), bool fill = true) const;
 	TexturedRoundRect opCall(const Texture&in) const;
 	TexturedRoundRect opCall(const TextureRegion&in) const;
 	const RoundRect& paint(Image&inout, const Color&in) const;
-	const RoundRect& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
+	const RoundRect& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	const RoundRect& paintFrame(Image&inout, int, int, const Color&in) const;
-	const RoundRect& overwriteFrame(Image&inout, int, int, const Color&in, bool = Antialiased :: Yes) const;
+	const RoundRect& overwriteFrame(Image&inout, int, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
 	double x;
 	double y;
 	double w;
@@ -2731,9 +2732,9 @@ class Polygon{
 	bool addHole(const RectF&in) const;
 	bool addHole(const Triangle&in) const;
 	bool addHole(const Quad&in) const;
-	bool addHole(const Circle&in, uint = 24) const;
-	bool addHole(const Ellipse&in, uint = 24) const;
-	bool addHole(const RoundRect&in, uint = 24) const;
+	bool addHole(const Circle&in, uint quality = 24) const;
+	bool addHole(const Ellipse&in, uint quality = 24) const;
+	bool addHole(const RoundRect&in, uint quality = 24) const;
 	bool addHole(const Array<Vec2>&in) const;
 	Polygon movedBy(double, double) const;
 	Polygon movedBy(Vec2) const;
@@ -2745,19 +2746,19 @@ class Polygon{
 	Polygon& rotate(double);
 	Polygon& rotateAt(double, double, double);
 	Polygon& rotateAt(Vec2, double);
-	Polygon transformed(double, double, const Vec2&in) const;
-	Polygon& transform(double, double, const Vec2&in);
-	Polygon scaled(double) const;
-	Polygon scaled(double, double) const;
+	Polygon transformed(double s, double c, const Vec2&in) const;
+	Polygon& transform(double s, double c, const Vec2&in);
+	Polygon scaled(double s) const;
+	Polygon scaled(double sx, double sy) const;
 	Polygon scaled(Vec2) const;
-	Polygon& scale(double);
-	Polygon& scale(double, double);
+	Polygon& scale(double s);
+	Polygon& scale(double sx, double sy);
 	Polygon& scale(Vec2);
-	Polygon scaledAt(Vec2, double) const;
-	Polygon scaledAt(Vec2, double, double) const;
+	Polygon scaledAt(Vec2, double s) const;
+	Polygon scaledAt(Vec2, double sx, double sy) const;
 	Polygon scaledAt(Vec2, Vec2) const;
-	Polygon& scaleAt(Vec2, double);
-	Polygon& scaleAt(Vec2, double, double);
+	Polygon& scaleAt(Vec2, double s);
+	Polygon& scaleAt(Vec2, double sx, double sy);
 	Polygon& scaleAt(Vec2, Vec2);
 	double area() const;
 	double perimeter() const;
@@ -2765,8 +2766,8 @@ class Polygon{
 	Polygon computeConvexHull() const;
 	Polygon calculateBuffer(double) const;
 	Polygon calculateRoundBuffer(double) const;
-	Polygon simplified(double = 2.0) const;
-	LineString outline(bool = CloseRing :: No) const;
+	Polygon simplified(double maxDistance = 2.0) const;
+	LineString outline(bool closeRing = CloseRing :: No) const;
 	LineString outline(double, double) const;
 	bool append(const RectF&in);
 	bool append(const Polygon&in);
@@ -2797,23 +2798,23 @@ class Polygon{
 	bool rightPressed() const;
 	bool rightReleased() const;
 	bool mouseOver() const;
-	const Polygon& draw(const ColorF&in = Palette :: White) const;
-	void draw(double, double, const ColorF&in = Palette :: White) const;
-	void draw(const Vec2&in, const ColorF&in = Palette :: White) const;
-	void drawTransformed(double, const Vec2&in, const ColorF&in = Palette :: White) const;
-	void drawTransformed(double, double, const Vec2&in, const ColorF&in = Palette :: White) const;
-	const Polygon& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	void drawFrame(double, double, double = 1.0, const ColorF&in = Palette :: White) const;
-	void drawFrame(const Vec2&in, double = 1.0, const ColorF&in = Palette :: White) const;
-	const Polygon& drawWireframe(double = 1.0, const ColorF&in = Palette :: White) const;
-	void drawWireframe(double, double, double = 1.0, const ColorF&in = Palette :: White) const;
-	void drawWireframe(const Vec2&in, double = 1.0, const ColorF&in = Palette :: White) const;
+	const Polygon& draw(const ColorF&in color = Palette :: White) const;
+	void draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	void draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
+	void drawTransformed(double angle, const Vec2&in, const ColorF&in color = Palette :: White) const;
+	void drawTransformed(double s, double c, const Vec2&in, const ColorF&in color = Palette :: White) const;
+	const Polygon& drawFrame(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	void drawFrame(double x, double y, double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	void drawFrame(const Vec2&in, double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	const Polygon& drawWireframe(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	void drawWireframe(double x, double y, double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	void drawWireframe(const Vec2&in, double thickness = 1.0, const ColorF&in color = Palette :: White) const;
 	const Polygon& paint(Image&inout, const Color&in) const;
 	const Polygon& paint(Image&inout, double, double, const Color&in) const;
 	const Polygon& paint(Image&inout, const Vec2&in, const Color&in) const;
-	const Polygon& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const Polygon& overwrite(Image&inout, double, double, const Color&in, bool = Antialiased :: Yes) const;
-	const Polygon& overwrite(Image&inout, const Vec2&in, const Color&in, bool = Antialiased :: Yes) const;
+	const Polygon& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Polygon& overwrite(Image&inout, double, double, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const Polygon& overwrite(Image&inout, const Vec2&in, const Color&in, bool antialiased = Antialiased :: Yes) const;
 }
 class LineString{
 	~LineString();
@@ -2828,10 +2829,10 @@ class LineString{
 	void assign(const LineString&in);
 	void assign(const Array<Point>&in);
 	void assign(const Array<Vec2>&in);
-	Vec2& at(uint64);
-	const Vec2& at(uint64) const;
-	Vec2& opIndex(uint64);
-	const Vec2& opIndex(uint64) const;
+	Vec2& at(uint64 index);
+	const Vec2& at(uint64 index) const;
+	Vec2& opIndex(uint64 index);
+	const Vec2& opIndex(uint64 index) const;
 	void push_front(const Vec2&in);
 	void push_back(const Vec2&in);
 	void pop_front();
@@ -2856,10 +2857,10 @@ class LineString{
 	void resize(uint64);
 	LineString& fill(const Vec2&in);
 	uint64 num_points() const;
-	uint64 num_lines(bool = CloseRing :: No) const;
-	Line line(uint64, bool = CloseRing :: No) const;
-	Vec2 normalAtPoint(uint64, bool = CloseRing :: No) const;
-	Vec2 normalAtLine(uint64, bool = CloseRing :: No) const;
+	uint64 num_lines(bool closeRing = CloseRing :: No) const;
+	Line line(uint64 index, bool closeRing = CloseRing :: No) const;
+	Vec2 normalAtPoint(uint64 index, bool closeRing = CloseRing :: No) const;
+	Vec2 normalAtLine(uint64 index, bool closeRing = CloseRing :: No) const;
 	LineString movedBy(double, double) const;
 	LineString movedBy(Vec2) const;
 	LineString& moveBy(double, double);
@@ -2877,18 +2878,18 @@ class LineString{
 	LineString& scaleAt(Vec2, double, double);
 	LineString& scaleAt(Vec2, Vec2);
 	RectF computeBoundingRect() const;
-	LineString simplified(double = 2.0, bool = CloseRing :: No) const;
-	LineString densified(double = 2.0, bool = CloseRing :: No) const;
-	LineString catmullRom(int = 24) const;
-	LineString catmullRom(bool, int = 24) const;
-	double calculateLength(bool = CloseRing :: No) const;
-	Vec2 calculatePointFromOrigin(double, bool = CloseRing :: No) const;
-	LineString extractLineString(double, double, bool = CloseRing :: No) const;
-	Polygon calculateBuffer(double, int = 24) const;
-	Polygon calculateBufferClosed(double, int = 24) const;
-	Polygon calculateRoundBuffer(double, int = 24) const;
-	Polygon calculateRoundBufferClosed(double, int = 24) const;
-	Spline2D asSpline(bool = CloseRing :: No) const;
+	LineString simplified(double maxDistance = 2.0, bool closeRing = CloseRing :: No) const;
+	LineString densified(double maxDistance = 2.0, bool closeRing = CloseRing :: No) const;
+	LineString catmullRom(int interpolation = 24) const;
+	LineString catmullRom(bool closeRing, int interpolation = 24) const;
+	double calculateLength(bool closeRing = CloseRing :: No) const;
+	Vec2 calculatePointFromOrigin(double, bool closeRing = CloseRing :: No) const;
+	LineString extractLineString(double, double, bool closeRing = CloseRing :: No) const;
+	Polygon calculateBuffer(double distance, int quality = 24) const;
+	Polygon calculateBufferClosed(double distance, int quality = 24) const;
+	Polygon calculateRoundBuffer(double distance, int quality = 24) const;
+	Polygon calculateRoundBufferClosed(double distance, int quality = 24) const;
+	Spline2D asSpline(bool closeRing = CloseRing :: No) const;
 	bool intersects(const Point&in) const;
 	bool intersects(const Vec2&in) const;
 	bool intersects(const Line&in) const;
@@ -2914,19 +2915,19 @@ class LineString{
 	const LineString& paint(Image&inout, int, const Color&in) const;
 	const LineString& paintClosed(Image&inout, const Color&in) const;
 	const LineString& paintClosed(Image&inout, int, const Color&in) const;
-	const LineString& overwrite(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const LineString& overwrite(Image&inout, int, const Color&in, bool = Antialiased :: Yes) const;
-	const LineString& overwriteClosed(Image&inout, const Color&in, bool = Antialiased :: Yes) const;
-	const LineString& overwriteClosed(Image&inout, int, const Color&in, bool = Antialiased :: Yes) const;
+	const LineString& overwrite(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const LineString& overwrite(Image&inout, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const LineString& overwriteClosed(Image&inout, const Color&in, bool antialiased = Antialiased :: Yes) const;
+	const LineString& overwriteClosed(Image&inout, int, const Color&in, bool antialiased = Antialiased :: Yes) const;
 }
 class Spline2D{
 	~Spline2D();
 	Spline2D();
 	Spline2D(const LineString&in);
-	Spline2D(const Array<Vec2>&in, double = 0.0);
-	Spline2D(const LineString&in, double = 0.0);
-	Spline2D(const Array<Vec2>&in, bool, double = 0.0);
-	Spline2D(const LineString&in, bool, double = 0.0);
+	Spline2D(const Array<Vec2>&in, double tension = 0.0);
+	Spline2D(const LineString&in, double tension = 0.0);
+	Spline2D(const Array<Vec2>&in, bool closeRing, double tension = 0.0);
+	Spline2D(const LineString&in, bool closeRing, double tension = 0.0);
 	Spline2D& opAssign(const Spline2D&in);
 	uint64 size() const;
 	bool isEmpty() const;
@@ -2935,17 +2936,17 @@ class Spline2D{
 	void clear();
 	RectF fastBoundingRect(uint64) const;
 	RectF boundingRect(uint64) const;
-	double length(uint64, double = 0.01) const;
-	double length(uint64, double, double, double = 0.01) const;
+	double length(uint64 i, double maxError = 0.01) const;
+	double length(uint64 i, double t0, double t1, double maxError = 0.01) const;
 	Vec2 position(uint64, double) const;
 	Vec2 velocity(uint64, double) const;
 	Vec2 boundingRect(uint64, double) const;
 	double curvature(uint64, double) const;
-	LineString asLineString(int = 24) const;
-	Polygon calculateRoundBuffer(double, int = 24, int = 24) const;
-	const Spline2D& draw(const ColorF&in = Palette :: White, int = 24) const;
-	const Spline2D& draw(double, const ColorF&in = Palette :: White, int = 24) const;
-	const Spline2D& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int = 24) const;
+	LineString asLineString(int quality = 24) const;
+	Polygon calculateRoundBuffer(double distance, int quality = 24, int bufferQuality = 24) const;
+	const Spline2D& draw(const ColorF&in = Palette :: White, int quality = 24) const;
+	const Spline2D& draw(double, const ColorF&in = Palette :: White, int quality = 24) const;
+	const Spline2D& draw(const LineStyle&in, double, const ColorF&in = Palette :: White, int quality = 24) const;
 	void swap(Spline2D&inout);
 }
 class LineStyleParameters{
@@ -2972,9 +2973,9 @@ class Shape2D{
 	Shape2D(const Shape2D&in);
 	Shape2D(const Array<Float2>&in, const Array<TriangleIndex>&in);
 	Shape2D& opAssign(const Shape2D&in);
-	const Shape2D& draw(const ColorF&in = Palette :: White) const;
-	const Shape2D& drawFrame(double = 1.0, const ColorF&in = Palette :: White) const;
-	const Shape2D& drawWireframe(double = 1.0, const ColorF&in = Palette :: White) const;
+	const Shape2D& draw(const ColorF&in color = Palette :: White) const;
+	const Shape2D& drawFrame(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
+	const Shape2D& drawWireframe(double thickness = 1.0, const ColorF&in color = Palette :: White) const;
 	Polygon asPolygon() const;
 }
 class FloatRect{
@@ -3003,12 +3004,12 @@ class Image{
 	~Image();
 	Image();
 	Image(const Image&in);
-	Image(uint64);
-	Image(uint64, const Color&in);
+	Image(uint64 size);
+	Image(uint64 size, const Color&in);
 	Image(const Point&in);
 	Image(const Point&in, const Color&in);
-	Image(uint64, uint64);
-	Image(uint64, uint64, const Color&in);
+	Image(uint64 w, uint64 h);
+	Image(uint64 w, uint64 h, const Color&in);
 	Image(const String&in);
 	Image(const String&in, const String&in);
 	Image(const Color&in, const String&in);
@@ -3028,24 +3029,24 @@ class Image{
 	void release();
 	void swap(Image&inout);
 	Image cloned() const;
-	Color& opIndex(uint, uint);
-	const Color& opIndex(uint, uint) const;
+	Color& opIndex(uint x, uint y);
+	const Color& opIndex(uint x, uint y) const;
 	Color& opIndex(const Point&in);
 	const Color& opIndex(const Point&in) const;
 	void fill(Color);
-	void resize(uint64, uint64);
+	void resize(uint64 x, uint64 y);
 	void resize(Point);
-	void resize(uint64, uint64, const Color&in);
+	void resize(uint64 x, uint64 y, const Color&in);
 	void resize(Point, Color);
 	void resizeRows(uint64, Color);
 	Image clipped(const Rect&in) const;
-	Image clipped(int, int, int, int) const;
-	Image clipped(const Point&in, int, int) const;
-	Image clipped(int, int, const Point&in) const;
-	Image clipped(const Point&in, const Point&in) const;
+	Image clipped(int x, int y, int w, int h) const;
+	Image clipped(const Point&in pos, int w, int h) const;
+	Image clipped(int x, int y, const Point&in size) const;
+	Image clipped(const Point&in pos, const Point&in size) const;
 	Image squareClipped() const;
 	Image& RGBAtoBGRA();
-	bool save(const String&in, ImageFormat = ImageFormat :: Unspecified) const;
+	bool save(const String&in, ImageFormat format = ImageFormat :: Unspecified) const;
 	bool saveWithDialog() const;
 	Image& negate();
 	Image negated() const;
@@ -3069,12 +3070,12 @@ class Image{
 	Image rotated270() const;
 	Image& gammaCorrect(double);
 	Image gammaCorrected(double) const;
-	Image& threshold(uint8, bool = InvertColor :: No);
-	Image thresholded(uint8, bool = InvertColor :: No) const;
-	Image& threshold_Otsu(bool = InvertColor :: No);
-	Image thresholded_Otsu(bool = InvertColor :: No) const;
-	Image& adaptiveThreshold(AdaptiveThresholdMethod, int, double, bool = InvertColor :: No);
-	Image adaptiveThresholded(AdaptiveThresholdMethod, int, double, bool = InvertColor :: No) const;
+	Image& threshold(uint8, bool invertColor = InvertColor :: No);
+	Image thresholded(uint8, bool invertColor = InvertColor :: No) const;
+	Image& threshold_Otsu(bool invertColor = InvertColor :: No);
+	Image thresholded_Otsu(bool invertColor = InvertColor :: No) const;
+	Image& adaptiveThreshold(AdaptiveThresholdMethod method, int blockSize, double c, bool invertColor = InvertColor :: No);
+	Image adaptiveThresholded(AdaptiveThresholdMethod method, int blockSize, double c, bool invertColor = InvertColor :: No) const;
 	Image& mosaic(int);
 	Image& mosaic(int, int);
 	Image mosaiced(int) const;
@@ -3083,38 +3084,38 @@ class Image{
 	Image& spread(int, int);
 	Image spreaded(int) const;
 	Image spreaded(int, int) const;
-	Image& blur(int, BorderType = BorderType :: Reflect_101);
-	Image& blur(int, int, BorderType = BorderType :: Reflect_101);
-	Image blurred(int, BorderType = BorderType :: Reflect_101) const;
-	Image blurred(int, int, BorderType = BorderType :: Reflect_101) const;
+	Image& blur(int, BorderType borderType = BorderType :: Reflect_101);
+	Image& blur(int, int, BorderType borderType = BorderType :: Reflect_101);
+	Image blurred(int, BorderType borderType = BorderType :: Reflect_101) const;
+	Image blurred(int, int, BorderType borderType = BorderType :: Reflect_101) const;
 	Image& medianBlur(int);
 	Image medianBlurred(int) const;
-	Image& gaussianBlur(int, BorderType = BorderType :: Reflect_101);
-	Image& gaussianBlur(int, int, BorderType = BorderType :: Reflect_101);
-	Image gaussianBlurred(int, BorderType = BorderType :: Reflect_101) const;
-	Image gaussianBlurred(int, int, BorderType = BorderType :: Reflect_101) const;
-	Image& bilateralFilter(int, double, double, BorderType = BorderType :: Reflect_101);
-	Image bilateralFiltered(int, double, double, BorderType = BorderType :: Reflect_101) const;
-	Image& dilate(int = 1);
-	Image dilated(int = 1) const;
-	Image& erode(int = 1);
-	Image eroded(int = 1) const;
-	Image& floodFill(const Point&in, const Color&in, FloodFillConnectivity = FloodFillConnectivity :: Value4, int = 0, int = 0);
-	Image floodFilled(const Point&in, const Color&in, FloodFillConnectivity = FloodFillConnectivity :: Value4, int = 0, int = 0) const;
-	Image& scale(int, int, InterpolationAlgorithm = InterpolationAlgorithm :: Auto);
-	Image scaled(int, int, InterpolationAlgorithm = InterpolationAlgorithm :: Auto) const;
-	Image& scale(const Point&in, InterpolationAlgorithm = InterpolationAlgorithm :: Auto);
-	Image scaled(const Point&in, InterpolationAlgorithm = InterpolationAlgorithm :: Auto) const;
-	Image& scale(double, InterpolationAlgorithm = InterpolationAlgorithm :: Auto);
-	Image scaled(double, InterpolationAlgorithm = InterpolationAlgorithm :: Auto) const;
-	Image& fit(int, int, bool = AllowScaleUp :: Yes, InterpolationAlgorithm = InterpolationAlgorithm :: Auto);
-	Image fitted(int, int, bool = AllowScaleUp :: Yes, InterpolationAlgorithm = InterpolationAlgorithm :: Auto) const;
-	Image& fit(const Point&in, bool = AllowScaleUp :: Yes, InterpolationAlgorithm = InterpolationAlgorithm :: Auto);
-	Image fitted(const Point&in, bool = AllowScaleUp :: Yes, InterpolationAlgorithm = InterpolationAlgorithm :: Auto) const;
+	Image& gaussianBlur(int, BorderType borderType = BorderType :: Reflect_101);
+	Image& gaussianBlur(int, int, BorderType borderType = BorderType :: Reflect_101);
+	Image gaussianBlurred(int, BorderType borderType = BorderType :: Reflect_101) const;
+	Image gaussianBlurred(int, int, BorderType borderType = BorderType :: Reflect_101) const;
+	Image& bilateralFilter(int d, double sigmaColor, double sigmaSpace, BorderType borderType = BorderType :: Reflect_101);
+	Image bilateralFiltered(int d, double sigmaColor, double sigmaSpace, BorderType borderType = BorderType :: Reflect_101) const;
+	Image& dilate(int iterations = 1);
+	Image dilated(int iterations = 1) const;
+	Image& erode(int iterations = 1);
+	Image eroded(int iterations = 1) const;
+	Image& floodFill(const Point&in, const Color&in, FloodFillConnectivity connectivity = FloodFillConnectivity :: Value4, int lowerDifference = 0, int upperDifference = 0);
+	Image floodFilled(const Point&in, const Color&in, FloodFillConnectivity connectivity = FloodFillConnectivity :: Value4, int lowerDifference = 0, int upperDifference = 0) const;
+	Image& scale(int width, int height, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto);
+	Image scaled(int width, int height, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto) const;
+	Image& scale(const Point&in, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto);
+	Image scaled(const Point&in, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto) const;
+	Image& scale(double scaling, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto);
+	Image scaled(double scaling, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto) const;
+	Image& fit(int width, int height, bool allowScaleUp = AllowScaleUp :: Yes, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto);
+	Image fitted(int width, int height, bool allowScaleUp = AllowScaleUp :: Yes, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto) const;
+	Image& fit(const Point&in, bool allowScaleUp = AllowScaleUp :: Yes, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto);
+	Image fitted(const Point&in, bool allowScaleUp = AllowScaleUp :: Yes, InterpolationAlgorithm interpolation = InterpolationAlgorithm :: Auto) const;
 	Image& border(int, const Color&in = Palette :: White);
 	Image bordered(int, const Color&in = Palette :: White) const;
-	Image& border(int, int, int, int, const Color&in = Palette :: White);
-	Image bordered(int, int, int, int, const Color&in = Palette :: White) const;
+	Image& border(int top, int right, int bottom, int left, const Color&in = Palette :: White);
+	Image bordered(int top, int right, int bottom, int left, const Color&in = Palette :: White) const;
 	Image warpAffine(const Mat3x2&in, const Color&in = Color ( 0 , 0 )) const;
 	Image rotated(double, const Color&in = Color ( 0 , 0 )) const;
 	Image warpPerspective(const Quad&in, const Color&in = Color ( 0 , 0 )) const;
@@ -3130,10 +3131,10 @@ class Image{
 	void stampAt(Image&inout, const Point&in, const Color&in = Palette :: White) const;
 	void overwriteAt(Image&inout, int, int) const;
 	void overwriteAt(Image&inout, Point) const;
-	Polygon alphaToPolygon(uint = 160, bool = AllowHoles :: Yes) const;
-	Polygon alphaToPolygonCentered(uint = 160, bool = AllowHoles :: Yes) const;
-	Polygon grayscaleToPolygon(uint = 160, bool = AllowHoles :: Yes) const;
-	Polygon grayscaleToPolygonCentered(uint = 160, bool = AllowHoles :: Yes) const;
+	Polygon alphaToPolygon(uint threshold = 160, bool allowHoles = AllowHoles :: Yes) const;
+	Polygon alphaToPolygonCentered(uint threshold = 160, bool allowHoles = AllowHoles :: Yes) const;
+	Polygon grayscaleToPolygon(uint threshold = 160, bool allowHoles = AllowHoles :: Yes) const;
+	Polygon grayscaleToPolygonCentered(uint threshold = 160, bool allowHoles = AllowHoles :: Yes) const;
 }
 class TextureFormat{
 	TextureFormat();
@@ -3157,7 +3158,7 @@ class Texture{
 	Texture(const String&in, const String&in, TextureDesc = TextureDesc :: Unmipped);
 	Texture(const Color&in, const String&in, TextureDesc = TextureDesc :: Unmipped);
 	Texture(const Emoji&in, TextureDesc = TextureDesc :: Mipped);
-	Texture(const Icon&in, int, TextureDesc = TextureDesc :: Mipped);
+	Texture(const Icon&in, int size, TextureDesc = TextureDesc :: Mipped);
 	Texture& opAssign(const Texture&in);
 	void release();
 	bool opImplConv() const;
@@ -3176,20 +3177,20 @@ class Texture{
 	RectF region(Vec2) const;
 	RectF regionAt(double, double) const;
 	RectF regionAt(Vec2) const;
-	RectF draw(const ColorF&in = Palette :: White) const;
+	RectF draw(const ColorF&in color = Palette :: White) const;
 	RectF draw(const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF draw(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF drawAt(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
+	RectF drawClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
 	TextureRegion opCall(double, double, double, double) const;
 	TextureRegion opCall(const Vec2&in, double, double) const;
 	TextureRegion opCall(double, double, double) const;
@@ -3212,8 +3213,8 @@ class Texture{
 	TextureRegion repeated(Vec2) const;
 	TextureRegion mapped(double, double) const;
 	TextureRegion mapped(Vec2) const;
-	TextureRegion fitted(double, double, bool = AllowScaleUp :: Yes) const;
-	TextureRegion fitted(const Vec2&in, bool = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(double, double, bool scaleUp = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(const Vec2&in, bool scaleUp = AllowScaleUp :: Yes) const;
 	TexturedQuad rotated(double) const;
 	TexturedQuad rotatedAt(double, double, double) const;
 	TexturedQuad rotatedAt(const Vec2&in, double) const;
@@ -3228,25 +3229,25 @@ class TextureRegion{
 	TextureRegion(const Texture&in);
 	TextureRegion& opAssign(const TextureRegion&in);
 	RectF region(double, double) const;
-	RectF region(Vec2 = Vec2 ( 0 , 0 )) const;
+	RectF region(Vec2 pos = Vec2 ( 0 , 0 )) const;
 	RectF regionAt(double, double) const;
 	RectF regionAt(Vec2) const;
 	TextureRegion stretched(double, double) const;
 	TextureRegion stretched(Vec2) const;
-	RectF draw(const ColorF&in = Palette :: White) const;
+	RectF draw(const ColorF&in color = Palette :: White) const;
 	RectF draw(const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF draw(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF drawAt(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
+	RectF drawClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
 	TextureRegion mirrored() const;
 	TextureRegion mirrored(bool) const;
 	TextureRegion flipped() const;
@@ -3257,8 +3258,8 @@ class TextureRegion{
 	TextureRegion resized(double) const;
 	TextureRegion resized(double, double) const;
 	TextureRegion resized(Vec2) const;
-	TextureRegion fitted(double, double, bool = AllowScaleUp :: Yes) const;
-	TextureRegion fitted(Vec2, bool = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(double, double, bool scaleUp = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(Vec2, bool scaleUp = AllowScaleUp :: Yes) const;
 	TexturedQuad rotated(double) const;
 	TexturedQuad rotatedAt(double, double, double) const;
 	TexturedQuad rotatedAt(const Vec2&in, double) const;
@@ -3272,11 +3273,11 @@ class TexturedQuad{
 	TexturedQuad();
 	TexturedQuad(const TexturedQuad&in);
 	TextureRegion& opAssign(const TextureRegion&in);
-	const Quad& draw(const ColorF&in = Palette :: White) const;
-	Quad draw(double, double, const ColorF&in = Palette :: White) const;
-	Quad draw(const Vec2&in, const ColorF&in = Palette :: White) const;
-	Quad drawAt(double, double, const ColorF&in = Palette :: White) const;
-	Quad drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	const Quad& draw(const ColorF&in color = Palette :: White) const;
+	Quad draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	Quad draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
+	Quad drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	Quad drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	Quad quad;
 	Texture texture;
 	FloatRect uvRect;
@@ -3289,9 +3290,9 @@ class TexturedCircle{
 	TexturedCircle(const Texture&in, float, float, float, float, const Circle&in);
 	TexturedCircle(const Texture&in, const FloatRect&in, const Circle&in);
 	TexturedCircle& opAssign(const TexturedCircle&in);
-	const Circle& draw(const ColorF&in = Palette :: White) const;
-	Circle draw(double, double, const ColorF&in = Palette :: White) const;
-	Circle draw(const Vec2&in, const ColorF&in = Palette :: White) const;
+	const Circle& draw(const ColorF&in color = Palette :: White) const;
+	Circle draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	Circle draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	Circle circle;
 	Texture texture;
 	FloatRect uvRect;
@@ -3303,11 +3304,11 @@ class TexturedRoundRect{
 	TexturedRoundRect(const Texture&in, float, float, float, float, const RoundRect&in);
 	TexturedRoundRect(const Texture&in, const FloatRect&in, const RoundRect&in);
 	TexturedRoundRect& opAssign(const TexturedRoundRect&in);
-	const RoundRect& draw(const ColorF&in = Palette :: White) const;
-	RoundRect draw(double, double, const ColorF&in = Palette :: White) const;
-	RoundRect draw(const Vec2&in, const ColorF&in = Palette :: White) const;
-	RoundRect drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RoundRect drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	const RoundRect& draw(const ColorF&in color = Palette :: White) const;
+	RoundRect draw(double, double, const ColorF&in color = Palette :: White) const;
+	RoundRect draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
+	RoundRect drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RoundRect drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RoundRect rect;
 	Texture texture;
 	FloatRect uvRect;
@@ -3316,12 +3317,12 @@ class DynamicTexture{
 	~DynamicTexture();
 	DynamicTexture();
 	DynamicTexture(const DynamicTexture&in);
-	DynamicTexture(uint, uint, const TextureFormat&in = TextureFormat :: R8G8B8A8_Unorm, TextureDesc = TextureDesc :: Unmipped);
-	DynamicTexture(uint, uint, const ColorF&inout, const TextureFormat&in = TextureFormat :: R8G8B8A8_Unorm, TextureDesc = TextureDesc :: Unmipped);
-	DynamicTexture(const Point&in, const TextureFormat&in = TextureFormat :: R8G8B8A8_Unorm, TextureDesc = TextureDesc :: Unmipped);
-	DynamicTexture(const Point&in, const ColorF&inout, const TextureFormat&in = TextureFormat :: R8G8B8A8_Unorm, TextureDesc = TextureDesc :: Unmipped);
-	DynamicTexture(const Image&in, TextureDesc);
-	DynamicTexture(const Image&in, const TextureFormat&in = TextureFormat :: R8G8B8A8_Unorm, TextureDesc = TextureDesc :: Unmipped);
+	DynamicTexture(uint, uint, const TextureFormat&in format = TextureFormat :: R8G8B8A8_Unorm, TextureDesc desc = TextureDesc :: Unmipped);
+	DynamicTexture(uint, uint, const ColorF&inout color, const TextureFormat&in format = TextureFormat :: R8G8B8A8_Unorm, TextureDesc desc = TextureDesc :: Unmipped);
+	DynamicTexture(const Point&in, const TextureFormat&in format = TextureFormat :: R8G8B8A8_Unorm, TextureDesc desc = TextureDesc :: Unmipped);
+	DynamicTexture(const Point&in, const ColorF&inout color, const TextureFormat&in format = TextureFormat :: R8G8B8A8_Unorm, TextureDesc desc = TextureDesc :: Unmipped);
+	DynamicTexture(const Image&in, TextureDesc desc);
+	DynamicTexture(const Image&in, const TextureFormat&in format = TextureFormat :: R8G8B8A8_Unorm, TextureDesc desc = TextureDesc :: Unmipped);
 	bool fill(const ColorF&in);
 	bool fillRegion(const ColorF&in, const Rect&in);
 	bool fill(const Image&in);
@@ -3347,20 +3348,20 @@ class DynamicTexture{
 	RectF region(Vec2) const;
 	RectF regionAt(double, double) const;
 	RectF regionAt(Vec2) const;
-	RectF draw(const ColorF&in = Palette :: White) const;
+	RectF draw(const ColorF&in color = Palette :: White) const;
 	RectF draw(const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF draw(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF drawAt(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in = Palette :: White) const;
+	RectF drawClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
+	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in color = Palette :: White) const;
 	TextureRegion opCall(double, double, double, double) const;
 	TextureRegion opCall(const Vec2&in, double, double) const;
 	TextureRegion opCall(double, double, double) const;
@@ -3383,8 +3384,8 @@ class DynamicTexture{
 	TextureRegion repeated(Vec2) const;
 	TextureRegion mapped(double, double) const;
 	TextureRegion mapped(Vec2) const;
-	TextureRegion fitted(double, double, bool = AllowScaleUp :: Yes) const;
-	TextureRegion fitted(const Vec2&in, bool = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(double, double, bool scaleUp = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(const Vec2&in, bool scaleUp = AllowScaleUp :: Yes) const;
 	TexturedQuad rotated(double) const;
 	TexturedQuad rotatedAt(double, double, double) const;
 	TexturedQuad rotatedAt(const Vec2&in, double) const;
@@ -3395,12 +3396,12 @@ class VideoTexture{
 	~VideoTexture();
 	VideoTexture();
 	VideoTexture(const VideoTexture&in);
-	VideoTexture(const String&in, bool = Loop :: Yes, TextureDesc = TextureDesc :: Unmipped);
+	VideoTexture(const String&in, bool loop = Loop :: Yes, TextureDesc = TextureDesc :: Unmipped);
 	VideoTexture& opAssign(const VideoTexture&in);
 	bool opImplConv() const;
 	bool isEmpty() const;
 	void release() const;
-	void advance(double = Scene :: DeltaTime ( )) const;
+	void advance(double deltaTimeSec = Scene :: DeltaTime ( )) const;
 	void reset() const;
 	bool isLoop() const;
 	bool posSec() const;
@@ -3418,19 +3419,19 @@ class VideoTexture{
 	RectF region(Vec2) const;
 	RectF regionAt(double, double) const;
 	RectF regionAt(Vec2) const;
-	RectF draw(const ColorF&in = Palette :: White) const;
+	RectF draw(const ColorF&in color = Palette :: White) const;
 	RectF draw(const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF draw(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF draw(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF draw(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAt(const Vec2&in, const ColorF&in = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
+	RectF drawAt(const Vec2&in, const ColorF&in color = Palette :: White) const;
 	RectF drawAt(const Vec2&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
+	RectF drawClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
 	RectF drawClipped(const Vec2&in, const RectF&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
-	RectF drawAtClipped(double, double, const RectF&in, const ColorF&in = Palette :: White) const;
+	RectF drawAtClipped(double x, double y, const RectF&in, const ColorF&in color = Palette :: White) const;
 	RectF drawAtClipped(const Vec2&in, const RectF&in, const ColorF&in, const ColorF&in, const ColorF&in, const ColorF&in) const;
 	TextureRegion opCall(double, double, double, double) const;
 	TextureRegion opCall(const Vec2&in, double, double) const;
@@ -3454,8 +3455,8 @@ class VideoTexture{
 	TextureRegion repeated(Vec2) const;
 	TextureRegion mapped(double, double) const;
 	TextureRegion mapped(Vec2) const;
-	TextureRegion fitted(double, double, bool = AllowScaleUp :: Yes) const;
-	TextureRegion fitted(const Vec2&in, bool = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(double, double, bool scaleUp = AllowScaleUp :: Yes) const;
+	TextureRegion fitted(const Vec2&in, bool scaleUp = AllowScaleUp :: Yes) const;
 	TexturedQuad rotated(double) const;
 	TexturedQuad rotatedAt(double, double, double) const;
 	TexturedQuad rotatedAt(const Vec2&in, double) const;
@@ -3472,12 +3473,12 @@ class Font{
 	~Font();
 	Font();
 	Font(const Font&in);
-	Font(int, const String&in, FontStyle = FontStyle :: Default);
-	Font(int, const String&in, uint64, FontStyle = FontStyle :: Default);
-	Font(int, Typeface = Typeface :: Regular, FontStyle = FontStyle :: Default);
-	Font(FontMethod, int, const String&in, FontStyle = FontStyle :: Default);
-	Font(FontMethod, int, const String&in, uint64, FontStyle = FontStyle :: Default);
-	Font(FontMethod, int, Typeface = Typeface :: Regular, FontStyle = FontStyle :: Default);
+	Font(int, const String&in path, FontStyle style = FontStyle :: Default);
+	Font(int, const String&in path, uint64 faceIndex, FontStyle style = FontStyle :: Default);
+	Font(int, Typeface typeface = Typeface :: Regular, FontStyle style = FontStyle :: Default);
+	Font(FontMethod fontMethod, int, const String&in path, FontStyle style = FontStyle :: Default);
+	Font(FontMethod fontMethod, int, const String&in path, uint64 faceIndex, FontStyle style = FontStyle :: Default);
+	Font(FontMethod fontMethod, int, Typeface typeface = Typeface :: Regular, FontStyle style = FontStyle :: Default);
 	Font& opAssign(const Font&in);
 	void release();
 	bool opImplConv() const;
@@ -3523,70 +3524,70 @@ class DrawableText{
 	DrawableText(const DrawableText&in);
 	DrawableText(const Font&in, const String&in);
 	void paint(Image&inout, double, double, const Color&in = Palette :: White) const;
-	void paint(Image&inout, const Vec2&in, const Color&in = Palette :: White) const;
+	void paint(Image&inout, const Vec2&in pos, const Color&in = Palette :: White) const;
 	void paintAt(Image&inout, double, double, const Color&in = Palette :: White) const;
-	void paintAt(Image&inout, const Vec2&in, const Color&in = Palette :: White) const;
+	void paintAt(Image&inout, const Vec2&in pos, const Color&in = Palette :: White) const;
 	void stamp(Image&inout, double, double, const Color&in = Palette :: White) const;
-	void stamp(Image&inout, const Vec2&in, const Color&in = Palette :: White) const;
+	void stamp(Image&inout, const Vec2&in pos, const Color&in = Palette :: White) const;
 	void stampAt(Image&inout, double, double, const Color&in = Palette :: White) const;
-	void stampAt(Image&inout, const Vec2&in, const Color&in = Palette :: White) const;
+	void stampAt(Image&inout, const Vec2&in pos, const Color&in = Palette :: White) const;
 	void overwrite(Image&inout, double, double) const;
-	void overwrite(Image&inout, const Vec2&in) const;
+	void overwrite(Image&inout, const Vec2&in pos) const;
 	void overwriteAt(Image&inout, double, double) const;
-	void overwriteAt(Image&inout, const Vec2&in) const;
+	void overwriteAt(Image&inout, const Vec2&in pos) const;
 	DrawableText& opAssign(const DrawableText&in);
-	RectF region(double, double) const;
-	RectF region(Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF region(double, double, double) const;
-	RectF region(double, Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF regionBase(double, double) const;
-	RectF regionBase(Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF regionBase(double, double, double) const;
-	RectF regionBase(double, Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF regionAt(double, double) const;
+	RectF region(double x, double y) const;
+	RectF region(Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF region(double, double x, double y) const;
+	RectF region(double, Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF regionBase(double x, double y) const;
+	RectF regionBase(Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF regionBase(double, double x, double y) const;
+	RectF regionBase(double, Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF regionAt(double x, double y) const;
 	RectF regionAt(Vec2) const;
-	RectF regionAt(double, double, double) const;
+	RectF regionAt(double, double x, double y) const;
 	RectF regionAt(double, Vec2) const;
-	RectF regionBaseAt(double, double) const;
-	RectF regionBaseAt(Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF regionBaseAt(double, double, double) const;
-	RectF regionBaseAt(double, Vec2 = Vec2 ( 0 , 0 )) const;
-	RectF draw(double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF draw(double, double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF draw(const TextStyle&in, double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(const TextStyle&in, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF draw(const TextStyle&in, double, double, double, const ColorF&in = Palette :: White) const;
-	RectF draw(const TextStyle&in, double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	bool draw(const RectF&in, const ColorF&in = Palette :: White) const;
-	bool draw(double, const RectF&in, const ColorF&in = Palette :: White) const;
-	bool draw(const TextStyle&in, const RectF&in, const ColorF&in = Palette :: White) const;
-	bool draw(const TextStyle&in, double, const RectF&in, const ColorF&in = Palette :: White) const;
-	RectF drawBase(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBase(const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBase(double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBase(double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBase(const TextStyle&in, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBase(const TextStyle&in, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBase(const TextStyle&in, double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBase(const TextStyle&in, double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawAt(const TextStyle&in, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(const TextStyle&in, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawAt(const TextStyle&in, double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawAt(const TextStyle&in, double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(const TextStyle&in, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(const TextStyle&in, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(const TextStyle&in, double, double, double, const ColorF&in = Palette :: White) const;
-	RectF drawBaseAt(const TextStyle&in, double, const Vec2&in = Vec2 ( 0 , 0 ), const ColorF&in = Palette :: White) const;
+	RectF regionBaseAt(double x, double y) const;
+	RectF regionBaseAt(Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF regionBaseAt(double, double x, double y) const;
+	RectF regionBaseAt(double, Vec2 pos = Vec2 ( 0 , 0 )) const;
+	RectF draw(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF draw(double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF draw(const TextStyle&in, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(const TextStyle&in, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF draw(const TextStyle&in, double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF draw(const TextStyle&in, double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	bool draw(const RectF&in area, const ColorF&in color = Palette :: White) const;
+	bool draw(double, const RectF&in area, const ColorF&in color = Palette :: White) const;
+	bool draw(const TextStyle&in, const RectF&in area, const ColorF&in color = Palette :: White) const;
+	bool draw(const TextStyle&in, double, const RectF&in area, const ColorF&in color = Palette :: White) const;
+	RectF drawBase(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBase(const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBase(double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBase(double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBase(const TextStyle&in, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBase(const TextStyle&in, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBase(const TextStyle&in, double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBase(const TextStyle&in, double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawAt(const TextStyle&in, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(const TextStyle&in, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawAt(const TextStyle&in, double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawAt(const TextStyle&in, double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(const TextStyle&in, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(const TextStyle&in, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(const TextStyle&in, double, double x, double y, const ColorF&in color = Palette :: White) const;
+	RectF drawBaseAt(const TextStyle&in, double, const Vec2&in pos = Vec2 ( 0 , 0 ), const ColorF&in color = Palette :: White) const;
 	Font font;
 	String text;
 }
@@ -3618,22 +3619,22 @@ class Camera2D{
 	~Camera2D();
 	Camera2D();
 	Camera2D(const Camera2D&in);
-	Camera2D(Vec2, double = 1.0, CameraControl = CameraControl :: Default);
-	Camera2D(Vec2, double, const Camera2DParameters&in);
+	Camera2D(Vec2 center, double scale = 1.0, CameraControl cameraControl = CameraControl :: Default);
+	Camera2D(Vec2 center, double scale, const Camera2DParameters&in);
 	Transformer2D@ createTransformer() const;
 	void setCenter(Vec2);
 	const Vec2& getCenter() const;
 	void setScale(double);
 	double getScale() const;
-	RectF getRegion(Point = Graphics2D :: GetRenderTargetSize ( )) const;
-	Mat3x2 getMat3x2(Point = Graphics2D :: GetRenderTargetSize ( )) const;
+	RectF getRegion(Point renderTargetSize = Graphics2D :: GetRenderTargetSize ( )) const;
+	Mat3x2 getMat3x2(Point renderTargetSize = Graphics2D :: GetRenderTargetSize ( )) const;
 	void setTargetCenter(Vec2);
 	const Vec2& getTargetCenter() const;
 	void setTargetScale(double);
 	double getTargetScale() const;
-	void jumpTo(Vec2, double);
-	void update(double = Scene :: DeltaTime ( ), Vec2 = Graphics2D :: GetRenderTargetSize ( ));
-	void draw(const ColorF&in = Palette :: White) const;
+	void jumpTo(Vec2 center, double scale);
+	void update(double deltaTime = Scene :: DeltaTime ( ), Vec2 sceneSize = Graphics2D :: GetRenderTargetSize ( ));
+	void draw(const ColorF&in color = Palette :: White) const;
 }
 class Emoji{
 	~Emoji();
@@ -3644,7 +3645,7 @@ class Emoji{
 }
 class Icon{
 	Icon(const Icon&in);
-	Icon(uint);
+	Icon(uint code);
 	uint8 type;
 	uint code;
 }
@@ -3675,9 +3676,9 @@ class Wave{
 	Wave(uint64, const WaveSample&in, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
 	Wave(const Duration&in, const WaveSample&in, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
 	Wave(const Array<WaveSample>&in, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
-	Wave(const String&in, AudioFormat = AudioFormat :: Unspecified);
-	Wave(GMInstrument, int, const Duration&in, double = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
-	Wave(GMInstrument, int, const Duration&in, const Duration&in, double = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
+	Wave(const String&in, AudioFormat format = AudioFormat :: Unspecified);
+	Wave(GMInstrument instrument, int key, const Duration&in, double velocity = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
+	Wave(GMInstrument instrument, int key, const Duration&in, const Duration&in, double velocity = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
 	Wave& opAssign(const Wave&in);
 	Wave& opAssign(const Array<WaveSample>&in);
 	uint sampleRate() const;
@@ -3692,14 +3693,14 @@ class Wave{
 	Wave& fadeIn(uint64);
 	Wave& fadeOut(uint64);
 	void deinterleave();
-	bool save(const String&in, AudioFormat = AudioFormat :: Unspecified);
+	bool save(const String&in, AudioFormat format = AudioFormat :: Unspecified);
 	bool saveWithDialog();
 	void assign(const Wave&in);
 	void assign(const Array<WaveSample>&in);
-	WaveSample& at(uint64);
-	const WaveSample& at(uint64) const;
-	WaveSample& opIndex(uint64);
-	const WaveSample& opIndex(uint64) const;
+	WaveSample& at(uint64 index);
+	const WaveSample& at(uint64 index) const;
+	WaveSample& opIndex(uint64 index);
+	const WaveSample& opIndex(uint64 index) const;
 	void push_front(const WaveSample&in);
 	void push_back(const WaveSample&in);
 	void pop_front();
@@ -3731,13 +3732,13 @@ class Audio{
 	Audio();
 	Audio(const Audio&in);
 	Audio(const Wave&in);
-	Audio(const Wave&in, bool);
+	Audio(const Wave&in, bool loop);
 	Audio(const String&in);
-	Audio(const String&in, bool);
+	Audio(const String&in, bool loop);
 	Audio(AudioFileStreaming, const String&in);
-	Audio(AudioFileStreaming, const String&in, bool);
-	Audio(GMInstrument, int, const Duration&in, double = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
-	Audio(GMInstrument, int, const Duration&in, const Duration&in, double = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
+	Audio(AudioFileStreaming, const String&in, bool loop);
+	Audio(GMInstrument instrument, int key, const Duration&in, double velocity = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
+	Audio(GMInstrument instrument, int key, const Duration&in, const Duration&in, double velocity = 1.0, Arg::sampleRate_uint32 = ( Arg :: sampleRate = Wave :: DefaultSampleRate ));
 	Audio& opAssign(const Audio&in);
 	void release();
 	bool opImplConv() const;
@@ -3755,15 +3756,15 @@ class Audio{
 	void setLoop() const;
 	void setLoopPoint(uint64) const;
 	void setLoopPoint(const Duration&in) const;
-	void play(MixBus = MixBus0) const;
-	void play(const Duration&in, MixBus = MixBus0) const;
-	void play(MixBus, const Duration&in) const;
+	void play(MixBus busIndex = MixBus0) const;
+	void play(const Duration&in, MixBus busIndex = MixBus0) const;
+	void play(MixBus busIndex, const Duration&in) const;
 	void pause() const;
 	void pause(const Duration&in) const;
 	void stop() const;
 	void stop(const Duration&in) const;
-	void playOneShot(double = 1.0, double = 0.0, double = 1.0, MixBus = MixBus0) const;
-	void playOneShot(MixBus, double = 1.0, double = 0.0, double = 1.0) const;
+	void playOneShot(double volume = 1.0, double pan = 0.0, double speed = 1.0, MixBus busIndex = MixBus0) const;
+	void playOneShot(MixBus busIndex, double volume = 1.0, double pan = 0.0, double speed = 1.0) const;
 	void pauseAllShots() const;
 	void pauseAllShots(const Duration&in) const;
 	void resumeAllShots() const;
@@ -3790,19 +3791,19 @@ class Audio{
 	void swap(Audio&inout);
 }
 class PrintBuffer{
-	PrintBuffer& opShl(const String&in);
+	PrintBuffer& opShl(const String&in text);
 	PrintBuffer& opShl(const ?&in);
 }
 class Print_impl{
-	PrintBuffer@ opShl(const String&in) const;
+	PrintBuffer@ opShl(const String&in text) const;
 	PrintBuffer@ opShl(const ?&in) const;
 }
 class SayBuffer{
-	SayBuffer& opShl(const String&in);
+	SayBuffer& opShl(const String&in text);
 	SayBuffer& opShl(const ?&in);
 }
 class Say_impl{
-	SayBuffer@ opShl(const String&in) const;
+	SayBuffer@ opShl(const String&in text) const;
 	SayBuffer@ opShl(const ?&in) const;
 }
 class TextEditState{
@@ -3840,10 +3841,10 @@ class XInput_impl{
 	XInput_impl(uint64);
 	bool isConnected() const;
 	bool opImplConv() const;
-	Optional<int> leftThumbD4(double = 0.2) const;
-	Optional<int> leftThumbD8(double = 0.2) const;
-	Optional<int> rightThumbD4(double = 0.2) const;
-	Optional<int> rightThumbD8(double = 0.2) const;
+	Optional<int> leftThumbD4(double threshold = 0.2) const;
+	Optional<int> leftThumbD8(double threshold = 0.2) const;
+	Optional<int> rightThumbD4(double threshold = 0.2) const;
+	Optional<int> rightThumbD8(double threshold = 0.2) const;
 	void setVibration(const XInputVibration&in) const;
 	const XInputVibration& getVibration() const;
 	void stopVibration() const;
@@ -4073,7 +4074,7 @@ namespace Date { Date Today(); }
 namespace Date { Date Tomorrow(); }
 namespace Date { bool IsLeapYear(int); }
 namespace Date { int DaysInYear(int); }
-namespace Date { int DaysInMonth(int, int); }
+namespace Date { int DaysInMonth(int year, int month); }
 namespace DateTime { DateTime Yesterday(); }
 namespace DateTime { DateTime Today(); }
 namespace DateTime { DateTime Tomorrow(); }
@@ -4089,7 +4090,7 @@ namespace Time { uint64 GetMicrosecSinceEpoch(); }
 namespace Time { uint64 UTCOffsetMinutes(); }
 namespace Profiler { int FPS(); }
 namespace Profiler { void EnableAssetCreationWarning(bool); }
-namespace Unicode { TextEncoding GetTextEncoding(const String&in); }
+namespace Unicode { TextEncoding GetTextEncoding(const String&in path); }
 namespace Unicode { int GetBOMSize(TextEncoding); }
 namespace FileSystem { bool IsResourcePath(const String&in); }
 namespace FileSystem { bool Exists(const String&in); }
@@ -4100,8 +4101,8 @@ namespace FileSystem { String FullPath(const String&in); }
 namespace FileSystem { String Extension(const String&in); }
 namespace FileSystem { String FileName(const String&in); }
 namespace FileSystem { String BaseName(const String&in); }
-namespace FileSystem { String ParentPath(const String&in, uint64 = 0); }
-namespace FileSystem { String ParentPath(const String&in, uint64, String&out); }
+namespace FileSystem { String ParentPath(const String&in, uint64 level = 0); }
+namespace FileSystem { String ParentPath(const String&in, uint64 level, String&out baseFullPath); }
 namespace FileSystem { String VolumePath(const String&in); }
 namespace FileSystem { bool IsEmptyDirectory(const String&in); }
 namespace FileSystem { int64 Size(const String&in); }
@@ -4239,22 +4240,22 @@ Color HueToColor(double);
 ColorF HueToColorF(double);
 namespace Point { Point Zero(); }
 namespace Point { Point One(); }
-namespace Point { Point All(int = 1); }
+namespace Point { Point All(int value = 1); }
 namespace Point { Point UnitX(); }
 namespace Point { Point UnitY(); }
-namespace Point { Point Left(int = 1); }
-namespace Point { Point Right(int = 1); }
-namespace Point { Point Up(int = 1); }
-namespace Point { Point Down(int = 1); }
+namespace Point { Point Left(int length = 1); }
+namespace Point { Point Right(int length = 1); }
+namespace Point { Point Up(int length = 1); }
+namespace Point { Point Down(int length = 1); }
 namespace Vec2 { Vec2 Zero(); }
 namespace Vec2 { Vec2 One(); }
-namespace Vec2 { Vec2 All(double = 1); }
+namespace Vec2 { Vec2 All(double value = 1); }
 namespace Vec2 { Vec2 UnitX(); }
 namespace Vec2 { Vec2 UnitY(); }
-namespace Vec2 { Vec2 Left(double = 1); }
-namespace Vec2 { Vec2 Right(double = 1); }
-namespace Vec2 { Vec2 Up(double = 1); }
-namespace Vec2 { Vec2 Down(double = 1); }
+namespace Vec2 { Vec2 Left(double length = 1); }
+namespace Vec2 { Vec2 Right(double length = 1); }
+namespace Vec2 { Vec2 Up(double length = 1); }
+namespace Vec2 { Vec2 Down(double length = 1); }
 namespace Vec2 { Vec2 AnchorCenter(); }
 namespace Vec2 { Vec2 AnchorTopLeft(); }
 namespace Vec2 { Vec2 AnchorTopCenter(); }
@@ -4266,13 +4267,13 @@ namespace Vec2 { Vec2 AnchorBottomLeft(); }
 namespace Vec2 { Vec2 AnchorLeftCenter(); }
 namespace Float2 { Float2 Zero(); }
 namespace Float2 { Float2 One(); }
-namespace Float2 { Float2 All(float = 1); }
+namespace Float2 { Float2 All(float value = 1); }
 namespace Float2 { Float2 UnitX(); }
 namespace Float2 { Float2 UnitY(); }
-namespace Float2 { Float2 Left(float = 1); }
-namespace Float2 { Float2 Right(float = 1); }
-namespace Float2 { Float2 Up(float = 1); }
-namespace Float2 { Float2 Down(float = 1); }
+namespace Float2 { Float2 Left(float length = 1); }
+namespace Float2 { Float2 Right(float length = 1); }
+namespace Float2 { Float2 Up(float length = 1); }
+namespace Float2 { Float2 Down(float length = 1); }
 namespace Float2 { Float2 AnchorCenter(); }
 namespace Float2 { Float2 AnchorTopLeft(); }
 namespace Float2 { Float2 AnchorTopCenter(); }
@@ -4284,38 +4285,38 @@ namespace Float2 { Float2 AnchorBottomLeft(); }
 namespace Float2 { Float2 AnchorLeftCenter(); }
 namespace Vec3 { Vec3 Zero(); }
 namespace Vec3 { Vec3 One(); }
-namespace Vec3 { Vec3 All(double = 1); }
+namespace Vec3 { Vec3 All(double value = 1); }
 namespace Vec3 { Vec3 UnitX(); }
 namespace Vec3 { Vec3 UnitY(); }
 namespace Vec3 { Vec3 UnitZ(); }
-namespace Vec3 { Vec3 Left(double = 1); }
-namespace Vec3 { Vec3 Right(double = 1); }
-namespace Vec3 { Vec3 Up(double = 1); }
-namespace Vec3 { Vec3 Down(double = 1); }
-namespace Vec3 { Vec3 Forward(double = 1); }
-namespace Vec3 { Vec3 Backward(double = 1); }
+namespace Vec3 { Vec3 Left(double length = 1); }
+namespace Vec3 { Vec3 Right(double length = 1); }
+namespace Vec3 { Vec3 Up(double length = 1); }
+namespace Vec3 { Vec3 Down(double length = 1); }
+namespace Vec3 { Vec3 Forward(double length = 1); }
+namespace Vec3 { Vec3 Backward(double length = 1); }
 namespace Float3 { Float3 Zero(); }
 namespace Float3 { Float3 One(); }
-namespace Float3 { Float3 All(float = 1); }
+namespace Float3 { Float3 All(float value = 1); }
 namespace Float3 { Float3 UnitX(); }
 namespace Float3 { Float3 UnitY(); }
 namespace Float3 { Float3 UnitZ(); }
-namespace Float3 { Float3 Left(float = 1); }
-namespace Float3 { Float3 Right(float = 1); }
-namespace Float3 { Float3 Up(float = 1); }
-namespace Float3 { Float3 Down(float = 1); }
-namespace Float3 { Float3 Forward(float = 1); }
-namespace Float3 { Float3 Backward(float = 1); }
+namespace Float3 { Float3 Left(float length = 1); }
+namespace Float3 { Float3 Right(float length = 1); }
+namespace Float3 { Float3 Up(float length = 1); }
+namespace Float3 { Float3 Down(float length = 1); }
+namespace Float3 { Float3 Forward(float length = 1); }
+namespace Float3 { Float3 Backward(float length = 1); }
 namespace Vec4 { Vec4 Zero(); }
 namespace Vec4 { Vec4 One(); }
-namespace Vec4 { Vec4 All(double = 1); }
+namespace Vec4 { Vec4 All(double value = 1); }
 namespace Vec4 { Vec4 UnitX(); }
 namespace Vec4 { Vec4 UnitY(); }
 namespace Vec4 { Vec4 UnitZ(); }
 namespace Vec4 { Vec4 UnitW(); }
 namespace Float4 { Float4 Zero(); }
 namespace Float4 { Float4 One(); }
-namespace Float4 { Float4 All(float = 1); }
+namespace Float4 { Float4 All(float value = 1); }
 namespace Float4 { Float4 UnitX(); }
 namespace Float4 { Float4 UnitY(); }
 namespace Float4 { Float4 UnitZ(); }
@@ -4323,10 +4324,10 @@ namespace Float4 { Float4 UnitW(); }
 namespace Mat3x2 { Mat3x2 Identity(); }
 namespace Mat3x2 { Mat3x2 Translate(Float2); }
 namespace Mat3x2 { Mat3x2 Translate(double, double); }
-namespace Mat3x2 { Mat3x2 Scale(Float2, Float2 = Float2 ( 0 , 0 )); }
-namespace Mat3x2 { Mat3x2 Scale(double, Float2 = Float2 ( 0 , 0 )); }
-namespace Mat3x2 { Mat3x2 Scale(double, double, Float2 = Float2 ( 0 , 0 )); }
-namespace Mat3x2 { Mat3x2 Rotate(double, Float2 = Float2 ( 0 , 0 )); }
+namespace Mat3x2 { Mat3x2 Scale(Float2, Float2 center = Float2 ( 0 , 0 )); }
+namespace Mat3x2 { Mat3x2 Scale(double, Float2 center = Float2 ( 0 , 0 )); }
+namespace Mat3x2 { Mat3x2 Scale(double, double, Float2 center = Float2 ( 0 , 0 )); }
+namespace Mat3x2 { Mat3x2 Rotate(double, Float2 center = Float2 ( 0 , 0 )); }
 namespace Mat3x2 { Mat3x2 ShearX(double); }
 namespace Mat3x2 { Mat3x2 ShearY(double); }
 namespace Mat3x2 { Mat3x2 Screen(double, double); }
@@ -4335,22 +4336,22 @@ namespace Rect { Rect FromPoints(Point, Point); }
 namespace Rect { Rect Empty(); }
 namespace RectF { RectF FromPoints(Vec2, Vec2); }
 namespace RectF { RectF Empty(); }
-namespace Shape2D { Shape2D Cross(double, double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Plus(double, double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Pentagon(double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Hexagon(double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Ngon(uint, double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Star(double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D NStar(uint, double, double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Arrow(const Vec2&in, const Vec2&in, double, const Vec2&in); }
-namespace Shape2D { Shape2D Arrow(const Line&in, double, const Vec2&in); }
-namespace Shape2D { Shape2D DoubleHeadedArrow(const Vec2&in, const Vec2&in, double, const Vec2&in); }
-namespace Shape2D { Shape2D DoubleHeadedArrow(const Line&in, double, const Vec2&in); }
-namespace Shape2D { Shape2D Rhombus(double, double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D RectBalloon(const RectF&in, const Vec2&in, double = 0.5); }
-namespace Shape2D { Shape2D Stairs(const Vec2&in, double, double, int, bool = true); }
-namespace Shape2D { Shape2D Heart(double, const Vec2&in = Vec2 ( 0 , 0 ), double = 0.0); }
-namespace Shape2D { Shape2D Squircle(double, const Vec2&in, uint); }
+namespace Shape2D { Shape2D Cross(double r, double width, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Plus(double r, double width, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Pentagon(double r, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Hexagon(double r, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Ngon(uint n, double r, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Star(double r, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D NStar(uint n, double rOuter, double rInner, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Arrow(const Vec2&in from, const Vec2&in to, double width, const Vec2&in headSize); }
+namespace Shape2D { Shape2D Arrow(const Line&in line, double width, const Vec2&in headSize); }
+namespace Shape2D { Shape2D DoubleHeadedArrow(const Vec2&in from, const Vec2&in to, double width, const Vec2&in headSize); }
+namespace Shape2D { Shape2D DoubleHeadedArrow(const Line&in line, double width, const Vec2&in headSize); }
+namespace Shape2D { Shape2D Rhombus(double w, double h, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D RectBalloon(const RectF&in rect, const Vec2&in target, double pointingRootRatio = 0.5); }
+namespace Shape2D { Shape2D Stairs(const Vec2&in base, double w, double h, int steps, bool upStairs = true); }
+namespace Shape2D { Shape2D Heart(double r, const Vec2&in center = Vec2 ( 0 , 0 ), double angle = 0.0); }
+namespace Shape2D { Shape2D Squircle(double r, const Vec2&in center, uint quality); }
 namespace Math { double Lerp(double, double, double); }
 namespace Math { Vec2 Lerp(const Vec2&in, const Vec2&in, double); }
 namespace Math { Vec3 Lerp(const Vec3&in, const Vec3&in, double); }
@@ -4365,24 +4366,24 @@ namespace Math { Ellipse Lerp(const Ellipse&in, const Ellipse&in, double); }
 namespace Math { Triangle Lerp(const Triangle&in, const Triangle&in, double); }
 namespace Math { Quad Lerp(const Quad&in, const Quad&in, double); }
 namespace Math { double InvLerp(double, double, double); }
-namespace Math { double Damp(double, double, double, const double&in, const double&in); }
-namespace Math { Vec2 Damp(double, double, double, const Vec2&in, const Vec2&in); }
-namespace Math { Vec3 Damp(double, double, double, const Vec3&in, const Vec3&in); }
-namespace Math { Vec4 Damp(double, double, double, const Vec4&in, const Vec4&in); }
+namespace Math { double Damp(double value, double a, double b, const double&in, const double&in); }
+namespace Math { Vec2 Damp(double value, double a, double b, const Vec2&in, const Vec2&in); }
+namespace Math { Vec3 Damp(double value, double a, double b, const Vec3&in, const Vec3&in); }
+namespace Math { Vec4 Damp(double value, double a, double b, const Vec4&in, const Vec4&in); }
 namespace Math { double LerpAngle(double, double, double); }
 namespace Math { double Eerp(double, double, double); }
 namespace Math { double Damp(double, double, double, double); }
 namespace Math { Vec2 Damp(const Vec2&in, const Vec2&in, double, double); }
 namespace Math { Vec3 Damp(const Vec3&in, const Vec3&in, double, double); }
 namespace Math { Vec4 Damp(const Vec4&in, const Vec4&in, double, double); }
-namespace Math { double SmoothDamp(double, double, double&inout, double, None_t = unspecified, double = Scene :: DeltaTime ( )); }
-namespace Math { double SmoothDamp(double, double, double&inout, double, double, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec2 SmoothDamp(const Vec2&in, const Vec2&in, Vec2&inout, double, None_t = unspecified, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec2 SmoothDamp(const Vec2&in, const Vec2&in, Vec2&inout, double, double, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec3 SmoothDamp(const Vec3&in, const Vec3&in, Vec3&inout, double, None_t = unspecified, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec3 SmoothDamp(const Vec3&in, const Vec3&in, Vec3&inout, double, double, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec4 SmoothDamp(const Vec4&in, const Vec4&in, Vec4&inout, double, None_t = unspecified, double = Scene :: DeltaTime ( )); }
-namespace Math { Vec4 SmoothDamp(const Vec4&in, const Vec4&in, Vec4&inout, double, double, double = Scene :: DeltaTime ( )); }
+namespace Math { double SmoothDamp(double from, double to, double&inout velocity, double smoothTime, None_t = unspecified, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { double SmoothDamp(double from, double to, double&inout velocity, double smoothTime, double maxSpeed, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec2 SmoothDamp(const Vec2&in from, const Vec2&in to, Vec2&inout velocity, double smoothTime, None_t = unspecified, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec2 SmoothDamp(const Vec2&in from, const Vec2&in to, Vec2&inout velocity, double smoothTime, double maxSpeed, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec3 SmoothDamp(const Vec3&in from, const Vec3&in to, Vec3&inout velocity, double smoothTime, None_t = unspecified, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec3 SmoothDamp(const Vec3&in from, const Vec3&in to, Vec3&inout velocity, double smoothTime, double maxSpeed, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec4 SmoothDamp(const Vec4&in from, const Vec4&in to, Vec4&inout velocity, double smoothTime, None_t = unspecified, double deltaTime = Scene :: DeltaTime ( )); }
+namespace Math { Vec4 SmoothDamp(const Vec4&in from, const Vec4&in to, Vec4&inout velocity, double smoothTime, double maxSpeed, double deltaTime = Scene :: DeltaTime ( )); }
 namespace Keyboard { Array<Input>@ GetAllInputs(); }
 namespace Mouse { Array<Input>@ GetAllInputs(); }
 namespace Mouse { double Wheel(); }
@@ -4407,9 +4408,9 @@ namespace Emoji { Image CreateSilhouetteImage(const String&in); }
 namespace Emoji { Image CreateSilhouetteImageByGlyphIndex(uint); }
 Emoji _emoji(const String&in);
 namespace Icon { bool HasGlyph(uint); }
-namespace Icon { Image CreateImage(uint, int); }
-namespace Icon { Image CreateSDFImage(uint, int); }
-namespace Icon { Image CreateMSDFImage(uint, int); }
+namespace Icon { Image CreateImage(uint code, int size); }
+namespace Icon { Image CreateSDFImage(uint code, int size); }
+namespace Icon { Image CreateMSDFImage(uint code, int size); }
 Icon _icon(uint);
 namespace WaveSample { WaveSample FromInt16(int16); }
 namespace WaveSample { WaveSample FromInt16(int16, int16); }
@@ -4423,16 +4424,16 @@ namespace GlobalAudio { double GetVolume(); }
 namespace GlobalAudio { void SetVolume(double); }
 namespace GlobalAudio { void FadeVolume(double, const Duration&in); }
 namespace GlobalAudio { Array<float>@ GetSamples(); }
-namespace GlobalAudio { Array<float>@ BusGetSamples(MixBus); }
+namespace GlobalAudio { Array<float>@ BusGetSamples(MixBus busIndex); }
 namespace GlobalAudio { double BusGetVolume(MixBus); }
 namespace GlobalAudio { void BusSetVolume(MixBus, double); }
 namespace GlobalAudio { void BusFadeVolume(MixBus, double, const Duration&in); }
 namespace GlobalAudio { void BusClearFilter(MixBus, uint64); }
-namespace GlobalAudio { void BusSetLowPassFilter(MixBus, uint64, double, double, double = 1.0); }
-namespace GlobalAudio { void BusSetHighPassFilter(MixBus, uint64, double, double, double = 1.0); }
-namespace GlobalAudio { void BusSetEchoFilter(MixBus, uint64, double, double, double = 1.0); }
-namespace GlobalAudio { void BusSetReverbFilter(MixBus, uint64, bool, double, double, double, double = 1.0); }
-namespace GlobalAudio { void BusSetPitchShiftFilter(MixBus, uint64, double); }
+namespace GlobalAudio { void BusSetLowPassFilter(MixBus busIndex, uint64 filterIndex, double cutoffFrequency, double resonance, double wet = 1.0); }
+namespace GlobalAudio { void BusSetHighPassFilter(MixBus busIndex, uint64 filterIndex, double cutoffFrequency, double resonance, double wet = 1.0); }
+namespace GlobalAudio { void BusSetEchoFilter(MixBus busIndex, uint64 filterIndex, double delay, double decay, double wet = 1.0); }
+namespace GlobalAudio { void BusSetReverbFilter(MixBus busIndex, uint64 filterIndex, bool freeze, double roomSize, double damp, double width, double wet = 1.0); }
+namespace GlobalAudio { void BusSetPitchShiftFilter(MixBus busIndex, uint64 filterIndex, double pitchShift); }
 namespace GlobalAudio { bool SupportsPitchShift(); }
 void Reseed(uint64);
 double Random();
@@ -4496,7 +4497,7 @@ int RandomClosedOpen(int, int);
 int64 RandomClosedOpen(int64, int64);
 float RandomClosedOpen(float, float);
 double RandomClosedOpen(double, double);
-bool RandomBool(double = 0.5);
+bool RandomBool(double p = 0.5);
 uint8 RandomUint8();
 uint16 RandomUint16();
 uint RandomUint32();
@@ -4508,19 +4509,19 @@ int64 RandomInt64();
 Duration Random(const Duration&in);
 Duration Random(const Duration&in, const Duration&in);
 Color RandomColor();
-Color RandomColor(const Point&in, const Point&in, const Point&in);
+Color RandomColor(const Point&in rMinMax, const Point&in gMinMax, const Point&in bMinMax);
 ColorF RandomColorF();
-ColorF RandomColorF(const Vec2&in, const Vec2&in, const Vec2&in);
+ColorF RandomColorF(const Vec2&in rMinMax, const Vec2&in gMinMax, const Vec2&in bMinMax);
 HSV RandomHSV();
-HSV RandomHSV(const Vec2&in, const Vec2&in, const Vec2&in);
-Point RandomPoint(const Point&in, const Point&in);
+HSV RandomHSV(const Vec2&in hMinMax, const Vec2&in sMinMax, const Vec2&in vMinMax);
+Point RandomPoint(const Point&in xMinMax, const Point&in yMinMax);
 Point RandomPoint(const Rect&in);
-Point RandomPoint(int, int);
+Point RandomPoint(int xMax, int yMax);
 Vec2 RandomVec2();
 Vec2 RandomVec2(double);
-Vec2 RandomVec2(double, const Vec2&in);
-Vec2 RandomVec2(const Vec2&in, double);
-Vec2 RandomVec2(const Vec2&in, const Vec2&in);
+Vec2 RandomVec2(double, const Vec2&in yMinMax);
+Vec2 RandomVec2(const Vec2&in xMinMax, double);
+Vec2 RandomVec2(const Vec2&in xMinMax, const Vec2&in yMinMax);
 Vec2 RandomVec2(double, double);
 Vec2 RandomVec2(const Line&in);
 Vec2 RandomVec2(const Circle&in);
@@ -4531,15 +4532,15 @@ Vec3 RandomVec3();
 Vec3 RandomVec3onUnitSphere();
 Vec3 RandomVec3insideUnitSphere();
 Vec3 RandomVec3(double);
-Vec3 RandomVec3(double, double, const Vec2&in);
-Vec3 RandomVec3(double, const Vec2&in, double);
-Vec3 RandomVec3(const Vec2&in, double, double);
-Vec3 RandomVec3(double, const Vec2&in, const Vec2&in);
-Vec3 RandomVec3(const Vec2&in, double, const Vec2&in);
-Vec3 RandomVec3(const Vec2&in, const Vec2&in, double);
-Vec3 RandomVec3(const Vec2&in, const Vec2&in, const Vec2&in);
+Vec3 RandomVec3(double, double, const Vec2&in zMinMax);
+Vec3 RandomVec3(double, const Vec2&in yMinMax, double);
+Vec3 RandomVec3(const Vec2&in xMinMax, double, double);
+Vec3 RandomVec3(double, const Vec2&in yMinMax, const Vec2&in zMinMax);
+Vec3 RandomVec3(const Vec2&in xMinMax, double, const Vec2&in zMinMax);
+Vec3 RandomVec3(const Vec2&in xMinMax, const Vec2&in yMinMax, double);
+Vec3 RandomVec3(const Vec2&in xMinMax, const Vec2&in yMinMax, const Vec2&in zMinMax);
 Vec3 RandomVec3(double, double, double);
-Vec4 RandomVec4(const Vec2&in, const Vec2&in, const Vec2&in, const Vec2&in);
+Vec4 RandomVec4(const Vec2&in xMinMax, const Vec2&in yMinMax, const Vec2&in zMinMax, const Vec2&in wMinMax);
 Vec4 RandomVec4(double, double, double, double);
 void ClearPrint();
 void PutText(const String&in, double, double);
@@ -4567,15 +4568,15 @@ namespace Window { void Centering(); }
 namespace Window { void Maximize(); }
 namespace Window { void Restore(); }
 namespace Window { void Minimize(); }
-namespace Window { bool Resize(Point, bool = Centering :: Yes); }
-namespace Window { bool Resize(int, int, bool = Centering :: Yes); }
-namespace Window { bool ResizeVirtual(Point, bool = Centering :: Yes); }
-namespace Window { bool ResizeVirtual(int, int, bool = Centering :: Yes); }
-namespace Window { bool ResizeActual(Point, bool = Centering :: Yes); }
-namespace Window { bool ResizeActual(int, int, bool = Centering :: Yes); }
+namespace Window { bool Resize(Point, bool centering = Centering :: Yes); }
+namespace Window { bool Resize(int, int, bool centering = Centering :: Yes); }
+namespace Window { bool ResizeVirtual(Point, bool centering = Centering :: Yes); }
+namespace Window { bool ResizeVirtual(int, int, bool centering = Centering :: Yes); }
+namespace Window { bool ResizeActual(Point, bool centering = Centering :: Yes); }
+namespace Window { bool ResizeActual(int, int, bool centering = Centering :: Yes); }
 namespace Window { void SetMinimumFrameBufferSize(Point); }
-namespace Window { void SetFullscreen(bool, uint64 = System :: GetCurrentMonitorIndex ( )); }
-namespace Window { void SetToggleFullscreenEnabled(bool); }
+namespace Window { void SetFullscreen(bool, uint64 monitorIndex = System :: GetCurrentMonitorIndex ( )); }
+namespace Window { void SetToggleFullscreenEnabled(bool enabled); }
 namespace Window { bool IsToggleFullscreenEnabled(); }
 namespace System { uint64 GetCurrentMonitorIndex(); }
 namespace Cursor { Point Pos(); }
@@ -4595,8 +4596,8 @@ namespace Cursor { void SetPos(Point); }
 namespace Cursor { bool OnClientRect(); }
 namespace Cursor { bool IsClippedToWindow(); }
 namespace Cursor { void ClipToWindow(bool); }
-namespace Cursor { void SetDefaultStyle(CursorStyle); }
-namespace Cursor { void RequestStyle(CursorStyle); }
+namespace Cursor { void SetDefaultStyle(CursorStyle style); }
+namespace Cursor { void RequestStyle(CursorStyle style); }
 namespace Graphics { void SetVSyncEnabled(bool); }
 namespace Graphics { bool IsVSyncEnabled(); }
 namespace Graphics2D { Float4 GetColorMul(); }
@@ -4629,39 +4630,39 @@ namespace Scene { double Time(); }
 namespace Scene { int FrameCount(); }
 namespace Scene { Vec2 ClientToScene(Vec2); }
 namespace TextInput { String GetRawInput(); }
-namespace TextInput { uint64 UpdateText(String&inout, uint64, TextInputMode = TextInputMode :: Default); }
-namespace TextInput { void UpdateText(String&inout, TextInputMode = TextInputMode :: Default); }
+namespace TextInput { uint64 UpdateText(String&inout, uint64, TextInputMode mode = TextInputMode :: Default); }
+namespace TextInput { void UpdateText(String&inout, TextInputMode mode = TextInputMode :: Default); }
 namespace TextInput { String GetEditingText(); }
 namespace LicenseManager { void SetApplicationLicense(const String&in, const LicenseInfo&in); }
 namespace LicenseManager { void AddLicense(const LicenseInfo&in); }
 namespace LicenseManager { void EnableDefaultTrigger(); }
 namespace LicenseManager { void DisableDefaultTrigger(); }
 namespace LicenseManager { void ShowInBrowser(); }
-namespace SimpleGUI { RectF HeadlineRegion(const String&in, const Vec2&in, double); }
+namespace SimpleGUI { RectF HeadlineRegion(const String&in, const Vec2&in, double width); }
 namespace SimpleGUI { RectF HeadlineRegion(const String&in, const Vec2&in, None_t = unspecified); }
-namespace SimpleGUI { void Headline(const String&in, const Vec2&in, double, bool = true); }
-namespace SimpleGUI { void Headline(const String&in, const Vec2&in, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool Button(const String&in, const Vec2&in, double, bool = true); }
-namespace SimpleGUI { bool Button(const String&in, const Vec2&in, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool Slider(double&inout, const Vec2&in, double = 120.0, bool = true); }
-namespace SimpleGUI { bool Slider(double&inout, double, double, const Vec2&in, double = 120.0, bool = true); }
-namespace SimpleGUI { bool Slider(const String&in, double&inout, const Vec2&in, double = 80.0, double = 120.0, bool = true); }
-namespace SimpleGUI { bool Slider(const String&in, double&inout, double, double, const Vec2&in, double = 80.0, double = 120.0, bool = true); }
-namespace SimpleGUI { bool VerticalSlider(double&inout, const Vec2&in, double = 120.0, bool = true); }
-namespace SimpleGUI { bool VerticalSlider(double&inout, double, double, const Vec2&in, double = 120.0, bool = true); }
-namespace SimpleGUI { bool CheckBox(bool&inout, const String&in, const Vec2&in, double, bool = true); }
-namespace SimpleGUI { bool CheckBox(bool&inout, const String&in, const Vec2&in, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool RadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, double, bool = true); }
-namespace SimpleGUI { bool RadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool HorizontalRadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, double, bool = true); }
-namespace SimpleGUI { bool HorizontalRadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool TextBox(TextEditState&inout, const Vec2&in, double, uint64, bool = true); }
-namespace SimpleGUI { bool TextBox(TextEditState&inout, const Vec2&in, double = 200.0, None_t = unspecified, bool = true); }
-namespace SimpleGUI { bool ColorPicker(HSV&inout, const Vec2&in, bool = true); }
+namespace SimpleGUI { void Headline(const String&in, const Vec2&in, double width, bool enabled = true); }
+namespace SimpleGUI { void Headline(const String&in, const Vec2&in, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool Button(const String&in, const Vec2&in, double width, bool enabled = true); }
+namespace SimpleGUI { bool Button(const String&in, const Vec2&in, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool Slider(double&inout value, const Vec2&in pos, double sliderWidth = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool Slider(double&inout value, double min, double max, const Vec2&in pos, double sliderWidth = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool Slider(const String&in, double&inout value, const Vec2&in pos, double labelWidth = 80.0, double sliderWidth = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool Slider(const String&in, double&inout value, double min, double max, const Vec2&in pos, double labelWidth = 80.0, double sliderWidth = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool VerticalSlider(double&inout value, const Vec2&in pos, double sliderHeight = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool VerticalSlider(double&inout value, double min, double max, const Vec2&in pos, double sliderHeight = 120.0, bool enabled = true); }
+namespace SimpleGUI { bool CheckBox(bool&inout, const String&in, const Vec2&in, double width, bool enabled = true); }
+namespace SimpleGUI { bool CheckBox(bool&inout, const String&in, const Vec2&in, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool RadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, double width, bool enabled = true); }
+namespace SimpleGUI { bool RadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool HorizontalRadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, double width, bool enabled = true); }
+namespace SimpleGUI { bool HorizontalRadioButtons(uint64&inout, const Array<String>&in, const Vec2&in, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool TextBox(TextEditState&inout, const Vec2&in, double width, uint64, bool enabled = true); }
+namespace SimpleGUI { bool TextBox(TextEditState&inout, const Vec2&in, double width = 200.0, None_t = unspecified, bool enabled = true); }
+namespace SimpleGUI { bool ColorPicker(HSV&inout, const Vec2&in, bool enabled = true); }
 namespace TextToSpeech { bool HasLanguage(LanguageCode); }
 namespace TextToSpeech { void SetDefaultLanguage(LanguageCode); }
 namespace TextToSpeech { LanguageCode GetDefaultLanguage(); }
-namespace TextToSpeech { bool Speak(const String&in, LanguageCode = LanguageCode :: Unspecified); }
+namespace TextToSpeech { bool Speak(const String&in, LanguageCode languageCode = LanguageCode :: Unspecified); }
 namespace TextToSpeech { bool IsSpeaking(); }
 namespace TextToSpeech { void Pause(); }
 namespace TextToSpeech { void Resume(); }
@@ -4669,12 +4670,12 @@ namespace TextToSpeech { void SetVolume(double); }
 namespace TextToSpeech { double GetVolume(); }
 namespace TextToSpeech { void SetSpeed(double); }
 namespace TextToSpeech { double GetSpeed(); }
-namespace Dialog { Image OpenImage(const String&in = "", const String&in = ""); }
-namespace Dialog { Texture OpenTexture(const String&in = "", const String&in = ""); }
-namespace Dialog { Texture OpenTexture(TextureDesc, const String&in = "", const String&in = ""); }
-namespace Dialog { Wave OpenWave(const String&in = "", const String&in = ""); }
-namespace Dialog { Audio OpenAudio(const String&in = "", const String&in = ""); }
-namespace Dialog { Audio OpenAudio(AudioFileStreaming, const String&in = "", const String&in = ""); }
+namespace Dialog { Image OpenImage(const String&in defaultPath = "", const String&in title = ""); }
+namespace Dialog { Texture OpenTexture(const String&in defaultPath = "", const String&in title = ""); }
+namespace Dialog { Texture OpenTexture(TextureDesc, const String&in defaultPath = "", const String&in title = ""); }
+namespace Dialog { Wave OpenWave(const String&in defaultPath = "", const String&in title = ""); }
+namespace Dialog { Audio OpenAudio(const String&in defaultPath = "", const String&in title = ""); }
+namespace Dialog { Audio OpenAudio(AudioFileStreaming, const String&in defaultPath = "", const String&in title = ""); }
 namespace StartImmediately { bool Yes; }
 namespace StartImmediately { bool No; }
 namespace Centering { bool Yes; }

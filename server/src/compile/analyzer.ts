@@ -261,6 +261,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)
     }
 }
 
+// '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
     for (const member of nodeClass.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
@@ -269,6 +270,8 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
             hoistFunc(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.Var) {
             hoistVar(scope, member, analyzing, true);
+        } else if (member.nodeName === NodeName.FuncDef) {
+            hoistFuncDef(scope, member, analyzing, hoisting);
         }
     }
 }
