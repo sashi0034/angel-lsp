@@ -389,7 +389,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 function analyzeVarInitializer(
     scope: SymbolScope,
     varType: DeducedType | undefined,
-    identifier: ParsingToken,
+    varIdentifier: ParsingToken,
     initializer: NodeInitList | NodeAssign | NodeArgList
 ): DeducedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
@@ -400,7 +400,7 @@ function analyzeVarInitializer(
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined || varType.symbolType.symbolKind === SymbolKind.Function) return undefined;
-        return analyzeConstructorByType(scope, identifier, initializer, varType.symbolType, varType.templateTranslate);
+        return analyzeConstructorCaller(scope, varIdentifier, initializer, varType);
     }
 }
 
@@ -848,29 +848,30 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-function analyzeConstructorByType(
+function analyzeConstructorCaller(
     scope: SymbolScope,
     callerIdentifier: ParsingToken,
     callerArgList: NodeArgList,
-    constructorType: SymbolicType,
-    templateTranslate: TemplateTranslation | undefined
+    constructorType: DeducedType
 ): DeducedType | undefined {
-    const constructorIdentifier = constructorType.declaredPlace.text;
-    const classScope = findScopeWithParent(scope, constructorIdentifier);
-    if (classScope === undefined) {
-        diagnostic.addError(callerIdentifier.location, `Class '${constructorIdentifier}' is not defined 💢`);
-        return undefined;
-    }
+    const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
+    if (constructorType.sourceScope === undefined) return undefined;
 
-    const constructor = findSymbolShallowly(classScope, constructorIdentifier);
+    const classScope = findScopeShallowly(constructorType.sourceScope, constructorIdentifier);
+    const constructor = classScope === undefined ? undefined : findSymbolShallowly(classScope, constructorIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
-        if (callerArgList.argList.length === 0) return {symbolType: constructorType, sourceScope: classScope}; // デフォルトコンストラクタ
+        if (callerArgList.argList.length === 0) {
+            // デフォルトコンストラクタ
+            scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
+            return constructorType;
+        }
+
         diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing 💢`);
         return undefined;
     }
 
-    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, templateTranslate);
-    return {symbolType: constructorType, sourceScope: classScope};
+    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslate);
+    return constructorType;
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
@@ -983,26 +984,52 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
         searchScope = namespaceScope;
     }
 
-    const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text)?.symbol;
-    if (calleeFunc === undefined) {
+    const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
+    if (calleeFunc?.symbol === undefined) {
         diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined 💢`);
         return undefined;
     }
 
-    if (calleeFunc.symbolKind === SymbolKind.Type) {
-        return analyzeConstructorByType(scope, funcCall.identifier, funcCall.argList, calleeFunc, undefined);
+    const [calleeSymbol, calleeScope] = [calleeFunc.symbol, calleeFunc.scope];
+
+    if (calleeSymbol.symbolKind === SymbolKind.Type) {
+        const constructorType: DeducedType = {symbolType: calleeSymbol, sourceScope: calleeScope};
+        return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    if (calleeFunc.symbolKind === SymbolKind.Variable && calleeFunc.type?.symbolType.symbolKind === SymbolKind.Function) {
-        return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeFunc.type.symbolType, undefined);
+    if (calleeSymbol.symbolKind === SymbolKind.Variable && calleeSymbol.type?.symbolType.symbolKind === SymbolKind.Function) {
+        return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeSymbol.type.symbolType, undefined);
     }
 
-    if (calleeFunc.symbolKind !== SymbolKind.Function) {
+    if (calleeSymbol.symbolKind === SymbolKind.Variable) {
+        return analyzeOpCallCaller(scope, funcCall, calleeSymbol);
+    }
+
+    if (calleeSymbol.symbolKind !== SymbolKind.Function) {
         diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function 💢`);
         return undefined;
     }
 
-    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeFunc, undefined);
+    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeSymbol, undefined);
+}
+
+function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolicVariable) {
+    const varType = calleeVariable.type;
+    if (varType === undefined || varType.sourceScope === undefined) {
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable 💢`);
+        return;
+    }
+
+    const classScope = findScopeShallowly(varType.sourceScope, varType.symbolType.declaredPlace.text);
+    if (classScope === undefined) return undefined;
+
+    const opCall = findSymbolShallowly(classScope, 'opCall');
+    if (opCall === undefined || opCall.symbolKind !== SymbolKind.Function) {
+        diagnostic.addError(funcCall.identifier.location, `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}' 💢`);
+        return;
+    }
+
+    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslate);
 }
 
 function analyzeFunctionCaller(
