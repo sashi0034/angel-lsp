@@ -72,7 +72,7 @@ import {
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
-    stringifyDeducedType,
+    stringifyDeducedType, stringifyDeducedTypes,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
@@ -1121,6 +1121,15 @@ function analyzeFunctionCaller(
     templateTranslate: TemplateTranslation | undefined
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
+
+    if (calleeFunc.sourceNode.nodeName === NodeName.FuncDef) {
+        // デリゲートの場合は、その関数ハンドラとしてそのまま返却
+        const handlerType = {symbolType: calleeFunc, sourceScope: undefined};
+        if (callerArgTypes.length === 1 && isTypeMatch(callerArgTypes[0], handlerType)) {
+            return callerArgTypes[0];
+        }
+    }
+
     return checkFunctionMatch({
         scope: scope,
         callerIdentifier: callerIdentifier,
@@ -1247,12 +1256,12 @@ function analyzeOperatorAlias(
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
 ) {
+    const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
+
     if (lhs.symbolType.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(operator.location, `Invalid operation 💢`);
+        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyDeducedType(lhs)}' and '${stringifyDeducedTypes(rhsArgs)}' 💢`);
         return undefined;
     }
-
-    const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
     if (isSourcePrimitiveType(lhs.symbolType.sourceType)) {
         diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
