@@ -22,10 +22,9 @@
 
 - Fix parser bugs such as '>>' in templates and '!is'.
 - Handler checking
-- Support for 'tpedef', getter and setter.
 - Formatter
 - Code Action
-- Debuffer
+- Debugger
 
 ---
 
