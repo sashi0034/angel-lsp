@@ -45,6 +45,7 @@ import {
     NodeSwitch,
     NodeTry,
     NodeType,
+    NodeTypeDef,
     NodeVar,
     NodeVarAccess,
     NodeWhile,
@@ -109,6 +110,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Enum) {
             hoistEnum(parentScope, statement);
+        } else if (nodeName === NodeName.TypeDef) {
+            hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
             hoistClass(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.Mixin) {
@@ -281,6 +284,18 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
+    const builtInType = tryGetBuiltInType(typeDef.type);
+    if (builtInType === undefined) return;
+
+    const symbol: SymbolicType = {
+        symbolKind: SymbolKind.Type,
+        declaredPlace: typeDef.identifier,
+        sourceType: builtInType.sourceType,
+        membersScope: undefined,
+    };
+    insertSymbolicObject(parentScope.symbolMap, symbol);
+}
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(

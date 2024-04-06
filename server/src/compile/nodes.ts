@@ -190,7 +190,7 @@ export interface NodeClass extends NodesBase {
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 export interface NodeTypeDef extends NodesBase {
     nodeName: NodeName.TypeDef;
-    type: TokenReserved;
+    type: ParsingToken;
     identifier: ParsingToken;
 }
 
