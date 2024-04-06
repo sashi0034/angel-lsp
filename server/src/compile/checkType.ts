@@ -65,14 +65,15 @@ export function isTypeMatchInternal(
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
-        return canCastFromPrimitiveType(srcType, destType);
+        // プリミティブからプリミティブへキャスト可能なら OK
+        if (canCastFromPrimitiveType(srcType, destType)) return true;
+    } else {
+        // 同じ型を指しているなら OK
+        if (srcType.declaredPlace === destType.declaredPlace) return true;
+
+        // 継承した型のいずれかが移動先に当てはまるなら OK
+        if (canCastStatically(srcNode, destNode, srcType, destType)) return true;
     }
-
-    // 同じ型を指しているなら OK
-    if (srcType.declaredPlace === destType.declaredPlace) return true;
-
-    // 継承した型のいずれかが移動先に当てはまるなら OK
-    if (canCastStatically(srcNode, destNode, srcType, destType)) return true;
 
     // 移動先の型がクラスでないなら NG
     if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
