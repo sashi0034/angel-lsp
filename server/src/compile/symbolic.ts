@@ -7,7 +7,7 @@ import {
     NodeIf,
     NodeInterface, NodeIntfMethod,
     NodeName,
-    NodesBase,
+    NodesBase, NodeVirtualProp,
     ParsedRange
 } from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
@@ -79,7 +79,13 @@ export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is Symbol
 export type SymbolicObject = SymbolicType | SymbolicFunction | SymbolicVariable;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-export type SymbolOwnerNode = NodeEnum | NodeClass | NodeInterface | NodeFunc | NodeIf;
+export type SymbolOwnerNode =
+    NodeEnum
+    | NodeClass
+    | NodeVirtualProp
+    | NodeInterface
+    | NodeFunc
+    | NodeIf;
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicBase;
@@ -94,6 +100,7 @@ export type SymbolMap = Map<string, SymbolicObject>;
 export interface ScopeBirthInfo {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
+    key: string;
 }
 
 // 定義されたシンボル情報と小スコープ
@@ -295,6 +302,8 @@ export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined
 }
 
 export const builtinThisToken = createVirtualToken(TokenKind.Identifier, 'this');
+
+export const builtinSetterValueToken = createVirtualToken(TokenKind.Identifier, 'value');
 
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
     return scope.symbolMap.get(identifier);

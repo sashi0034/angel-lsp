@@ -89,7 +89,7 @@
     "Namespace definition": {
         "prefix": "namespace",
         "body": [
-            "namespace ${1:NAME} {",
+            "namespace ${1:IDENTIFIER} {",
             "}"
         ],
         "description": "Namespace definition"
@@ -97,7 +97,7 @@
     "Interface definition": {
         "prefix": "interface",
         "body": [
-            "interface ${1:NAME} {",
+            "interface ${1:IDENTIFIER} {",
             "}"
         ],
         "description": "Interface definition"
@@ -105,9 +105,48 @@
     "Class definition": {
         "prefix": "class",
         "body": [
-            "class ${1:NAME} {",
+            "class ${1:IDENTIFIER} {",
             "}"
         ],
         "description": "Class definition"
+    },
+    "Type definition": {
+        "prefix": "typedef",
+        "body": [
+            "typedef ${1:PRIMITIVE} ${2:IDENTIFIER};"
+        ],
+        "description": "Alias for a type"
+    },
+    "Function handler definition": {
+        "prefix": "funcdef",
+        "body": [
+            "funcdef ${1:RETURN} ${2:IDENTIFIER}(${3:PARAMS});"
+        ],
+        "description": "Function handler definition"
+    },
+    "Virtual property getter": {
+        "prefix": "getter",
+        "body": [
+            "${1:TYPE} ${2:IDENTIFIER} {",
+            "\tget const {",
+            "\t\treturn ${3:VALUE};",
+            "\t}",
+            "}"
+        ],
+        "description": "Virtual property getter"
+    },
+    "Virtual property getter and setter": {
+        "prefix": "gettersetter",
+        "body": [
+            "${1:TYPE} ${2:IDENTIFIER} {",
+            "\tget const {",
+            "\t\treturn ${3:VALUE};",
+            "\t}",
+            "\tset {",
+            "\t\t${3:VALUE} = value;",
+            "\t}",
+            "}"
+        ],
+        "description": "Virtual property getter and setter"
     }
 }

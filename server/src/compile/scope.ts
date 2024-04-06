@@ -20,20 +20,23 @@ export function findScopeWithParent(scope: SymbolScope, identifier: string): Sym
     return findScopeWithParent(scope.parentScope, identifier);
 }
 
-export function findScopeWithParentByNode(scope: SymbolScope, nodeName: NodeName): SymbolScope | undefined {
-    if (scope.ownerNode?.nodeName === nodeName) return scope;
+export function findScopeWithParentByNodes(scope: SymbolScope, nodeCandidates: NodeName[]): SymbolScope | undefined {
+    if (scope.ownerNode !== undefined && nodeCandidates.includes(scope.ownerNode.nodeName)) return scope;
     if (scope.parentScope === undefined) return undefined;
-    return findScopeWithParentByNode(scope.parentScope, nodeName);
+    return findScopeWithParentByNodes(scope.parentScope, nodeCandidates);
 }
 
 export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {
     return scope.childScopes.get(identifier);
 }
 
-export function createSymbolScope(ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined): SymbolScope {
+export function createSymbolScope(
+    ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined, key: string
+): SymbolScope {
     return {
         ownerNode: ownerNode,
         parentScope: parentScope,
+        key: key,
         childScopes: new Map(),
         symbolMap: new Map(),
         referencedList: [],
@@ -46,7 +49,7 @@ export function createSymbolScopeAndInsert(
     parentScope: SymbolScope | undefined,
     identifier: string,
 ): SymbolScope {
-    const scope = createSymbolScope(ownerNode, parentScope);
+    const scope = createSymbolScope(ownerNode, parentScope, identifier);
     parentScope?.childScopes.set(identifier, scope);
     return scope;
 }
@@ -64,7 +67,7 @@ export class AnalyzedScope {
 
     public get pureScope(): SymbolScope {
         if (this.pureBuffer === undefined) {
-            this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope);
+            this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope, this.fullScope.key);
             copyOriginalSymbolsInScope(this.path, this.fullScope, this.pureBuffer);
         }
         return this.pureBuffer;

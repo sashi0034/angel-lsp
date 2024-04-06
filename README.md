@@ -24,6 +24,8 @@
 - Handler checking
 - Support for 'tpedef', getter and setter.
 - Formatter
+- Code Action
+- Debuffer
 
 ---
 

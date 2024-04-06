@@ -24,7 +24,7 @@ let s_predefinedPath = '';
 const emptyResult: InspectResult = {
     diagnostics: [],
     tokenizedTokens: [],
-    analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined))
+    analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined, ''))
 } as const;
 
 export function getInspectedResult(document: DocumentPath): InspectResult {

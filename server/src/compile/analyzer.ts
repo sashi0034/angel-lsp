@@ -48,6 +48,7 @@ import {
     NodeTypeDef,
     NodeVar,
     NodeVarAccess,
+    NodeVirtualProp,
     NodeWhile,
     ParsedEnumMember,
     ParsedRange
@@ -57,6 +58,7 @@ import {
     builtinDoubleType,
     builtinFloatType,
     builtinIntType,
+    builtinSetterValueToken,
     builtinStringType,
     builtinThisToken,
     ComplementKind,
@@ -77,7 +79,8 @@ import {
     SymbolKind,
     SymbolScope,
     TemplateTranslation,
-    tryGetBuiltInType, tryInsertSymbolicObject
+    tryGetBuiltInType,
+    tryInsertSymbolicObject
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
@@ -90,8 +93,7 @@ import {
     findGlobalScope,
     findScopeShallowly,
     findScopeShallowlyOrInsert,
-    findScopeWithParent,
-    findScopeWithParentByNode,
+    findScopeWithParentByNodes,
     isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
@@ -120,6 +122,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
             hoistInterface(parentScope, statement, analyzing, hoisting);
         } else if (nodeName === NodeName.FuncDef) {
             hoistFuncDef(parentScope, statement, analyzing, hoisting);
+        } else if (nodeName === NodeName.VirtualProp) {
+            hoistVirtualProp(parentScope, statement, analyzing, hoisting, false);
         } else if (nodeName === NodeName.Var) {
             hoistVar(parentScope, statement, analyzing, false);
         } else if (nodeName === NodeName.Func) {
@@ -272,7 +276,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)
 function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
     for (const member of nodeClass.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
-            // TODO
+            hoistVirtualProp(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.Func) {
             hoistFunc(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.Var) {
@@ -365,7 +369,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
 function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
     for (const member of nodeInterface.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
-            // TODO
+            hoistVirtualProp(scope, member, analyzing, hoisting, true);
         } else if (member.nodeName === NodeName.IntfMethod) {
             hoistIntfMethod(scope, member);
         }
@@ -456,6 +460,50 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+function hoistVirtualProp(
+    parentScope: SymbolScope, virtualProp: NodeVirtualProp, analyzing: AnalyzingQueue, hoisting: HoistingQueue, isInstanceMember: boolean
+) {
+    const type = analyzeType(parentScope, virtualProp.type);
+
+    const identifier = virtualProp.identifier;
+    const symbol: SymbolicVariable = {
+        symbolKind: SymbolKind.Variable,
+        declaredPlace: identifier,
+        type: type,
+        isInstanceMember: isInstanceMember,
+    };
+    insertSymbolicObject(parentScope.symbolMap, symbol);
+
+    const getter = virtualProp.getter;
+    if (getter !== undefined && getter.statBlock !== undefined) {
+        const getterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `get_${identifier.text}`);
+
+        const statBlock = getter.statBlock;
+        analyzing.push(() => {
+            analyzeStatBlock(getterScope, statBlock);
+        });
+    }
+
+    const setter = virtualProp.setter;
+    if (setter !== undefined && setter.statBlock !== undefined) {
+        const setterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `set_${identifier.text}`);
+
+        if (type !== undefined) {
+            const valueVariable: SymbolicVariable = {
+                symbolKind: SymbolKind.Variable,
+                declaredPlace: builtinSetterValueToken,
+                type: {symbolType: type.symbolType, sourceScope: setterScope},
+                isInstanceMember: false,
+            };
+            insertSymbolicObject(setterScope.symbolMap, valueVariable);
+        }
+
+        const statBlock = setter.statBlock;
+        analyzing.push(() => {
+            analyzeStatBlock(setterScope, statBlock);
+        });
+    }
+}
 
 // MIXIN         ::= 'mixin' CLASS
 function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -780,13 +828,13 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const returnType = nodeReturn.assign === undefined ? undefined : analyzeAssign(scope, nodeReturn.assign);
 
-    const functionScope = findScopeWithParentByNode(scope, NodeName.Func);
+    const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp]);
     if (functionScope === undefined || functionScope.ownerNode === undefined) return;
 
-    // TODO: 仮想プロパティやラムダ式に対応
+    // TODO: ラムダ式に対応
 
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
-        const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.ownerNode.identifier.text);
+        const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
         if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
 
         const expectedReturn = functionReturn.returnType?.symbolType;
@@ -796,6 +844,20 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         } else {
             checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
         }
+    } else if (functionScope.ownerNode.nodeName === NodeName.VirtualProp) {
+        const key = functionScope.key;
+        const isGetter = key.startsWith('get_');
+        if (isGetter === false) {
+            if (nodeReturn.assign === undefined) return;
+            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Property setter does not return a value 💢`);
+            return;
+        }
+
+        const varName = key.substring(4, key.length);
+        const functionReturn = functionScope.parentScope?.symbolMap.get(varName);
+        if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Variable) return;
+
+        checkTypeMatch(returnType, functionReturn.type, nodeReturn.nodeRange);
     }
 }
 
@@ -1352,7 +1414,7 @@ const assignOpAliases = new Map<string, string>([
 
 // 解析器のエントリーポイント
 export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {
-    const globalScope: SymbolScope = createSymbolScope(undefined, undefined);
+    const globalScope: SymbolScope = createSymbolScope(undefined, undefined, '');
 
     for (const included of includedScopes) {
         // インクルードされたスコープのシンボルをコピー
