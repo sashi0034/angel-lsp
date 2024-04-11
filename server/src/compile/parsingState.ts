@@ -1,6 +1,6 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "./tokens";
+import {isVirtualToken, TokenKind} from "./tokens";
 import {ParsingToken} from "./parsingToken";
 import {
     ParseCachedData,
@@ -55,7 +55,7 @@ export class ParsingState {
 
     public confirm(analyzeToken: HighlightToken) {
         const next = this.next();
-        next.highlight.token = analyzeToken;
+        if (isVirtualToken(next) === false) next.highlight.token = analyzeToken;
         this.step();
     }
 

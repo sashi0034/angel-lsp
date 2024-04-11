@@ -2,10 +2,20 @@ import {ReservedWordProperty} from "./tokens";
 import {Trie} from "../utils/trie";
 import assert = require("assert");
 
+// https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
+
+// 全記号郡
 const reservedMarkArray = [
-    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
+    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '!is', '::',
 ];
 
+// 文脈依存の要素を取り除いた記号郡
+const reservedWeakMarkArray = [
+    '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
+    // '>=', '>>', '>>>', '>>=', '>>>=', '!is'
+];
+
+// 英数字から構成される予約後郡
 const reservedKeywordArray = [
     'and', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'false', 'float', 'for', 'funcdef', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'switch', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
     // Not really a reserved keyword, but is recognized by the compiler as a built-in keyword.
@@ -18,7 +28,7 @@ const bitOpSet = new Set(['&', '|', '^', '<<', '>>', '>>>']);
 
 const mathOpSet = new Set(['+', '-', '*', '/', '%', '**']);
 
-const compOpSet = new Set(['==', '!=', '<', '<=', '>', '>=', 'is']);
+const compOpSet = new Set(['==', '!=', '<', '<=', '>', '>=', 'is', '!is']);
 
 const logicOpSet = new Set(['&&', '||', '^^', 'and', 'or', 'xor']);
 
@@ -41,8 +51,6 @@ function makeEmptyProperty(): ReservedWordProperty {
         isPrimeType: false,
     };
 }
-
-const emptyProperty = makeEmptyProperty();
 
 const reservedWordProperties = createProperties();
 
@@ -91,19 +99,19 @@ function createProperties() {
     return properties;
 }
 
-const reservedMarkProperties = createMarkPropertyTrie();
+const reservedWeakMarkProperties = createWeakMarkPropertyTrie();
 
-function createMarkPropertyTrie() {
+function createWeakMarkPropertyTrie() {
     const markMap = new Trie<ReservedWordProperty>();
-    for (const mark of reservedMarkArray) {
+    for (const mark of reservedWeakMarkArray) {
         markMap.insert(mark, reservedWordProperties.get(mark)!);
     }
     return markMap;
 }
 
 // 記号の予約語をプロパティ検索
-export function findReservedMarkProperty(str: string, start: number) {
-    return reservedMarkProperties.find(str, start);
+export function findReservedWeakMarkProperty(str: string, start: number) {
+    return reservedWeakMarkProperties.find(str, start);
 }
 
 const reservedKeywordProperties = createKeywordPropertyMap();

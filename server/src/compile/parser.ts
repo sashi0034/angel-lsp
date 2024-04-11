@@ -6,7 +6,7 @@ import {
     funcHeadConstructor,
     funcHeadDestructor,
     FuncHeads,
-    FunctionAttribute,
+    FunctionAttribute, getRangedLocation,
     isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
@@ -68,7 +68,7 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
-import {ParsingToken} from "./parsingToken";
+import {createVirtualToken, isTokensLinkedBy, ParsingToken} from "./parsingToken";
 import {TokenKind} from "./tokens";
 import {BreakThrough, ParseFailure, ParsingState, TriedParse} from "./parsingState";
 import {ParseCacheKind} from "./parseCached";
@@ -2058,24 +2058,79 @@ function parseCondition(parsing: ParsingState): NodeCondition | undefined {
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parsing: ParsingState) {
-    const next = parsing.next();
+    const next = getNextLinkedGreaterThan(parsing);
     if (next.kind !== TokenKind.Reserved) return undefined;
-    if (next.property.isExprOp === false) return undefined;
-    parsing.confirm(HighlightToken.Operator);
+    if (next.property.isExprOp === false) return parseNotIsOperator(parsing);
+    parsing.confirm(next.text === 'is' ? HighlightToken.Builtin : HighlightToken.Operator);
     return next;
 }
 
+const uniqueNotIsToken = createVirtualToken(TokenKind.Reserved, '!is');
+
+// '!is' は特殊処理
+function parseNotIsOperator(parsing: ParsingState) {
+    if (isTokensLinkedBy(parsing.next(), ['!', 'is']) === false) return undefined;
+
+    const location = getRangedLocation(parsing.next(0), parsing.next(1));
+    parsing.confirm(HighlightToken.Builtin);
+    parsing.confirm(HighlightToken.Builtin);
+
+    return {...uniqueNotIsToken, location: location} satisfies ParsingToken;
+}
+
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
+
 // COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parsing: ParsingState) {
-    const next = parsing.next();
+    const next = getNextLinkedGreaterThan(parsing);
     if (next.kind !== TokenKind.Reserved || next.property.isAssignOp === false) return undefined;
     parsing.confirm(HighlightToken.Operator);
     return next;
+}
+
+const uniqueGreaterThanTokenOrEqualToken = createVirtualToken(TokenKind.Reserved, '>=');
+const uniqueBitShiftRightToken = createVirtualToken(TokenKind.Reserved, '>>');
+const uniqueBitShiftRightAssignToken = createVirtualToken(TokenKind.Reserved, '>>=');
+const uniqueBitShiftRightArithmeticToken = createVirtualToken(TokenKind.Reserved, '>>>');
+const uniqueBitShiftRightArithmeticAssignToken = createVirtualToken(TokenKind.Reserved, '>>>=');
+
+function getNextLinkedGreaterThan(parsing: ParsingState) {
+    if (parsing.next().text !== '>') return parsing.next();
+
+    const check = (targets: string[], uniqueToken: ParsingToken) => {
+        if (isTokensLinkedBy(parsing.next(1), targets) === false) return undefined;
+        const location = getRangedLocation(parsing.next(0), parsing.next(targets.length));
+        for (let i = 0; i < targets.length; ++i) parsing.confirm(HighlightToken.Operator);
+        return {...uniqueToken, location: location} satisfies ParsingToken;
+    };
+
+    // '>='
+    const greaterThanTokenOrEqualToken = check(['='], uniqueGreaterThanTokenOrEqualToken);
+    if (greaterThanTokenOrEqualToken !== undefined) return greaterThanTokenOrEqualToken;
+
+    // '>>>='
+    const bitShiftRightArithmeticAssignToken = check(['>', '>', '='], uniqueBitShiftRightArithmeticAssignToken);
+    if (bitShiftRightArithmeticAssignToken !== undefined) return bitShiftRightArithmeticAssignToken;
+
+    // '>>>'
+    const bitShiftRightArithmeticToken = check(['>', '>'], uniqueBitShiftRightArithmeticToken);
+    if (bitShiftRightArithmeticToken !== undefined) return bitShiftRightArithmeticToken;
+
+    // '>>='
+    const bitShiftRightAssignToken = check(['>', '='], uniqueBitShiftRightAssignToken);
+    if (bitShiftRightAssignToken !== undefined) return bitShiftRightAssignToken;
+
+    // '>>'
+    const bitShiftRightToken = check(['>'], uniqueBitShiftRightToken);
+    if (bitShiftRightToken !== undefined) return bitShiftRightToken;
+
+    return parsing.next();
 }
 
 export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {

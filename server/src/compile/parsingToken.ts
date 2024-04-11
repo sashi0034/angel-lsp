@@ -14,8 +14,20 @@ export type ParsingToken = TokenizingToken & {
     next: ParsingToken | undefined;
 }
 
-function isVirtualToken(token: ParsingToken): boolean {
-    return token.highlight === undefined;
+export function isTokensLinkedBy(head: ParsingToken, targets: string[]): boolean {
+    if (head.text !== targets[0]) return false;
+
+    let cursor = head.next;
+    let column = head.location.end.character;
+    for (let i = 1; i < targets.length; i++) {
+        if (cursor === undefined || cursor.text !== targets[i]) return false;
+        if (cursor.location.start.line !== head.location.start.line) return false;
+        if (cursor.location.start.character !== column) return false;
+        column = cursor.location.end.character;
+        cursor = cursor.next;
+    }
+
+    return true;
 }
 
 export function createVirtualToken(
