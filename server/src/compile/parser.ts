@@ -996,7 +996,7 @@ function parseTypeTail(parsing: ParsingState) {
     let isArray = false;
     let refModifier: ReferenceModifier | undefined = undefined;
     while (parsing.isEnd() === false) {
-        if (parsing.next(0).text === '[' && parsing.next().text === ']') {
+        if (parsing.next(0).text === '[' && parsing.next(1).text === ']') {
             parsing.confirm(HighlightToken.Operator);
             parsing.confirm(HighlightToken.Operator);
             isArray = true;
