@@ -83,6 +83,7 @@ connection.onInitialize((params: InitializeParams) => {
                 range: false, // if true, the server supports range-based requests
                 full: true
             },
+            documentFormattingProvider: true
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -233,6 +234,7 @@ connection.onCompletion(
 // This handler resolves additional information for the item selected in
 // the completion list.
 connection.onCompletionResolve(
+    // TODO
     (item: CompletionItem): CompletionItem => {
         if (item.data === 1) {
             item.detail = 'TypeScript details';
@@ -244,6 +246,18 @@ connection.onCompletionResolve(
         return item;
     }
 );
+
+connection.onDocumentFormatting((params) => {
+    const format: TextEdit[] = [];
+    format.push({
+        range: {
+            start: {line: 0, character: 0},
+            end: {line: 0, character: 0}
+        },
+        newText: '/* format */'
+    });
+    return format;
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
