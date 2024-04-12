@@ -1,15 +1,5 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
-import {uinteger} from "vscode-languageserver-types/lib/esm/main";
-
-export interface Position {
-    line: uinteger;
-    character: uinteger;
-}
-
-export interface Range {
-    start: Position;
-    end: Position;
-}
+import {Position, Range} from "vscode-languageserver";
 
 export enum TokenKind {
     Reserved = 'Reserved',

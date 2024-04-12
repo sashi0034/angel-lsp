@@ -27,7 +27,7 @@ export function getNextTokenIfExist(token: ParsingToken): ParsingToken {
     return token;
 }
 
-export function getRangedLocation(start: ParsingToken, end: ParsingToken): LocationInfo {
+export function getLocationBetween(start: ParsingToken, end: ParsingToken): LocationInfo {
     return {
         path: start.location.path,
         start: start.location.start,
@@ -36,7 +36,7 @@ export function getRangedLocation(start: ParsingToken, end: ParsingToken): Locat
 }
 
 export function getNodeLocation(range: ParsedRange): LocationInfo {
-    return getRangedLocation(range.start, range.end);
+    return getLocationBetween(range.start, range.end);
 }
 
 export interface EntityAttribute {

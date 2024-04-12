@@ -5,7 +5,7 @@ import {
     getIdentifierInType,
     getNextTokenIfExist,
     getNodeLocation,
-    getRangedLocation,
+    getLocationBetween,
     isFunctionHeadReturns,
     isMemberMethodInPostOp,
     NodeArgList,
@@ -975,7 +975,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    const complementRange = getRangedLocation(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
+    const complementRange = getLocationBetween(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
 
     // クラスメンバ補完
     scope.completionHints.push({
@@ -1247,7 +1247,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (isTypeMatch(trueAssign, falseAssign)) return falseAssign;
     if (isTypeMatch(falseAssign, trueAssign)) return trueAssign;
 
-    diagnostic.addError(getRangedLocation(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
+    diagnostic.addError(getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
         `Type mismatches between '${stringifyDeducedType(trueAssign)}' and '${stringifyDeducedType(falseAssign)}' 💢`);
     return undefined;
 }

@@ -6,7 +6,7 @@ import {
     funcHeadConstructor,
     funcHeadDestructor,
     FuncHeads,
-    FunctionAttribute, getRangedLocation,
+    FunctionAttribute, getLocationBetween,
     isFunctionHeadReturns,
     NodeArgList,
     NodeAssign,
@@ -2071,7 +2071,7 @@ const uniqueNotIsToken = createVirtualToken(TokenKind.Reserved, '!is');
 function parseNotIsOperator(parsing: ParsingState) {
     if (isTokensLinkedBy(parsing.next(), ['!', 'is']) === false) return undefined;
 
-    const location = getRangedLocation(parsing.next(0), parsing.next(1));
+    const location = getLocationBetween(parsing.next(0), parsing.next(1));
     parsing.confirm(HighlightToken.Builtin);
     parsing.confirm(HighlightToken.Builtin);
 
@@ -2105,7 +2105,7 @@ function getNextLinkedGreaterThan(parsing: ParsingState) {
 
     const check = (targets: string[], uniqueToken: ParsingToken) => {
         if (isTokensLinkedBy(parsing.next(1), targets) === false) return undefined;
-        const location = getRangedLocation(parsing.next(0), parsing.next(targets.length));
+        const location = getLocationBetween(parsing.next(0), parsing.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parsing.confirm(HighlightToken.Operator);
         return {...uniqueToken, location: location} satisfies ParsingToken;
     };
