@@ -2,6 +2,7 @@ import {NodeFunc, NodeName, NodeNamespace, NodeScript} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {removeFrontSpaces} from "./formatFunction";
+import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function formatScript(format: FormatState, nodeScript: NodeScript) {
@@ -83,8 +84,8 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
 // COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
-export function formatDocument(content: string, ast: NodeScript): TextEdit[] {
-    const state = new FormatState(content, ast);
+export function formatDocument(content: string, tokens: TokenizingToken[], ast: NodeScript): TextEdit[] {
+    const state = new FormatState(content, tokens, ast);
     formatScript(state, ast);
     return state.getResult();
 }

@@ -9,7 +9,6 @@ import {
 import {findAllReservedWordProperty} from "./tokenReserves";
 
 export type ParsingToken = TokenizingToken & {
-    highlight: HighlightInfo;
     index: number;
     next: ParsingToken | undefined;
 }

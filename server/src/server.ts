@@ -250,7 +250,7 @@ connection.onCompletionResolve(
 
 connection.onDocumentFormatting((params) => {
     const inspected = getInspectedResult(getDocumentPath(params));
-    return formatDocument(inspected.content, inspected.parsedAst);
+    return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);
 });
 
 // Make the text document manager listen on the connection

@@ -11,7 +11,7 @@ export function removeFrontSpaces(format: FormatState, start: Position, padding:
 
     const cursor: Position = {line: start.line, character: startCharacter};
     while (cursor.character > 0) {
-        if (isNullOrWhitespace(format.getText(cursor.line, cursor.character - 1)) === false) break;
+        if (format.map.getToken(cursor.line, cursor.character - 1) !== undefined) break;
         cursor.character--;
     }
 

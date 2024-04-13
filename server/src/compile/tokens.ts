@@ -116,4 +116,3 @@ export interface TokenComment extends TokenBase {
 }
 
 export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;
-
