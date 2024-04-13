@@ -10,10 +10,13 @@ import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
 import {DocumentPath} from "./documentPath";
 import {tracer} from "../code/tracer";
+import {NodeScript} from "../compile/nodes";
 
 interface InspectResult {
+    content: string;
     diagnostics: Diagnostic[];
     tokenizedTokens: TokenizingToken[];
+    parsedAst: NodeScript;
     analyzedScope: AnalyzedScope;
 }
 
@@ -22,8 +25,10 @@ const s_inspectedResults: { [path: string]: InspectResult } = {};
 let s_predefinedPath = '';
 
 const emptyResult: InspectResult = {
+    content: '',
     diagnostics: [],
     tokenizedTokens: [],
+    parsedAst: [],
     analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined, ''))
 } as const;
 
@@ -70,18 +75,20 @@ function inspectInternal(content: string, path: string): InspectResult {
     profiler.stamp("Tokenizer");
 
     // 構文解析
-    const parsed = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
+    const parsedAst = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
     profiler.stamp("Parser");
 
     // 型解析
     const includedScopes = getIncludedScope(path);
 
-    const analyzedScope = analyzeFromParsed(parsed, path, includedScopes);
+    const analyzedScope = analyzeFromParsed(parsedAst, path, includedScopes);
     profiler.stamp("Analyzer");
 
     return {
+        content: content,
         diagnostics: diagnostic.get(),
         tokenizedTokens: tokenizedTokens,
+        parsedAst: parsedAst,
         analyzedScope: analyzedScope
     };
 }

@@ -2135,6 +2135,7 @@ function getNextLinkedGreaterThan(parsing: ParsingState) {
 
 export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
+
     const script: NodeScript = [];
     while (parsing.isEnd() === false) {
         script.push(...parseScript(parsing));

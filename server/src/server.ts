@@ -30,6 +30,7 @@ import {serveReferences} from "./serve/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
+import {formatDocument} from "./format/formatter";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -248,15 +249,8 @@ connection.onCompletionResolve(
 );
 
 connection.onDocumentFormatting((params) => {
-    const format: TextEdit[] = [];
-    // format.push({
-    //     range: {
-    //         start: {line: 0, character: 0},
-    //         end: {line: 0, character: 0}
-    //     },
-    //     newText: '/* format */'
-    // });
-    return format;
+    const inspected = getInspectedResult(getDocumentPath(params));
+    return formatDocument(inspected.content, inspected.parsedAst);
 });
 
 // Make the text document manager listen on the connection
