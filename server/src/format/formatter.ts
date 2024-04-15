@@ -1,7 +1,7 @@
 import {NodeFunc, NodeName, NodeNamespace, NodeScript} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatExpectLineBody, formatExpectLineHead, removeFrontSpaces} from "./formatDetail";
+import {formatExpectLineBody, formatExpectLineHead, formatExpectLineTail, removeFrontSpaces} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -17,7 +17,15 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
     formatExpectLineHead(format, 'namespace');
-    formatExpectLineBody(format, nodeNamespace.namespaceList[0].text);
+
+    for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
+        if (i > 0) formatExpectLineBody(format, '::');
+
+        const namespace = nodeNamespace.namespaceList[i];
+        formatExpectLineBody(format, namespace.text);
+    }
+
+    formatExpectLineTail(format, '{');
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))

@@ -5,9 +5,9 @@ import {TokenizingToken} from "../compile/tokens";
 
 export class FormatState {
     private resultEdits: TextEdit[] = [];
-    private textLines: string[];
     private cursor: Position = {line: 0, character: 0};
 
+    public readonly textLines: string[];
     public readonly map: TokensMap;
 
     public constructor(
@@ -44,11 +44,12 @@ export class FormatState {
     }
 
     public getCursor(): Position {
-        return this.cursor;
+        return {line: this.cursor.line, character: this.cursor.character};
     }
 
     public setCursor(pos: Position) {
-        this.cursor = pos;
+        this.cursor.line = pos.line;
+        this.cursor.character = pos.character;
     }
 
     public setCursorWith(token: TokenizingToken) {
@@ -57,14 +58,21 @@ export class FormatState {
     }
 
     public stepCursor() {
-        if (this.cursor.line >= this.textLines.length) return;
-
-        this.cursor.character++;
-        if (this.cursor.character >= this.textLines[this.cursor.line].length) {
-            this.cursor.line++;
-            this.cursor.character = 0;
-        }
+        this.cursor = stepCursorAlongLines(this.textLines, this.cursor);
     }
+}
+
+export function stepCursorAlongLines(lines: string[], cursor: Position): Position {
+    if (cursor.line >= lines.length) return cursor;
+
+    cursor.character++;
+    if (cursor.character >= lines[cursor.line].length) {
+        cursor.line++;
+        cursor.character = 0;
+    }
+
+    return cursor;
+
 }
 
 function splitContent(content: string): string[] {
