@@ -81,6 +81,7 @@ export interface TokenReserved extends TokenBase {
 }
 
 export interface ReservedWordProperty {
+    isMark: boolean;
     isExprPreOp: boolean;
     isExprOp: boolean;
     isBitOp: boolean;

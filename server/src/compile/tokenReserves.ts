@@ -40,6 +40,7 @@ const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', '
 
 function makeEmptyProperty(): ReservedWordProperty {
     return {
+        isMark: false,
         isExprPreOp: false,
         isExprOp: false,
         isBitOp: false,
@@ -58,6 +59,10 @@ function createProperties() {
     const properties = new Map<string, ReservedWordProperty>();
     for (const symbol of [...reservedMarkArray, ...reservedKeywordArray]) {
         properties.set(symbol, makeEmptyProperty());
+    }
+
+    for (const symbol of reservedMarkArray) {
+        properties.get(symbol)!.isMark = true;
     }
 
     for (const symbol of exprPreOpSet) {

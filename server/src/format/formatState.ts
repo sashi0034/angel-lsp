@@ -30,13 +30,13 @@ export class FormatState {
         });
     }
 
-    public getText(line: number, character: number | undefined): string | undefined {
+    public getText(line: number, character: number | undefined, length: number = 1): string | undefined {
         if (character === undefined) return this.textLines[line];
-        return this.textLines[line][character];
+        return this.textLines[line].substring(character, character + length);
     }
 
-    public getTextAt(pos: Position): string | undefined {
-        return this.textLines[pos.line][pos.character];
+    public getTextAt(pos: Position, length: number = 1): string | undefined {
+        return this.textLines[pos.line].substring(pos.character, pos.character + length);
     }
 
     public cursoredText(): string | undefined {
@@ -49,6 +49,11 @@ export class FormatState {
 
     public setCursor(pos: Position) {
         this.cursor = pos;
+    }
+
+    public setCursorWith(token: TokenizingToken) {
+        this.cursor = token.location.end;
+        this.stepCursor();
     }
 
     public stepCursor() {
