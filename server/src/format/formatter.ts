@@ -1,4 +1,4 @@
-import {NodeFunc, NodeName, NodeNamespace, NodeScript} from "../compile/nodes";
+import {NodeFunc, NodeName, NodeNamespace, NodesBase, NodeScript} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatExpectLineBody, formatExpectLineHead, formatExpectLineTail} from "./formatDetail";
@@ -16,16 +16,32 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
-    formatExpectLineHead(format, 'namespace');
+    format.setCursorFromHead(nodeNamespace.nodeRange.start);
 
+    formatExpectLineHead(format, 'namespace', {spaceAfter: true});
+
+    format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatExpectLineBody(format, '::');
+        if (i > 0) formatExpectLineBody(format, '::', {});
 
         const namespace = nodeNamespace.namespaceList[i];
-        formatExpectLineBody(format, namespace.text);
+        formatExpectLineBody(format, namespace.text, {});
     }
+    format.popIndent();
 
-    formatExpectLineTail(format, '{');
+    formatCodeBlock(format, () => {
+        formatScript(format, nodeNamespace.script);
+    });
+}
+
+function formatCodeBlock(format: FormatState, action: () => void) {
+    formatExpectLineTail(format, '{', {spaceBefore: true});
+    format.pushIndent();
+
+    action();
+
+    format.popIndent();
+    formatExpectLineHead(format, '}', {spaceBefore: true});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))

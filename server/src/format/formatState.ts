@@ -6,6 +6,7 @@ import {TokenizingToken} from "../compile/tokens";
 export class FormatState {
     private resultEdits: TextEdit[] = [];
     private cursor: Position = {line: 0, character: 0};
+    private indentStack: string = '';
 
     public readonly textLines: string[];
     public readonly map: TokensMap;
@@ -52,13 +53,29 @@ export class FormatState {
         this.cursor.character = pos.character;
     }
 
-    public setCursorWith(token: TokenizingToken) {
-        this.cursor = token.location.end;
+    public setCursorFromHead(token: TokenizingToken) {
+        this.setCursor(token.location.start);
+    }
+
+    public setCursorToTail(token: TokenizingToken) {
+        this.setCursor(token.location.end);
         this.stepCursor();
     }
 
     public stepCursor() {
         this.cursor = stepCursorAlongLines(this.textLines, this.cursor);
+    }
+
+    public getIndent() {
+        return this.indentStack;
+    }
+
+    public pushIndent() {
+        this.indentStack += '\t';
+    }
+
+    public popIndent() {
+        this.indentStack = this.indentStack.substring(0, this.indentStack.length - 1);
     }
 }
 
@@ -120,4 +137,3 @@ export class TokensMap {
         return this.map[pos.line][pos.character];
     }
 }
-
