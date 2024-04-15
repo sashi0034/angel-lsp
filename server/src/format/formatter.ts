@@ -1,7 +1,7 @@
 import {NodeFunc, NodeName, NodeNamespace, NodeScript} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatExpectLineBody, formatExpectLineHead, formatExpectLineTail, removeFrontSpaces} from "./formatDetail";
+import {formatExpectLineBody, formatExpectLineHead, formatExpectLineTail} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}

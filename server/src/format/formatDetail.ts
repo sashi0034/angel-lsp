@@ -93,12 +93,14 @@ function formatExpectLineBy(format: FormatState, target: string, alignment: Line
         case LineAlignment.Body: {
             const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
             const prev = format.map.getToken(spaceStart.line, spaceStart.character - 1);
-            format.pushEdit(spaceStart, spaceEnd, getSpaceBetween(prev, next));
+            const sameLine = spaceStart.line === spaceEnd.line;
+            format.pushEdit(spaceStart, spaceEnd, sameLine ? getSpaceBetween(prev, next) : '');
             break;
         }
         case LineAlignment.Tail: {
             const spaceStart = format.getCursor();
-            format.pushEdit(spaceStart, spaceEnd, '');
+            const prev = format.map.getToken(spaceStart.line, spaceStart.character - 1);
+            format.pushEdit(spaceStart, spaceEnd, getSpaceBetween(prev, next));
             break;
         }
         }
@@ -111,28 +113,15 @@ function formatExpectLineBy(format: FormatState, target: string, alignment: Line
 
 function getSpaceBetween(prev: TokenizingToken | undefined, next: TokenizingToken): string {
     if (prev === undefined) return '';
-    if (prev.location.end.line !== next.location.start.line) return '';
     if (prev.kind === TokenKind.Reserved && prev.property.isMark) {
-        // if (next.kind === TokenKind.Reserved && next.property.isMark) return '';
+        if (spaceRequiredMarks.has(prev.text)) return ' ';
         return '';
     }
     if (next.kind === TokenKind.Reserved && next.property.isMark) {
+        if (spaceRequiredMarks.has(next.text)) return ' ';
         return '';
     }
     return ' ';
 }
 
-export function removeFrontSpaces(format: FormatState, start: Position, padding: number = 1) {
-    const startCharacter = start.character - 1;
-
-    const cursor: Position = {line: start.line, character: startCharacter};
-    while (cursor.character > 0) {
-        if (format.map.getToken(cursor.line, cursor.character - 1) !== undefined) break;
-        cursor.character--;
-    }
-
-    if (cursor.character !== startCharacter) {
-        if (cursor.character > 0) cursor.character += padding;
-        format.pushEdit(cursor, start, '');
-    }
-}
+const spaceRequiredMarks = new Set(['{', '}']);
