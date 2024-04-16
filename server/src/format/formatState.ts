@@ -1,7 +1,7 @@
 import {NodeScript} from "../compile/nodes";
 import {Position} from "vscode-languageserver";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {TokenizingToken} from "../compile/tokens";
+import {TokenBase, TokenizingToken} from "../compile/tokens";
 
 export class FormatState {
     private resultEdits: TextEdit[] = [];
@@ -53,11 +53,11 @@ export class FormatState {
         this.cursor.character = pos.character;
     }
 
-    public setCursorFromHead(token: TokenizingToken) {
+    public setCursorFromHead(token: TokenBase) {
         this.setCursor(token.location.start);
     }
 
-    public setCursorToTail(token: TokenizingToken) {
+    public setCursorToTail(token: TokenBase) {
         this.setCursor(token.location.end);
         this.stepCursor();
     }

@@ -1,6 +1,7 @@
 import {Position} from "vscode-languageserver";
 import {FormatState, stepCursorAlongLines} from "./formatState";
-import {TokenComment, TokenKind} from "../compile/tokens";
+import {TokenBase, TokenKind} from "../compile/tokens";
+import {NodesBase} from "../compile/nodes";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -19,10 +20,10 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
     return {line: line, character: character};
 }
 
-function formatBlockComment(format: FormatState, token: TokenComment) {
+function formatTokenWithSpace(format: FormatState, token: TokenBase) {
     const spaceEnd: Position = {line: token.location.start.line, character: token.location.start.character};
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
-    format.pushEdit(spaceStart, spaceEnd, spaceStart.character > 0 ? ' ' : '');
+    format.pushEdit(spaceStart, spaceEnd, (spaceStart.character > 0 ? ' ' : format.getIndent()));
     format.setCursorToTail(token);
 }
 
@@ -31,16 +32,41 @@ export interface FormatTargetOption {
     spaceAfter?: boolean;
 }
 
-export function formatExpectLineHead(format: FormatState, target: string, option: FormatTargetOption) {
-    formatExpectLineBy(format, target, option, LineAlignment.Head);
+export function formatTargetLineHead(format: FormatState, target: string, option: FormatTargetOption) {
+    formatTargetLineBy(format, target, option, LineAlignment.Head);
 }
 
-export function formatExpectLineBody(format: FormatState, target: string, option: FormatTargetOption) {
-    formatExpectLineBy(format, target, option, LineAlignment.Body);
+export function formatTargetLineBody(format: FormatState, target: string, option: FormatTargetOption) {
+    formatTargetLineBy(format, target, option, LineAlignment.Body);
 }
 
-export function formatExpectLineTail(format: FormatState, target: string, option: FormatTargetOption) {
-    formatExpectLineBy(format, target, option, LineAlignment.Tail);
+export function formatTargetLineTail(format: FormatState, target: string, option: FormatTargetOption) {
+    formatTargetLineBy(format, target, option, LineAlignment.Tail);
+}
+
+export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
+    formatMoveUntil(format, node.nodeRange.start.location.start);
+}
+
+export function formatMoveUntil(format: FormatState, destination: Position) {
+    let cursor = format.getCursor();
+    for (; ;) {
+        const next = format.map.getTokenAt(cursor);
+        if (next === undefined) {
+            cursor = stepCursorAlongLines(format.textLines, cursor);
+            continue;
+        }
+
+        const isReached = cursor.line > destination.line
+            || (cursor.line === destination.line && cursor.character >= destination.character);
+        if (isReached === false) {
+            formatTokenWithSpace(format, next);
+            cursor = format.getCursor();
+            continue;
+        }
+
+        break;
+    }
 }
 
 enum LineAlignment {
@@ -49,7 +75,7 @@ enum LineAlignment {
     Tail = 'Tail'
 }
 
-function formatExpectLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
+function formatTargetLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
     let cursor = format.getCursor();
     for (; ;) {
         const next = format.map.getTokenAt(cursor);
@@ -57,7 +83,7 @@ function formatExpectLineBy(format: FormatState, target: string, option: FormatT
             cursor = stepCursorAlongLines(format.textLines, cursor);
             continue;
         } else if (next.kind === TokenKind.Comment) {
-            formatBlockComment(format, next);
+            formatTokenWithSpace(format, next);
             cursor = format.getCursor();
             continue;
         }

@@ -1,7 +1,12 @@
 import {NodeFunc, NodeName, NodeNamespace, NodesBase, NodeScript} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatExpectLineBody, formatExpectLineHead, formatExpectLineTail} from "./formatDetail";
+import {
+    formatMoveUntilNodeStart,
+    formatTargetLineBody,
+    formatTargetLineHead,
+    formatTargetLineTail
+} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -16,16 +21,15 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
-    format.setCursorFromHead(nodeNamespace.nodeRange.start);
-
-    formatExpectLineHead(format, 'namespace', {spaceAfter: true});
+    formatMoveUntilNodeStart(format, nodeNamespace);
+    formatTargetLineHead(format, 'namespace', {spaceAfter: true});
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatExpectLineBody(format, '::', {});
+        if (i > 0) formatTargetLineBody(format, '::', {});
 
-        const namespace = nodeNamespace.namespaceList[i];
-        formatExpectLineBody(format, namespace.text, {});
+        const namespaceIdentifier = nodeNamespace.namespaceList[i];
+        formatTargetLineBody(format, namespaceIdentifier.text, {});
     }
     format.popIndent();
 
@@ -35,13 +39,15 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
 }
 
 function formatCodeBlock(format: FormatState, action: () => void) {
-    formatExpectLineTail(format, '{', {spaceBefore: true});
+    formatTargetLineTail(format, '{', {spaceBefore: true});
+    const startLine = format.getCursor().line;
+
     format.pushIndent();
-
     action();
-
     format.popIndent();
-    formatExpectLineHead(format, '}', {spaceBefore: true});
+
+    if (startLine === format.getCursor().line) formatTargetLineBody(format, '}', {spaceBefore: true});
+    else formatTargetLineHead(format, '}', {spaceBefore: true});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
