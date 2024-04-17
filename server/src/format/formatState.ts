@@ -7,6 +7,7 @@ export class FormatState {
     private resultEdits: TextEdit[] = [];
     private cursor: Position = {line: 0, character: 0};
     private indentStack: string = '';
+    private condenseStack: boolean = false;
 
     public readonly textLines: string[];
     public readonly map: TokensMap;
@@ -77,18 +78,29 @@ export class FormatState {
     public popIndent() {
         this.indentStack = this.indentStack.substring(0, this.indentStack.length - 1);
     }
+
+    public pushCondense() {
+        this.condenseStack = true;
+    }
+
+    public popCondense(): boolean {
+        const condense = this.condenseStack;
+        this.condenseStack = false;
+        return condense;
+    }
 }
 
 export function stepCursorAlongLines(lines: string[], cursor: Position): Position {
-    if (cursor.line >= lines.length) return cursor;
+    const c: Position = {character: cursor.character, line: cursor.line};
+    if (c.line >= lines.length) return c;
 
-    cursor.character++;
-    if (cursor.character >= lines[cursor.line].length) {
-        cursor.line++;
-        cursor.character = 0;
+    c.character++;
+    if (c.character >= lines[c.line].length) {
+        c.line++;
+        c.character = 0;
     }
 
-    return cursor;
+    return c;
 
 }
 

@@ -20,12 +20,12 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
-    formatMoveUntilNodeStart(format, nodeNamespace, true);
-    formatTargetLineStatement(format, 'namespace', {spaceAfter: true});
+    formatMoveUntilNodeStart(format, nodeNamespace);
+    formatTargetLineStatement(format, 'namespace', {forceWrap: true});
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatTargetLineStatement(format, '::', {});
+        if (i > 0) formatTargetLineStatement(format, '::', {condenseSides: true});
 
         const namespaceIdentifier = nodeNamespace.namespaceList[i];
         formatTargetLineStatement(format, namespaceIdentifier.text, {});
@@ -38,14 +38,14 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
 }
 
 function formatCodeBlock(format: FormatState, action: () => void) {
-    formatTargetLinePeriod(format, '{', {spaceBefore: true});
+    formatTargetLinePeriod(format, '{', {});
     const startLine = format.getCursor().line;
 
     format.pushIndent();
     action();
     format.popIndent();
 
-    formatTargetLineStatement(format, '}', {spaceBefore: true, forceWrap: startLine !== format.getCursor().line});
+    formatTargetLineStatement(format, '}', {forceWrap: startLine !== format.getCursor().line});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -54,7 +54,14 @@ function formatCodeBlock(format: FormatState, action: () => void) {
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
+    formatMoveUntilNodeStart(format, nodeFunc);
 
+}
+
+function formatAccessModifier(format: FormatState) {
+    for (; ;) {
+        // formatTargetLineStatement(format, 'private', {});
+    }
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))

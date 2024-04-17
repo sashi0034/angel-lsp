@@ -34,8 +34,9 @@ function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) 
 }
 
 export interface FormatTargetOption {
-    spaceBefore?: boolean;
-    spaceAfter?: boolean;
+    condenseSides?: boolean,
+    condenseLeft?: boolean,
+    condenseRight?: boolean,
     forceWrap?: boolean;
 }
 
@@ -51,16 +52,12 @@ export function formatTargetLinePeriod(format: FormatState, target: string, opti
     formatTargetLineBy(format, target, option, LineAlignment.Period);
 }
 
-export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase, isWrap: boolean = false) {
+export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
     formatMoveUntil(format, node.nodeRange.start.location.start);
 
-    const editEnd = format.getCursor();
-    const editStart = walkBackUntilWhitespace(format, editEnd);
-    if (isWrap && editStart.character > 0) {
-        format.pushEdit(editStart, editEnd, '\n' + format.getIndent());
-    } else {
-        format.pushEdit(editStart, editEnd, format.getIndent());
-    }
+    // const editEnd = format.getCursor();
+    // const editStart = walkBackUntilWhitespace(format, editEnd);
+    // format.pushEdit(editStart, editEnd, format.getIndent());
 }
 
 export function formatMoveUntil(format: FormatState, destination: Position) {
@@ -92,6 +89,12 @@ enum LineAlignment {
 }
 
 function formatTargetLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
+    const isCondenseLeft: boolean =
+        format.popCondense() || option.condenseSides === true || option.condenseLeft === true;
+    const isCondenseRight: boolean =
+        option.condenseSides === true || option.condenseRight === true;
+    if (isCondenseRight) format.pushCondense();
+
     let cursor = format.getCursor();
     for (; ;) {
         const next = format.map.getTokenAt(cursor);
@@ -108,18 +111,19 @@ function formatTargetLineBy(format: FormatState, target: string, option: FormatT
             return false;
         }
 
-        const spaceBefore: string = option.spaceBefore === true ? ' ' : '';
+        const frontSpace = isCondenseLeft ? '' : ' ';
         const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
         switch (alignment) {
         case LineAlignment.Statement: {
             const editStart: Position = format.getCursor();
-            if (editStart.character === 0) {
-                format.pushEdit(editStart, editEnd, format.getIndent());
+            const walkedBack = walkBackUntilWhitespace(format, editStart);
+            if (walkedBack.character === 0) {
+                format.pushEdit(walkedBack, editEnd, format.getIndent());
             } else {
                 const sameLine = editStart.line === editEnd.line;
                 const editStart2: Position = sameLine ? editStart : walkBackUntilWhitespace(format, editEnd);
                 const newText = sameLine
-                    ? (option.forceWrap === true ? '\n' + format.getIndent() : spaceBefore)
+                    ? (option.forceWrap === true ? '\n' + format.getIndent() : frontSpace)
                     : format.getIndent();
                 format.pushEdit(editStart2, editEnd, newText);
             }
@@ -127,13 +131,12 @@ function formatTargetLineBy(format: FormatState, target: string, option: FormatT
         }
         case LineAlignment.Period: {
             const editStart = format.getCursor();
-            format.pushEdit(editStart, editEnd, spaceBefore);
+            format.pushEdit(editStart, editEnd, frontSpace);
             break;
         }
         }
 
         cursor.character += target.length;
-        if (option.spaceAfter === true) cursor.character++;
         format.setCursor(cursor);
         return true;
     }
