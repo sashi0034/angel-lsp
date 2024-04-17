@@ -1,6 +1,6 @@
 import {Position} from "vscode-languageserver";
 import {FormatState, stepCursorAlongLines} from "./formatState";
-import {TokenBase, TokenKind} from "../compile/tokens";
+import {TokenizingToken, TokenKind} from "../compile/tokens";
 import {NodesBase} from "../compile/nodes";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
@@ -20,32 +20,47 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
     return {line: line, character: character};
 }
 
-function formatTokenWithSpace(format: FormatState, token: TokenBase) {
-    const spaceEnd: Position = {line: token.location.start.line, character: token.location.start.character};
+function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) {
+    const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
-    format.pushEdit(spaceStart, spaceEnd, (spaceStart.character > 0 ? ' ' : format.getIndent()));
-    format.setCursorToTail(token);
+
+    const backToken = format.map.getTokenAt(spaceStart);
+    const editSpace = frontToken.kind === TokenKind.Reserved && backToken?.kind === TokenKind.Reserved
+        ? '' // '>>' といったトークンはテンプレートのために '>' '>' と分割されているため、スペースを入れない
+        : ' ';
+
+    format.pushEdit(spaceStart, spaceEnd, (spaceStart.character > 0 ? editSpace : format.getIndent()));
+    format.setCursorToTail(frontToken);
 }
 
 export interface FormatTargetOption {
     spaceBefore?: boolean;
     spaceAfter?: boolean;
+    forceWrap?: boolean;
 }
 
-export function formatTargetLineHead(format: FormatState, target: string, option: FormatTargetOption) {
-    formatTargetLineBy(format, target, option, LineAlignment.Head);
+// export function formatTargetLineHead(format: FormatState, target: string, option: FormatTargetOption) {
+//     formatTargetLineBy(format, target, option, LineAlignment.Head);
+// }
+
+export function formatTargetLineStatement(format: FormatState, target: string, option: FormatTargetOption) {
+    formatTargetLineBy(format, target, option, LineAlignment.Statement);
 }
 
-export function formatTargetLineBody(format: FormatState, target: string, option: FormatTargetOption) {
-    formatTargetLineBy(format, target, option, LineAlignment.Body);
+export function formatTargetLinePeriod(format: FormatState, target: string, option: FormatTargetOption) {
+    formatTargetLineBy(format, target, option, LineAlignment.Period);
 }
 
-export function formatTargetLineTail(format: FormatState, target: string, option: FormatTargetOption) {
-    formatTargetLineBy(format, target, option, LineAlignment.Tail);
-}
-
-export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
+export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase, isWrap: boolean = false) {
     formatMoveUntil(format, node.nodeRange.start.location.start);
+
+    const editEnd = format.getCursor();
+    const editStart = walkBackUntilWhitespace(format, editEnd);
+    if (isWrap && editStart.character > 0) {
+        format.pushEdit(editStart, editEnd, '\n' + format.getIndent());
+    } else {
+        format.pushEdit(editStart, editEnd, format.getIndent());
+    }
 }
 
 export function formatMoveUntil(format: FormatState, destination: Position) {
@@ -65,14 +80,15 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
             continue;
         }
 
+        // 目的地に到達
+        format.setCursor(destination);
         break;
     }
 }
 
 enum LineAlignment {
-    Head = 'Head',
-    Body = 'Body',
-    Tail = 'Tail'
+    Statement = 'Statement',
+    Period = 'Period'
 }
 
 function formatTargetLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
@@ -95,19 +111,21 @@ function formatTargetLineBy(format: FormatState, target: string, option: FormatT
         const spaceBefore: string = option.spaceBefore === true ? ' ' : '';
         const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
         switch (alignment) {
-        case LineAlignment.Head: {
-            const spaceStart: Position = walkBackUntilWhitespace(format, editEnd);
-            format.pushEdit(spaceStart, editEnd, (spaceStart.character > 0 ? '\n' : '') + format.getIndent());
-            break;
-        }
-        case LineAlignment.Body: {
+        case LineAlignment.Statement: {
             const editStart: Position = format.getCursor();
-            const sameLine = editStart.line === editEnd.line;
-            const editStart2: Position = sameLine ? editStart : walkBackUntilWhitespace(format, editEnd);
-            format.pushEdit(editStart2, editEnd, sameLine ? spaceBefore : format.getIndent());
+            if (editStart.character === 0) {
+                format.pushEdit(editStart, editEnd, format.getIndent());
+            } else {
+                const sameLine = editStart.line === editEnd.line;
+                const editStart2: Position = sameLine ? editStart : walkBackUntilWhitespace(format, editEnd);
+                const newText = sameLine
+                    ? (option.forceWrap === true ? '\n' + format.getIndent() : spaceBefore)
+                    : format.getIndent();
+                format.pushEdit(editStart2, editEnd, newText);
+            }
             break;
         }
-        case LineAlignment.Tail: {
+        case LineAlignment.Period: {
             const editStart = format.getCursor();
             format.pushEdit(editStart, editEnd, spaceBefore);
             break;

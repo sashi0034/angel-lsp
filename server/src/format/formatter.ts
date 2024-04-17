@@ -3,9 +3,8 @@ import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {
     formatMoveUntilNodeStart,
-    formatTargetLineBody,
-    formatTargetLineHead,
-    formatTargetLineTail
+    formatTargetLineStatement,
+    formatTargetLinePeriod
 } from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
@@ -21,15 +20,15 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
-    formatMoveUntilNodeStart(format, nodeNamespace);
-    formatTargetLineHead(format, 'namespace', {spaceAfter: true});
+    formatMoveUntilNodeStart(format, nodeNamespace, true);
+    formatTargetLineStatement(format, 'namespace', {spaceAfter: true});
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatTargetLineBody(format, '::', {});
+        if (i > 0) formatTargetLineStatement(format, '::', {});
 
         const namespaceIdentifier = nodeNamespace.namespaceList[i];
-        formatTargetLineBody(format, namespaceIdentifier.text, {});
+        formatTargetLineStatement(format, namespaceIdentifier.text, {});
     }
     format.popIndent();
 
@@ -39,15 +38,14 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
 }
 
 function formatCodeBlock(format: FormatState, action: () => void) {
-    formatTargetLineTail(format, '{', {spaceBefore: true});
+    formatTargetLinePeriod(format, '{', {spaceBefore: true});
     const startLine = format.getCursor().line;
 
     format.pushIndent();
     action();
     format.popIndent();
 
-    if (startLine === format.getCursor().line) formatTargetLineBody(format, '}', {spaceBefore: true});
-    else formatTargetLineHead(format, '}', {spaceBefore: true});
+    formatTargetLineStatement(format, '}', {spaceBefore: true, forceWrap: startLine !== format.getCursor().line});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
