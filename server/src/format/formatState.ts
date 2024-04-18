@@ -8,6 +8,7 @@ export class FormatState {
     private cursor: Position = {line: 0, character: 0};
     private indentStack: string = '';
     private condenseStack: boolean = false;
+    private wrapStack: boolean = false;
 
     public readonly textLines: string[];
     public readonly map: TokensMap;
@@ -67,6 +68,10 @@ export class FormatState {
         this.cursor = stepCursorAlongLines(this.textLines, this.cursor);
     }
 
+    public isFinished(): boolean {
+        return this.cursor.line >= this.textLines.length;
+    }
+
     public getIndent() {
         return this.indentStack;
     }
@@ -87,6 +92,16 @@ export class FormatState {
         const condense = this.condenseStack;
         this.condenseStack = false;
         return condense;
+    }
+
+    public pushWrap() {
+        this.wrapStack = true;
+    }
+
+    public popWrap(): boolean {
+        const wrap = this.wrapStack;
+        this.wrapStack = false;
+        return wrap;
     }
 }
 

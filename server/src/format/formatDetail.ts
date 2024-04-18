@@ -2,6 +2,7 @@ import {Position} from "vscode-languageserver";
 import {FormatState, stepCursorAlongLines} from "./formatState";
 import {TokenizingToken, TokenKind} from "../compile/tokens";
 import {NodesBase} from "../compile/nodes";
+import {tracer} from "../code/tracer";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -40,10 +41,6 @@ export interface FormatTargetOption {
     forceWrap?: boolean;
 }
 
-// export function formatTargetLineHead(format: FormatState, target: string, option: FormatTargetOption) {
-//     formatTargetLineBy(format, target, option, LineAlignment.Head);
-// }
-
 export function formatTargetLineStatement(format: FormatState, target: string, option: FormatTargetOption) {
     formatTargetLineBy(format, target, option, LineAlignment.Statement);
 }
@@ -54,15 +51,11 @@ export function formatTargetLinePeriod(format: FormatState, target: string, opti
 
 export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
     formatMoveUntil(format, node.nodeRange.start.location.start);
-
-    // const editEnd = format.getCursor();
-    // const editStart = walkBackUntilWhitespace(format, editEnd);
-    // format.pushEdit(editStart, editEnd, format.getIndent());
 }
 
 export function formatMoveUntil(format: FormatState, destination: Position) {
     let cursor = format.getCursor();
-    for (; ;) {
+    while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
         if (next === undefined) {
             cursor = stepCursorAlongLines(format.textLines, cursor);
@@ -83,20 +76,32 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
     }
 }
 
+export function formatMoveToNonComment(format: FormatState): TokenizingToken | undefined {
+    let cursor = format.getCursor();
+    while (format.isFinished() === false) {
+        const next = format.map.getTokenAt(cursor);
+        if (next === undefined) {
+            cursor = stepCursorAlongLines(format.textLines, cursor);
+            continue;
+        } else if (next.kind === TokenKind.Comment) {
+            formatTokenWithSpace(format, next);
+            cursor = format.getCursor();
+            continue;
+        }
+
+        return next;
+    }
+    return undefined;
+}
+
 enum LineAlignment {
     Statement = 'Statement',
     Period = 'Period'
 }
 
 function formatTargetLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
-    const isCondenseLeft: boolean =
-        format.popCondense() || option.condenseSides === true || option.condenseLeft === true;
-    const isCondenseRight: boolean =
-        option.condenseSides === true || option.condenseRight === true;
-    if (isCondenseRight) format.pushCondense();
-
     let cursor = format.getCursor();
-    for (; ;) {
+    while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
         if (next === undefined) {
             cursor = stepCursorAlongLines(format.textLines, cursor);
@@ -108,36 +113,56 @@ function formatTargetLineBy(format: FormatState, target: string, option: FormatT
         }
 
         if (format.getTextAt(cursor, target.length) !== target) {
+            tracer.verbose(`'${target}' not found at ${cursor.line}:${cursor.character}`);
             return false;
         }
 
-        const frontSpace = isCondenseLeft ? '' : ' ';
-        const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
-        switch (alignment) {
-        case LineAlignment.Statement: {
-            const editStart: Position = format.getCursor();
-            const walkedBack = walkBackUntilWhitespace(format, editStart);
-            if (walkedBack.character === 0) {
-                format.pushEdit(walkedBack, editEnd, format.getIndent());
-            } else {
-                const sameLine = editStart.line === editEnd.line;
-                const editStart2: Position = sameLine ? editStart : walkBackUntilWhitespace(format, editEnd);
-                const newText = sameLine
-                    ? (option.forceWrap === true ? '\n' + format.getIndent() : frontSpace)
-                    : format.getIndent();
-                format.pushEdit(editStart2, editEnd, newText);
-            }
-            break;
-        }
-        case LineAlignment.Period: {
-            const editStart = format.getCursor();
-            format.pushEdit(editStart, editEnd, frontSpace);
-            break;
-        }
-        }
-
-        cursor.character += target.length;
-        format.setCursor(cursor);
+        formatTargetWith(format, target, option, alignment, cursor, next);
         return true;
     }
+}
+
+function formatTargetWith(
+    format: FormatState,
+    target: string,
+    option: FormatTargetOption,
+    alignment: LineAlignment,
+    cursor: Position,
+    next: TokenizingToken
+) {
+    const isCondenseLeft: boolean =
+        format.popCondense() || option.condenseSides === true || option.condenseLeft === true;
+    const isCondenseRight: boolean =
+        option.condenseSides === true || option.condenseRight === true;
+    if (isCondenseRight) format.pushCondense();
+
+    const forceWrap: boolean = format.popWrap() || option.forceWrap === true;
+
+    const frontSpace = isCondenseLeft ? '' : ' ';
+    const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
+    switch (alignment) {
+    case LineAlignment.Statement: {
+        const editStart: Position = format.getCursor();
+        const walkedBack = walkBackUntilWhitespace(format, editStart);
+        if (walkedBack.character === 0) {
+            format.pushEdit(walkedBack, editEnd, format.getIndent());
+        } else {
+            const sameLine = editStart.line === editEnd.line;
+            const editStart2: Position = sameLine ? walkedBack : walkBackUntilWhitespace(format, editEnd);
+            const newText = sameLine
+                ? (forceWrap ? '\n' + format.getIndent() : frontSpace)
+                : format.getIndent();
+            format.pushEdit(editStart2, editEnd, newText);
+        }
+        break;
+    }
+    case LineAlignment.Period: {
+        const editStart = format.getCursor();
+        format.pushEdit(editStart, editEnd, frontSpace);
+        break;
+    }
+    }
+
+    cursor.character += target.length;
+    format.setCursor(cursor);
 }

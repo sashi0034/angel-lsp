@@ -1004,7 +1004,7 @@ function parseTypeTail(parsing: ParsingState) {
         } else if (parsing.next().text === '@') {
             parsing.confirm(HighlightToken.Builtin);
             if (parsing.next().text === 'const') {
-                parsing.confirm(HighlightToken.Keyword);
+                parsing.confirm(HighlightToken.Builtin);
                 refModifier = ReferenceModifier.AtConst;
             } else {
                 refModifier = ReferenceModifier.At;

@@ -1,10 +1,19 @@
-import {NodeFunc, NodeName, NodeNamespace, NodesBase, NodeScript} from "../compile/nodes";
+import {
+    funcHeadConstructor,
+    funcHeadDestructor,
+    isFunctionHeadReturns, NodeDataType, NodeExpr,
+    NodeFunc,
+    NodeName,
+    NodeNamespace, NodeParamList, NodeScope,
+    NodeScript, NodeType, ReferenceModifier
+} from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {
     formatMoveUntilNodeStart,
+    formatTargetLinePeriod,
     formatTargetLineStatement,
-    formatTargetLinePeriod
+    formatMoveToNonComment
 } from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
@@ -12,7 +21,9 @@ import {TokenizingToken} from "../compile/tokens";
 function formatScript(format: FormatState, nodeScript: NodeScript) {
     for (const node of nodeScript) {
         const name = node.nodeName;
-        if (name === NodeName.Namespace) {
+        if (name === NodeName.Func) {
+            formatFunc(format, node);
+        } else if (name === NodeName.Namespace) {
             formatNamespace(format, node);
         }
     }
@@ -55,12 +66,42 @@ function formatCodeBlock(format: FormatState, action: () => void) {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
     formatMoveUntilNodeStart(format, nodeFunc);
+    format.pushWrap();
 
+    formatEntityModifier(format);
+    formatAccessModifier(format);
+
+    if (isFunctionHeadReturns(nodeFunc.head)) {
+        formatType(format, nodeFunc.head.returnType);
+        if (nodeFunc.head.isRef) formatTargetLineStatement(format, '&', {});
+    } else if (nodeFunc.head === funcHeadDestructor) {
+        formatTargetLineStatement(format, '~', {condenseRight: true});
+    }
+
+    formatTargetLineStatement(format, nodeFunc.identifier.text, {});
+
+    formatParamList(format, nodeFunc.paramList);
+
+    // TODO
 }
 
-function formatAccessModifier(format: FormatState) {
+// {'shared' | 'abstract' | 'final' | 'external'}
+function formatEntityModifier(format: FormatState) {
     for (; ;) {
-        // formatTargetLineStatement(format, 'private', {});
+        const next = formatMoveToNonComment(format);
+        if (next === undefined) return;
+        if (next.text === 'shared' || next.text === 'abstract' || next.text === 'final' || next.text === 'external') {
+            formatTargetLineStatement(format, next.text, {});
+        } else return;
+    }
+}
+
+// ['private' | 'protected']
+function formatAccessModifier(format: FormatState) {
+    const next = formatMoveToNonComment(format);
+    if (next === undefined) return;
+    if (next.text === 'private' || next.text === 'protected') {
+        formatTargetLineStatement(format, next.text, {});
     }
 }
 
@@ -72,12 +113,113 @@ function formatAccessModifier(format: FormatState) {
 // MIXIN         ::= 'mixin' CLASS
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+function formatParamList(format: FormatState, paramList: NodeParamList) {
+    formatTargetLineStatement(format, '(', {condenseSides: true});
+
+    if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
+        formatTargetLineStatement(format, 'void', {});
+    }
+
+    for (let i = 0; i < paramList.length; i++) {
+        if (i > 0) formatTargetLineStatement(format, ',', {condenseLeft: true});
+        formatType(format, paramList[i].type);
+        formatTypeMod(format);
+
+        const identifier = paramList[i].identifier;
+        if (identifier !== undefined) {
+            formatTargetLineStatement(format, identifier.text, {});
+        }
+
+        const defaultExpr = paramList[i].defaultExpr;
+        if (defaultExpr !== undefined) {
+            formatTargetLineStatement(format, '=', {});
+            formatExpr(format, defaultExpr);
+        }
+    }
+
+    formatTargetLineStatement(format, ')', {condenseSides: true});
+
+}
+
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+function formatTypeMod(format: FormatState) {
+    const next = formatMoveToNonComment(format);
+    if (next === undefined) return;
+    if (next.text === '&') {
+        formatTargetLineStatement(format, '&', {condenseLeft: true});
+
+        const next2 = formatMoveToNonComment(format);
+        if (next2 === undefined) return;
+        if (next2.text === 'in' || next2.text === 'out' || next2.text === 'inout') {
+            formatTargetLineStatement(format, next.text, {});
+        }
+    }
+}
+
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+function formatType(format: FormatState, nodeType: NodeType) {
+    formatMoveUntilNodeStart(format, nodeType);
+
+    if (nodeType.isConst) formatTargetLineStatement(format, 'const', {});
+
+    if (nodeType.scope !== undefined) formatScope(format, nodeType.scope);
+
+    formatDataType(format, nodeType.dataType);
+
+    formatTypeTemplates(format, nodeType.typeTemplates);
+
+    if (nodeType.isArray) {
+        formatTargetLineStatement(format, '[', {condenseLeft: true});
+        formatTargetLineStatement(format, ']', {condenseLeft: true});
+    }
+
+    if (nodeType.refModifier !== undefined) {
+        formatTargetLineStatement(format, '@', {condenseLeft: true});
+        if (nodeType.refModifier === ReferenceModifier.AtConst) {
+            formatTargetLineStatement(format, 'const', {});
+        }
+    }
+}
+
+// ['<' TYPE {',' TYPE} '>']
+function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
+    if (templates.length === 0) return;
+    formatMoveUntilNodeStart(format, templates[0]);
+
+    formatTargetLineStatement(format, '<', {condenseSides: true});
+
+    for (let i = 0; i < templates.length; i++) {
+        if (i > 0) formatTargetLineStatement(format, ',', {condenseLeft: true});
+        formatType(format, templates[i]);
+    }
+
+    formatTargetLineStatement(format, '>', {condenseLeft: true});
+}
+
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+function formatScope(format: FormatState, scope: NodeScope) {
+    formatMoveUntilNodeStart(format, scope);
+
+    if (scope.isGlobal) formatTargetLineStatement(format, '::', {condenseSides: true});
+
+    for (let i = 0; i < scope.scopeList.length; i++) {
+        const scopeIdentifier = scope.scopeList[i];
+        formatTargetLineStatement(format, scopeIdentifier.text, {});
+        formatTargetLineStatement(format, '::', {});
+    }
+}
+
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+function formatDataType(format: FormatState, dataType: NodeDataType) {
+    formatMoveUntilNodeStart(format, dataType);
+
+    formatTargetLineStatement(format, dataType.identifier.text, {});
+}
+
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
@@ -92,7 +234,14 @@ function formatAccessModifier(format: FormatState) {
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 // RETURN        ::= 'return' [ASSIGN] ';'
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
+function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
+    formatMoveUntilNodeStart(format, nodeExpr);
+
+    // TODO
+}
+
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 // CONSTRUCTCALL ::= TYPE ARGLIST
