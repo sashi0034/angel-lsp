@@ -64,7 +64,7 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
         }
 
         // 目的地に到達
-        format.setCursor(destination);
+        // format.setCursor(destination);
         break;
     }
 }
@@ -128,10 +128,12 @@ function executeFormatTargetWith(
     const frontSpace = isCondenseLeft ? '' : ' ';
     const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
 
-    if (option.connectTail === true) {
-        const editStart = format.getCursor();
-        format.pushEdit(editStart, editEnd, frontSpace);
+    if (forceWrap === false && option.connectTail === true) {
+        // 文末に接続
+        const editStart = walkBackUntilWhitespace(format, format.getCursor());
+        format.pushEdit(editStart, editEnd, (editStart.character === 0 ? format.getIndent() : '') + frontSpace);
     } else {
+        // 文の語を連結
         const editStart: Position = format.getCursor();
         const walkedBack = walkBackUntilWhitespace(format, editStart);
         if (walkedBack.character === 0) {
