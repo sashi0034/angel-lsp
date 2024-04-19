@@ -39,14 +39,7 @@ export interface FormatTargetOption {
     condenseLeft?: boolean,
     condenseRight?: boolean,
     forceWrap?: boolean;
-}
-
-export function formatTargetLineStatement(format: FormatState, target: string, option: FormatTargetOption) {
-    formatTargetLineBy(format, target, option, LineAlignment.Statement);
-}
-
-export function formatTargetLinePeriod(format: FormatState, target: string, option: FormatTargetOption) {
-    formatTargetLineBy(format, target, option, LineAlignment.Period);
+    connectTail?: boolean;
 }
 
 export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
@@ -94,12 +87,7 @@ export function formatMoveToNonComment(format: FormatState): TokenizingToken | u
     return undefined;
 }
 
-enum LineAlignment {
-    Statement = 'Statement',
-    Period = 'Period'
-}
-
-function formatTargetLineBy(format: FormatState, target: string, option: FormatTargetOption, alignment: LineAlignment) {
+export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption) {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -117,16 +105,15 @@ function formatTargetLineBy(format: FormatState, target: string, option: FormatT
             return false;
         }
 
-        formatTargetWith(format, target, option, alignment, cursor, next);
+        executeFormatTargetWith(format, target, option, cursor, next);
         return true;
     }
 }
 
-function formatTargetWith(
+function executeFormatTargetWith(
     format: FormatState,
     target: string,
     option: FormatTargetOption,
-    alignment: LineAlignment,
     cursor: Position,
     next: TokenizingToken
 ) {
@@ -140,8 +127,11 @@ function formatTargetWith(
 
     const frontSpace = isCondenseLeft ? '' : ' ';
     const editEnd: Position = {line: next.location.start.line, character: next.location.start.character};
-    switch (alignment) {
-    case LineAlignment.Statement: {
+
+    if (option.connectTail === true) {
+        const editStart = format.getCursor();
+        format.pushEdit(editStart, editEnd, frontSpace);
+    } else {
         const editStart: Position = format.getCursor();
         const walkedBack = walkBackUntilWhitespace(format, editStart);
         if (walkedBack.character === 0) {
@@ -154,13 +144,6 @@ function formatTargetWith(
                 : format.getIndent();
             format.pushEdit(editStart2, editEnd, newText);
         }
-        break;
-    }
-    case LineAlignment.Period: {
-        const editStart = format.getCursor();
-        format.pushEdit(editStart, editEnd, frontSpace);
-        break;
-    }
     }
 
     cursor.character += target.length;

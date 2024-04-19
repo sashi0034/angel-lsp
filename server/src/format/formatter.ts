@@ -11,8 +11,7 @@ import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {
     formatMoveUntilNodeStart,
-    formatTargetLinePeriod,
-    formatTargetLineStatement,
+    formatTargetBy,
     formatMoveToNonComment
 } from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
@@ -32,14 +31,14 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
     formatMoveUntilNodeStart(format, nodeNamespace);
-    formatTargetLineStatement(format, 'namespace', {forceWrap: true});
+    formatTargetBy(format, 'namespace', {forceWrap: true});
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatTargetLineStatement(format, '::', {condenseSides: true});
+        if (i > 0) formatTargetBy(format, '::', {condenseSides: true});
 
         const namespaceIdentifier = nodeNamespace.namespaceList[i];
-        formatTargetLineStatement(format, namespaceIdentifier.text, {});
+        formatTargetBy(format, namespaceIdentifier.text, {});
     }
     format.popIndent();
 
@@ -49,14 +48,14 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
 }
 
 function formatCodeBlock(format: FormatState, action: () => void) {
-    formatTargetLinePeriod(format, '{', {});
+    formatTargetBy(format, '{', {connectTail: true});
     const startLine = format.getCursor().line;
 
     format.pushIndent();
     action();
     format.popIndent();
 
-    formatTargetLineStatement(format, '}', {forceWrap: startLine !== format.getCursor().line});
+    formatTargetBy(format, '}', {forceWrap: startLine !== format.getCursor().line});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -73,14 +72,18 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
 
     if (isFunctionHeadReturns(nodeFunc.head)) {
         formatType(format, nodeFunc.head.returnType);
-        if (nodeFunc.head.isRef) formatTargetLineStatement(format, '&', {});
+        if (nodeFunc.head.isRef) formatTargetBy(format, '&', {});
     } else if (nodeFunc.head === funcHeadDestructor) {
-        formatTargetLineStatement(format, '~', {condenseRight: true});
+        formatTargetBy(format, '~', {condenseRight: true});
     }
 
-    formatTargetLineStatement(format, nodeFunc.identifier.text, {});
+    formatTargetBy(format, nodeFunc.identifier.text, {});
 
     formatParamList(format, nodeFunc.paramList);
+
+    if (nodeFunc.isConst) formatTargetBy(format, 'const', {});
+
+    if (nodeFunc.statBlock === undefined) formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 
     // TODO
 }
@@ -91,7 +94,7 @@ function formatEntityModifier(format: FormatState) {
         const next = formatMoveToNonComment(format);
         if (next === undefined) return;
         if (next.text === 'shared' || next.text === 'abstract' || next.text === 'final' || next.text === 'external') {
-            formatTargetLineStatement(format, next.text, {});
+            formatTargetBy(format, next.text, {});
         } else return;
     }
 }
@@ -101,7 +104,7 @@ function formatAccessModifier(format: FormatState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
     if (next.text === 'private' || next.text === 'protected') {
-        formatTargetLineStatement(format, next.text, {});
+        formatTargetBy(format, next.text, {});
     }
 }
 
@@ -116,30 +119,30 @@ function formatAccessModifier(format: FormatState) {
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function formatParamList(format: FormatState, paramList: NodeParamList) {
-    formatTargetLineStatement(format, '(', {condenseSides: true});
+    formatTargetBy(format, '(', {condenseSides: true});
 
     if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
-        formatTargetLineStatement(format, 'void', {});
+        formatTargetBy(format, 'void', {});
     }
 
     for (let i = 0; i < paramList.length; i++) {
-        if (i > 0) formatTargetLineStatement(format, ',', {condenseLeft: true});
+        if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
         formatType(format, paramList[i].type);
         formatTypeMod(format);
 
         const identifier = paramList[i].identifier;
         if (identifier !== undefined) {
-            formatTargetLineStatement(format, identifier.text, {});
+            formatTargetBy(format, identifier.text, {});
         }
 
         const defaultExpr = paramList[i].defaultExpr;
         if (defaultExpr !== undefined) {
-            formatTargetLineStatement(format, '=', {});
+            formatTargetBy(format, '=', {});
             formatExpr(format, defaultExpr);
         }
     }
 
-    formatTargetLineStatement(format, ')', {condenseSides: true});
+    formatTargetBy(format, ')', {condenseSides: true});
 
 }
 
@@ -148,12 +151,12 @@ function formatTypeMod(format: FormatState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
     if (next.text === '&') {
-        formatTargetLineStatement(format, '&', {condenseLeft: true});
+        formatTargetBy(format, '&', {condenseLeft: true});
 
         const next2 = formatMoveToNonComment(format);
         if (next2 === undefined) return;
         if (next2.text === 'in' || next2.text === 'out' || next2.text === 'inout') {
-            formatTargetLineStatement(format, next.text, {});
+            formatTargetBy(format, next.text, {});
         }
     }
 }
@@ -162,7 +165,7 @@ function formatTypeMod(format: FormatState) {
 function formatType(format: FormatState, nodeType: NodeType) {
     formatMoveUntilNodeStart(format, nodeType);
 
-    if (nodeType.isConst) formatTargetLineStatement(format, 'const', {});
+    if (nodeType.isConst) formatTargetBy(format, 'const', {});
 
     if (nodeType.scope !== undefined) formatScope(format, nodeType.scope);
 
@@ -171,14 +174,14 @@ function formatType(format: FormatState, nodeType: NodeType) {
     formatTypeTemplates(format, nodeType.typeTemplates);
 
     if (nodeType.isArray) {
-        formatTargetLineStatement(format, '[', {condenseLeft: true});
-        formatTargetLineStatement(format, ']', {condenseLeft: true});
+        formatTargetBy(format, '[', {condenseLeft: true});
+        formatTargetBy(format, ']', {condenseLeft: true});
     }
 
     if (nodeType.refModifier !== undefined) {
-        formatTargetLineStatement(format, '@', {condenseLeft: true});
+        formatTargetBy(format, '@', {condenseLeft: true});
         if (nodeType.refModifier === ReferenceModifier.AtConst) {
-            formatTargetLineStatement(format, 'const', {});
+            formatTargetBy(format, 'const', {});
         }
     }
 }
@@ -188,14 +191,14 @@ function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
     if (templates.length === 0) return;
     formatMoveUntilNodeStart(format, templates[0]);
 
-    formatTargetLineStatement(format, '<', {condenseSides: true});
+    formatTargetBy(format, '<', {condenseSides: true});
 
     for (let i = 0; i < templates.length; i++) {
-        if (i > 0) formatTargetLineStatement(format, ',', {condenseLeft: true});
+        if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
         formatType(format, templates[i]);
     }
 
-    formatTargetLineStatement(format, '>', {condenseLeft: true});
+    formatTargetBy(format, '>', {condenseLeft: true});
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -204,12 +207,12 @@ function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
 function formatScope(format: FormatState, scope: NodeScope) {
     formatMoveUntilNodeStart(format, scope);
 
-    if (scope.isGlobal) formatTargetLineStatement(format, '::', {condenseSides: true});
+    if (scope.isGlobal) formatTargetBy(format, '::', {condenseSides: true});
 
     for (let i = 0; i < scope.scopeList.length; i++) {
         const scopeIdentifier = scope.scopeList[i];
-        formatTargetLineStatement(format, scopeIdentifier.text, {});
-        formatTargetLineStatement(format, '::', {});
+        formatTargetBy(format, scopeIdentifier.text, {});
+        formatTargetBy(format, '::', {});
     }
 }
 
@@ -217,7 +220,7 @@ function formatScope(format: FormatState, scope: NodeScope) {
 function formatDataType(format: FormatState, dataType: NodeDataType) {
     formatMoveUntilNodeStart(format, dataType);
 
-    formatTargetLineStatement(format, dataType.identifier.text, {});
+    formatTargetBy(format, dataType.identifier.text, {});
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
