@@ -27,6 +27,10 @@ export function getNextTokenIfExist(token: ParsingToken): ParsingToken {
     return token;
 }
 
+export function isRangeInOneLine(range: ParsedRange): boolean {
+    return range.start.location.start.line === range.end.location.end.line;
+}
+
 export function getLocationBetween(start: ParsingToken, end: ParsingToken): LocationInfo {
     return {
         path: start.location.path,
@@ -435,10 +439,10 @@ export interface NodeContinue extends NodesBase {
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-export type NodeExprStat = {
+export interface NodeExprStat extends NodesBase {
     nodeName: NodeName.ExprStat,
     assign: NodeAssign | undefined
-};
+}
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 export interface NodeTry extends NodesBase {

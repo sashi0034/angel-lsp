@@ -1444,10 +1444,12 @@ function parseContinue(parsing: ParsingState): NodeContinue | undefined {
 
 // EXPRSTAT      ::= [ASSIGN] ';'
 function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
+    const rangeStart = parsing.next();
     if (parsing.next().text === ';') {
         parsing.confirm(HighlightToken.Operator);
         return {
             nodeName: NodeName.ExprStat,
+            nodeRange: {start: rangeStart, end: parsing.prev()},
             assign: undefined
         };
     }
@@ -1459,6 +1461,7 @@ function parseExprStat(parsing: ParsingState): NodeExprStat | undefined {
 
     return {
         nodeName: NodeName.ExprStat,
+        nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign
     };
 }

@@ -1,9 +1,9 @@
 import {
     funcHeadDestructor,
-    isFunctionHeadReturns, NodeArgList, NodeAssign,
+    isFunctionHeadReturns, isRangeInOneLine, NodeArgList, NodeAssign,
     NodeDataType,
     NodeExpr,
-    NodeFunc, NodeInitList,
+    NodeFunc, NodeIf, NodeInitList,
     NodeName,
     NodeNamespace,
     NodeParamList,
@@ -189,15 +189,15 @@ function formatParamList(format: FormatState, paramList: NodeParamList) {
     });
 }
 
-function formatParenthesesBlock(format: FormatState, action: () => void) {
-    formatTargetBy(format, '(', {condenseSides: true, connectTail: true});
+function formatParenthesesBlock(format: FormatState, action: () => void, condense: boolean = true) {
+    formatTargetBy(format, '(', {condenseSides: condense, connectTail: true});
     // const startLine = format.getCursor().line;
 
     format.pushIndent();
     action();
     format.popIndent();
 
-    formatTargetBy(format, ')', {condenseLeft: true});
+    formatTargetBy(format, ')', {condenseLeft: condense});
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
@@ -297,12 +297,18 @@ function formatDataType(format: FormatState, dataType: NodeDataType) {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function formatStatement(format: FormatState, statement: NodeStatement) {
+function formatStatement(format: FormatState, statement: NodeStatement, forceIndent: boolean = false) {
+    const isIndent = forceIndent && statement.nodeName !== NodeName.StatBlock;
+    if (isIndent) format.pushIndent();
+
     switch (statement.nodeName) {
     case NodeName.If:
+        formatIf(format, statement);
         break;
         // TODO
     }
+
+    if (isIndent) format.popIndent();
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
@@ -310,7 +316,28 @@ function formatStatement(format: FormatState, statement: NodeStatement) {
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+function formatIf(format: FormatState, nodeIf: NodeIf) {
+    formatMoveUntilNodeStart(format, nodeIf);
+
+    formatTargetBy(format, 'if', {forceWrap: true});
+
+    formatParenthesesBlock(format, () => {
+        formatAssign(format, nodeIf.condition);
+    }, false);
+
+    if (nodeIf.thenStat === undefined) return;
+    if (isRangeInOneLine(nodeIf.thenStat.nodeRange) === false) format.pushWrap();
+    formatStatement(format, nodeIf.thenStat);
+
+    if (nodeIf.elseStat === undefined) return;
+    if (isRangeInOneLine(nodeIf.elseStat.nodeRange) === false) format.pushWrap();
+    formatTargetBy(format, 'else', {forceWrap: true});
+
+    formatStatement(format, nodeIf.elseStat);
+}
+
 // CONTINUE      ::= 'continue' ';'
 // EXPRSTAT      ::= [ASSIGN] ';'
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
