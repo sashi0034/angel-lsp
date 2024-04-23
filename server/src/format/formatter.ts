@@ -1,22 +1,36 @@
 import {
     funcHeadDestructor,
-    isFunctionHeadReturns, isRangeInOneLine, NodeArgList, NodeAssign, NodeCondition, NodeConstructCall,
+    isFunctionHeadReturns,
+    isRangeInOneLine,
+    NodeArgList,
+    NodeAssign,
+    NodeCast,
+    NodeCondition,
+    NodeConstructCall,
     NodeDataType,
-    NodeExpr, NodeExprPostOp, NodeExprTerm, NodeExprValue,
-    NodeFunc, NodeIf, NodeInitList,
+    NodeExpr,
+    NodeExprPostOp,
+    NodeExprTerm,
+    NodeExprValue,
+    NodeFunc,
+    NodeIf,
+    NodeInitList,
+    NodeLambda,
     NodeName,
     NodeNamespace,
     NodeParamList,
     NodeScope,
     NodeScript,
-    NodeStatBlock, NodeStatement,
+    NodeStatBlock,
+    NodeStatement,
     NodeType,
-    NodeVar, NodeVarAccess,
+    NodeVar,
+    NodeVarAccess,
     ReferenceModifier
 } from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
+import {formatMoveToNonComment, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -189,15 +203,14 @@ function formatParamList(format: FormatState, paramList: NodeParamList) {
     });
 }
 
-function formatParenthesesBlock(format: FormatState, action: () => void, condense: boolean = true) {
-    formatTargetBy(format, '(', {condenseSides: condense, connectTail: true});
-    // const startLine = format.getCursor().line;
+function formatParenthesesBlock(format: FormatState, action: () => void, condenseLeft: boolean = true) {
+    formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true, connectTail: true});
 
     format.pushIndent();
     action();
     format.popIndent();
 
-    formatTargetBy(format, ')', {condenseLeft: condense});
+    formatTargetBy(format, ')', {condenseLeft: true});
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
@@ -297,13 +310,16 @@ function formatDataType(format: FormatState, dataType: NodeDataType) {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function formatStatement(format: FormatState, statement: NodeStatement, forceIndent: boolean = false) {
-    const isIndent = forceIndent && statement.nodeName !== NodeName.StatBlock;
+function formatStatement(format: FormatState, statement: NodeStatement, isConnect: boolean = false) {
+    const isIndent = isConnect && statement.nodeName !== NodeName.StatBlock;
     if (isIndent) format.pushIndent();
 
     switch (statement.nodeName) {
     case NodeName.If:
         formatIf(format, statement);
+        break;
+    case NodeName.StatBlock:
+        formatStatBlock(format, statement);
         break;
         // TODO
     }
@@ -328,15 +344,12 @@ function formatIf(format: FormatState, nodeIf: NodeIf) {
     }, false);
 
     if (nodeIf.thenStat !== undefined) {
-        if (isRangeInOneLine(nodeIf.thenStat.nodeRange) === false) format.pushWrap();
-        formatStatement(format, nodeIf.thenStat);
+        formatStatement(format, nodeIf.thenStat, true);
     }
 
     if (nodeIf.elseStat !== undefined) {
         formatTargetBy(format, 'else', {forceWrap: true});
-
-        if (isRangeInOneLine(nodeIf.elseStat.nodeRange) === false) format.pushWrap();
-        formatStatement(format, nodeIf.elseStat);
+        formatStatement(format, nodeIf.elseStat, true);
     }
 }
 
@@ -392,6 +405,16 @@ function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
         formatConstructCall(format, exprValue);
     } else if (exprValue.nodeName === NodeName.VarAccess) {
         formatVarAccess(format, exprValue);
+    } else if (exprValue.nodeName === NodeName.Cast) {
+        formatCast(format, exprValue);
+    } else if (exprValue.nodeName === NodeName.Literal) {
+        formatTargetBy(format, exprValue.value.text, {});
+    } else if (exprValue.nodeName === NodeName.Assign) {
+        formatParenthesesBlock(format, () => {
+            formatAssign(format, exprValue);
+        });
+    } else if (exprValue.nodeName === NodeName.Lambda) {
+        formatLambda(format, exprValue);
     }
 }
 
@@ -414,8 +437,27 @@ function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+function formatCast(format: FormatState, nodeCast: NodeCast) {
+    formatMoveUntilNodeStart(format, nodeCast);
+
+    formatTargetBy(format, 'cast', {forceWrap: true});
+
+    formatTargetBy(format, '<', {condenseSides: true});
+    formatType(format, nodeCast.type);
+    formatTargetBy(format, '>', {condenseLeft: true});
+
+    formatParenthesesBlock(format, () => {
+        formatAssign(format, nodeCast.assign);
+    });
+}
+
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+function formatLambda(format: FormatState, nodeLambda: NodeLambda) {
+    // TODO
+}
+
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 
 // VARACCESS     ::= SCOPE IDENTIFIER

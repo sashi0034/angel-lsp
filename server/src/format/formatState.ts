@@ -9,6 +9,7 @@ export class FormatState {
     private indentStack: string = '';
     private condenseStack: boolean = false;
     private wrapStack: boolean = false;
+    private spaceLiteral = '    ';
 
     public readonly textLines: string[];
     public readonly map: TokensMap;
@@ -77,11 +78,11 @@ export class FormatState {
     }
 
     public pushIndent() {
-        this.indentStack += '\t';
+        this.indentStack += this.spaceLiteral;
     }
 
     public popIndent() {
-        this.indentStack = this.indentStack.substring(0, this.indentStack.length - 1);
+        this.indentStack = this.indentStack.substring(0, this.indentStack.length - this.spaceLiteral.length);
     }
 
     public pushCondense() {
