@@ -1,8 +1,8 @@
 import {
     funcHeadDestructor,
-    isFunctionHeadReturns, isRangeInOneLine, NodeArgList, NodeAssign,
+    isFunctionHeadReturns, isRangeInOneLine, NodeArgList, NodeAssign, NodeCondition, NodeConstructCall,
     NodeDataType,
-    NodeExpr,
+    NodeExpr, NodeExprPostOp, NodeExprTerm, NodeExprValue,
     NodeFunc, NodeIf, NodeInitList,
     NodeName,
     NodeNamespace,
@@ -11,7 +11,7 @@ import {
     NodeScript,
     NodeStatBlock, NodeStatement,
     NodeType,
-    NodeVar,
+    NodeVar, NodeVarAccess,
     ReferenceModifier
 } from "../compile/nodes";
 import {FormatState} from "./formatState";
@@ -327,15 +327,17 @@ function formatIf(format: FormatState, nodeIf: NodeIf) {
         formatAssign(format, nodeIf.condition);
     }, false);
 
-    if (nodeIf.thenStat === undefined) return;
-    if (isRangeInOneLine(nodeIf.thenStat.nodeRange) === false) format.pushWrap();
-    formatStatement(format, nodeIf.thenStat);
+    if (nodeIf.thenStat !== undefined) {
+        if (isRangeInOneLine(nodeIf.thenStat.nodeRange) === false) format.pushWrap();
+        formatStatement(format, nodeIf.thenStat);
+    }
 
-    if (nodeIf.elseStat === undefined) return;
-    if (isRangeInOneLine(nodeIf.elseStat.nodeRange) === false) format.pushWrap();
-    formatTargetBy(format, 'else', {forceWrap: true});
+    if (nodeIf.elseStat !== undefined) {
+        formatTargetBy(format, 'else', {forceWrap: true});
 
-    formatStatement(format, nodeIf.elseStat);
+        if (isRangeInOneLine(nodeIf.elseStat.nodeRange) === false) format.pushWrap();
+        formatStatement(format, nodeIf.elseStat);
+    }
 }
 
 // CONTINUE      ::= 'continue' ';'
@@ -348,19 +350,86 @@ function formatIf(format: FormatState, nodeIf: NodeIf) {
 function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
     formatMoveUntilNodeStart(format, nodeExpr);
 
-    // TODO
+    formatExprTerm(format, nodeExpr.head);
+
+    if (nodeExpr.tail !== undefined) {
+        formatTargetBy(format, nodeExpr.tail.operator.text, {});
+
+        formatExpr(format, nodeExpr.tail.expression);
+    }
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+function formatExprTerm(format: FormatState, exprTerm: NodeExprTerm) {
+    formatMoveUntilNodeStart(format, exprTerm);
+
+    if (exprTerm.exprTerm === 1) {
+        if (exprTerm.type !== undefined) {
+            formatType(format, exprTerm.type);
+        }
+
+        formatTargetBy(format, '=', {});
+
+        formatInitList(format, exprTerm.initList);
+    } else if (exprTerm.exprTerm === 2) {
+        for (let i = 0; i < exprTerm.preOps.length; i++) {
+            formatTargetBy(format, exprTerm.preOps[i].text, {condenseRight: true});
+        }
+
+        formatExprValue(format, exprTerm.value);
+
+        for (let i = 0; i < exprTerm.postOps.length; i++) {
+            formatExprPostOp(format, exprTerm.postOps[i]);
+        }
+    }
+}
+
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
+    formatMoveUntilNodeStart(format, exprValue);
+
+    if (exprValue.nodeName === NodeName.ConstructCall) {
+        formatConstructCall(format, exprValue);
+    } else if (exprValue.nodeName === NodeName.VarAccess) {
+        formatVarAccess(format, exprValue);
+    }
+}
+
 // CONSTRUCTCALL ::= TYPE ARGLIST
+function formatConstructCall(format: FormatState, constructCall: NodeConstructCall) {
+    formatMoveUntilNodeStart(format, constructCall);
+
+    formatType(format, constructCall.type);
+
+    formatArgList(format, constructCall.argList);
+}
+
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
+    formatMoveUntilNodeStart(format, postOp);
+
+    // TODO
+}
+
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+
 // VARACCESS     ::= SCOPE IDENTIFIER
+function formatVarAccess(format: FormatState, varAccess: NodeVarAccess) {
+    formatMoveUntilNodeStart(format, varAccess);
+
+    if (varAccess.scope !== undefined) {
+        formatScope(format, varAccess.scope);
+    }
+
+    if (varAccess.identifier !== undefined) {
+        formatTargetBy(format, varAccess.identifier.text, {});
+    }
+}
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 function formatArgList(format: FormatState, nodeArgList: NodeArgList) {
@@ -383,10 +452,32 @@ function formatArgList(format: FormatState, nodeArgList: NodeArgList) {
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function formatAssign(format: FormatState, nodeAssign: NodeAssign) {
+    formatMoveUntilNodeStart(format, nodeAssign);
+
+    formatCondition(format, nodeAssign.condition);
+
     // TODO
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+function formatCondition(format: FormatState, condition: NodeCondition) {
+    formatMoveUntilNodeStart(format, condition);
+
+    formatExpr(format, condition.expr);
+
+    if (condition.ternary !== undefined) {
+        format.pushIndent();
+
+        formatTargetBy(format, '?', {});
+        formatAssign(format, condition.ternary.trueAssign);
+
+        formatTargetBy(format, ':', {});
+        formatAssign(format, condition.ternary.falseAssign);
+
+        format.popIndent();
+    }
+}
+
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'

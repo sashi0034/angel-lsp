@@ -1612,7 +1612,6 @@ function parseExprTerm1(parsing: ParsingState): NodeExprTerm1 | undefined {
     const rangeStart = parsing.next();
 
     const type = parseType(parsing);
-
     if (type !== undefined) {
         if (parsing.next().text !== '=') {
             parsing.backtrack(rangeStart);
