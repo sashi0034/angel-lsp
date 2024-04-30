@@ -264,17 +264,14 @@ function formatType(format: FormatState, nodeType: NodeType) {
 // ['<' TYPE {',' TYPE} '>']
 function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
     if (templates.length === 0) return;
-    formatMoveUntilNodeStart(format, templates[0]);
 
     formatTargetBy(format, '<', {condenseSides: true});
-    format.pushIndent();
 
     for (let i = 0; i < templates.length; i++) {
         if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
         formatType(format, templates[i]);
     }
 
-    format.popIndent();
     formatTargetBy(format, '>', {condenseLeft: true});
 }
 
