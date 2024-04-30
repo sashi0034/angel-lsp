@@ -394,7 +394,7 @@ export type NodeStatement =
 export interface NodeSwitch extends NodesBase {
     nodeName: NodeName.Switch
     assign: NodeAssign,
-    cases: NodeCase[]
+    caseList: NodeCase[]
 }
 
 // BREAK         ::= 'break' ';'

@@ -3,29 +3,33 @@ import {
     isFunctionHeadReturns,
     isRangeInOneLine,
     NodeArgList,
-    NodeAssign,
+    NodeAssign, NodeBreak, NodeCase,
     NodeCast,
     NodeCondition,
     NodeConstructCall,
-    NodeDataType,
+    NodeContinue,
+    NodeDataType, NodeDoWhile,
     NodeExpr,
     NodeExprPostOp,
+    NodeExprStat,
     NodeExprTerm,
     NodeExprValue,
-    NodeFunc,
+    NodeFor,
+    NodeFunc, NodeFuncCall,
     NodeIf,
     NodeInitList,
     NodeLambda,
     NodeName,
     NodeNamespace,
-    NodeParamList,
+    NodeParamList, NodeReturn,
     NodeScope,
     NodeScript,
     NodeStatBlock,
-    NodeStatement,
+    NodeStatement, NodeSwitch, NodeTry,
     NodeType,
     NodeVar,
     NodeVarAccess,
+    NodeWhile,
     ReferenceModifier
 } from "../compile/nodes";
 import {FormatState} from "./formatState";
@@ -64,13 +68,13 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
     });
 }
 
-function formatBraceBlock(format: FormatState, action: () => void) {
+function formatBraceBlock(format: FormatState, action: () => void, isIndent: boolean = true) {
     formatTargetBy(format, '{', {connectTail: true});
     const startLine = format.getCursor().line;
 
-    format.pushIndent();
+    if (isIndent) format.pushIndent();
     action();
-    format.popIndent();
+    if (isIndent) format.popIndent();
 
     formatTargetBy(format, '}', {forceWrap: startLine !== format.getCursor().line});
 }
@@ -166,8 +170,12 @@ function formatVar(format: FormatState, nodeVar: NodeVar) {
 function formatStatBlock(format: FormatState, statBlock: NodeStatBlock) {
     formatMoveUntilNodeStart(format, statBlock);
 
+    const isOneLine = isRangeInOneLine(statBlock.nodeRange);
+
     formatBraceBlock(format, () => {
         for (const statement of statBlock.statementList) {
+            if (isOneLine === false) format.pushWrap();
+
             if (statement.nodeName === NodeName.Var) {
                 formatVar(format, statement);
             } else {
@@ -259,12 +267,14 @@ function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
     formatMoveUntilNodeStart(format, templates[0]);
 
     formatTargetBy(format, '<', {condenseSides: true});
+    format.pushIndent();
 
     for (let i = 0; i < templates.length; i++) {
         if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
         formatType(format, templates[i]);
     }
 
+    format.popIndent();
     formatTargetBy(format, '>', {condenseLeft: true});
 }
 
@@ -310,34 +320,133 @@ function formatDataType(format: FormatState, dataType: NodeDataType) {
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function formatStatement(format: FormatState, statement: NodeStatement, isConnect: boolean = false) {
-    const isIndent = isConnect && statement.nodeName !== NodeName.StatBlock;
-    if (isIndent) format.pushIndent();
+function formatStatement(format: FormatState, statement: NodeStatement, canIndent: boolean = false) {
+    const isIndented = canIndent && statement.nodeName !== NodeName.StatBlock;
+    if (isIndented) format.pushIndent();
 
     switch (statement.nodeName) {
     case NodeName.If:
         formatIf(format, statement);
         break;
+    case NodeName.For:
+        formatFor(format, statement);
+        break;
+    case NodeName.While:
+        formatWhile(format, statement);
+        break;
+    case NodeName.Return:
+        formatReturn(format, statement);
+        break;
     case NodeName.StatBlock:
         formatStatBlock(format, statement);
         break;
-        // TODO
+    case NodeName.Break:
+        formatBreak(format, statement);
+        break;
+    case NodeName.Continue:
+        formatContinue(format, statement);
+        break;
+    case NodeName.DoWhile:
+        formatDoWhile(format, statement);
+        break;
+    case NodeName.Switch:
+        formatSwitch(format, statement);
+        break;
+    case NodeName.ExprStat:
+        formatExprStat(format, statement);
+        break;
+    case NodeName.Try:
+        formatTry(format, statement);
+        break;
     }
 
-    if (isIndent) format.popIndent();
+    if (isIndented) format.popIndent();
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+function formatSwitch(format: FormatState, nodeSwitch: NodeSwitch) {
+    formatMoveUntilNodeStart(format, nodeSwitch);
+
+    formatTargetBy(format, 'switch', {});
+
+    formatParenthesesBlock(format, () => {
+        formatAssign(format, nodeSwitch.assign);
+    });
+
+    formatBraceBlock(format, () => {
+        for (const nodeCase of nodeSwitch.caseList) {
+            formatCase(format, nodeCase);
+        }
+    }, false);
+}
+
 // BREAK         ::= 'break' ';'
+function formatBreak(format: FormatState, nodeBreak: NodeBreak) {
+    formatMoveUntilNodeStart(format, nodeBreak);
+
+    formatTargetBy(format, 'break', {});
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
+
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+function formatFor(format: FormatState, nodeFor: NodeFor) {
+    formatMoveUntilNodeStart(format, nodeFor);
+
+    formatTargetBy(format, 'for', {});
+
+    formatParenthesesBlock(format, () => {
+        if (nodeFor.initial.nodeName === NodeName.Var) {
+            formatVar(format, nodeFor.initial);
+        } else {
+            formatExprStat(format, nodeFor.initial);
+        }
+
+        if (nodeFor.condition !== undefined) formatExprStat(format, nodeFor.condition);
+
+        for (const increment of nodeFor.incrementList) {
+            formatAssign(format, increment);
+        }
+    }, false);
+
+    if (nodeFor.statement !== undefined) formatStatement(format, nodeFor.statement, true);
+}
+
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+function formatWhile(format: FormatState, nodeWhile: NodeWhile) {
+    formatMoveUntilNodeStart(format, nodeWhile);
+
+    formatTargetBy(format, 'while', {});
+
+    formatParenthesesBlock(format, () => {
+        formatAssign(format, nodeWhile.assign);
+    }, false);
+
+    if (nodeWhile.statement !== undefined) formatStatement(format, nodeWhile.statement, true);
+}
+
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+function formatDoWhile(format: FormatState, doWhile: NodeDoWhile) {
+    formatMoveUntilNodeStart(format, doWhile);
+
+    formatTargetBy(format, 'do', {});
+
+    if (doWhile.statement !== undefined) formatStatement(format, doWhile.statement, true);
+
+    formatTargetBy(format, 'while', {connectTail: true});
+
+    formatParenthesesBlock(format, () => {
+        if (doWhile.assign !== undefined) formatAssign(format, doWhile.assign);
+    }, false);
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function formatIf(format: FormatState, nodeIf: NodeIf) {
     formatMoveUntilNodeStart(format, nodeIf);
 
-    formatTargetBy(format, 'if', {forceWrap: true});
+    formatTargetBy(format, 'if', {});
 
     formatParenthesesBlock(format, () => {
         formatAssign(format, nodeIf.condition);
@@ -348,16 +457,72 @@ function formatIf(format: FormatState, nodeIf: NodeIf) {
     }
 
     if (nodeIf.elseStat !== undefined) {
-        formatTargetBy(format, 'else', {forceWrap: true});
+        formatTargetBy(format, 'else', {connectTail: true});
         formatStatement(format, nodeIf.elseStat, true);
     }
 }
 
 // CONTINUE      ::= 'continue' ';'
+function formatContinue(format: FormatState, nodeContinue: NodeContinue) {
+    formatMoveUntilNodeStart(format, nodeContinue);
+    formatTargetBy(format, 'continue', {});
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
+
 // EXPRSTAT      ::= [ASSIGN] ';'
+function formatExprStat(format: FormatState, exprStat: NodeExprStat) {
+    formatMoveUntilNodeStart(format, exprStat);
+
+    if (exprStat.assign !== undefined) formatAssign(format, exprStat.assign);
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
+
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+function formatTry(format: FormatState, nodeTry: NodeTry) {
+    formatMoveUntilNodeStart(format, nodeTry);
+
+    formatTargetBy(format, 'try', {});
+
+    formatStatBlock(format, nodeTry.tryBlock);
+
+    formatTargetBy(format, 'catch', {connectTail: true});
+
+    if (nodeTry.catchBlock !== undefined) formatStatBlock(format, nodeTry.catchBlock);
+}
+
 // RETURN        ::= 'return' [ASSIGN] ';'
+function formatReturn(format: FormatState, nodeReturn: NodeReturn) {
+    formatMoveUntilNodeStart(format, nodeReturn);
+
+    formatTargetBy(format, 'return', {});
+
+    if (nodeReturn.assign !== undefined) {
+        formatAssign(format, nodeReturn.assign);
+    }
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
+
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+function formatCase(format: FormatState, nodeCase: NodeCase) {
+    formatMoveUntilNodeStart(format, nodeCase);
+
+    if (nodeCase.expr !== undefined) {
+        formatTargetBy(format, 'case', {});
+        formatExpr(format, nodeCase.expr);
+    } else {
+        formatTargetBy(format, 'default', {});
+    }
+
+    formatTargetBy(format, ':', {condenseLeft: true, connectTail: true});
+
+    format.pushIndent();
+    for (const statement of nodeCase.statementList) {
+        formatStatement(format, statement, false);
+    }
+    format.popIndent();
+}
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
@@ -433,7 +598,45 @@ function formatConstructCall(format: FormatState, constructCall: NodeConstructCa
 function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
     formatMoveUntilNodeStart(format, postOp);
 
-    // TODO
+    if (postOp.postOp === 1) {
+        formatTargetBy(format, '.', {condenseSides: true});
+
+        if (postOp.member !== undefined) {
+            if ('nodeName' in postOp.member) {
+                formatFuncCall(format, postOp.member);
+            } else {
+                formatTargetBy(format, postOp.member.text, {});
+            }
+        }
+    } else if (postOp.postOp === 2) {
+        formatBracketsBlock(format, () => {
+            for (let i = 0; i < postOp.indexerList.length; i++) {
+                if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+
+                const index = postOp.indexerList[i];
+                if (index.identifier !== undefined) {
+                    formatTargetBy(format, index.identifier.text, {});
+                    formatTargetBy(format, ':', {condenseLeft: true, connectTail: true});
+                }
+
+                formatAssign(format, index.assign);
+            }
+        });
+    } else if (postOp.postOp === 3) {
+        formatArgList(format, postOp.args);
+    } else if (postOp.postOp === 4) {
+        formatTargetBy(format, postOp.operator, {});
+    }
+}
+
+function formatBracketsBlock(format: FormatState, action: () => void) {
+    formatTargetBy(format, '[', {condenseSides: true});
+
+    format.pushIndent();
+    action();
+    format.popIndent();
+
+    formatTargetBy(format, ']', {condenseLeft: true});
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -453,12 +656,41 @@ function formatCast(format: FormatState, nodeCast: NodeCast) {
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 function formatLambda(format: FormatState, nodeLambda: NodeLambda) {
-    // TODO
+    formatMoveUntilNodeStart(format, nodeLambda);
+
+    formatTargetBy(format, 'function', {});
+
+    formatParenthesesBlock(format, () => {
+        for (let i = 0; i < nodeLambda.paramList.length; i++) {
+            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+
+            const param = nodeLambda.paramList[i];
+            if (param.type !== undefined) formatType(format, param.type);
+            formatTypeMod(format);
+
+            if (param.identifier !== undefined) {
+                formatTargetBy(format, param.identifier.text, {});
+            }
+        }
+    });
+
+    if (nodeLambda.statBlock !== undefined) formatStatBlock(format, nodeLambda.statBlock);
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+function formatFuncCall(format: FormatState, funcCall: NodeFuncCall) {
+    formatMoveUntilNodeStart(format, funcCall);
+
+    if (funcCall.scope !== undefined) {
+        formatScope(format, funcCall.scope);
+    }
+
+    formatTargetBy(format, funcCall.identifier.text, {});
+
+    formatArgList(format, funcCall.argList);
+}
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function formatVarAccess(format: FormatState, varAccess: NodeVarAccess) {
@@ -498,7 +730,11 @@ function formatAssign(format: FormatState, nodeAssign: NodeAssign) {
 
     formatCondition(format, nodeAssign.condition);
 
-    // TODO
+    if (nodeAssign.tail !== undefined) {
+        formatTargetBy(format, nodeAssign.tail.operator.text, {});
+
+        formatAssign(format, nodeAssign.tail.assign);
+    }
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]

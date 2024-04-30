@@ -762,7 +762,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
     analyzeAssign(scope, ast.assign);
-    for (const c of ast.cases) {
+    for (const c of ast.caseList) {
         analyzeCase(scope, c);
     }
 }

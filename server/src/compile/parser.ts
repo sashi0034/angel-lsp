@@ -1290,7 +1290,7 @@ function parseSwitch(parsing: ParsingState): TriedParse<NodeSwitch> {
         nodeName: NodeName.Switch,
         nodeRange: {start: rangeStart, end: parsing.prev()},
         assign: assign,
-        cases: cases
+        caseList: cases
     };
 }
 
