@@ -150,8 +150,12 @@ function formatVar(format: FormatState, nodeVar: NodeVar) {
             formatTargetBy(format, '=', {});
             formatInitList(format, initializer);
         } else if (initializer.nodeName === NodeName.Assign) {
+            format.pushIndent();
+
             formatTargetBy(format, '=', {});
             formatAssign(format, initializer);
+
+            format.popIndent();
         } else {
             formatArgList(format, initializer);
         }

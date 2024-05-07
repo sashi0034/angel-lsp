@@ -3,10 +3,18 @@ import {Position} from "vscode-languageserver";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {TokenBase, TokenizingToken} from "../compile/tokens";
 
+interface IndentState {
+    line: number;
+    isApplied: boolean;
+}
+
 export class FormatState {
     private resultEdits: TextEdit[] = [];
     private cursor: Position = {line: 0, character: 0};
-    private indentStack: string = '';
+
+    private indentStack: IndentState[] = [];
+    private indentBuffer: string = '';
+
     private condenseStack: boolean = false;
     private wrapStack: boolean = false;
     private spaceLiteral = '    ';
@@ -56,17 +64,13 @@ export class FormatState {
         this.cursor.character = pos.character;
     }
 
-    public setCursorFromHead(token: TokenBase) {
-        this.setCursor(token.location.start);
-    }
-
     public setCursorToTail(token: TokenBase) {
         this.setCursor(token.location.end);
         this.stepCursor();
     }
 
     public stepCursor() {
-        this.cursor = stepCursorAlongLines(this.textLines, this.cursor);
+        this.setCursor(stepCursorAlongLines(this.textLines, this.cursor));
     }
 
     public isFinished(): boolean {
@@ -74,15 +78,30 @@ export class FormatState {
     }
 
     public getIndent() {
-        return this.indentStack;
+        return this.indentBuffer;
     }
 
     public pushIndent() {
-        this.indentStack += this.spaceLiteral;
+        const newIndent = {
+            line: this.cursor.line,
+            isApplied: false
+        };
+
+        if (this.indentStack.length === 0
+            || this.indentStack[this.indentStack.length - 1].line !== newIndent.line
+        ) {
+            // 行が変わったときのみ、実際にインデントを行う
+            this.indentBuffer += this.spaceLiteral;
+            newIndent.isApplied = true;
+        }
+
+        this.indentStack.push(newIndent);
     }
 
     public popIndent() {
-        this.indentStack = this.indentStack.substring(0, this.indentStack.length - this.spaceLiteral.length);
+        if (this.indentStack.pop()?.isApplied === true) {
+            this.indentBuffer = this.indentBuffer.substring(0, this.indentBuffer.length - this.spaceLiteral.length);
+        }
     }
 
     public pushCondense() {
