@@ -265,13 +265,21 @@ function formatType(format: FormatState, nodeType: NodeType) {
 function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
     if (templates.length === 0) return;
 
+    formatChevronsBlock(format, () => {
+        for (let i = 0; i < templates.length; i++) {
+            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            formatType(format, templates[i]);
+        }
+    });
+}
+
+function formatChevronsBlock(format: FormatState, action: () => void) {
     formatTargetBy(format, '<', {condenseSides: true});
+    format.pushIndent();
 
-    for (let i = 0; i < templates.length; i++) {
-        if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
-        formatType(format, templates[i]);
-    }
+    action();
 
+    format.popIndent();
     formatTargetBy(format, '>', {condenseLeft: true});
 }
 
@@ -565,6 +573,8 @@ function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
 
     if (exprValue.nodeName === NodeName.ConstructCall) {
         formatConstructCall(format, exprValue);
+    } else if (exprValue.nodeName === NodeName.FuncCall) {
+        formatFuncCall(format, exprValue);
     } else if (exprValue.nodeName === NodeName.VarAccess) {
         formatVarAccess(format, exprValue);
     } else if (exprValue.nodeName === NodeName.Cast) {
@@ -642,9 +652,9 @@ function formatCast(format: FormatState, nodeCast: NodeCast) {
 
     formatTargetBy(format, 'cast', {forceWrap: true});
 
-    formatTargetBy(format, '<', {condenseSides: true});
-    formatType(format, nodeCast.type);
-    formatTargetBy(format, '>', {condenseLeft: true});
+    formatChevronsBlock(format, () => {
+        formatType(format, nodeCast.type);
+    });
 
     formatParenthesesBlock(format, () => {
         formatAssign(format, nodeCast.assign);
