@@ -4,18 +4,18 @@ import {
     isRangeInOneLine,
     NodeArgList,
     NodeAssign, NodeBreak, NodeCase,
-    NodeCast,
+    NodeCast, NodeClass,
     NodeCondition,
     NodeConstructCall,
     NodeContinue,
-    NodeDataType, NodeDoWhile,
+    NodeDataType, NodeDoWhile, NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprStat,
     NodeExprTerm,
     NodeExprValue,
     NodeFor,
-    NodeFunc, NodeFuncCall,
+    NodeFunc, NodeFuncCall, NodeFuncDef,
     NodeIf,
     NodeInitList,
     NodeLambda,
@@ -28,7 +28,7 @@ import {
     NodeStatement, NodeSwitch, NodeTry,
     NodeType,
     NodeVar,
-    NodeVarAccess,
+    NodeVarAccess, NodeVirtualProp,
     NodeWhile,
     ReferenceModifier
 } from "../compile/nodes";
@@ -80,7 +80,60 @@ function formatBraceBlock(format: FormatState, action: () => void, isIndent: boo
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+function formatEnum(format: FormatState, nodeEnum: NodeEnum) {
+    formatMoveUntilNodeStart(format, nodeEnum);
+    format.pushWrap();
+
+    formatEntityModifier(format);
+
+    formatTargetBy(format, 'enum', {});
+
+    formatTargetBy(format, nodeEnum.identifier.text, {});
+
+    formatBraceBlock(format, () => {
+        for (let i = 0; i < nodeEnum.memberList.length; i++) {
+            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+
+            formatTargetBy(format, nodeEnum.memberList[i].identifier.text, {});
+
+            const expr = nodeEnum.memberList[i].expr;
+            if (expr !== undefined) {
+                formatTargetBy(format, '=', {});
+                formatExpr(format, expr);
+            }
+        }
+    });
+}
+
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+function formatClass(format: FormatState, nodeClass: NodeClass) {
+    formatMoveUntilNodeStart(format, nodeClass);
+    format.pushWrap();
+
+    formatEntityModifier(format);
+
+    formatTargetBy(format, 'class', {});
+
+    formatTargetBy(format, nodeClass.identifier.text, {});
+
+    if (formatMoveToNonComment(format)?.text === ';') {
+        formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+    } else {
+        formatBraceBlock(format, () => {
+            for (const node of nodeClass.memberList) {
+
+                // TODO
+
+                if (node.nodeName === NodeName.Var) {
+                    formatVar(format, node);
+                } else if (node.nodeName === NodeName.Func) {
+                    formatFunc(format, node);
+                }
+            }
+        });
+    }
+}
+
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -103,6 +156,8 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
     formatParamList(format, nodeFunc.paramList);
 
     if (nodeFunc.isConst) formatTargetBy(format, 'const', {});
+
+    formatFuncAttr(format);
 
     if (nodeFunc.statBlock === undefined) formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
     else formatStatBlock(format, nodeFunc.statBlock);
@@ -166,7 +221,54 @@ function formatVar(format: FormatState, nodeVar: NodeVar) {
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+function formatFuncDef(format: FormatState, funcDef: NodeFuncDef) {
+    // TODO
+}
+
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+function formatVirtualProp(format: FormatState, virtualProp: NodeVirtualProp) {
+    formatMoveUntilNodeStart(format, virtualProp);
+    format.pushWrap();
+
+    formatAccessModifier(format);
+
+    formatType(format, virtualProp.type);
+
+    if (virtualProp.isRef) formatTargetBy(format, '&', {});
+
+    formatTargetBy(format, virtualProp.identifier.text, {});
+
+    formatBraceBlock(format, () => {
+        for (; ;) {
+            const getter = virtualProp.getter;
+            const setter = virtualProp.setter;
+            const next = formatMoveToNonComment(format);
+            if (next?.text === 'get' && getter !== undefined) {
+                formatTargetBy(format, 'get', {});
+                formatGetterSetterStatement(format, getter.isConst, getter.statBlock);
+            } else if (next?.text === 'set' && setter !== undefined) {
+                formatTargetBy(format, 'set', {});
+                formatGetterSetterStatement(format, setter.isConst, setter.statBlock);
+            } else {
+                break;
+            }
+        }
+    });
+}
+
+// ['const'] FUNCATTR (STATBLOCK | ';')
+function formatGetterSetterStatement(format: FormatState, isConst: boolean, statBlock: NodeStatBlock | undefined) {
+    if (isConst) formatTargetBy(format, 'const', {});
+
+    formatFuncAttr(format);
+
+    if (statBlock === undefined) {
+        formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+    } else {
+        formatStatBlock(format, statBlock);
+    }
+}
+
 // MIXIN         ::= 'mixin' CLASS
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
@@ -326,7 +428,17 @@ function formatDataType(format: FormatState, dataType: NodeDataType) {
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+function formatFuncAttr(format: FormatState) {
+    for (; ;) {
+        const next = formatMoveToNonComment(format);
+        if (next === undefined) return;
+        if (next.text === 'override' || next.text === 'final' || next.text === 'explicit' || next.text === 'property') {
+            formatTargetBy(format, next.text, {});
+        } else return;
+    }
+}
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function formatStatement(format: FormatState, statement: NodeStatement, canIndent: boolean = false) {
