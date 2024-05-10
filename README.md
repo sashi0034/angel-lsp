@@ -1,8 +1,8 @@
 # AngelScript Language Server for VSCode
 
-![sample.png](sample.png)
+![sample.png](https://raw.githubusercontent.com/sashi0034/angel-lsp/main/sample.png)
 
-# Freatures
+# Features
 
 - Syntax Highlight for AngelScript
 - Type Checking
