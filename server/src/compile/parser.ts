@@ -223,7 +223,10 @@ function parseEnum(parsing: ParsingState): TriedParse<NodeEnum> {
 
     const entity = parseEntityAttribute(parsing);
 
-    if (parsing.next().text !== 'enum') return ParseFailure.Mismatch;
+    if (parsing.next().text !== 'enum') {
+        parsing.backtrack(rangeStart);
+        return ParseFailure.Mismatch;
+    }
     parsing.confirm(HighlightToken.Builtin);
 
     const identifier = expectIdentifier(parsing, HighlightToken.Enum);
@@ -301,7 +304,10 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
 
     const entity = parseEntityAttribute(parsing);
 
-    if (parsing.next().text !== 'class') return ParseFailure.Mismatch;
+    if (parsing.next().text !== 'class') {
+        parsing.backtrack(rangeStart);
+        return ParseFailure.Mismatch;
+    }
     parsing.confirm(HighlightToken.Builtin);
 
     const identifier = expectIdentifier(parsing, HighlightToken.Class);
@@ -499,7 +505,10 @@ function parseInterface(parsing: ParsingState): TriedParse<NodeInterface> {
 
     const entity = parseEntityAttribute(parsing);
 
-    if (parsing.next().text !== 'interface') return ParseFailure.Mismatch;
+    if (parsing.next().text !== 'interface') {
+        parsing.backtrack(rangeStart);
+        return ParseFailure.Mismatch;
+    }
     parsing.confirm(HighlightToken.Builtin);
 
     const identifier = expectIdentifier(parsing, HighlightToken.Interface);
@@ -674,7 +683,10 @@ function parseFuncDef(parsing: ParsingState): TriedParse<NodeFuncDef> {
 
     const entity = parseEntityAttribute(parsing);
 
-    if (parsing.next().text !== 'funcdef') return ParseFailure.Mismatch;
+    if (parsing.next().text !== 'funcdef') {
+        parsing.backtrack(rangeStart);
+        return ParseFailure.Mismatch;
+    }
     parsing.confirm(HighlightToken.Builtin);
 
     const returnType = expectType(parsing);
