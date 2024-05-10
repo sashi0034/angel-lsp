@@ -808,7 +808,7 @@ function formatExprTerm(format: FormatState, exprTerm: NodeExprTerm) {
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
-    formatMoveUntilNodeStart(format, exprValue);
+    // formatMoveUntilNodeStart(format, exprValue);
 
     if (exprValue.nodeName === NodeName.ConstructCall) {
         formatConstructCall(format, exprValue);
@@ -823,7 +823,7 @@ function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
     } else if (exprValue.nodeName === NodeName.Assign) {
         formatParenthesesBlock(format, () => {
             formatAssign(format, exprValue);
-        });
+        }, false);
     } else if (exprValue.nodeName === NodeName.Lambda) {
         formatLambda(format, exprValue);
     }
