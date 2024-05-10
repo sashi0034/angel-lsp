@@ -82,25 +82,36 @@ export class FormatState {
     }
 
     public pushIndent() {
-        const newIndent = {
+        const nextIndent = {
             line: this.cursor.line,
             isApplied: false
         };
 
-        if (this.indentStack.length === 0
-            || this.indentStack[this.indentStack.length - 1].line !== newIndent.line
-        ) {
+        const prevIndent = this.indentStack[this.indentStack.length - 1];
+        if (this.indentStack.length === 0 || prevIndent.line !== nextIndent.line) {
             // 行が変わったときのみ、実際にインデントを行う
             this.indentBuffer += this.spaceLiteral;
-            newIndent.isApplied = true;
+            nextIndent.isApplied = true;
+        } else if (prevIndent.isApplied) {
+            // 行が同じ場合、フラグをずらす
+            prevIndent.isApplied = false;
+            nextIndent.isApplied = true;
         }
 
-        this.indentStack.push(newIndent);
+        this.indentStack.push(nextIndent);
     }
 
     public popIndent() {
-        if (this.indentStack.pop()?.isApplied === true) {
-            this.indentBuffer = this.indentBuffer.substring(0, this.indentBuffer.length - this.spaceLiteral.length);
+        const popIndent = this.indentStack.pop();
+        if (popIndent?.isApplied === true) {
+            const backIndent = this.indentStack[this.indentStack.length - 1];
+            if (popIndent.line === this.cursor.line && backIndent?.isApplied === false) {
+                // 現在の行ではインデントの影響がなかったので、後ろのインデントで処理を行う
+                backIndent.isApplied = true;
+            } else {
+                // インデントを下げる
+                this.indentBuffer = this.indentBuffer.substring(0, this.indentBuffer.length - this.spaceLiteral.length);
+            }
         }
     }
 
