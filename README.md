@@ -1,10 +1,6 @@
 # AngelScript Language Server for VSCode
 
-<h1 align="center">
-  <br>
-  <a href="https://www.angelcode.com/angelscript/"><img src="https://raw.githubusercontent.com/sashi0034/angel-lsp/main/icons/angelscript.png" alt="angelscript" width="200"></a>
-  <br>
-</h1>
+![sample.png](sample.png)
 
 # Freatures
 
@@ -15,6 +11,7 @@
 - Symbol Rename
 - Symbol Completions
 - Snippets
+- Formatter
 
 > Note: Since it is still under development, many features of AngelScript are not fully supported.
 
@@ -28,7 +25,8 @@ Create the type definition you want to use in your application as `as.predefined
 
 # TODO
 
-- Formatter
-- Handler checking
+- Module Support (`#include` and `import` statements)
+- User Settings
+- Handler Checking
 - Code Action
 - Debugger

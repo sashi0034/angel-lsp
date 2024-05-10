@@ -4,6 +4,9 @@ All notable changes to the "sample-extension" extension will be documented in th
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.0] - 2024/05/10
+- Format support (Preview)
+
 ## [0.1.7] - 2024/04/11
 
 - Fix parser bugs.
