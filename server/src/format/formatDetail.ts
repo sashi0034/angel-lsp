@@ -66,6 +66,11 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
             continue;
         }
 
+        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+            // 多すぎる空行の除去
+            formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
+        }
+
         const isReached = cursor.line > destination.line
             || (cursor.line === destination.line && cursor.character >= destination.character);
         if (isReached === false) {
@@ -121,6 +126,24 @@ export function formatTargetBy(format: FormatState, target: string, option: Form
     }
 }
 
+// TODO: Settings で指定
+const maxBlankLines = 1;
+
+function formatBlankLines(format: FormatState, startLine: number, endLine: number) {
+    for (let i = startLine; i <= endLine; i++) {
+        if (/^\s*$/.test(format.textLines[i]) === false) {
+            tracer.verbose(`Not a blank line at ${i}`);
+            return;
+        }
+    }
+
+    format.pushEdit(
+        {line: startLine, character: 0},
+        {line: endLine, character: format.textLines[endLine].length - 1},
+        '\n'.repeat(maxBlankLines - 1));
+    format.setCursor({line: endLine + 1, character: 0});
+}
+
 function executeFormatTargetWith(
     format: FormatState,
     target: string,
@@ -144,6 +167,11 @@ function executeFormatTargetWith(
         const editStart = walkBackUntilWhitespace(format, format.getCursor());
         format.pushEdit(editStart, editEnd, (editStart.character === 0 ? format.getIndent() : '') + frontSpace);
     } else {
+        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+            // 多すぎる空行の除去
+            formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
+        }
+
         // 文の語を連結
         const editStart: Position = format.getCursor();
         const walkedBack = walkBackUntilWhitespace(format, editStart);
