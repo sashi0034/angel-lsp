@@ -16,9 +16,9 @@ import {
     NodeExprValue,
     NodeFor,
     NodeFunc, NodeFuncCall, NodeFuncDef,
-    NodeIf,
-    NodeInitList,
-    NodeLambda,
+    NodeIf, NodeImport,
+    NodeInitList, NodeInterface, NodeIntfMethod,
+    NodeLambda, NodeMixin,
     NodeName,
     NodeNamespace,
     NodeParamList, NodeReturn,
@@ -26,7 +26,7 @@ import {
     NodeScript,
     NodeStatBlock,
     NodeStatement, NodeSwitch, NodeTry,
-    NodeType,
+    NodeType, NodeTypeDef,
     NodeVar,
     NodeVarAccess, NodeVirtualProp,
     NodeWhile,
@@ -41,7 +41,26 @@ import {TokenizingToken} from "../compile/tokens";
 function formatScript(format: FormatState, nodeScript: NodeScript) {
     for (const node of nodeScript) {
         const name = node.nodeName;
-        if (name === NodeName.Func) {
+
+        if (name === NodeName.Import) {
+            formatImport(format, node);
+        } else if (name === NodeName.Enum) {
+            formatEnum(format, node);
+        } else if (name === NodeName.TypeDef) {
+            formatTypeDef(format, node);
+        } else if (name === NodeName.Class) {
+            formatClass(format, node);
+        } else if (name === NodeName.Mixin) {
+            formatMixin(format, node);
+        } else if (name === NodeName.Interface) {
+            formatInterface(format, node);
+        } else if (name === NodeName.FuncDef) {
+            formatFuncDef(format, node);
+        } else if (name === NodeName.VirtualProp) {
+            formatVirtualProp(format, node);
+        } else if (name === NodeName.Var) {
+            formatVar(format, node);
+        } else if (name === NodeName.Func) {
             formatFunc(format, node);
         } else if (name === NodeName.Namespace) {
             formatNamespace(format, node);
@@ -121,10 +140,11 @@ function formatClass(format: FormatState, nodeClass: NodeClass) {
     } else {
         formatBraceBlock(format, () => {
             for (const node of nodeClass.memberList) {
-
-                // TODO
-
-                if (node.nodeName === NodeName.Var) {
+                if (node.nodeName === NodeName.VirtualProp) {
+                    formatVirtualProp(format, node);
+                } else if (node.nodeName === NodeName.FuncDef) {
+                    formatFuncDef(format, node);
+                } else if (node.nodeName === NodeName.Var) {
                     formatVar(format, node);
                 } else if (node.nodeName === NodeName.Func) {
                     formatFunc(format, node);
@@ -135,6 +155,18 @@ function formatClass(format: FormatState, nodeClass: NodeClass) {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+function formatTypeDef(format: FormatState, typeDef: NodeTypeDef) {
+    formatMoveUntilNodeStart(format, typeDef);
+    format.pushWrap();
+
+    formatTargetBy(format, 'typedef', {});
+
+    formatTargetBy(format, typeDef.type.text, {});
+
+    formatTargetBy(format, typeDef.identifier.text, {});
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
@@ -146,7 +178,7 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
 
     if (isFunctionHeadReturns(nodeFunc.head)) {
         formatType(format, nodeFunc.head.returnType);
-        if (nodeFunc.head.isRef) formatTargetBy(format, '&', {});
+        if (nodeFunc.head.isRef) formatTargetBy(format, '&', {condenseLeft: true});
     } else if (nodeFunc.head === funcHeadDestructor) {
         formatTargetBy(format, '~', {condenseRight: true});
     }
@@ -184,6 +216,30 @@ function formatAccessModifier(format: FormatState) {
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+function formatInterface(format: FormatState, nodeInterface: NodeInterface) {
+    formatMoveUntilNodeStart(format, nodeInterface);
+    format.pushWrap();
+
+    formatEntityModifier(format);
+
+    formatTargetBy(format, 'interface', {});
+
+    formatTargetBy(format, nodeInterface.identifier.text, {});
+
+    if (formatMoveToNonComment(format)?.text === ';') {
+        formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+    } else {
+        formatBraceBlock(format, () => {
+            for (const node of nodeInterface.memberList) {
+                if (node.nodeName === NodeName.VirtualProp) {
+                    formatVirtualProp(format, node);
+                } else if (node.nodeName === NodeName.IntfMethod) {
+                    formatIntfMethod(format, node);
+                }
+            }
+        });
+    }
+}
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function formatVar(format: FormatState, nodeVar: NodeVar) {
@@ -220,9 +276,47 @@ function formatVar(format: FormatState, nodeVar: NodeVar) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+function formatImport(format: FormatState, nodeImport: NodeImport) {
+    formatMoveUntilNodeStart(format, nodeImport);
+    format.pushWrap();
+
+    formatTargetBy(format, 'import', {});
+
+    formatType(format, nodeImport.type);
+
+    if (nodeImport.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+
+    formatTargetBy(format, nodeImport.identifier.text, {});
+
+    formatParamList(format, nodeImport.paramList);
+
+    formatFuncAttr(format);
+
+    formatTargetBy(format, 'from', {});
+
+    formatTargetBy(format, nodeImport.path.text, {});
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
+
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function formatFuncDef(format: FormatState, funcDef: NodeFuncDef) {
-    // TODO
+    formatMoveUntilNodeStart(format, funcDef);
+    format.pushWrap();
+
+    formatEntityModifier(format);
+
+    formatTargetBy(format, 'funcdef', {});
+
+    formatType(format, funcDef.returnType);
+
+    if (funcDef.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+
+    formatTargetBy(format, funcDef.identifier.text, {});
+
+    formatParamList(format, funcDef.paramList);
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
@@ -234,7 +328,7 @@ function formatVirtualProp(format: FormatState, virtualProp: NodeVirtualProp) {
 
     formatType(format, virtualProp.type);
 
-    if (virtualProp.isRef) formatTargetBy(format, '&', {});
+    if (virtualProp.isRef) formatTargetBy(format, '&', {condenseLeft: true});
 
     formatTargetBy(format, virtualProp.identifier.text, {});
 
@@ -270,7 +364,32 @@ function formatGetterSetterStatement(format: FormatState, isConst: boolean, stat
 }
 
 // MIXIN         ::= 'mixin' CLASS
+function formatMixin(format: FormatState, mixin: NodeMixin) {
+    formatMoveUntilNodeStart(format, mixin);
+    format.pushWrap();
+
+    formatTargetBy(format, 'mixin', {});
+
+    formatClass(format, mixin.mixinClass);
+}
+
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+function formatIntfMethod(format: FormatState, intfMethod: NodeIntfMethod) {
+    formatMoveUntilNodeStart(format, intfMethod);
+    format.pushWrap();
+
+    formatType(format, intfMethod.returnType);
+
+    if (intfMethod.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+
+    formatTargetBy(format, intfMethod.identifier.text, {});
+
+    formatParamList(format, intfMethod.paramList);
+
+    if (intfMethod.isConst) formatTargetBy(format, 'const', {});
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function formatStatBlock(format: FormatState, statBlock: NodeStatBlock) {
@@ -416,7 +535,7 @@ function formatScope(format: FormatState, scope: NodeScope) {
     for (let i = 0; i < scope.scopeList.length; i++) {
         const scopeIdentifier = scope.scopeList[i];
         formatTargetBy(format, scopeIdentifier.text, {});
-        formatTargetBy(format, '::', {});
+        formatTargetBy(format, '::', {condenseSides: true});
     }
 }
 
@@ -618,11 +737,15 @@ function formatReturn(format: FormatState, nodeReturn: NodeReturn) {
 
     formatTargetBy(format, 'return', {});
 
+    format.pushIndent();
+
     if (nodeReturn.assign !== undefined) {
         formatAssign(format, nodeReturn.assign);
     }
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+
+    format.popIndent();
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
