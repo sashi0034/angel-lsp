@@ -42,6 +42,10 @@ export function isPositionInRange(position: Position, range: Range): boolean {
     return false;
 }
 
+export function isSamePosition(l: Position, r: Position): boolean {
+    return l.line === r.line && l.character === r.character;
+}
+
 export interface HighlightInfo {
     token: HighlightToken;
     modifier: HighlightModifier;

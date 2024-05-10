@@ -34,7 +34,7 @@ import {
 } from "../compile/nodes";
 import {FormatState} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatMoveToNonComment, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
+import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -437,7 +437,7 @@ function formatParamList(format: FormatState, paramList: NodeParamList) {
 }
 
 function formatParenthesesBlock(format: FormatState, action: () => void, condenseLeft: boolean = true) {
-    formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true, connectTail: true});
+    formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true});
 
     format.pushIndent();
     action();
@@ -775,9 +775,13 @@ function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
     formatExprTerm(format, nodeExpr.head);
 
     if (nodeExpr.tail !== undefined) {
+        format.pushIndent();
+
         formatTargetBy(format, nodeExpr.tail.operator.text, {});
 
         formatExpr(format, nodeExpr.tail.expression);
+
+        format.popIndent();
     }
 }
 
@@ -844,6 +848,8 @@ function formatConstructCall(format: FormatState, constructCall: NodeConstructCa
 function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
     formatMoveUntilNodeStart(format, postOp);
 
+    format.pushIndent();
+
     if (postOp.postOp === 1) {
         formatTargetBy(format, '.', {condenseSides: true});
 
@@ -871,8 +877,10 @@ function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
     } else if (postOp.postOp === 3) {
         formatArgList(format, postOp.args);
     } else if (postOp.postOp === 4) {
-        formatTargetBy(format, postOp.operator, {});
+        formatTargetBy(format, postOp.operator, {condenseLeft: true});
     }
+
+    format.popIndent();
 }
 
 function formatBracketsBlock(format: FormatState, action: () => void) {
@@ -1016,7 +1024,10 @@ function formatCondition(format: FormatState, condition: NodeCondition) {
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
 export function formatDocument(content: string, tokens: TokenizingToken[], ast: NodeScript): TextEdit[] {
-    const state = new FormatState(content, tokens, ast);
-    formatScript(state, ast);
-    return state.getResult();
+    const format = new FormatState(content, tokens, ast);
+    formatScript(format, ast);
+
+    formatMoveUntil(format, {line: format.textLines.length, character: 0});
+
+    return format.getResult();
 }

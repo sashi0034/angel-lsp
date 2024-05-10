@@ -49,8 +49,19 @@ export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
 export function formatMoveUntil(format: FormatState, destination: Position) {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
+        if (cursor.line >= format.textLines.length) {
+            // ファイル末尾に到達
+            const fileTail = {
+                line: format.textLines.length - 1,
+                character: format.textLines[format.textLines.length - 1].length
+            };
+            format.pushEdit(format.getCursor(), fileTail, '\n');
+            return;
+        }
+
         const next = format.map.getTokenAt(cursor);
         if (next === undefined) {
+            // 空白行
             cursor = stepCursorAlongLines(format.textLines, cursor);
             continue;
         }
