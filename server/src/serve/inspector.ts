@@ -5,12 +5,11 @@ import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {convertToParsingTokens} from "../compile/parsingToken";
 import {diagnostic} from '../code/diagnostic';
-import {Diagnostic, TextDocuments} from "vscode-languageserver/node";
+import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
 import {tracer} from "../code/tracer";
 import {NodeScript} from "../compile/nodes";
 import {URI} from "vscode-languageserver";
-import {TextDocument} from "vscode-languageserver-textdocument";
 import * as url from "url";
 import * as path from "node:path";
 import * as fs from "fs";
@@ -44,16 +43,15 @@ export function getInspectedResultList(): InspectResult[] {
     return Object.values(s_inspectedResults);
 }
 
-export function inspectFile(document: TextDocuments<TextDocument>, targetUri: URI) {
+export function inspectFile(content: string, targetUri: URI) {
     // 事前定義ファイルの読み込み
-    const predefinedUri = checkInspectPredefined(document, targetUri);
+    const predefinedUri = checkInspectPredefined(targetUri);
 
     // 解析結果をキャッシュ
-    s_inspectedResults[targetUri] = inspectInternal(
-        document.get(targetUri)?.getText() ?? '', targetUri, predefinedUri);
+    s_inspectedResults[targetUri] = inspectInternal(content, targetUri, predefinedUri);
 }
 
-function checkInspectPredefined(documents: TextDocuments<TextDocument>, targetUri: URI) {
+function checkInspectPredefined(targetUri: URI) {
     const dirs = splitUriIntoDirectories(targetUri);
 
     // 既に事前定義ファイルを解析済みの場合、その URI を返す
@@ -80,10 +78,10 @@ function checkInspectPredefined(documents: TextDocuments<TextDocument>, targetUr
 
 function readFileFromUri(uri: string): string | undefined {
     try {
-        const predefinedPath = fileURLToPath(uri);
-        if (fs.existsSync(predefinedPath) === false) return undefined;
+        const path = fileURLToPath(uri);
+        if (fs.existsSync(path) === false) return undefined;
 
-        return fs.readFileSync(predefinedPath, 'utf8');
+        return fs.readFileSync(path, 'utf8');
     } catch (error) {
         return undefined;
     }
