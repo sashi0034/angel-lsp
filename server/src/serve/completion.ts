@@ -1,4 +1,4 @@
-import {Position} from "vscode-languageserver";
+import {Position, URI} from "vscode-languageserver";
 import {
     ComplementHints,
     ComplementKind,
@@ -17,15 +17,13 @@ import {
     findScopeWithParent,
     isAnonymousIdentifier
 } from "../compile/scope";
-import {DocumentPath} from "./documentPath";
 
 export function serveCompletions(
-    diagnosedScope: SymbolScope, caret: Position, documentPath: DocumentPath
+    diagnosedScope: SymbolScope, caret: Position, uri: URI
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
-    const path = documentPath.path;
 
-    const targetScope = findIncludedScopes(diagnosedScope, caret, path);
+    const targetScope = findIncludedScopes(diagnosedScope, caret, uri);
 
     // スコープ内に優先的に補完する対象があるなら、それについての補完候補を返す
     const primeCompletion = checkMissingCompletionInScope(targetScope, caret);

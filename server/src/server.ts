@@ -1,19 +1,15 @@
 import {
     createConnection,
     TextDocuments,
-    Diagnostic,
-    DiagnosticSeverity,
     ProposedFeatures,
     InitializeParams,
     DidChangeConfigurationNotification,
     CompletionItem,
-    CompletionItemKind,
     TextDocumentPositionParams,
     TextDocumentSyncKind,
     InitializeResult,
     DocumentDiagnosticReportKind,
     type DocumentDiagnosticReport,
-    SemanticTokensBuilder, Files,
 } from 'vscode-languageserver/node';
 
 import {
@@ -24,8 +20,6 @@ import {getFileLocationOfToken, serveDefinition} from "./serve/definition";
 import {getInspectedResult, getInspectedResultList, inspectFile} from "./serve/inspector";
 import {serveCompletions} from "./serve/completion";
 import {serveSemanticTokens} from "./serve/semantiTokens";
-import {pathToFileURL} from "node:url";
-import {getDocumentPath} from "./serve/documentPath";
 import {serveReferences} from "./serve/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
@@ -38,7 +32,6 @@ const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
-
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
@@ -84,7 +77,7 @@ connection.onInitialize((params: InitializeParams) => {
                 range: false, // if true, the server supports range-based requests
                 full: true
             },
-            documentFormattingProvider: true
+            documentFormattingProvider: true,
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -135,12 +128,12 @@ documents.onDidClose(e => {
 connection.languages.diagnostics.on(async (params) => {
     return {
         kind: DocumentDiagnosticReportKind.Full,
-        items: getInspectedResult(getDocumentPath(params)).diagnostics
+        items: getInspectedResult(params.textDocument.uri).diagnostics
     } satisfies DocumentDiagnosticReport;
 });
 
 connection.languages.semanticTokens.on((params) => {
-    return serveSemanticTokens(getInspectedResult(getDocumentPath(params)).tokenizedTokens);
+    return serveSemanticTokens(getInspectedResult(params.textDocument.uri).tokenizedTokens);
 });
 
 // 定義ジャンプ
@@ -148,7 +141,7 @@ connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
+    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
@@ -164,7 +157,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
 
-    const analyzedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
+    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return [];
 
     const caret = params.position;
@@ -197,7 +190,7 @@ connection.onRenameRequest((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    inspectFile(change.document.getText(), getDocumentPath(change));
+    inspectFile(change.document.getText(), change.document.uri);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -212,10 +205,10 @@ connection.onCompletion(
         // which code complete got requested. For the example we ignore this
         // info and always provide the same completion items.
 
-        const path = getDocumentPath(params);
-        const diagnosedScope = getInspectedResult(getDocumentPath(params)).analyzedScope;
+        const uri = params.textDocument.uri;
+        const diagnosedScope = getInspectedResult(uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
-        return serveCompletions(diagnosedScope.fullScope, params.position, path);
+        return serveCompletions(diagnosedScope.fullScope, params.position, uri);
 
         // return [
         //     {
@@ -249,7 +242,7 @@ connection.onCompletionResolve(
 );
 
 connection.onDocumentFormatting((params) => {
-    const inspected = getInspectedResult(getDocumentPath(params));
+    const inspected = getInspectedResult(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);
 });
 

@@ -2,13 +2,12 @@ import {SymbolScope} from "../compile/symbolic";
 import {Location, Position} from "vscode-languageserver";
 import {isPositionInRange, TokenizingToken} from "../compile/tokens";
 import {ParsingToken} from "../compile/parsingToken";
-import {pathToFileURL} from "node:url";
 import {AnalyzedScope} from "../compile/scope";
 
 // トークンから VSCode の Location に変換
 export function getFileLocationOfToken(token: TokenizingToken): Location {
     return {
-        uri: pathToFileURL(token.location.path).toString(),
+        uri: token.location.path.toString(),
         range: {
             start: token.location.start,
             end: token.location.end
