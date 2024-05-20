@@ -3,7 +3,6 @@ import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
-import {convertToParsingTokens} from "../compile/parsingToken";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
@@ -14,6 +13,7 @@ import * as url from "url";
 import * as path from "node:path";
 import * as fs from "fs";
 import {fileURLToPath} from "node:url";
+import {preprocessTokensForParser} from "../compile/parsingPreprocess";
 
 interface InspectResult {
     content: string;
@@ -109,6 +109,11 @@ function splitUriIntoDirectories(fileUri: string): string[] {
     return directories;
 }
 
+function fileGetter(uri: URI): string | undefined {
+    // TODO
+    return undefined;
+}
+
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
     tracer.message(`🔬 Inspect "${targetUri}"`);
 
@@ -121,7 +126,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     profiler.stamp("Tokenizer");
 
     // 構文解析
-    const parsedAst = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
+    const parsedAst = parseFromTokenized(preprocessTokensForParser(tokenizedTokens, fileGetter));
     profiler.stamp("Parser");
 
     // 型解析
