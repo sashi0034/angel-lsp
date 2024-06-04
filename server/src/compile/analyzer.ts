@@ -1444,26 +1444,26 @@ const assignOpAliases = new Map<string, string>([
     ['>>>=', 'opUShrAssign'],
 ]);
 
-// 解析器のエントリーポイント
+// Entry point of the analyzer | 解析器のエントリーポイント
 export function analyzeFromParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): AnalyzedScope {
     const globalScope: SymbolScope = createSymbolScope(undefined, undefined, '');
 
     for (const included of includedScopes) {
-        // インクルードされたスコープのシンボルをコピー
+        // Copy the symbols in the included scope. | インクルードされたスコープのシンボルをコピー
         copySymbolsInScope(included.pureScope, globalScope);
     }
 
     const analyzing: AnalyzingQueue = [];
     const hoisting: HoistingQueue = [];
 
-    // 宣言されたシンボルを巻き上げ
+    // Hoist the declared symbols. | 宣言されたシンボルを巻き上げ
     hoistScript(globalScope, ast, analyzing, hoisting);
     while (hoisting.length > 0) {
         const next = hoisting.shift();
         if (next !== undefined) next();
     }
 
-    // 処理を行うスコープの中身を解析
+    // Analyze the contents of the scope to be processed. | 処理を行うスコープの中身を解析
     while (analyzing.length > 0) {
         const next = analyzing.shift();
         if (next !== undefined) next();

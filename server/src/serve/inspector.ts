@@ -47,17 +47,17 @@ export function getInspectedResultList(): InspectResult[] {
 }
 
 export function inspectFile(content: string, targetUri: URI) {
-    // 事前定義ファイルの読み込み
+    // Load as.predefined file | as.predefined ファイルの読み込み
     const predefinedUri = checkInspectPredefined(targetUri);
 
-    // 解析結果をキャッシュ
+    // Cache the inspected result | 解析結果をキャッシュ
     s_inspectedResults[targetUri] = inspectInternal(content, targetUri, predefinedUri);
 }
 
 function checkInspectPredefined(targetUri: URI) {
     const dirs = splitUriIntoDirectories(targetUri);
 
-    // 既に事前定義ファイルを解析済みの場合、その URI を返す
+    // If as.predefined has already been analyzed, return its URI | as.predefined が解析済みの場合、その URI を返す
     for (const dir of dirs) {
         const predefinedUri = dir + '/as.predefined';
 
@@ -65,7 +65,8 @@ function checkInspectPredefined(targetUri: URI) {
         if (predefinedResult !== undefined) return predefinedUri;
     }
 
-    // 事前定義ファイルが解析されていないとき、ファイルを探索して as.predefined があれば解析する
+    // If as.predefined has not been analyzed, search for the file and analyze it if as.predefined exists
+    // as.predefined が解析されていないとき、ファイルを探索して as.predefined があれば解析する
     for (const dir of dirs) {
         const predefinedUri = dir + '/as.predefined';
 
@@ -98,7 +99,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
     const directories: string[] = [];
     let parentPath = currentPath;
 
-    // ディレクトリがルートに達するまで繰り返す
+    // Repeat until the directory reaches the root | ルートに達するまで繰り返す
     while (parentPath !== path.dirname(parentPath)) {
         parentPath = path.dirname(parentPath);
         directories.push(url.format({
@@ -119,18 +120,19 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
 
     const profiler = new Profiler("Inspector");
 
-    // 字句解析
+    // Tokenize-phase | 字句解析
     const tokenizedTokens = tokenize(content, targetUri);
     profiler.stamp("Tokenizer");
 
-    // 構文解析
+    // Preprocess for tokenized tokens | トークン前処理
     const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
     profiler.stamp("Preprocess");
 
+    // Parse-phase | 構文解析
     const parsedAst = parseFromTokenized(preprocessedTokens.parsingTokens);
     profiler.stamp("Parser");
 
-    // 型解析
+    // Analyze-phase | 型解析
     const includedScopes = getIncludedScope(targetUri, predefinedUri, preprocessedTokens.includeFiles);
 
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
@@ -153,13 +155,13 @@ function resolveUri(dir: string, relativeUri: string): string {
 function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: TokenizingToken[]) {
     const includedScopes = [];
 
-    // as.predefined の読み込み
+    // Load as.predefined | as.predefined の読み込み
     if (target !== predefinedUri && predefinedUri !== undefined) {
         const predefinedResult = s_inspectedResults[predefinedUri];
         if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
     }
 
-    // #include されたファイルの解析済みスコープを取得
+    // Get the analyzed scope of included files | #include されたファイルの解析済みスコープを取得
     for (const includeToken of includedUris) {
         const relativeUri = includeToken.text.substring(1, includeToken.text.length - 1);
         const uri = resolveUri(target, relativeUri);
@@ -171,6 +173,7 @@ function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedU
                 continue;
             }
 
+            // Store an empty result temporarily to avoid loops caused by circular references
             // 循環参照によるループを回避するため、空を一時的に設定
             s_inspectedResults[uri] = createEmptyResult();
 

@@ -97,20 +97,20 @@ export type ScopeMap = Map<string, SymbolScope>;
 
 export type SymbolMap = Map<string, SymbolicObject>;
 
-// 親ノードと親スコープ
+// Parent node and parent scope | 親ノードと親スコープ
 export interface ScopeBirthInfo {
     ownerNode: SymbolOwnerNode | undefined;
     parentScope: SymbolScope | undefined;
     key: string;
 }
 
-// 定義されたシンボル情報と小スコープ
+// Defined symbol information and small scope | 定義されたシンボル情報と小スコープ
 export interface ScopeContainInfo {
     childScopes: ScopeMap;
     symbolMap: SymbolMap;
 }
 
-// 参照情報や補完情報
+// Reference information and completion information | 参照情報や補完情報
 export interface ScopeServiceInfo {
     referencedList: ReferencedSymbolInfo[];
     completionHints: ComplementHints[];
@@ -132,6 +132,7 @@ export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): bo
     return result === undefined;
 }
 
+// Insert a symbol into the map. If the insertion is successful, return undefined. If it fails, return the existing symbol corresponding to the key.
 // 挿入が成功したなら undefined を返す。失敗したらそのキーに対応する既存のシンボルを返す
 export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): SymbolicObject | undefined {
     const identifier = symbol.declaredPlace.text;
@@ -144,7 +145,7 @@ export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject):
     const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
     if (canOverload === false) return hit;
 
-    // 関数はオーバーロードとして追加が可能
+    // Functions can be added as overloads | 関数はオーバーロードとして追加が可能
     let cursor = hit;
     for (; ;) {
         if (cursor.nextOverload === undefined) {

@@ -51,7 +51,7 @@ export function isTypeMatchInternal(
     const srcType = src.symbolType;
     const destType = dest.symbolType;
 
-    // 関数ハンドラ型のチェック
+    // Check the function handler type. | 関数ハンドラ型のチェック
     if (srcType.symbolKind === SymbolKind.Function) {
         // if (dest.isHandler === false) return false; // FIXME: ハンドラチェック?
         return isFunctionHandlerMatch(srcType, destType);
@@ -65,20 +65,20 @@ export function isTypeMatchInternal(
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
-        // プリミティブからプリミティブへキャスト可能なら OK
+        // OK if it can be cast from one primitive type to another. | プリミティブからプリミティブへキャスト可能なら OK
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
-        // 同じ型を指しているなら OK
+        // OK if they point to the same type. | 同じ型を指しているなら OK
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
-        // 継承した型のいずれかが移動先に当てはまるなら OK
+        // OK if any of the inherited types match the destination. | 継承した型のいずれかが移動先に当てはまるなら OK
         if (canCastStatically(srcNode, destNode, srcType, destType)) return true;
     }
 
-    // 移動先の型がクラスでないなら NG
+    // NG if the destination type is not a class. | 移動先の型がクラスでないなら NG
     if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
 
-    // コンストラクタに当てはまるかで判定
+    // Determine if it matches the constructor. | コンストラクタに当てはまるかで判定
     const destIdentifier = destNode.identifier.text;
     return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
 }
@@ -143,10 +143,12 @@ function canConstructImplicitly(
 ) {
     if (destScope === undefined) return false;
 
+    // Search for the constructor of the type from the scope to which the type belongs.
     // 型が属するスコープから、その型自身のスコープを検索
     const constructorScope = findScopeShallowly(destScope, destIdentifier);
     if (constructorScope === undefined || constructorScope.ownerNode?.nodeName !== NodeName.Class) return false;
 
+    // Search for the constructor from the scope of the type itself.
     // 型自身のスコープから、そのコンストラクタを検索
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
@@ -155,6 +157,7 @@ function canConstructImplicitly(
 }
 
 function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
+    // OK if the constructor has one argument and that argument matches the source type.
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
@@ -166,7 +169,7 @@ function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boo
         }
     }
 
-    // オーバーロードが存在するならそれについても確認
+    // If there are overloads, check those as well. | オーバーロードが存在するならそれについても確認
     if (constructor.nextOverload !== undefined) {
         return canConstructBy(constructor.nextOverload, srcType);
     }

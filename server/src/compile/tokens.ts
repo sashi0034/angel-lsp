@@ -69,7 +69,7 @@ export interface TokenBase {
     highlight: HighlightInfo;
 }
 
-// インスタンスに依らないトークンの一致判定
+// Determine whether the two tokens match (performed regardless of the instance) | インスタンスに依らないトークンの一致判定
 export function isSameToken(l: TokenBase, r: TokenBase): boolean {
     return l.text === r.text
         && l.location.path === r.location.path

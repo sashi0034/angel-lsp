@@ -70,7 +70,7 @@ export class TokenizingState {
     }
 }
 
-// 英数字や記号以外の文字列のバッファ
+// Buffer for strings that are not Alphabets, numbers, or symbols | 英数字や記号以外の文字列のバッファ
 export class UnknownBuffer {
     private buffer: string = "";
     private location: LocationInfo | null = null;

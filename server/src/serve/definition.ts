@@ -4,7 +4,7 @@ import {isPositionInRange, TokenizingToken} from "../compile/tokens";
 import {ParsingToken} from "../compile/parsingToken";
 import {AnalyzedScope} from "../compile/scope";
 
-// トークンから VSCode の Location に変換
+// Convert tokenized tokens to a VSCode Location. | トークンから VSCode の Location に変換
 export function getFileLocationOfToken(token: TokenizingToken): Location {
     return {
         uri: token.location.path.toString(),
@@ -20,7 +20,7 @@ export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): 
 }
 
 function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): ParsingToken | null {
-    // スコープ内のシンボルから探索
+    // Search from symbols in the scope | スコープ内のシンボルから探索
     for (const [key, symbol] of targetScope.symbolMap) {
         const location = symbol.declaredPlace.location;
         if (location.path === path && isPositionInRange(caret, location)) {
@@ -29,15 +29,15 @@ function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path
     }
 
     for (const reference of targetScope.referencedList) {
-        // スコープ内の参照箇所を検索
+        // Search for reference locations in the scope | スコープ内の参照箇所を検索
         const referencedLocation = reference.referencedToken.location;
         if (isPositionInRange(caret, referencedLocation)) {
-            // 参照箇所がカーソル位置上なら定義箇所を返す
+            // If the reference location is on the cursor, return the definition location | 参照箇所がカーソル位置上なら定義箇所を返す
             return reference.declaredSymbol.declaredPlace;
         }
     }
 
-    // 現在のスコープで見つからないときは子スコープを探索
+    // Search in child scopes when not found in the current scope | 現在のスコープで見つからないときは子スコープを探索
     for (const [key, child] of targetScope.childScopes) {
         const jumping = serveDefinitionInternal(child, caret, path);
         if (jumping !== null) return jumping;

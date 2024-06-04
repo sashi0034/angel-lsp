@@ -56,9 +56,9 @@ export function createSymbolScopeAndInsert(
 
 export class AnalyzedScope {
     public readonly path: string;
-    public readonly fullScope: SymbolScope; // 他モジュールのシンボルも含む
+    public readonly fullScope: SymbolScope; // Include symbols from other modules as well. | 他モジュールのシンボルも含む
 
-    private pureBuffer: SymbolScope | undefined; // 自身のモジュールのみ含む
+    private pureBuffer: SymbolScope | undefined; // Contains only its own module. | 自身のモジュールのみ含む
 
     public constructor(path: string, full: SymbolScope) {
         this.path = path;
@@ -76,12 +76,12 @@ export class AnalyzedScope {
 
 function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: SymbolScope, destScope: SymbolScope) {
     if (srcPath === undefined) {
-        // 対象元から対象先のスコープへ全シンボルをコピー
+        // Copy all symbols from the source to the destination scope. | 対象元から対象先のスコープへ全シンボルをコピー
         for (const [key, symbol] of srcScope.symbolMap) {
             destScope.symbolMap.set(key, symbol);
         }
     } else {
-        // 宣言ファイルが同じシンボルを収集
+        // Collect symbols from the declaration file with the same symbol. | 宣言ファイルが同じシンボルを収集
         for (const [key, symbol] of srcScope.symbolMap) {
             if (symbol.declaredPlace.location.path === srcPath) {
                 destScope.symbolMap.set(key, symbol);
@@ -89,7 +89,7 @@ function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: Symbo
         }
     }
 
-    // 子スコープも再帰的にコピー
+    // Copy child scopes recursively. | 子スコープも再帰的にコピー
     for (const [key, child] of srcScope.childScopes) {
         const destChild = findScopeShallowlyOrInsertByIdentifier(child.ownerNode, destScope, key);
         copyOriginalSymbolsInScope(srcPath, child, destChild);
@@ -97,7 +97,7 @@ function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: Symbo
 }
 
 export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope) {
-    // 対象元から対象先のスコープへ全シンボルをコピー
+    // Copy all symbols from the source to the destination scope. | 対象元から対象先のスコープへ全シンボルをコピー
     copyOriginalSymbolsInScope(undefined, srcScope, destScope);
 }
 
@@ -108,6 +108,7 @@ export function findScopeShallowlyOrInsert(
 ): SymbolScope {
     const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
+        // When searching for a node that is not in the namespace, an error occurs if it is different from the search node.
         // 名前空間でないノードを検索しているとき、それが検索ノードと異なっているときはエラー
         diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
     }

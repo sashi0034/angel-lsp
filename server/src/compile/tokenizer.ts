@@ -36,7 +36,7 @@ function isAlphanumeric(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-// コメント解析
+// Check comment token | コメント解析
 function tryComment(reading: TokenizingState, location: LocationInfo): TokenComment | undefined {
     if (reading.isNext('//')) {
         return tokenizeLineComment(reading, location);
@@ -81,7 +81,7 @@ function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) 
     return createTokenComment(reading.substrFrom(start), location);
 }
 
-// 数値解析
+// Check number token | 数値解析
 function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
     const start = reading.getCursor();
 
@@ -122,12 +122,12 @@ function consumeNumber(reading: TokenizingState) {
         }
     }
 
-    // 0~9 を読み取る
+    // Read 0-9 | 0-9 を読み取る
     while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
 
     let numeric = NumberLiterals.Integer;
 
-    // 小数点
+    // Check decimal point | 小数点を確認
     let f = 0;
     if (reading.next() === '.') {
         f++;
@@ -135,7 +135,7 @@ function consumeNumber(reading: TokenizingState) {
         numeric = NumberLiterals.Double;
     }
 
-    // 指数
+    // Check exponent | 指数を確認
     if (/^[eE]$/.test(reading.next(f)) && /^[+-]$/.test(reading.next(f + 1)) && isDigit(reading.next(f + 2))) {
         f += 3;
         while (isDigit(reading.next(f))) f++;
@@ -145,7 +145,7 @@ function consumeNumber(reading: TokenizingState) {
     if (f > 1) {
         reading.stepFor(f);
 
-        // 半精度浮動小数と認識
+        // Check half precision floating point | 半精度浮動小数と認識
         if (numeric === NumberLiterals.Double) {
             if (/^[fF]$/.test(reading.next())) {
                 reading.stepNext();
@@ -157,7 +157,7 @@ function consumeNumber(reading: TokenizingState) {
     return numeric;
 }
 
-// 文字列解析
+// Check string token | 文字列解析
 function tryString(reading: TokenizingState, location: LocationInfo): TokenString | undefined {
 
     const start = reading.getCursor();
@@ -201,7 +201,7 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
     };
 }
 
-// 記号解析
+// Check mark token | 記号解析
 function tryMark(reading: TokenizingState, location: LocationInfo): TokenReserved | undefined {
     const mark = findReservedWeakMarkProperty(reading.content, reading.getCursor());
     if (mark === undefined) return undefined;
@@ -221,7 +221,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
     };
 }
 
-// 識別子解析
+// Check identifier token | 識別子解析
 function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizingToken | TokenIdentifier | undefined {
     const start = reading.getCursor();
     while (reading.isEnd() === false && isAlphanumeric(reading.next())) {

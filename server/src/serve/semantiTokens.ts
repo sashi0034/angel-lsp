@@ -21,7 +21,7 @@ function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenizingTok
 
     if (token.location.start.line === token.location.end.line) return;
 
-    // 複数行のトークンは行分割
+    // Multi-line tokens have to be split by line | 複数行のトークンは行分割
     for (let i = token.location.start.line + 1; i < token.location.end.line; i++) {
         builder.push(
             i,

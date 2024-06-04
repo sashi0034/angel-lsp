@@ -4,20 +4,20 @@ import assert = require("assert");
 
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
 
-// 全記号郡
+// All marks | 全記号郡
 const reservedMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '!is', '::',
     '#', // For preprocessor
 ];
 
-// 文脈依存の要素を取り除いた記号郡
+// A group of marks with context-dependent elements removed. | 文脈依存の要素を取り除いた記号郡
 const reservedWeakMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
     // '>=', '>>', '>>>', '>>=', '>>>=', '!is'
     '#', // For preprocessor
 ];
 
-// 英数字から構成される予約後郡
+// Reserved keywords consisting of alphanumeric characters | 英数字から構成される予約後郡
 const reservedKeywordArray = [
     'and', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'false', 'float', 'for', 'funcdef', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'switch', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
     // Not really a reserved keyword, but is recognized by the compiler as a built-in keyword.
@@ -131,12 +131,12 @@ function createKeywordPropertyMap() {
     return keywordMap;
 }
 
-// キーワードの予約語をプロパティ検索
+// Search for reserved words of keywords | キーワードの予約語をプロパティ検索
 export function findReservedKeywordProperty(str: string) {
     return reservedKeywordProperties.get(str);
 }
 
-// 予約後全てからプロパティ検索
+// Search for all reserved words | 予約後全てからプロパティ検索
 export function findAllReservedWordProperty(str: string) {
     const result = reservedWordProperties.get(str);
     if (result !== undefined) return result;

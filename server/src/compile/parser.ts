@@ -2081,7 +2081,7 @@ function parseExprOp(parsing: ParsingState) {
 
 const uniqueNotIsToken = createVirtualToken(TokenKind.Reserved, '!is');
 
-// '!is' は特殊処理
+// '!is' requires special handling. | '!is' は特殊処理
 function parseNotIsOperator(parsing: ParsingState) {
     if (isTokensLinkedBy(parsing.next(), ['!', 'is']) === false) return undefined;
 

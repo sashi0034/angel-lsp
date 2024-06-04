@@ -18,7 +18,8 @@ export enum BreakThrough {
     Through = 'Through',
 }
 
-// 診断メッセージは pending 発生時に発行する
+// Diagnostic messages are issued when 'Pending' occurs. | パース失敗時に診断メッセージを発行
+
 export type TriedParse<T> = T | ParseFailure;
 
 export class ParsingState {

@@ -25,10 +25,12 @@ export function serveCompletions(
 
     const targetScope = findIncludedScopes(diagnosedScope, caret, uri);
 
+    // If there is a completion target within the scope that should be prioritized,return the completion candidates for it.
     // スコープ内に優先的に補完する対象があるなら、それについての補完候補を返す
     const primeCompletion = checkMissingCompletionInScope(targetScope, caret);
     if (primeCompletion !== undefined) return primeCompletion;
 
+    // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // 自身と親スコープにあるシンボルを補完候補として返す
     for (const scope of [...collectParentScopes(targetScope), targetScope]) {
         items.push(...getCompletionSymbolsInScope(scope, false));
@@ -40,7 +42,7 @@ export function serveCompletions(
 function getCompletionSymbolsInScope(scope: SymbolScope, isMember: boolean): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    // スコープ内シンボルの補完
+    // Completion of symbols in the scope | スコープ内シンボルの補完
     for (const [symbolName, symbol] of scope.symbolMap) {
         if (isMember && isSymbolInstanceMember(symbol) === false) continue;
         items.push({
@@ -49,7 +51,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, isMember: boolean): Com
         });
     }
 
-    // 名前空間の補完
+    // Completion of namespace | 名前空間の補完
     for (const [childName, childScope] of scope.childScopes) {
         if (childScope.ownerNode !== undefined) continue;
         if (isAnonymousIdentifier(childName)) continue;
@@ -82,9 +84,11 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
     if (scope.completionHints.length === 0) return;
 
     for (const missing of scope.completionHints) {
+        // Check if the completion target to be prioritized is at the cursor position in the scope.
         // スコープ内で優先的に補完する対象がカーソル位置にあるかを調べる
         const location = missing.complementLocation;
         if (isPositionInRange(caret, location)) {
+            // Return the completion target to be prioritized.
             // 優先的に補完する対象を返す
             return searchMissingCompletion(scope, missing);
         }
@@ -95,21 +99,21 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 
 function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
     if (completion.complementKind === ComplementKind.Type) {
-        // 補完対象の型が属するスコープを探す
+        // Find the scope to which the type to be completed belongs. | 補完対象の型が属するスコープを探す
         const typeScope = findScopeWithParent(scope, completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
-        // スコープ内の補完候補を返す
+        // Return the completion candidates in the scope. | スコープ内の補完候補を返す
         return getCompletionSymbolsInScope(typeScope, true);
     } else if (completion.complementKind === ComplementKind.Namespace) {
-        // 補完対象の名前空間が属するスコープを探す
+        // Find the scope to which the namespace to be completed belongs. | 補完対象の名前空間が属するスコープを探す
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
         const namespaceScope = findScopeShallowly(findGlobalScope(scope), namespaceList[0].text);
         if (namespaceScope === undefined) return [];
 
-        // スコープ内の補完候補を返す
+        // Return the completion candidates in the scope. | スコープ内の補完候補を返す
         return getCompletionSymbolsInScope(namespaceScope, false);
     }
     return undefined;

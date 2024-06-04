@@ -43,17 +43,17 @@ export function checkFunctionMatchInternal(
     const calleeParams = calleeFunc.sourceNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length) {
-        // 呼び出し側の引数の数が多すぎる場合へ対処
+        // Handle too many caller arguments | 呼び出し側の引数の数が多すぎる場合へ対処
         return handleTooMuchCallerArgs(args, overloadedHead);
     }
 
     for (let i = 0; i < calleeParams.length; i++) {
         if (i >= callerArgTypes.length) {
-            // 呼び出し側の引数が足りない場合
+            // When the caller arguments are insufficient | 呼び出し側の引数が足りない場合
             const param = calleeParams[i];
 
             if (param.defaultExpr === undefined) {
-                // デフォルト値も存在しない場合
+                // When there is no default value | デフォルト値も存在しない場合
                 if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
                     ...args,
                     calleeFunc: calleeFunc.nextOverload
@@ -72,7 +72,7 @@ export function checkFunctionMatchInternal(
 
         if (isTypeMatch(actualType, expectedType)) continue;
 
-        // オーバーロードが存在するなら使用
+        // Use the overload if it exists | オーバーロードが存在するなら使用
         if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal(
             {...args, calleeFunc: calleeFunc.nextOverload},
             overloadedHead);
@@ -88,7 +88,7 @@ export function checkFunctionMatchInternal(
 function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolicFunction) {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
 
-    // オーバーロードが存在するなら採用
+    // Use the overload if it exists | オーバーロードが存在するなら使用
     if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
         ...args,
         calleeFunc: calleeFunc.nextOverload
@@ -107,8 +107,7 @@ function handleErrorWhenOverloaded(
     calleeFunc: SymbolicFunction,
     overloadedHead: SymbolicFunction
 ) {
-    // オーバーロードされていない
-    if (calleeFunc === overloadedHead) return false;
+    if (calleeFunc === overloadedHead) return false; // Not overloaded
 
     let message = 'No viable function 💢';
     message += `\nArguments types: (${stringifyDeducedTypes(callerArgs)})`;

@@ -107,7 +107,7 @@ connection.onInitialized(() => {
         });
     }
 
-    // ワークスペース設定の読み込み
+    // Reload for workspace settings. | ワークスペース設定の読み込み
     reloadSettings();
 });
 
@@ -136,7 +136,7 @@ connection.languages.semanticTokens.on((params) => {
     return serveSemanticTokens(getInspectedResult(params.textDocument.uri).tokenizedTokens);
 });
 
-// 定義ジャンプ
+// Definition jump | 定義ジャンプ
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
@@ -152,7 +152,7 @@ connection.onDefinition((params) => {
     return getFileLocationOfToken(jumping);
 });
 
-// 参照表示
+// Search for references | 参照情報を検索
 function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
@@ -170,7 +170,7 @@ connection.onReferences((params) => {
     return getReferenceLocations(params);
 });
 
-// リネーム機能
+// Rename | リネーム機能
 connection.onRenameRequest((params) => {
     const locations = getReferenceLocations(params);
 

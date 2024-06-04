@@ -9,7 +9,7 @@ export interface PreprocessedTokenOutput {
 }
 
 export function preprocessTokensForParser(tokens: TokenizingToken[]): PreprocessedTokenOutput {
-    // コメント除去
+    // Remove comments | コメント除去
     const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== TokenKind.Comment).map(token => {
         return {
             ...token,
@@ -18,20 +18,20 @@ export function preprocessTokensForParser(tokens: TokenizingToken[]): Preprocess
         };
     });
 
-    // ディレクティブの処理
+    // Process directives | ディレクティブの処理
     const includeFiles = preprocessDirectives(actualTokens);
 
-    // 連続する文字列の結合
+    // Concatenate continuous strings | 連続する文字列の結合
     for (let i = actualTokens.length - 1; i >= 1; i--) {
         const isContinuousString = actualTokens[i].kind === TokenKind.String && actualTokens[i - 1].kind === TokenKind.String;
         if (isContinuousString === false) continue;
 
-        // 結合した要素を新規生成
+        // Create a new token with the combined elements | 結合した要素を新規生成
         actualTokens[i - 1] = createConnectedStringTokenAt(actualTokens, i);
         actualTokens.splice(i, 1);
     }
 
-    // 索引情報の付与
+    // Assign index information | 索引情報の付与
     for (let i = 0; i < actualTokens.length; i++) {
         actualTokens[i].index = i;
         actualTokens[i].next = i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined;
@@ -47,7 +47,7 @@ function preprocessDirectives(tokens: TokenizingToken[]): TokenizingToken[] {
     const includeFiles: TokenizingToken[] = [];
     const directiveRanges: [number, number][] = [];
 
-    // '#' から始まるディレクティブを処理
+    // Process directives starting with '#' | '#' から始まるディレクティブを処理
     for (let i = 0; i < tokens.length; i++) {
         if (tokens[i].text !== '#') continue;
         const directiveTokens = sliceTokenListBySameLine(tokens, i);
@@ -56,7 +56,7 @@ function preprocessDirectives(tokens: TokenizingToken[]): TokenizingToken[] {
         directiveRanges.push([i, directiveTokens.length]);
     }
 
-    // ディレクティブを削除
+    // Remove directives | ディレクティブを削除
     for (let i = directiveRanges.length - 1; i >= 0; i--) {
         tokens.splice(directiveRanges[i][0], directiveRanges[i][1]);
     }
@@ -70,7 +70,7 @@ function handleDirectiveTokens(directiveTokens: TokenizingToken[], includeFiles:
     if (directiveTokens[1]?.text === 'include') {
         directiveTokens[1].highlight.token = HighlightToken.Directive;
 
-        // include ディレクティブの処理
+        // Check the include directive | include ディレクティブの処理
         const fileName = directiveTokens[2];
         if (fileName === undefined) {
             diagnostic.addError(directiveTokens[1].location, 'Expected file name for include directive.');

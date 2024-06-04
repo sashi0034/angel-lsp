@@ -20,13 +20,14 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: ParsingT
     const references = [];
 
     for (const reference of scope.referencedList) {
+        // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
         // スコープ内の参照箇所を検索 (コンパイルのたびにトークンのインスタンスが変わるので、厳密な比較を行う必要がある)
         if (reference.declaredSymbol.declaredPlace === targetDefinition || isSameToken(reference.declaredSymbol.declaredPlace, targetDefinition)) {
             references.push(reference.referencedToken);
         }
     }
 
-    // 子要素も探索
+    // Search in child scopes | 子要素も探索
     for (const [key, child] of scope.childScopes) {
         references.push(...collectReferencesInScope(child, targetDefinition));
     }
