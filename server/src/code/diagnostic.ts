@@ -1,18 +1,26 @@
 import {Range} from "vscode-languageserver";
 import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
 
-let s_diagnostics: Diagnostic[] = [];
+type DiagnosticList = Diagnostic[];
 
-function reset(): void {
-    s_diagnostics = [];
+let s_diagnosticStack: DiagnosticList[] = [];
+
+let s_currentDiagnostics: DiagnosticList = [];
+
+function launchSession(): void {
+    s_currentDiagnostics = [];
+    s_diagnosticStack.push(s_currentDiagnostics);
 }
 
-function get(): Diagnostic[] {
-    return s_diagnostics;
+function completeSession(): DiagnosticList {
+    const result = s_currentDiagnostics;
+    s_diagnosticStack.pop();
+    if (s_diagnosticStack.length > 0) s_currentDiagnostics = s_diagnosticStack[s_diagnosticStack.length - 1];
+    return result;
 }
 
 function pushDiagnostic(range: Range, message: string, severity: DiagnosticSeverity): void {
-    s_diagnostics.push({
+    s_currentDiagnostics.push({
         range: range,
         message: message,
         severity: severity,
@@ -25,7 +33,7 @@ function addError(range: Range, message: string): void {
 }
 
 export const diagnostic = {
-    reset,
-    get,
+    launchSession: launchSession,
+    completeSession: completeSession,
     addError,
 } as const;

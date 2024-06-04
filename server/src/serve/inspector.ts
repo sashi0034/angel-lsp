@@ -115,7 +115,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
     tracer.message(`🔬 Inspect "${targetUri}"`);
 
-    diagnostic.reset();
+    diagnostic.launchSession();
 
     const profiler = new Profiler("Inspector");
 
@@ -138,7 +138,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
 
     return {
         content: content,
-        diagnostics: diagnostic.get(),
+        diagnostics: diagnostic.completeSession(),
         tokenizedTokens: tokenizedTokens,
         parsedAst: parsedAst,
         analyzedScope: analyzedScope
@@ -174,7 +174,7 @@ function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedU
             // 循環参照によるループを回避するため、空を一時的に設定
             s_inspectedResults[uri] = createEmptyResult();
 
-            s_inspectedResults[uri] = inspectInternal(content, uri, undefined);
+            s_inspectedResults[uri] = inspectInternal(content, uri, predefinedUri);
         }
 
         const result = s_inspectedResults[uri];
