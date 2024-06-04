@@ -4,7 +4,15 @@ All notable changes to the "sample-extension" extension will be documented in th
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.3.0] - 2024/06/04
+
+- Support for `#include` directive (Preview)
+- Modified the search method for `as.predefined`
+   - Search recursively from the parent directory of the file instead of the root of the workspace directory.
+- Fix minor bugs.
+
 ## [0.2.0] - 2024/05/10
+
 - Format support (Preview)
 
 ## [0.1.7] - 2024/04/11

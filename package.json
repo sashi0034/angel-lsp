@@ -4,16 +4,19 @@
     "description": "A language server for AngelScript",
     "author": "sashi0034",
     "license": "MIT",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
     },
     "publisher": "sashi0034",
-    "categories": [],
+    "categories": ["Programming Languages"],
     "keywords": [
         "angelscript"
     ],
+    "bugs": {
+        "url": "https://github.com/sashi0034/angel-lsp/issues"
+    },
     "engines": {
         "vscode": "^1.75.0"
     },
