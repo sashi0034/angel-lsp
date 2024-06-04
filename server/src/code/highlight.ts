@@ -26,6 +26,7 @@ export enum HighlightToken {
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
     Builtin,
+    Directive,
 }
 
 export const highlightTokens = [
@@ -54,6 +55,7 @@ export const highlightTokens = [
     'regexp',
     'operator',
     'builtin',
+    'directive',
 ];
 
 export enum HighlightModifier {
