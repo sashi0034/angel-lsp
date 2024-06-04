@@ -1,12 +1,11 @@
 import {isSameLine, TokenizingToken, TokenKind} from "./tokens";
-import {URI} from "vscode-languageserver";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
 
 export interface PreprocessedTokenOutput {
     parsingTokens: ParsingToken[];
-    includeFiles: URI[];
+    includeFiles: TokenizingToken[];
 }
 
 export function preprocessTokensForParser(tokens: TokenizingToken[]): PreprocessedTokenOutput {
@@ -44,8 +43,8 @@ export function preprocessTokensForParser(tokens: TokenizingToken[]): Preprocess
     };
 }
 
-function preprocessDirectives(tokens: TokenizingToken[]): URI[] {
-    const includeFiles: URI[] = [];
+function preprocessDirectives(tokens: TokenizingToken[]): TokenizingToken[] {
+    const includeFiles: TokenizingToken[] = [];
     const directiveRanges: [number, number][] = [];
 
     // '#' から始まるディレクティブを処理
@@ -65,7 +64,7 @@ function preprocessDirectives(tokens: TokenizingToken[]): URI[] {
     return includeFiles;
 }
 
-function handleDirectiveTokens(directiveTokens: TokenizingToken[], includeFiles: URI[]) {
+function handleDirectiveTokens(directiveTokens: TokenizingToken[], includeFiles: TokenizingToken[]) {
     directiveTokens[0].highlight.token = HighlightToken.Directive;
 
     if (directiveTokens[1]?.text === 'include') {
@@ -83,7 +82,7 @@ function handleDirectiveTokens(directiveTokens: TokenizingToken[], includeFiles:
             return;
         }
 
-        includeFiles.push(fileName.text.substring(1, fileName.text.length - 1));
+        includeFiles.push(fileName);
     } else {
         if (directiveTokens[1] != null) directiveTokens[1].highlight.token = HighlightToken.Label;
     }

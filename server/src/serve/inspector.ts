@@ -150,7 +150,7 @@ function resolveUri(dir: string, relativeUri: string): string {
     return url.format(new URL(relativeUri, u));
 }
 
-function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: URI[]) {
+function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: TokenizingToken[]) {
     const includedScopes = [];
 
     // as.predefined の読み込み
@@ -160,13 +160,14 @@ function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedU
     }
 
     // #include されたファイルの解析済みスコープを取得
-    for (const relativeUri of includedUris) {
+    for (const includeToken of includedUris) {
+        const relativeUri = includeToken.text.substring(1, includeToken.text.length - 1);
         const uri = resolveUri(target, relativeUri);
 
         if (s_inspectedResults[uri] === undefined) {
             const content = readFileFromUri(uri);
             if (content === undefined) {
-                // TODO: エラーを追加
+                diagnostic.addError(includeToken.location, `File not found: "${fileURLToPath(uri)}"`);
                 continue;
             }
 
