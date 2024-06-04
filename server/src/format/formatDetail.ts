@@ -23,15 +23,28 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
 
 function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) {
     const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
-    const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
 
-    const backToken = format.map.getTokenAt(spaceStart);
-    const editSpace = frontToken.kind === TokenKind.Reserved && backToken?.kind === TokenKind.Reserved
-        ? '' // '>>' といったトークンはテンプレートのために '>' '>' と分割されているため、スペースを入れない
-        : ' ';
+    const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
+    if (spaceStart.character === 0) {
+        format.setCursorToTail(frontToken);
+        return;
+    }
+
+    const backToken = format.map.getTokenAt({line: spaceStart.line, character: spaceStart.character - 1});
+    const editSpace = canInsertEditSpace(backToken, frontToken) ? ' ' : '';
 
     format.pushEdit(spaceStart, spaceEnd, (spaceStart.character > 0 ? editSpace : format.getIndent()));
     format.setCursorToTail(frontToken);
+}
+
+function canInsertEditSpace(backToken: TokenizingToken | undefined, frontToken: TokenizingToken): boolean {
+    // '>>' といったトークンはテンプレートのために '>' '>' と分割されているため、スペースを入れない
+    if (frontToken.kind === TokenKind.Reserved && backToken?.kind === TokenKind.Reserved) return false;
+
+    // ディレクティブの後ろにスペースを入れない
+    if (backToken?.text === '#') return false;
+
+    return true;
 }
 
 export interface FormatTargetOption {
