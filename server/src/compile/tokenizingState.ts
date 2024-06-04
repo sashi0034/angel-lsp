@@ -76,12 +76,15 @@ export class UnknownBuffer {
     private location: LocationInfo | null = null;
 
     public append(head: LocationInfo, next: string) {
-        if (this.location === null) this.location = head;
-        else if (head.start.line !== this.location.start.line
-            || head.start.character - this.location.end.character > 1) {
+        if (this.location === null) {
+            this.location = head;
+        } else if (head.start.line !== this.location.start.line
+            || head.start.character - this.location.end.character > 1
+        ) {
             this.flush();
             this.location = head;
         }
+
         this.location.end = head.end;
         this.buffer += next;
     }

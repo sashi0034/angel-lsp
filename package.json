@@ -58,7 +58,8 @@
         "configurationDefaults": {
             "editor.semanticTokenColorCustomizations": {
                 "rules": {
-                    "builtin": "#00b0e0"
+                    "builtin": "#00b0e0",
+                    "directive": "#ffe020"
                 }
             }
         },

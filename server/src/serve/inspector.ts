@@ -3,7 +3,6 @@ import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
-import {convertToParsingTokens} from "../compile/parsingToken";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compile/scope";
@@ -14,6 +13,8 @@ import * as url from "url";
 import * as path from "node:path";
 import * as fs from "fs";
 import {fileURLToPath} from "node:url";
+import {URL} from 'url';
+import {preprocessTokensForParser} from "../compile/parsingPreprocess";
 
 interface InspectResult {
     content: string;
@@ -25,17 +26,19 @@ interface InspectResult {
 
 const s_inspectedResults: { [uri: string]: InspectResult } = {};
 
-const emptyResult: InspectResult = {
-    content: '',
-    diagnostics: [],
-    tokenizedTokens: [],
-    parsedAst: [],
-    analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined, ''))
-} as const;
+function createEmptyResult(): InspectResult {
+    return {
+        content: '',
+        diagnostics: [],
+        tokenizedTokens: [],
+        parsedAst: [],
+        analyzedScope: new AnalyzedScope('', createSymbolScope(undefined, undefined, ''))
+    } as const;
+}
 
 export function getInspectedResult(uri: URI): InspectResult {
     const result = s_inspectedResults[uri];
-    if (result === undefined) return emptyResult;
+    if (result === undefined) return createEmptyResult();
     return result;
 }
 
@@ -112,7 +115,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
     tracer.message(`🔬 Inspect "${targetUri}"`);
 
-    diagnostic.reset();
+    diagnostic.launchSession();
 
     const profiler = new Profiler("Inspector");
 
@@ -121,31 +124,61 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     profiler.stamp("Tokenizer");
 
     // 構文解析
-    const parsedAst = parseFromTokenized(convertToParsingTokens(tokenizedTokens));
+    const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
+    profiler.stamp("Preprocess");
+
+    const parsedAst = parseFromTokenized(preprocessedTokens.parsingTokens);
     profiler.stamp("Parser");
 
     // 型解析
-    const includedScopes = getIncludedScope(targetUri, predefinedUri);
+    const includedScopes = getIncludedScope(targetUri, predefinedUri, preprocessedTokens.includeFiles);
 
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
     profiler.stamp("Analyzer");
 
     return {
         content: content,
-        diagnostics: diagnostic.get(),
+        diagnostics: diagnostic.completeSession(),
         tokenizedTokens: tokenizedTokens,
         parsedAst: parsedAst,
         analyzedScope: analyzedScope
     };
 }
 
-function getIncludedScope(uri: URI, predefinedUri: URI | undefined) {
-    const includedScopes = []; // TODO: #include 対応
+function resolveUri(dir: string, relativeUri: string): string {
+    const u = new URL(dir);
+    return url.format(new URL(relativeUri, u));
+}
 
-    // 事前定義ファイルの読み込み
-    if (uri !== predefinedUri && predefinedUri !== undefined) {
+function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: TokenizingToken[]) {
+    const includedScopes = [];
+
+    // as.predefined の読み込み
+    if (target !== predefinedUri && predefinedUri !== undefined) {
         const predefinedResult = s_inspectedResults[predefinedUri];
         if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
+    }
+
+    // #include されたファイルの解析済みスコープを取得
+    for (const includeToken of includedUris) {
+        const relativeUri = includeToken.text.substring(1, includeToken.text.length - 1);
+        const uri = resolveUri(target, relativeUri);
+
+        if (s_inspectedResults[uri] === undefined) {
+            const content = readFileFromUri(uri);
+            if (content === undefined) {
+                diagnostic.addError(includeToken.location, `File not found: "${fileURLToPath(uri)}"`);
+                continue;
+            }
+
+            // 循環参照によるループを回避するため、空を一時的に設定
+            s_inspectedResults[uri] = createEmptyResult();
+
+            s_inspectedResults[uri] = inspectInternal(content, uri, predefinedUri);
+        }
+
+        const result = s_inspectedResults[uri];
+        if (result !== undefined) includedScopes.push(result.analyzedScope);
     }
 
     return includedScopes;
