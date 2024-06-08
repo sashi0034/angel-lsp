@@ -6,6 +6,7 @@ export enum TokenKind {
     Identifier = 'Identifier',
     Number = 'Number',
     String = 'String',
+    Metadata = 'Metadata',
     Comment = 'Comment',
 }
 
@@ -124,4 +125,8 @@ export interface TokenComment extends TokenBase {
     kind: TokenKind.Comment;
 }
 
-export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;
+export interface TokenMetadata extends TokenBase {
+    kind: TokenKind.Metadata;
+}
+
+export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment | TokenMetadata;
