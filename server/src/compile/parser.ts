@@ -150,6 +150,7 @@ function parseScript(parsing: ParsingState): NodeScript {
             continue;
         }
 
+        parseMetadata(parsing);
         const parsedVar = parseVar(parsing);
         if (parsedVar !== undefined) {
             script.push(parsedVar);
@@ -302,6 +303,7 @@ function parseEntityAttribute(parsing: ParsingState): EntityAttribute | undefine
 function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
 
+    parseMetadata(parsing);
     const entity = parseEntityAttribute(parsing);
 
     if (parsing.next().text !== 'class') {
@@ -414,6 +416,7 @@ function parseTypeDef(parsing: ParsingState): TriedParse<NodeTypeDef> {
 function parseFunc(parsing: ParsingState): NodeFunc | undefined {
     const rangeStart = parsing.next();
 
+    parseMetadata(parsing);
     const entityAttribute = parseEntityAttribute(parsing);
 
     const accessor = parseAccessModifier(parsing);
@@ -487,6 +490,33 @@ function parseRef(parsing: ParsingState) {
     const isRef = parsing.next().text === '&';
     if (isRef) parsing.confirm(HighlightToken.Builtin);
     return isRef;
+}
+
+// Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
+// eg. '[Hello[]]' is ok but '[Hello[]' is not.
+function parseMetadata(parsing: ParsingState) {
+    const rangeStart = parsing.next();
+    if (parsing.next().text !== '[') return;
+
+    let level = 0;
+
+    while (parsing.isEnd() === false) {
+        if (parsing.next().text === '[') {
+            level++;
+            parsing.confirm(HighlightToken.Operator);
+        } else if (parsing.next().text === ']') {
+            level--;
+            parsing.confirm(HighlightToken.Operator);
+
+            if (level === 0) return;
+        } else {
+            parsing.confirm(HighlightToken.Decorator);
+        }
+    }
+
+    if (level !== 0) {
+        parsing.backtrack(rangeStart);
+    }
 }
 
 // ['private' | 'protected']
@@ -577,6 +607,7 @@ function expectInterfaceMembers(parsing: ParsingState): (NodeIntfMethod | NodeVi
 function parseVar(parsing: ParsingState): NodeVar | undefined {
     const rangeStart = parsing.next();
 
+    parseMetadata(parsing);
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);
@@ -717,6 +748,7 @@ function parseFuncDef(parsing: ParsingState): TriedParse<NodeFuncDef> {
 function parseVirtualProp(parsing: ParsingState): NodeVirtualProp | undefined {
     const rangeStart = parsing.next();
 
+    parseMetadata(parsing);
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);

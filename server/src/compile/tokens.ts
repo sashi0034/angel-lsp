@@ -124,4 +124,4 @@ export interface TokenComment extends TokenBase {
     kind: TokenKind.Comment;
 }
 
-export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;
+export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment
