@@ -8,7 +8,6 @@ import {
     TokenIdentifier,
     TokenizingToken,
     TokenKind,
-    TokenMetadata,
     TokenNumber,
     TokenReserved,
     TokenString
@@ -45,39 +44,6 @@ function tryComment(reading: TokenizingState, location: LocationInfo): TokenComm
         return tokenizeBlockComment(reading, location);
     }
     return undefined;
-}
-
-function tryMetadata(reading: TokenizingState, location: LocationInfo): TokenMetadata | undefined {
-    const start = reading.getCursor();
-    if (reading.next() !== '[') return undefined;
-
-    reading.stepFor(1);
-
-    let level = 1;
-
-    for (; ;) {
-        if (reading.isEnd()) break;
-        if (reading.isNext('[')) {
-            level += 1;
-        }
-        if (reading.isNext(']')) {
-            reading.stepNext();
-            level -= 1;
-            if (level === 0) {
-                break;
-            }
-            continue;
-        }
-        reading.stepNext();
-    }
-
-    location.end = reading.copyHead();
-    return {
-        kind: TokenKind.Metadata,
-        text: reading.substrFrom(start),
-        location: location,
-        highlight: createHighlight(HighlightToken.Decorator, HighlightModifier.Nothing)
-    }
 }
 
 function createTokenComment(comment: string, location: LocationInfo): TokenComment | undefined {
@@ -318,12 +284,6 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
         const triedNumber = tryNumber(reading, location);
         if (triedNumber !== undefined) {
             tokens.push(triedNumber);
-            continue;
-        }
-
-        const triedMetadata = tryMetadata(reading, location);
-        if (triedMetadata !== undefined) {
-            tokens.push(triedMetadata);
             continue;
         }
 

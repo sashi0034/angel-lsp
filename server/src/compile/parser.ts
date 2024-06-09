@@ -492,12 +492,30 @@ function parseRef(parsing: ParsingState) {
     return isRef;
 }
 
+// Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
+// eg. '[Hello[]]' is ok but '[Hello[]' is not.
 function parseMetadata(parsing: ParsingState) {
+    const rangeStart = parsing.next();
+    if (parsing.next().text !== '[') return;
+
+    let level = 0;
+
     while (parsing.isEnd() === false) {
-        if (parsing.next().kind != TokenKind.Metadata) {
-            return;
+        if (parsing.next().text === '[') {
+            level++;
+            parsing.confirm(HighlightToken.Operator);
+        } else if (parsing.next().text === ']') {
+            level--;
+            parsing.confirm(HighlightToken.Operator);
+
+            if (level === 0) return;
+        } else {
+            parsing.confirm(HighlightToken.Decorator);
         }
-        parsing.step();
+    }
+
+    if (level !== 0) {
+        parsing.backtrack(rangeStart);
     }
 }
 
