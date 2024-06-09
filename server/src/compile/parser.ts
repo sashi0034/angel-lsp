@@ -304,6 +304,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
     const rangeStart = parsing.next();
 
     parseMetadata(parsing);
+
     const entity = parseEntityAttribute(parsing);
 
     if (parsing.next().text !== 'class') {
@@ -417,6 +418,7 @@ function parseFunc(parsing: ParsingState): NodeFunc | undefined {
     const rangeStart = parsing.next();
 
     parseMetadata(parsing);
+
     const entityAttribute = parseEntityAttribute(parsing);
 
     const accessor = parseAccessModifier(parsing);
@@ -608,6 +610,7 @@ function parseVar(parsing: ParsingState): NodeVar | undefined {
     const rangeStart = parsing.next();
 
     parseMetadata(parsing);
+
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);
@@ -749,6 +752,7 @@ function parseVirtualProp(parsing: ParsingState): NodeVirtualProp | undefined {
     const rangeStart = parsing.next();
 
     parseMetadata(parsing);
+
     const accessor = parseAccessModifier(parsing);
 
     const type = parseType(parsing);

@@ -273,35 +273,35 @@ export function tokenize(str: string, path: string): TokenizingToken[] {
             path: path
         };
 
-        // コメント
+        // Tokenize: Comment
         const triedComment = tryComment(reading, location);
         if (triedComment !== undefined) {
             tokens.push(triedComment);
             continue;
         }
 
-        // 数値
+        // Tokenize: Number
         const triedNumber = tryNumber(reading, location);
         if (triedNumber !== undefined) {
             tokens.push(triedNumber);
             continue;
         }
 
-        // 文字列
+        // Tokenize: String
         const triedString = tryString(reading, location);
         if (triedString !== undefined) {
             tokens.push(triedString);
             continue;
         }
 
-        // 記号
+        // Tokenize: Non-alphabetic symbol
         const triedMark = tryMark(reading, location);
         if (triedMark !== undefined) {
             tokens.push(triedMark);
             continue;
         }
 
-        // 識別子
+        // Tokenize: Identifier or reserved keyword
         const triedIdentifier = tryIdentifier(reading, location);
         if (triedIdentifier !== undefined) {
             tokens.push(triedIdentifier);
