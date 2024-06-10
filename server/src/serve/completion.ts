@@ -12,7 +12,6 @@ import {NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/tokens";
 import {
     collectParentScopes,
-    findGlobalScope,
     findScopeShallowly,
     findScopeWithParent,
     isAnonymousIdentifier
@@ -112,8 +111,13 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
-        const namespaceScope = findScopeShallowly(findGlobalScope(scope), namespaceList[0].text);
+        let namespaceScope = findScopeWithParent(scope, namespaceList[0].text);
         if (namespaceScope === undefined) return [];
+
+        for (let i = 1; i < namespaceList.length; i++) {
+            namespaceScope = findScopeShallowly(namespaceScope, namespaceList[i].text);
+            if (namespaceScope === undefined) return [];
+        }
 
         // Return the completion candidates in the scope. | スコープ内の補完候補を返す
         return getCompletionSymbolsInScope(namespaceScope, false);
