@@ -1,8 +1,8 @@
 # Change Log
 
-All notable changes to the "sample-extension" extension will be documented in this file.
+## [0.3.2] - 2024/06/10
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+- Fixed bugs [#6](https://github.com/sashi0034/angel-lsp/issues/6)
 
 ## [0.3.1] - 2024/06/09
 
