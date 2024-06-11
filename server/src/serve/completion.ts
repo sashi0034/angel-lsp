@@ -11,6 +11,7 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/tokens";
 import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/scope";
+import {isAllowedToAccessMember} from "../compile/checkType";
 
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
@@ -27,18 +28,17 @@ export function serveCompletions(
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
     for (const scope of [...collectParentScopes(targetScope), targetScope]) {
-        items.push(...getCompletionSymbolsInScope(scope, false));
+        items.push(...getCompletionSymbolsInScope(scope));
     }
 
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope, isMember: boolean): CompletionItem[] {
+function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope | スコープ内シンボルの補完
     for (const [symbolName, symbol] of scope.symbolMap) {
-        if (isMember && isSymbolInstanceMember(symbol) === false) continue;
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -52,6 +52,23 @@ function getCompletionSymbolsInScope(scope: SymbolScope, isMember: boolean): Com
         items.push({
             label: childName,
             kind: CompletionItemKind.Module,
+        });
+    }
+
+    return items;
+}
+
+function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
+    const items: CompletionItem[] = [];
+
+    // Completion of symbols in the scope | スコープ内シンボルの補完
+    for (const [symbolName, symbol] of symbolScope.symbolMap) {
+        if (isSymbolInstanceMember(symbol) === false) continue;
+        if (isAllowedToAccessMember(checkingScope, symbol) === false) continue;
+
+        items.push({
+            label: symbolName,
+            kind: symbolToCompletionKind(symbol),
         });
     }
 
@@ -100,7 +117,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope. | スコープ内の補完候補を返す
-        return getCompletionSymbolsInScope(typeScope, true);
+        return getCompletionMembersInScope(scope, typeScope);
     } else if (completion.complementKind === ComplementKind.Namespace) {
         // Find the scope to which the namespace to be completed belongs. | 補完対象の名前空間が属するスコープを探す
         const namespaceList = completion.namespaceList;
@@ -115,7 +132,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         }
 
         // Return the completion candidates in the scope. | スコープ内の補完候補を返す
-        return getCompletionSymbolsInScope(namespaceScope, false);
+        return getCompletionSymbolsInScope(namespaceScope);
     }
     return undefined;
 }
