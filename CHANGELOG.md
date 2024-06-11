@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.3] - 2024/06/11
+
+- Supports completion and analysis of private and protected fields. [#5](https://github.com/sashi0034/angel-lsp/issues/5)
+
 ## [0.3.2] - 2024/06/10
 
 - Fixed bugs [#6](https://github.com/sashi0034/angel-lsp/issues/6)
