@@ -10,12 +10,7 @@ import {
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compile/nodes";
 import {isPositionInRange} from "../compile/tokens";
-import {
-    collectParentScopes,
-    findScopeShallowly,
-    findScopeWithParent,
-    isAnonymousIdentifier
-} from "../compile/scope";
+import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/scope";
 
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
@@ -101,7 +96,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         // Find the scope to which the type to be completed belongs. | 補完対象の型が属するスコープを探す
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = findScopeWithParent(completion.targetType.membersScope, completion.targetType.declaredPlace.text);
+        const typeScope = findScopeShallowly(completion.targetType.declaredScope, completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope. | スコープ内の補完候補を返す
