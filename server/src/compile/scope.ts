@@ -1,6 +1,6 @@
 import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
-import {NodeName, NodesBase} from "./nodes";
+import {NodeName} from "./nodes";
 import {ParsingToken} from "./parsingToken";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
@@ -138,6 +138,12 @@ export function isSymbolConstructorInScope(symbol: SymbolicObject, scope: Symbol
         && scope.ownerNode !== undefined
         && scope.ownerNode.nodeName === NodeName.Class
         && scope.ownerNode.identifier.text === symbol.declaredPlace.text;
+}
+
+export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {
+    if (parentScope === childScope) return true;
+    if (childScope.parentScope === undefined) return false;
+    return isScopeChildOrGrandchild(childScope.parentScope, parentScope);
 }
 
 let s_uniqueIdentifier = -1;
