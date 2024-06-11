@@ -1,11 +1,12 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    AccessModifier,
     funcHeadDestructor,
     getIdentifierInType,
+    getLocationBetween,
     getNextTokenIfExist,
     getNodeLocation,
-    getLocationBetween,
     isFunctionHeadReturns,
     isMemberMethodInPostOp,
     NodeArgList,
@@ -100,7 +101,7 @@ import {
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsingToken} from "./parsingToken";
-import {checkTypeMatch, isTypeMatch} from "./checkType";
+import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
 import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
@@ -156,6 +157,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
+        declaredScope: parentScope,
         sourceType: nodeEnum,
         membersScope: undefined,
     };
@@ -173,8 +175,10 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
         const symbol: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
+            declaredScope: parentScope,
             type: type,
             isInstanceMember: false,
+            accessRestriction: undefined,
         };
         insertSymbolicObject(parentScope.symbolMap, symbol);
     }
@@ -185,6 +189,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
+        declaredScope: parentScope,
         sourceType: nodeClass,
         membersScope: undefined,
     };
@@ -196,8 +201,10 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const thisVariable: SymbolicVariable = {
         symbolKind: SymbolKind.Variable,
         declaredPlace: builtinThisToken,
+        declaredScope: parentScope,
         type: {symbolType: symbol, sourceScope: scope},
         isInstanceMember: false,
+        accessRestriction: AccessModifier.Private,
     };
     insertSymbolicObject(scope.symbolMap, thisVariable);
 
@@ -221,6 +228,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Type,
             declaredPlace: getIdentifierInType(type),
+            declaredScope: scope,
             sourceType: PrimitiveType.Template,
             membersScope: undefined,
         } satisfies SymbolicType);
@@ -297,6 +305,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: typeDef.identifier,
+        declaredScope: parentScope,
         sourceType: builtInType.sourceType,
         membersScope: undefined,
     };
@@ -312,11 +321,13 @@ function hoistFunc(
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
+        declaredScope: parentScope,
         returnType: isFunctionHeadReturns(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
         parameterTypes: [],
         sourceNode: nodeFunc,
         nextOverload: undefined,
         isInstanceMember: isInstanceMember,
+        accessRestriction: nodeFunc.accessor
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
@@ -349,6 +360,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
     const symbol: SymbolicType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeInterface.identifier,
+        declaredScope: parentScope,
         sourceType: nodeInterface,
         membersScope: undefined,
     };
@@ -434,8 +446,10 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
         const variable: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: declaredVar.identifier,
+            declaredScope: scope,
             type: varType,
             isInstanceMember: isInstanceMember,
+            accessRestriction: nodeVar.accessor,
         };
         insertSymbolicObject(scope.symbolMap, variable);
     }
@@ -448,11 +462,13 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: funcDef.identifier,
+        declaredScope: parentScope,
         returnType: analyzeType(parentScope, funcDef.returnType),
         parameterTypes: [],
         sourceNode: funcDef,
         nextOverload: undefined,
         isInstanceMember: false,
+        accessRestriction: undefined,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 
@@ -471,8 +487,10 @@ function hoistVirtualProp(
     const symbol: SymbolicVariable = {
         symbolKind: SymbolKind.Variable,
         declaredPlace: identifier,
+        declaredScope: parentScope,
         type: type,
         isInstanceMember: isInstanceMember,
+        accessRestriction: virtualProp.accessor,
     };
     insertSymbolicObject(parentScope.symbolMap, symbol);
 
@@ -494,8 +512,10 @@ function hoistVirtualProp(
             const valueVariable: SymbolicVariable = {
                 symbolKind: SymbolKind.Variable,
                 declaredPlace: builtinSetterValueToken,
+                declaredScope: parentScope,
                 type: {symbolType: type.symbolType, sourceScope: setterScope},
                 isInstanceMember: false,
+                accessRestriction: virtualProp.accessor,
             };
             insertSymbolicObject(setterScope.symbolMap, valueVariable);
         }
@@ -517,11 +537,13 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolicFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: intfMethod.identifier,
+        declaredScope: parentScope,
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
         sourceNode: intfMethod,
         nextOverload: undefined,
         isInstanceMember: true,
+        accessRestriction: undefined,
     };
     if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
 }
@@ -552,8 +574,10 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             declaredPlace: param.identifier,
+            declaredScope: scope,
             type: type,
             isInstanceMember: false,
+            accessRestriction: undefined,
         });
     }
     return deducedTypes;
@@ -977,7 +1001,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     const complementRange = getLocationBetween(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
 
-    // クラスメンバ補完
+    // Complement class members.
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
@@ -999,7 +1023,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
-        // メソッド診断
+        // Analyze method call.
         const method = findSymbolShallowly(classScope, identifier.text);
         if (method === undefined) {
             diagnostic.addError(identifier.location, `'${identifier.text}' is not defined 💢`);
@@ -1013,8 +1037,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
         return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslate);
     } else {
-        // フィールド診断
-        return analyzeVariableAccess(classScope, identifier);
+        // Analyze field access.
+        return analyzeVariableAccess(scope, classScope, identifier);
     }
 }
 
@@ -1038,12 +1062,16 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | un
     // 引数をスコープに追加
     for (const param of lambda.paramList) {
         if (param.identifier === undefined) continue;
-        insertSymbolicObject(childScope.symbolMap, {
+
+        const argument: SymbolicVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: param.identifier,
+            declaredScope: scope,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
-        });
+            accessRestriction: undefined,
+        };
+        insertSymbolicObject(childScope.symbolMap, argument);
     }
 
     if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);
@@ -1166,10 +1194,12 @@ function analyzeFunctionCaller(
 
 // VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
+    let accessedScope = scope;
+
     if (varAccess.scope !== undefined) {
         const namespaceScope = analyzeScope(scope, varAccess.scope);
         if (namespaceScope === undefined) return undefined;
-        scope = namespaceScope;
+        accessedScope = namespaceScope;
     }
 
     if (varAccess.identifier === undefined) {
@@ -1177,24 +1207,31 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
     }
 
     const varIdentifier = varAccess.identifier;
-    return analyzeVariableAccess(scope, varIdentifier);
+    return analyzeVariableAccess(scope, accessedScope, varIdentifier);
 }
 
-function analyzeVariableAccess(scope: SymbolScope, varIdentifier: ParsingToken): DeducedType | undefined {
-    const declared = findSymbolWithParent(scope, varIdentifier.text);
+function analyzeVariableAccess(
+    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsingToken
+): DeducedType | undefined {
+    const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
         diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined 💢`);
         return undefined;
     }
 
     if (declared.symbol.symbolKind === SymbolKind.Type) {
-        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' does not name a value 💢`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is type 💢`);
+        return undefined;
+    }
+
+    if (isAllowedToAccessMember(checkingScope, declared.symbol) === false) {
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not public member 💢`);
         return undefined;
     }
 
     if (declared.symbol.declaredPlace.location.path !== '') {
-        // this といったキーワードでないなら追加
-        scope.referencedList.push({
+        // this といったキーワードは declaredPlace が空になっているので、そのような場合は参照リストに追加しない
+        checkingScope.referencedList.push({
             declaredSymbol: declared.symbol,
             referencedToken: varIdentifier
         });

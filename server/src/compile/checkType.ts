@@ -7,12 +7,13 @@ import {
     SourceType,
     stringifyDeducedType,
     SymbolicFunction,
+    SymbolicObject,
     SymbolicType,
     SymbolKind,
     SymbolScope
 } from "./symbolic";
-import {getNodeLocation, NodeName, NodesBase, ParsedRange} from "./nodes";
-import {findScopeShallowly} from "./scope";
+import {AccessModifier, getNodeLocation, NodeName, ParsedRange} from "./nodes";
+import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 
@@ -72,7 +73,7 @@ export function isTypeMatchInternal(
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
         // OK if any of the inherited types match the destination. | 継承した型のいずれかが移動先に当てはまるなら OK
-        if (canCastStatically(srcNode, destNode, srcType, destType)) return true;
+        if (canDownCast(srcType, destType)) return true;
     }
 
     // NG if the destination type is not a class. | 移動先の型がクラスでないなら NG
@@ -96,15 +97,23 @@ function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicTyp
     return true;
 }
 
-function canCastStatically(
-    srcNode: NodesBase, destNode: SourceType, srcType: SymbolicType, destType: SymbolicType
+function canDownCast(
+    srcType: SymbolicType, destType: SymbolicType
 ): boolean {
+    const srcNode = srcType.sourceType;
+    if (isSourcePrimitiveType(srcNode)) return false;
+
+    if (srcType.sourceType === destType.sourceType) return true;
+
     if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbolType === destType) return true;
+            if (srcBase?.symbolType === undefined) continue;
+            if (srcBase.symbolType.symbolKind !== SymbolKind.Type) continue;
+            if (canDownCast(srcBase.symbolType, destType)) return true;
         }
     }
+
     return false;
 }
 
@@ -175,4 +184,34 @@ function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boo
     }
 
     return false;
+}
+
+// Check if the symbol can be accessed from the scope. | シンボルがそのスコープからアクセス可能かを調べる
+export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolicObject): boolean {
+    if (declaredSymbol.symbolKind === SymbolKind.Type) return true;
+    if (declaredSymbol.accessRestriction === undefined) return true;
+
+    const declaredScope = declaredSymbol.declaredScope;
+
+    if (declaredSymbol.accessRestriction === AccessModifier.Private) {
+        return isScopeChildOrGrandchild(checkingScope, declaredScope);
+    } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
+        if (declaredScope.ownerNode === undefined) return false;
+
+        const checkingOuterScope = findScopeWithParentByNodes(checkingScope, [NodeName.Class, NodeName.Interface]);
+        if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
+
+        // Get the symbol of the class to which the referring part belongs. | 使用された箇所が属するクラスのシンボルを取得
+        const checkingOuterClass = findSymbolShallowly(checkingOuterScope.parentScope, checkingOuterScope.key);
+        if (checkingOuterClass?.symbolKind !== SymbolKind.Type) return false;
+
+        // Get the symbol of the class to which the declared part belongs. | 宣言された箇所が属するクラスのシンボルを取得
+        if (declaredScope.parentScope === undefined) return false;
+        const declaredOuterClass = findSymbolShallowly(declaredScope.parentScope, declaredScope.key);
+        if (declaredOuterClass?.symbolKind !== SymbolKind.Type) return false;
+
+        return (canDownCast(checkingOuterClass, declaredOuterClass));
+    } else {
+        assert(false);
+    }
 }

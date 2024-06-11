@@ -1,5 +1,6 @@
 import {LocationInfo, TokenKind} from "./tokens";
 import {
+    AccessModifier,
     getNodeLocation,
     NodeClass,
     NodeEnum,
@@ -14,6 +15,7 @@ import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReserves";
 import assert = require("assert");
+import {createSymbolScope} from "./scope";
 
 export enum SymbolKind {
     Type = 'Type',
@@ -45,6 +47,7 @@ export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClas
 export interface SymbolicBase {
     symbolKind: SymbolKind;
     declaredPlace: ParsingToken;
+    declaredScope: SymbolScope;
 }
 
 export interface SymbolicType extends SymbolicBase {
@@ -63,12 +66,14 @@ export interface SymbolicFunction extends SymbolicBase {
     parameterTypes: (DeducedType | undefined)[];
     nextOverload: SymbolicFunction | undefined;
     isInstanceMember: boolean;
+    accessRestriction: AccessModifier | undefined;
 }
 
 export interface SymbolicVariable extends SymbolicBase {
     symbolKind: SymbolKind.Variable;
     type: DeducedType | undefined;
     isInstanceMember: boolean;
+    accessRestriction: AccessModifier | undefined;
 }
 
 export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is SymbolicFunction | SymbolicVariable {
@@ -255,6 +260,7 @@ function createBuiltinType(virtualToken: ParsingToken, name: PrimitiveType): Sym
     return {
         symbolKind: SymbolKind.Type,
         declaredPlace: virtualToken,
+        declaredScope: createSymbolScope(undefined, undefined, ''),
         sourceType: name,
         membersScope: undefined,
     } as const;
