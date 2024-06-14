@@ -24,6 +24,7 @@ Create the type definition you want to use in your application as `as.predefined
 # TODO
 
 - Support for `import` statements
+- Hover Information
 - User Settings
 - Handler Checking
 - Code Action

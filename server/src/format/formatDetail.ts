@@ -38,8 +38,13 @@ function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) 
 }
 
 function canInsertEditSpace(backToken: TokenizingToken | undefined, frontToken: TokenizingToken): boolean {
-    // '>>' といったトークンはテンプレートのために '>' '>' と分割されているため、スペースを入れない
-    if (frontToken.kind === TokenKind.Reserved && backToken?.kind === TokenKind.Reserved) return false;
+    const backTail = backToken?.location?.end;
+    const frontHead = frontToken.location.start;
+
+    // トークンが密接に連結している場合はスペースを入れない
+    if (backTail?.line === frontHead.line && backTail.character === frontHead.character) {
+        return false;
+    }
 
     // ディレクティブの後ろにスペースを入れない
     if (backToken?.text === '#') return false;
