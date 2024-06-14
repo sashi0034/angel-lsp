@@ -84,6 +84,18 @@
                     "default": 1,
                     "description": "Controls the maximum number of blank lines between contents."
                 },
+                "angelScript.formatter.indentSpaces": {
+                    "scope": "window",
+                    "type": "number",
+                    "default": 4,
+                    "description": "Controls the number of spaces for indentation."
+                },
+                "angelScript.formatter.useTabIndent": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls whether to use tabs for indentation instead of spaces."
+                },
                 "angelScript.trace.server": {
                     "scope": "window",
                     "type": "string",
