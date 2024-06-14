@@ -10,7 +10,9 @@
         "url": "https://github.com/sashi0034/angel-lsp"
     },
     "publisher": "sashi0034",
-    "categories": ["Programming Languages"],
+    "categories": [
+        "Programming Languages"
+    ],
     "keywords": [
         "angelscript"
     ],
@@ -76,11 +78,23 @@
             "type": "object",
             "title": "AngelScript configuration",
             "properties": {
-                "angelScript.maxNumberOfProblems": {
-                    "scope": "resource",
+                "angelScript.formatter.maxBlankLines": {
+                    "scope": "window",
                     "type": "number",
-                    "default": 100,
-                    "description": "Controls the maximum number of problems produced by the server."
+                    "default": 1,
+                    "description": "Controls the maximum number of blank lines between contents."
+                },
+                "angelScript.formatter.indentSpaces": {
+                    "scope": "window",
+                    "type": "number",
+                    "default": 4,
+                    "description": "Controls the number of spaces for indentation."
+                },
+                "angelScript.formatter.useTabIndent": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls whether to use tabs for indentation instead of spaces."
                 },
                 "angelScript.trace.server": {
                     "scope": "window",

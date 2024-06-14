@@ -1,12 +1,20 @@
 export interface LanguageServerSettings {
-    maxNumberOfProblems: number;
+    formatter: {
+        maxBlankLines: number;
+        indentSpaces: number;
+        useTabIndent: boolean;
+    };
     trace: {
         server: 'off' | 'messages' | 'verbose';
     };
 }
 
 const defaultSettings: LanguageServerSettings = {
-    maxNumberOfProblems: 1000,
+    formatter: {
+        maxBlankLines: 1,
+        indentSpaces: 4,
+        useTabIndent: false
+    },
     trace: {
         server: 'off'
     }

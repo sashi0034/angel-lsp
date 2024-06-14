@@ -3,6 +3,7 @@ import {FormatState, stepCursorAlongLines} from "./formatState";
 import {TokenizingToken, TokenKind} from "../compile/tokens";
 import {NodesBase} from "../compile/nodes";
 import {tracer} from "../code/tracer";
+import {getGlobalSettings} from "../code/settings";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -38,8 +39,13 @@ function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) 
 }
 
 function canInsertEditSpace(backToken: TokenizingToken | undefined, frontToken: TokenizingToken): boolean {
-    // '>>' といったトークンはテンプレートのために '>' '>' と分割されているため、スペースを入れない
-    if (frontToken.kind === TokenKind.Reserved && backToken?.kind === TokenKind.Reserved) return false;
+    const backTail = backToken?.location?.end;
+    const frontHead = frontToken.location.start;
+
+    // トークンが密接に連結している場合はスペースを入れない
+    if (backTail?.line === frontHead.line && backTail.character === frontHead.character) {
+        return false;
+    }
 
     // ディレクティブの後ろにスペースを入れない
     if (backToken?.text === '#') return false;
@@ -79,7 +85,7 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
             continue;
         }
 
-        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+        if (cursor.line - format.getCursor().line > 1 + getMaxBlankLines()) {
             // 多すぎる空行の除去
             formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
         }
@@ -116,7 +122,7 @@ export function formatMoveToNonComment(format: FormatState): TokenizingToken | u
     return undefined;
 }
 
-export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption) {
+export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption): boolean {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -137,10 +143,13 @@ export function formatTargetBy(format: FormatState, target: string, option: Form
         executeFormatTargetWith(format, target, option, cursor, next);
         return true;
     }
+
+    return false;
 }
 
-// TODO: Settings で指定
-const maxBlankLines = 1;
+function getMaxBlankLines(): number {
+    return Math.max(1, getGlobalSettings().formatter.maxBlankLines);
+}
 
 function formatBlankLines(format: FormatState, startLine: number, endLine: number) {
     for (let i = startLine; i <= endLine; i++) {
@@ -153,7 +162,7 @@ function formatBlankLines(format: FormatState, startLine: number, endLine: numbe
     format.pushEdit(
         {line: startLine, character: 0},
         {line: endLine, character: format.textLines[endLine].length - 1},
-        '\n'.repeat(maxBlankLines - 1));
+        '\n'.repeat(getMaxBlankLines() - 1));
     format.setCursor({line: endLine + 1, character: 0});
 }
 
@@ -180,7 +189,7 @@ function executeFormatTargetWith(
         const editStart = walkBackUntilWhitespace(format, format.getCursor());
         format.pushEdit(editStart, editEnd, (editStart.character === 0 ? format.getIndent() : '') + frontSpace);
     } else {
-        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+        if (cursor.line - format.getCursor().line > 1 + getMaxBlankLines()) {
             // 多すぎる空行の除去
             formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
         }
