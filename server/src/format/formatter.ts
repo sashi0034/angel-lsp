@@ -32,7 +32,7 @@ import {
     NodeWhile,
     ReferenceModifier
 } from "../compile/nodes";
-import {FormatState} from "./formatState";
+import {FormatState, isEditedWrapAt} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
 import {TokenizingToken} from "../compile/tokens";
@@ -93,15 +93,14 @@ function formatBraceBlock(format: FormatState, action: () => void, isIndent: boo
     if (formatTargetBy(format, '{', {connectTail: true}) === false) return;
 
     const startLine = format.getCursor().line;
-    const startIndent = format.getIndent();
 
     if (isIndent) format.pushIndent();
 
     action();
-    const endWrap = startLine !== format.getCursor().line || startIndent !== format.getIndent();
 
     if (isIndent) format.popIndent();
 
+    const endWrap = startLine !== format.getCursor().line || isEditedWrapAt(format.getResult(), startLine);
     formatTargetBy(format, '}', {forceWrap: endWrap});
 }
 

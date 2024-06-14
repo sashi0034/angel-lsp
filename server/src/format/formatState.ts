@@ -172,6 +172,16 @@ function splitContent(content: string): string[] {
     return result;
 }
 
+export function isEditedWrapAt(edits: TextEdit[], line: number) {
+    for (const edit of edits) {
+        if (edit.range.start.line === line && edit.newText.includes('\n')) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // 文字が存在する位置に存在するトークンを一対一対応の写像で表現
 export class TokensMap {
     private map: (TokenizingToken | undefined)[][] = [];
