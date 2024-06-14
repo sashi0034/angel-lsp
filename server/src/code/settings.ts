@@ -1,5 +1,8 @@
 export interface LanguageServerSettings {
     maxNumberOfProblems: number;
+    formatter: {
+        maxBlankLines: number;
+    };
     trace: {
         server: 'off' | 'messages' | 'verbose';
     };
@@ -7,6 +10,9 @@ export interface LanguageServerSettings {
 
 const defaultSettings: LanguageServerSettings = {
     maxNumberOfProblems: 1000,
+    formatter: {
+        maxBlankLines: 1
+    },
     trace: {
         server: 'off'
     }

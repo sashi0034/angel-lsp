@@ -10,7 +10,9 @@
         "url": "https://github.com/sashi0034/angel-lsp"
     },
     "publisher": "sashi0034",
-    "categories": ["Programming Languages"],
+    "categories": [
+        "Programming Languages"
+    ],
     "keywords": [
         "angelscript"
     ],
@@ -81,6 +83,12 @@
                     "type": "number",
                     "default": 100,
                     "description": "Controls the maximum number of problems produced by the server."
+                },
+                "angelScript.formatter.maxBlankLines": {
+                    "scope": "window",
+                    "type": "number",
+                    "default": 1,
+                    "description": "Controls the maximum number of blank lines between contents."
                 },
                 "angelScript.trace.server": {
                     "scope": "window",

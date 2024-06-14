@@ -3,6 +3,7 @@ import {FormatState, stepCursorAlongLines} from "./formatState";
 import {TokenizingToken, TokenKind} from "../compile/tokens";
 import {NodesBase} from "../compile/nodes";
 import {tracer} from "../code/tracer";
+import {getGlobalSettings} from "../code/settings";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -84,7 +85,7 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
             continue;
         }
 
-        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+        if (cursor.line - format.getCursor().line > 1 + getMaxBlankLines()) {
             // 多すぎる空行の除去
             formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
         }
@@ -144,8 +145,9 @@ export function formatTargetBy(format: FormatState, target: string, option: Form
     }
 }
 
-// TODO: Settings で指定
-const maxBlankLines = 1;
+function getMaxBlankLines(): number {
+    return Math.max(1, getGlobalSettings().formatter.maxBlankLines);
+}
 
 function formatBlankLines(format: FormatState, startLine: number, endLine: number) {
     for (let i = startLine; i <= endLine; i++) {
@@ -158,7 +160,7 @@ function formatBlankLines(format: FormatState, startLine: number, endLine: numbe
     format.pushEdit(
         {line: startLine, character: 0},
         {line: endLine, character: format.textLines[endLine].length - 1},
-        '\n'.repeat(maxBlankLines - 1));
+        '\n'.repeat(getMaxBlankLines() - 1));
     format.setCursor({line: endLine + 1, character: 0});
 }
 
@@ -185,7 +187,7 @@ function executeFormatTargetWith(
         const editStart = walkBackUntilWhitespace(format, format.getCursor());
         format.pushEdit(editStart, editEnd, (editStart.character === 0 ? format.getIndent() : '') + frontSpace);
     } else {
-        if (cursor.line - format.getCursor().line > 1 + maxBlankLines) {
+        if (cursor.line - format.getCursor().line > 1 + getMaxBlankLines()) {
             // 多すぎる空行の除去
             formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
         }
