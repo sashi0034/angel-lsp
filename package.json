@@ -78,12 +78,6 @@
             "type": "object",
             "title": "AngelScript configuration",
             "properties": {
-                "angelScript.maxNumberOfProblems": {
-                    "scope": "resource",
-                    "type": "number",
-                    "default": 100,
-                    "description": "Controls the maximum number of problems produced by the server."
-                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",

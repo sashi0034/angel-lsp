@@ -1,5 +1,4 @@
 export interface LanguageServerSettings {
-    maxNumberOfProblems: number;
     formatter: {
         maxBlankLines: number;
     };
@@ -9,7 +8,6 @@ export interface LanguageServerSettings {
 }
 
 const defaultSettings: LanguageServerSettings = {
-    maxNumberOfProblems: 1000,
     formatter: {
         maxBlankLines: 1
     },
