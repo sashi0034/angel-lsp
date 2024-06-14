@@ -1,19 +1,21 @@
 # AngelScript Language Server for VSCode
 
+*This extension provides useful features to make AngelScript development easier and faster.*
+
 ![sample.png](https://raw.githubusercontent.com/sashi0034/angel-lsp/main/sample.png)
 
 # Features
 
-- Syntax Highlight for AngelScript
-- Type Checking
-- Go to Definition
-- Peek References
-- Symbol Rename
-- Symbol Completions
-- Snippets
-- Formatter
+- 💡 Syntax Highlight for AngelScript
+- 📖 Autocompletion
+- ⚠️ Type Checking
+- 🛹 Go to Definition
+- 🔍 Find References
+- 🧽 Symbol Renaming
+- 🥄 Snippets
+- 🪄 Formatter
 
-> Note: Since it is still under development, many features of AngelScript are not fully supported.
+> Note: Since it is still under development, some features of AngelScript are not yet fully supported.
 
 # Getting Started
 
@@ -23,9 +25,13 @@ Create the type definition you want to use in your application as `as.predefined
 
 # TODO
 
-- Support for `import` statements
-- Hover Information
-- User Settings
-- Handler Checking
-- Code Action
+- Support for import statements
+- Hover to view details on symbols
+- Add more user settings
+- Handler checking
+- Code actions
 - Debugger
+
+# Issues and Contributions
+
+Please report any issues or feature requests on the [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues)

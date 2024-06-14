@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.5] - 2024/06/14
+
+- Fixed formatter bugs and add user settings.
+
 ## [0.3.3] - 2024/06/11
 
 - Supports completion and analysis of private and protected fields. [#5](https://github.com/sashi0034/angel-lsp/issues/5)

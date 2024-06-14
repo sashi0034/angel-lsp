@@ -1,10 +1,10 @@
 {
     "name": "angel-lsp",
     "displayName": "AngelScript Language Server",
-    "description": "A language server for AngelScript",
+    "description": "VSCode extensions for AngelScript Language Server",
     "author": "sashi0034",
     "license": "MIT",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
