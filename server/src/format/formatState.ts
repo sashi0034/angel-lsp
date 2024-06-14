@@ -75,7 +75,7 @@ export class FormatState {
 
     public setCursorToTail(token: TokenBase) {
         this.setCursor(token.location.end);
-        this.stepCursor();
+        // this.stepCursor();
     }
 
     public stepCursor() {

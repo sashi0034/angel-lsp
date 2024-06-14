@@ -71,7 +71,9 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
     formatMoveUntilNodeStart(format, nodeNamespace);
-    formatTargetBy(format, 'namespace', {forceWrap: true});
+    format.pushWrap();
+
+    formatTargetBy(format, 'namespace', {});
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
@@ -88,14 +90,19 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
 }
 
 function formatBraceBlock(format: FormatState, action: () => void, isIndent: boolean = true) {
-    formatTargetBy(format, '{', {connectTail: true});
+    if (formatTargetBy(format, '{', {connectTail: true}) === false) return;
+
     const startLine = format.getCursor().line;
+    const startIndent = format.getIndent();
 
     if (isIndent) format.pushIndent();
+
     action();
+    const endWrap = startLine !== format.getCursor().line || startIndent !== format.getIndent();
+
     if (isIndent) format.popIndent();
 
-    formatTargetBy(format, '}', {forceWrap: startLine !== format.getCursor().line});
+    formatTargetBy(format, '}', {forceWrap: endWrap});
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -191,8 +198,11 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
 
     formatFuncAttr(format);
 
-    if (nodeFunc.statBlock === undefined) formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
-    else formatStatBlock(format, nodeFunc.statBlock);
+    if (formatMoveToNonComment(format)?.text === ';') {
+        formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+    } else {
+        formatStatBlock(format, nodeFunc.statBlock);
+    }
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
@@ -437,7 +447,7 @@ function formatParamList(format: FormatState, paramList: NodeParamList) {
 }
 
 function formatParenthesesBlock(format: FormatState, action: () => void, condenseLeft: boolean = true) {
-    formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true});
+    if (formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true}) === false) return;
 
     format.pushIndent();
     action();
@@ -499,7 +509,7 @@ function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
 }
 
 function formatChevronsBlock(format: FormatState, action: () => void) {
-    formatTargetBy(format, '<', {condenseSides: true});
+    if (formatTargetBy(format, '<', {condenseSides: true}) === false) return;
     format.pushIndent();
 
     action();
@@ -884,7 +894,7 @@ function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
 }
 
 function formatBracketsBlock(format: FormatState, action: () => void) {
-    formatTargetBy(format, '[', {condenseSides: true});
+    if (formatTargetBy(format, '[', {condenseSides: true}) === false) return;
 
     format.pushIndent();
     action();
@@ -897,7 +907,7 @@ function formatBracketsBlock(format: FormatState, action: () => void) {
 function formatCast(format: FormatState, nodeCast: NodeCast) {
     formatMoveUntilNodeStart(format, nodeCast);
 
-    formatTargetBy(format, 'cast', {forceWrap: true});
+    formatTargetBy(format, 'cast', {});
 
     formatChevronsBlock(format, () => {
         formatType(format, nodeCast.type);

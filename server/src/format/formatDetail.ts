@@ -122,7 +122,7 @@ export function formatMoveToNonComment(format: FormatState): TokenizingToken | u
     return undefined;
 }
 
-export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption) {
+export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption): boolean {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -143,6 +143,8 @@ export function formatTargetBy(format: FormatState, target: string, option: Form
         executeFormatTargetWith(format, target, option, cursor, next);
         return true;
     }
+
+    return false;
 }
 
 function getMaxBlankLines(): number {
