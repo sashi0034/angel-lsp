@@ -128,7 +128,12 @@ function canCastFromPrimitiveType(
         return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
     case PrimitiveType.String: {
         const destName = destType.declaredPlace.text;
-        return destName === "string" || destName === "String";
+
+        const candidates = [
+            "string", "string_t", "String",
+        ];
+
+        return candidates.includes(destName);
     }
     case PrimitiveType.Void:
         return false;
