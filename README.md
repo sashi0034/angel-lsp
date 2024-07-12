@@ -34,4 +34,4 @@ Create the type definition you want to use in your application as `as.predefined
 
 # Issues and Contributions
 
-Please report any issues or feature requests on the [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues)
+Reports of problems and feature requests are welcome on [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues)

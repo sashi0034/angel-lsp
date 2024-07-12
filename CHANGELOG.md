@@ -1,6 +1,10 @@
 # Change Log
 
-## [0.3.5] - 2024/06/14
+## [0.3.5] - 2024/07/13
+
+- Fixed problem [#6](https://github.com/sashi0034/angel-lsp/issues/6)
+
+## [0.3.4] - 2024/06/14
 
 - Fixed formatter bugs and add user settings.
 
