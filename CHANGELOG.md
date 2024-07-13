@@ -1,8 +1,12 @@
 # Change Log
 
+## [0.3.6] - 2024/07/13
+
+- Fixed bugs [#13](https://github.com/sashi0034/angel-lsp/issues/13), [#14](https://github.com/sashi0034/angel-lsp/issues/14)
+
 ## [0.3.5] - 2024/07/13
 
-- Fixed problem [#6](https://github.com/sashi0034/angel-lsp/issues/6)
+- Fixed problem [#11](https://github.com/sashi0034/angel-lsp/issues/11)
 
 ## [0.3.4] - 2024/06/14
 
