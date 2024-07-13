@@ -1360,7 +1360,7 @@ function parseFor(parsing: ParsingState): TriedParse<NodeFor> {
 
     if (parsing.expect('(', HighlightToken.Operator) === false) return ParseFailure.Pending;
 
-    const initial: NodeExprStat | NodeVar | undefined = parseExprStat(parsing) ?? parseVar(parsing);
+    const initial: NodeExprStat | NodeVar | undefined = parseVar(parsing) ?? parseExprStat(parsing);
     if (initial === undefined) {
         parsing.error("Expected initial expression statement or variable declaration ❌");
         return ParseFailure.Pending;
