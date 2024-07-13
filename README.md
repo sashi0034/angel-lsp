@@ -35,3 +35,5 @@ Create the type definition you want to use in your application as `as.predefined
 # Issues and Contributions
 
 Reports of problems and feature requests are welcome on [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues)
+
+Also, if you have `as.predefined` for a library you use, committing it as an example is greatly appreciated.
