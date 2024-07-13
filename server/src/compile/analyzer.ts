@@ -897,16 +897,103 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefined {
-    // 左から畳み込みを行う
-    let cursor = expr;
-    let lhs = analyzeExprTerm(scope, expr.head);
-    for (; ;) {
+    // Evaluate by Shunting Yard Algorithm
+    // https://qiita.com/phenan/items/df157fef2fea590e3fa9
+
+    type Term = [DeducedType | undefined, ParsedRange];
+    type Op = ParsingToken;
+
+    function isOp(termOrOp: (Term | Op)): termOrOp is Op {
+        return 'text' in termOrOp;
+    }
+
+    function precedence(termOrOp: (Term | Op)) {
+        return isOp(termOrOp) ? getOperatorPrecedence(termOrOp) : 1;
+    }
+
+    const inputList: (Term | Op)[] = [];
+    for (let cursor: NodeExpr | undefined = expr; ;) {
+        inputList.push([analyzeExprTerm(scope, cursor.head), cursor.head.nodeRange]);
         if (cursor.tail === undefined) break;
-        const rhs = analyzeExprTerm(scope, cursor.tail.expression.head);
-        lhs = analyzeExprOp(scope, cursor.tail.operator, lhs, rhs, cursor.head.nodeRange, cursor.tail.expression.head.nodeRange);
+        inputList.push(cursor.tail.operator);
         cursor = cursor.tail.expression;
     }
-    return lhs;
+
+    const stackList: (Term | Op)[] = [];
+    const outputList: (Term | Op)[] = [];
+
+    while (inputList.length > 0 || stackList.length > 0) {
+        const inputToStack: boolean = stackList.length === 0
+            || (inputList.length > 0 && precedence(inputList[0]) > precedence(stackList[stackList.length - 1]));
+
+        if (inputToStack) {
+            stackList.push(inputList.shift()!);
+        } else {
+            outputList.push(stackList.pop()!);
+        }
+    }
+
+    const outputTerm: Term[] = [];
+    while (outputList.length > 0) {
+        const item = outputList.shift()!;
+        if (isOp(item)) {
+            const rhs = outputTerm.pop();
+            const lhs = outputTerm.pop();
+            if (lhs === undefined || rhs === undefined) return undefined;
+
+            outputTerm.push([analyzeExprOp(
+                scope, item, lhs[0], rhs[0], lhs[1], rhs[1]), {start: lhs[1].start, end: rhs[1].end}]);
+        } else {
+            outputTerm.push(item);
+        }
+    }
+
+    return outputTerm.length > 0 ? outputTerm[0][0] : undefined;
+}
+
+function getOperatorPrecedence(operator: ParsingToken): number {
+    const op = operator.text;
+    switch (op) {
+    case '**':
+        return 0;
+    case '*':
+    case '/':
+    case '%':
+        return -1;
+    case '+':
+    case '-':
+        return -2;
+    case '<<':
+    case '>>':
+    case '>>>':
+        return -3;
+    case '&':
+        return -4;
+    case '^':
+        return -5;
+    case '|':
+        return -6;
+    case '<':
+    case '>':
+    case '<=':
+    case '>=':
+        return -7;
+    case '==':
+    case '!=':
+    case 'xor':
+    case '^^':
+    case 'is':
+    case '!is':
+        return -8;
+    case 'and':
+    case '&&':
+        return -9;
+    case 'or':
+    case '||':
+        return -10;
+    default:
+        assert(false);
+    }
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
