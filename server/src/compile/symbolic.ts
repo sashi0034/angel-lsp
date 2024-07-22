@@ -1,7 +1,7 @@
 import {LocationInfo, TokenKind} from "./tokens";
 import {
     AccessModifier,
-    getNodeLocation,
+    getNodeLocation, isFunctionHeadReturns,
     NodeClass,
     NodeEnum,
     NodeFunc, NodeFuncDef,
@@ -15,7 +15,7 @@ import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReserves";
 import assert = require("assert");
-import {createSymbolScope} from "./scope";
+import {createSymbolScope, isAnonymousIdentifier} from "./scope";
 
 export enum SymbolKind {
     Type = 'Type',
@@ -94,7 +94,7 @@ export type SymbolOwnerNode =
     | NodeLambda;
 
 export interface ReferencedSymbolInfo {
-    declaredSymbol: SymbolicBase;
+    declaredSymbol: SymbolicObject;
     referencedToken: ParsingToken;
 }
 
@@ -196,7 +196,21 @@ export function isDeducedAutoType(type: DeducedType | undefined): boolean {
     return type !== undefined && type.symbolType.symbolKind === SymbolKind.Type && type.symbolType.sourceType === PrimitiveType.Auto;
 }
 
-export function stringifyDeducedType(type: DeducedType | undefined): string {
+export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
+    let suffix = '';
+    let scopeIterator: SymbolScope | undefined = scope;
+    while (scopeIterator !== undefined) {
+        // FIXME: 関数のスコープ名が入ってしまう問題がある
+        if (isAnonymousIdentifier(scopeIterator.key) === false) {
+            suffix = suffix.length === 0 ? scopeIterator.key : scopeIterator.key + '::' + suffix;
+        }
+        scopeIterator = scopeIterator.parentScope;
+    }
+
+    return suffix.length === 0 ? '' : suffix + '::';
+}
+
+export function stringifyDeducedType(type: DeducedType | undefined,): string {
     if (type === undefined) return '(undefined)';
 
     let suffix = '';
@@ -209,6 +223,8 @@ export function stringifyDeducedType(type: DeducedType | undefined): string {
         return `${stringifyDeducedType(returnType)}(${params})` + suffix;
     }
 
+    // if (hasScopeSuffix) suffix = stringifyScopeSuffix(type.sourceScope) + suffix;
+
     if (type.templateTranslate !== undefined) {
         suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>${suffix}`;
     }
@@ -218,6 +234,23 @@ export function stringifyDeducedType(type: DeducedType | undefined): string {
 
 export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): string {
     return types.map(t => stringifyDeducedType(t)).join(', ');
+}
+
+/*
+ * Build a string representation of a symbolic object.
+ */
+export function stringifySymbolicObject(symbol: SymbolicObject): string {
+    const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
+    if (symbol.symbolKind === SymbolKind.Type) {
+        return fullName;
+    } else if (symbol.symbolKind === SymbolKind.Function) {
+        const head = symbol.returnType === undefined ? '' : stringifyDeducedType(symbol.returnType) + ' ';
+        return `${head}${fullName}(${stringifyDeducedTypes(symbol.parameterTypes)})`;
+    } else if (symbol.symbolKind === SymbolKind.Variable) {
+        return `${fullName}: ${stringifyDeducedType(symbol.type)}`;
+    }
+
+    assert(false);
 }
 
 export enum ComplementKind {

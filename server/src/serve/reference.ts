@@ -1,13 +1,13 @@
 import {SymbolScope} from "../compile/symbolic";
 import {Position} from "vscode-languageserver";
 import {ParsingToken} from "../compile/parsingToken";
-import {serveDefinition} from "./definition";
-import {isPositionInRange, isSameToken} from "../compile/tokens";
+import {serveDefinitionAsToken} from "./definition";
+import {isSameToken} from "../compile/tokens";
 import {AnalyzedScope} from "../compile/scope";
 
 export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParsingToken[] {
-    const targetDefinition = serveDefinition(targetScope, caret);
-    if (targetDefinition === null) return [];
+    const targetDefinition = serveDefinitionAsToken(targetScope, caret);
+    if (targetDefinition === undefined) return [];
 
     // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある
 
