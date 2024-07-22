@@ -16,7 +16,7 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
-import {getFileLocationOfToken, serveDefinition} from "./serve/definition";
+import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./serve/definition";
 import {getInspectedResult, getInspectedResultList, inspectFile} from "./serve/inspector";
 import {serveCompletions} from "./serve/completion";
 import {serveSemanticTokens} from "./serve/semantiTokens";
@@ -25,6 +25,7 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
+import {stringifySymbolicObject} from "./compile/symbolic";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -60,6 +61,7 @@ connection.onInitialize((params: InitializeParams) => {
             declarationProvider: true,
             referencesProvider: true,
             renameProvider: true,
+            hoverProvider: true,
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
@@ -107,7 +109,7 @@ connection.onInitialized(() => {
         });
     }
 
-    // Reload for workspace settings. | ワークスペース設定の読み込み
+    // Reload for workspace settings.
     reloadSettings();
 });
 
@@ -136,7 +138,7 @@ connection.languages.semanticTokens.on((params) => {
     return serveSemanticTokens(getInspectedResult(params.textDocument.uri).tokenizedTokens);
 });
 
-// Definition jump | 定義ジャンプ
+// Definition Provider
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
@@ -146,13 +148,13 @@ connection.onDefinition((params) => {
 
     const caret = params.position;
 
-    const jumping = serveDefinition(analyzedScope, caret);
-    if (jumping === null) return;
+    const jumping = serveDefinitionAsToken(analyzedScope, caret);
+    if (jumping === undefined) return;
 
     return getFileLocationOfToken(jumping);
 });
 
-// Search for references | 参照情報を検索
+// Search for references of a symbol
 function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
@@ -170,7 +172,7 @@ connection.onReferences((params) => {
     return getReferenceLocations(params);
 });
 
-// Rename | リネーム機能
+// Rename Provider
 connection.onRenameRequest((params) => {
     const locations = getReferenceLocations(params);
 
@@ -187,6 +189,25 @@ connection.onRenameRequest((params) => {
     return {changes};
 });
 
+// Hover Provider
+connection.onHover((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (document === undefined) return;
+
+    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
+    if (analyzedScope === undefined) return;
+
+    const caret = params.position;
+
+    const definition = serveDefinition(analyzedScope, caret);
+    if (definition === undefined) return;
+
+    return {
+        // FIXME: Currently colored in C#, which is close in syntax, but will properly support AngelScript.
+        contents: [{language: 'c#', value: stringifySymbolicObject(definition)}]
+    };
+});
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
@@ -198,7 +219,7 @@ connection.onDidChangeWatchedFiles(_change => {
     connection.console.log('We received a file change event');
 });
 
-// This handler provides the initial list of the completion items.
+// Completion Provider
 connection.onCompletion(
     (params: TextDocumentPositionParams): CompletionItem[] => {
         // The pass parameter contains the position of the text document in
