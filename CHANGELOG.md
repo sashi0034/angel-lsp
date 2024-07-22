@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.8] - 2024/07/22
+
+Fix README.md
+
 ## [0.3.7] - 2024/07/22
 
 - Support for hover to view details on symbols (Experimental)

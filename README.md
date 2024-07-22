@@ -21,11 +21,15 @@ This extension parses scripts and provides the following benefits.
 
 # Getting Started
 
-Once installed, the Language Server uses the file `as.predefined` file to perform the analysis according to the application you are using.
+Once installed, the Language Server uses the file `as.predefined` to perform the analysis according to the application you are using.
 
-Place `as.predefined` directly under the workspace directory. This will give you symbol completion.
+Crate and place `as.predefined` in the workspace directory.
 
 ![folder_example.png](https://raw.githubusercontent.com/sashi0034/angel-lsp/main/folder_example.png)
+
+Write type definitions and function definitions for your application in `as.predefined` using the same syntax as in AngelScript.
+
+This will give you symbol completion.
 
 See examples below:
 - [as.predefined](./examples/OpenSiv3D/as.predefined) for [OpenSiv3D](https://github.com/Siv3D/OpenSiv3D) (v0.6)
