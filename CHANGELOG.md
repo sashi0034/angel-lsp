@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.7] - 2024/07/22
+
+- Support for hover to view details on symbols (Experimental)
+
 ## [0.3.6] - 2024/07/13
 
 - Fixed bugs [#13](https://github.com/sashi0034/angel-lsp/issues/13), [#14](https://github.com/sashi0034/angel-lsp/issues/14)
