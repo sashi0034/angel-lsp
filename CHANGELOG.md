@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.9] - 2024/07/22
+
+- Add settings for implicit mutual inclusion. [#19](https://github.com/sashi0034/angel-lsp/issues/19)
+
 ## [0.3.8] - 2024/07/22
 
 Fix README.md
