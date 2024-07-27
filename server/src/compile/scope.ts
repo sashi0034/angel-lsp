@@ -1,4 +1,4 @@
-import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
+import {getPathOfScope, SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsingToken} from "./parsingToken";
@@ -68,37 +68,62 @@ export class AnalyzedScope {
     public get pureScope(): SymbolScope {
         if (this.pureBuffer === undefined) {
             this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope, this.fullScope.key);
-            copyOriginalSymbolsInScope(this.path, this.fullScope, this.pureBuffer);
+            copySymbolsInScope(this.fullScope, this.pureBuffer, {targetSrcPath: this.path});
         }
         return this.pureBuffer;
     }
 }
 
-function copyOriginalSymbolsInScope(srcPath: string | undefined, srcScope: SymbolScope, destScope: SymbolScope) {
-    if (srcPath === undefined) {
-        // Copy all symbols from the source to the destination scope. | 対象元から対象先のスコープへ全シンボルをコピー
-        for (const [key, symbol] of srcScope.symbolMap) {
-            destScope.symbolMap.set(key, symbol);
-        }
-    } else {
-        // Collect symbols from the declaration file with the same symbol. | 宣言ファイルが同じシンボルを収集
-        for (const [key, symbol] of srcScope.symbolMap) {
-            if (symbol.declaredPlace.location.path === srcPath) {
-                destScope.symbolMap.set(key, symbol);
-            }
-        }
-    }
-
-    // Copy child scopes recursively. | 子スコープも再帰的にコピー
-    for (const [key, child] of srcScope.childScopes) {
-        const destChild = findScopeShallowlyOrInsertByIdentifier(child.ownerNode, destScope, key);
-        copyOriginalSymbolsInScope(srcPath, child, destChild);
-    }
+/*
+ * Options for copying symbols.
+ * @property targetSrcPath - The path of the source to be copied. If undefined, all symbols are copied.
+ * @property excludeSrcPath - The path of the source to be excluded from copying. If undefined, all symbols are copied.
+ */
+export interface CopySymbolOptions {
+    targetSrcPath?: string;
+    excludeSrcPath?: string;
 }
 
-export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope) {
-    // Copy all symbols from the source to the destination scope. | 対象元から対象先のスコープへ全シンボルをコピー
-    copyOriginalSymbolsInScope(undefined, srcScope, destScope);
+/*
+ * Copy all symbols from the source to the destination scope.
+ * The symbols to be copied are added to destScope.symbolMap.
+ */
+export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope, option: CopySymbolOptions) {
+    // Collect symbols from the source scope
+    for (const [key, symbol] of srcScope.symbolMap) {
+        let canCopy = true;
+
+        if (option.targetSrcPath !== undefined && symbol.declaredPlace.location.path !== option.targetSrcPath) {
+            canCopy = false;
+        }
+
+        if (option.excludeSrcPath !== undefined && symbol.declaredPlace.location.path === option.excludeSrcPath) {
+            canCopy = false;
+        }
+
+        if (canCopy) {
+            destScope.symbolMap.set(key, symbol);
+        }
+    }
+
+    // Copy child scopes recursively.
+    for (const [key, child] of srcScope.childScopes) {
+        const scopePath = getPathOfScope(child);
+        if (scopePath !== undefined) {
+            // If the path is specified, only the specified path is copied.
+
+            if (option.targetSrcPath !== undefined && scopePath !== option.targetSrcPath) {
+                continue;
+            }
+
+            if (option.excludeSrcPath !== undefined && scopePath === option.excludeSrcPath) {
+                continue;
+            }
+        }
+
+        const destChild = findScopeShallowlyOrInsertByIdentifier(child.ownerNode, destScope, key);
+        copySymbolsInScope(child, destChild, option);
+    }
 }
 
 export function findScopeShallowlyOrInsert(
