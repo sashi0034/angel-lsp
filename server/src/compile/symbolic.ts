@@ -124,6 +124,15 @@ export interface ScopeServiceInfo {
 export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServiceInfo {
 }
 
+/*
+ * Returns the path to a file where the scope is defined.
+ * It returns undefined if the scope is namespace or etc.
+ */
+export function getPathOfScope(scope: SymbolScope): string | undefined {
+    if (scope.ownerNode === undefined) return undefined;
+    return scope.ownerNode.nodeRange.start.location.path;
+}
+
 export interface SymbolAndScope {
     symbol: SymbolicObject;
     scope: SymbolScope;
