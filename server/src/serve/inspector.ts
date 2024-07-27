@@ -1,4 +1,4 @@
-import {TokenizingToken} from "../compile/tokens";
+import {isVirtualToken, TokenizingToken, TokenKind} from "../compile/tokens";
 import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
@@ -15,6 +15,8 @@ import * as fs from "fs";
 import {fileURLToPath} from "node:url";
 import {URL} from 'url';
 import {preprocessTokensForParser} from "../compile/parsingPreprocess";
+import {getGlobalSettings} from "../code/settings";
+import {createVirtualToken} from "../compile/parsingToken";
 
 interface InspectResult {
     content: string;
@@ -56,10 +58,10 @@ export function getInspectedResultList(): InspectResult[] {
  * Compile the specified file and cache the result.
  */
 export function inspectFile(content: string, targetUri: URI) {
-    // Load as.predefined file | as.predefined ファイルの読み込み
+    // Load as.predefined file
     const predefinedUri = checkInspectPredefined(targetUri);
 
-    // Cache the inspected result | 解析結果をキャッシュ
+    // Cache the inspected result
     s_inspectedResults[targetUri] = inspectInternal(content, targetUri, predefinedUri);
 }
 
@@ -81,11 +83,31 @@ function checkInspectPredefined(targetUri: URI) {
         const content = readFileFromUri(predefinedUri);
         if (content === undefined) continue;
 
+        // Inspect found as.predefined
         s_inspectedResults[predefinedUri] = inspectInternal(content, predefinedUri, undefined);
+
+        // Inspect all files under the directory where as.predefined is located, as we may need to reference them.
+        if (predefinedUri !== undefined) {
+            inspectAllFilesUnderDirectory(resolveUri(predefinedUri, '.'));
+        }
+
         return predefinedUri;
     }
 
     return undefined;
+}
+
+function inspectAllFilesUnderDirectory(dirUri: string) {
+    const entries = fs.readdirSync(fileURLToPath(dirUri), {withFileTypes: true});
+    for (const entry of entries) {
+        const fileUri = resolveUri(dirUri, entry.name);
+        if (entry.isDirectory()) {
+            inspectAllFilesUnderDirectory(fileUri);
+        } else if (entry.isFile() && fileUri.endsWith('.as')) {
+            const content = readFileFromUri(fileUri);
+            if (content !== undefined) inspectFile(content, fileUri);
+        }
+    }
 }
 
 function readFileFromUri(uri: string): string | undefined {
@@ -132,7 +154,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     const tokenizedTokens = tokenize(content, targetUri);
     profiler.stamp("Tokenizer");
 
-    // Preprocess tokens
+    // Preprocess tokens for parser
     const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
     profiler.stamp("Preprocess");
 
@@ -140,9 +162,17 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     const parsedAst = parseFromTokenized(preprocessedTokens.parsingTokens);
     profiler.stamp("Parser");
 
-    // Analyzer-phase
-    const includedScopes = getIncludedScope(targetUri, predefinedUri, preprocessedTokens.includeFiles);
+    // Collect scopes in included files
+    let includeFiles = preprocessedTokens.includeFiles;
+    if (getGlobalSettings().implicitMutualInclusion && predefinedUri !== undefined) {
+        // If implicit mutual inclusion is enabled, include all files under the directory where as.predefined is located.
+        includeFiles = listPathsOfInspectedFilesUnder(resolveUri(predefinedUri, '.'))
+            // Here we create an array of dummy tokens for the next function.
+            .map(uri => createVirtualToken(TokenKind.String, `'${uri}'`));
+    }
+    const includedScopes = collectIncludedScope(targetUri, predefinedUri, includeFiles);
 
+    // Analyzer-phase
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
     profiler.stamp("Analyzer");
 
@@ -160,7 +190,11 @@ function resolveUri(dir: string, relativeUri: string): string {
     return url.format(new URL(relativeUri, u));
 }
 
-function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: TokenizingToken[]) {
+function listPathsOfInspectedFilesUnder(dirUri: string): string[] {
+    return Object.keys(s_inspectedResults).filter(uri => uri.startsWith(dirUri));
+}
+
+function collectIncludedScope(target: URI, predefinedUri: URI | undefined, includedUris: TokenizingToken[]) {
     const includedScopes = [];
 
     // Load as.predefined
@@ -177,7 +211,9 @@ function getIncludedScope(target: URI, predefinedUri: URI | undefined, includedU
         if (s_inspectedResults[uri] === undefined) {
             const content = readFileFromUri(uri);
             if (content === undefined) {
-                diagnostic.addError(includeToken.location, `File not found: "${fileURLToPath(uri)}"`);
+                if (isVirtualToken(includeToken) === false) {
+                    diagnostic.addError(includeToken.location, `File not found: "${fileURLToPath(uri)}"`);
+                }
                 continue;
             }
 

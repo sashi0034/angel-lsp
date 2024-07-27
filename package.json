@@ -78,6 +78,12 @@
             "type": "object",
             "title": "AngelScript configuration",
             "properties": {
+                "angelScript.implicitMutualInclusion": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Project files implicitly include each other (like C# or Java)"
+                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",
