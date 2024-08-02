@@ -1,7 +1,22 @@
+This project is based on the BNF on the following linked page (thanks to the editor)
+
 https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
-リンク先では VAR に EXPR が含まれているが、恐らく ASSIGN が正しいと思われる (2024/04/02)
+However, the following expression on the page linked above may be incorrect (2024/04/02)
 
+```
+VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | EXPR)) | ARGLIST]} ';'
+```
+
+The correct one is as follows
+
+```
+VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+```
+
+Anyway, the language server compiles scripts based on the following BNF:
+
+```
 SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -62,3 +77,4 @@ STRING        ::= single token:  single quoted ', double quoted ", or heredoc mu
 BITS          ::= single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
 COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
 WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
+```

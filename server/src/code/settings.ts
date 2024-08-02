@@ -1,4 +1,4 @@
-/*
+/**
  * LanguageServer settings.
  * See package.json because the settings in VSCode are defined in it.
  */
@@ -28,14 +28,14 @@ const defaultSettings: LanguageServerSettings = {
 
 let globalSettings: LanguageServerSettings = defaultSettings;
 
-/*
+/**
  * Change the instance of global settings.
  */
 export function changeGlobalSettings(config: any) {
     globalSettings = globalSettings = <LanguageServerSettings>(config || defaultSettings);
 }
 
-/*
+/**
  * Get the global settings.
  * The behavior of the LanguageServer configuration is controlled from here.
  */

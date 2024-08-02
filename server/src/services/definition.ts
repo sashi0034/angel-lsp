@@ -4,7 +4,7 @@ import {isPositionInRange, TokenizingToken} from "../compile/tokens";
 import {ParsingToken} from "../compile/parsingToken";
 import {AnalyzedScope} from "../compile/scope";
 
-/*
+/**
  * Convert tokenized tokens to Location used in VSCode.
  */
 export function getFileLocationOfToken(token: TokenizingToken): Location {
@@ -17,14 +17,14 @@ export function getFileLocationOfToken(token: TokenizingToken): Location {
     };
 }
 
-/*
+/**
  * Search for the definition of the symbol at the cursor position.
  */
 export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): SymbolicObject | undefined {
     return serveDefinitionInternal(analyzedScope.fullScope, caret, analyzedScope.path);
 }
 
-/*
+/**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
 export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParsingToken | undefined {

@@ -124,7 +124,7 @@ export interface ScopeServiceInfo {
 export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServiceInfo {
 }
 
-/*
+/**
  * Returns the path to a file where the scope is defined.
  * It returns undefined if the scope is namespace or etc.
  */
@@ -245,7 +245,7 @@ export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): strin
     return types.map(t => stringifyDeducedType(t)).join(', ');
 }
 
-/*
+/**
  * Build a string representation of a symbolic object.
  */
 export function stringifySymbolicObject(symbol: SymbolicObject): string {

@@ -1568,7 +1568,7 @@ const assignOpAliases = new Map<string, string>([
     ['>>>=', 'opUShrAssign'],
 ]);
 
-/*
+/**
  * Entry point of the analyser.
  * Type checks and function checks are performed here.
  */

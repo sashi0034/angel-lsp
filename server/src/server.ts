@@ -16,11 +16,11 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
-import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./serve/definition";
-import {getInspectedResult, getInspectedResultList, inspectFile} from "./serve/inspector";
-import {serveCompletions} from "./serve/completion";
-import {serveSemanticTokens} from "./serve/semantiTokens";
-import {serveReferences} from "./serve/reference";
+import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
+import {getInspectedResult, getInspectedResultList, inspectFile} from "./services/inspector";
+import {serveCompletions} from "./services/completion";
+import {serveSemanticTokens} from "./services/semantiTokens";
+import {serveReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
@@ -262,6 +262,9 @@ connection.onCompletionResolve(
     }
 );
 
+/**
+ * Document Formatting
+ */
 connection.onDocumentFormatting((params) => {
     const inspected = getInspectedResult(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);
