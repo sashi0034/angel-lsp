@@ -74,17 +74,14 @@ export class AnalyzedScope {
     }
 }
 
-/*
- * Options for copying symbols.
- * @property targetSrcPath - The path of the source to be copied. If undefined, all symbols are copied.
- * @property excludeSrcPath - The path of the source to be excluded from copying. If undefined, all symbols are copied.
- */
 export interface CopySymbolOptions {
+    /** The path of the source to be copied. If undefined, all symbols are copied. */
     targetSrcPath?: string;
+    /** The path of the source to be excluded from copying. If undefined, all symbols are copied. */
     excludeSrcPath?: string;
 }
 
-/*
+/**
  * Copy all symbols from the source to the destination scope.
  * The symbols to be copied are added to destScope.symbolMap.
  */

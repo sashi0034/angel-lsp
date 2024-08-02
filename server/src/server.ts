@@ -262,6 +262,9 @@ connection.onCompletionResolve(
     }
 );
 
+/**
+ * Document Formatting
+ */
 connection.onDocumentFormatting((params) => {
     const inspected = getInspectedResult(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);

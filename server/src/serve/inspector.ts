@@ -38,7 +38,7 @@ function createEmptyResult(): InspectResult {
     } as const;
 }
 
-/*
+/**
  * Get the analyzed result of the specified file.
  */
 export function getInspectedResult(uri: URI): InspectResult {
@@ -47,14 +47,14 @@ export function getInspectedResult(uri: URI): InspectResult {
     return result;
 }
 
-/*
+/**
  * Get the list of all analyzed results as a list.
  */
 export function getInspectedResultList(): InspectResult[] {
     return Object.values(s_inspectedResults);
 }
 
-/*
+/**
  * Compile the specified file and cache the result.
  */
 export function inspectFile(content: string, targetUri: URI) {
