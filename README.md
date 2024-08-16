@@ -23,7 +23,7 @@ This extension parses scripts and provides the following benefits.
 
 Once installed, the Language Server uses the file `as.predefined` to perform the analysis according to the application you are using.
 
-Crate and place `as.predefined` in the workspace directory.
+Create and place `as.predefined` in the workspace directory.
 
 ![folder_example.png](https://raw.githubusercontent.com/sashi0034/angel-lsp/main/folder_example.png)
 
