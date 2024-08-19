@@ -130,7 +130,10 @@ documents.onDidClose(e => {
 connection.languages.diagnostics.on(async (params) => {
     return {
         kind: DocumentDiagnosticReportKind.Full,
-        items: getInspectedResult(params.textDocument.uri).diagnostics
+        items: [
+            ...getInspectedResult(params.textDocument.uri).diagnosticsInAnalyzer,
+            ...getInspectedResult(params.textDocument.uri).diagnosticsInParser
+        ]
     } satisfies DocumentDiagnosticReport;
 });
 
@@ -212,6 +215,8 @@ connection.onHover((params) => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
     inspectFile(change.document.getText(), change.document.uri);
+
+    connection.languages.diagnostics.refresh();
 });
 
 connection.onDidChangeWatchedFiles(_change => {
