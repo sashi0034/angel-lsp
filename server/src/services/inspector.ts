@@ -41,6 +41,8 @@ function createEmptyResult(): InspectResult {
     } as const;
 }
 
+const predefinedFileName = 'as.predefined';
+
 /**
  * Get the analyzed result of the specified file.
  */
@@ -86,7 +88,7 @@ function checkInspectPredefined(targetUri: URI) {
 
     // If as.predefined has already been analyzed, return its URI | as.predefined が解析済みの場合、その URI を返す
     for (const dir of dirs) {
-        const predefinedUri = dir + '/as.predefined';
+        const predefinedUri = dir + `/${predefinedFileName}`;
 
         const predefinedResult = s_inspectedResults[predefinedUri];
         if (predefinedResult !== undefined) return predefinedUri;
@@ -94,7 +96,7 @@ function checkInspectPredefined(targetUri: URI) {
 
     // If as.predefined has not been analyzed, search for the file and start analyzing.
     for (const dir of dirs) {
-        const predefinedUri = dir + '/as.predefined';
+        const predefinedUri = dir + `/${predefinedFileName}`;
 
         const content = readFileFromUri(predefinedUri);
         if (content === undefined) continue;
@@ -183,9 +185,12 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
 
     // Collect scopes in included files
     let includePaths = preprocessedTokens.includeFiles.map(token => token.text);
-    if (getGlobalSettings().implicitMutualInclusion && predefinedUri !== undefined) {
+    if (getGlobalSettings().implicitMutualInclusion) {
         // If implicit mutual inclusion is enabled, include all files under the directory where as.predefined is located.
-        includePaths = listPathsOfInspectedFilesUnder(resolveUri(predefinedUri, '.')).filter(uri => uri.endsWith('.as'));
+        if (targetUri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
+            includePaths = listPathsOfInspectedFilesUnder(resolveUri(predefinedUri, '.'))
+                .filter(uri => uri.endsWith('.as') && uri !== targetUri);
+        }
     }
 
     const missingFileHandler = (uri: string) => addErrorOfMissingIncludingFile(uri, preprocessedTokens.includeFiles.find(token => token.text === uri)!);
@@ -215,7 +220,7 @@ function reanalyzeFilesWithDependency(includedFile: URI) {
     for (const dependedFile of dependedFiles) {
         diagnostic.launchSession();
 
-        dependedFile.includedScopes = replaceScopeInIncludedScopes(dependedFile.includedScopes, s_inspectedResults[includedFile].analyzedScope);
+        dependedFile.includedScopes = refreshScopeInIncludedScopes(dependedFile.includedScopes);
         dependedFile.analyzedScope = analyzeFromParsed(dependedFile.parsedAst, dependedFile.analyzedScope.path, dependedFile.includedScopes);
 
         dependedFile.diagnosticsInAnalyzer = diagnostic.completeSession();
@@ -229,10 +234,9 @@ function isContainInIncludedScopes(includedScopes: AnalyzedScope[], targetUri: U
     return false;
 }
 
-function replaceScopeInIncludedScopes(includedScopes: AnalyzedScope[], newScope: AnalyzedScope): AnalyzedScope[] {
+function refreshScopeInIncludedScopes(includedScopes: AnalyzedScope[]): AnalyzedScope[] {
     return includedScopes.map(scope => {
-        if (scope.path === newScope.path) return newScope;
-        return scope;
+        return s_inspectedResults[scope.path].analyzedScope;
     });
 }
 
