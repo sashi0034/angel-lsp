@@ -71,6 +71,16 @@ export function inspectFile(content: string, targetUri: URI) {
     reanalyzeFilesWithDependency(targetUri);
 }
 
+/**
+ * Re-inspect all files that have already been inspected.
+ * This method is used to fully apply the configuration settings.
+ */
+export function reinspectAllFiles() {
+    for (const uri of Object.keys(s_inspectedResults)) {
+        inspectFile(s_inspectedResults[uri].content, uri);
+    }
+}
+
 function checkInspectPredefined(targetUri: URI) {
     const dirs = splitUriIntoDirectories(targetUri);
 

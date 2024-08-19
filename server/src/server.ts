@@ -17,7 +17,7 @@ import {
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
-import {getInspectedResult, getInspectedResultList, inspectFile} from "./services/inspector";
+import {getInspectedResult, getInspectedResultList, inspectFile, reinspectAllFiles} from "./services/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semantiTokens";
 import {serveReferences} from "./services/reference";
@@ -95,6 +95,8 @@ connection.onInitialize((params: InitializeParams) => {
 function reloadSettings() {
     connection.workspace.getConfiguration('angelScript').then((config) => {
         changeGlobalSettings(config);
+        reinspectAllFiles();
+        connection.languages.diagnostics.refresh();
     });
 }
 
@@ -119,8 +121,6 @@ connection.onInitialized(() => {
 
 connection.onDidChangeConfiguration(change => {
     reloadSettings();
-
-    connection.languages.diagnostics.refresh();
 });
 
 // Only keep settings for open documents
