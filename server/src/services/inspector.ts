@@ -176,15 +176,12 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
     profiler.stamp("Preprocess");
 
-    const diagnosticsInParser = diagnostic.completeSession();
-    diagnostic.launchSession();
-
     // Parser-phase
     const parsedAst = parseFromTokenized(preprocessedTokens.parsingTokens);
     profiler.stamp("Parser");
 
     // Collect scopes in included files
-    let includePaths = preprocessedTokens.includeFiles.map(token => token.text);
+    let includePaths = preprocessedTokens.includeFiles.map(getIncludePathFromToken);
     if (getGlobalSettings().implicitMutualInclusion) {
         // If implicit mutual inclusion is enabled, include all files under the directory where as.predefined is located.
         if (targetUri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
@@ -193,8 +190,12 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
         }
     }
 
-    const missingFileHandler = (uri: string) => addErrorOfMissingIncludingFile(uri, preprocessedTokens.includeFiles.find(token => token.text === uri)!);
+    const missingFileHandler = (path: string) => addErrorOfMissingIncludingFile(path, preprocessedTokens.includeFiles.find(token => getIncludePathFromToken(token) === path)!);
     const includedScopes = collectIncludedScope(targetUri, predefinedUri, includePaths, missingFileHandler);
+
+    // Store the diagnostics that occurred before the analyzer phase.
+    const diagnosticsInParser = diagnostic.completeSession();
+    diagnostic.launchSession();
 
     // Analyzer-phase
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
@@ -211,6 +212,10 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
         analyzedScope: analyzedScope,
         includedScopes: includedScopes,
     };
+}
+
+function getIncludePathFromToken(token: TokenizingToken): string {
+    return token.text.substring(1, token.text.length - 1);
 }
 
 // We will reanalyze the files that include the file specified by the given URI.
@@ -240,8 +245,8 @@ function refreshScopeInIncludedScopes(includedScopes: AnalyzedScope[]): Analyzed
     });
 }
 
-function addErrorOfMissingIncludingFile(uri: string, includeFileTokens: TokenizingToken) {
-    diagnostic.addError(includeFileTokens.location, `File not found: "${fileURLToPath(uri)}"`);
+function addErrorOfMissingIncludingFile(relativePath: string, includeFileTokens: TokenizingToken) {
+    diagnostic.addError(includeFileTokens.location, `File not found: "${relativePath}"`);
 }
 
 function resolveUri(dir: string, relativeUri: string): string {
@@ -271,7 +276,7 @@ function collectIncludedScope(
         if (s_inspectedResults[uri] === undefined) {
             const content = readFileFromUri(uri);
             if (content === undefined) {
-                if (onMissingFile) onMissingFile(uri);
+                if (onMissingFile) onMissingFile(relativeUri);
                 continue;
             }
 
