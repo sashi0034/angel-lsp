@@ -1,26 +1,22 @@
 import {diagnostic} from "../code/diagnostic";
-import {getNodeLocation, ParsedRange, stringifyNodeType} from "./nodes";
+import {ParsedRange} from "./nodes";
 import {
     DeducedType,
-    PrimitiveType,
-    resolveTemplateTypes,
-    stringifyDeducedType,
-    stringifyDeducedTypes,
-    SymbolicFunction,
-    SymbolKind,
-    SymbolScope,
-    TemplateTranslation
-} from "./symbolic";
+    SymbolFunction,
+    SymbolScope
+} from "./symbols";
 import {isTypeMatch} from "./checkType";
-import {ParsingToken} from "./parsingToken";
+import {ParsedToken} from "./parsedToken";
+import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
+import {resolveTemplateTypes, stringifyDeducedType, stringifyDeducedTypes, TemplateTranslation} from "./symbolUtils";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
-    callerIdentifier: ParsingToken;
+    callerIdentifier: ParsedToken;
     callerRange: ParsedRange;
     callerArgRanges: ParsedRange[];
     callerArgTypes: (DeducedType | undefined)[];
-    calleeFunc: SymbolicFunction;
+    calleeFunc: SymbolFunction;
     templateTranslators: (TemplateTranslation | undefined)[];
 }
 
@@ -31,13 +27,13 @@ export function checkFunctionMatch(
     return checkFunctionMatchInternal(args, args.calleeFunc);
 }
 
-function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsingToken, scope: SymbolScope, calleeFunc: SymbolicFunction) {
+function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: SymbolScope, calleeFunc: SymbolFunction) {
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 
 export function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
-    overloadedHead: SymbolicFunction
+    overloadedHead: SymbolFunction
 ): DeducedType | undefined {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
     const calleeParams = calleeFunc.sourceNode.paramList;
@@ -85,7 +81,7 @@ export function checkFunctionMatchInternal(
     return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
 }
 
-function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolicFunction) {
+function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolFunction) {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
 
     // Use the overload if it exists | オーバーロードが存在するなら使用
@@ -104,8 +100,8 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
 function handleErrorWhenOverloaded(
     callerRange: ParsedRange,
     callerArgs: (DeducedType | undefined)[],
-    calleeFunc: SymbolicFunction,
-    overloadedHead: SymbolicFunction
+    calleeFunc: SymbolFunction,
+    overloadedHead: SymbolFunction
 ) {
     if (calleeFunc === overloadedHead) return false; // Not overloaded
 
@@ -113,7 +109,7 @@ function handleErrorWhenOverloaded(
     message += `\nArguments types: (${stringifyDeducedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 
-    let cursor: SymbolicFunction | undefined = overloadedHead;
+    let cursor: SymbolFunction | undefined = overloadedHead;
     while (cursor !== undefined) {
         message += `\n(${stringifyDeducedTypes(cursor.parameterTypes)})`;
         cursor = cursor.nextOverload;

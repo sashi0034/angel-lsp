@@ -1,10 +1,15 @@
-import {Position, URI} from "vscode-languageserver";
+import {Position} from "vscode-languageserver";
 import {LocationInfo} from "./tokens";
 import {diagnostic} from "../code/diagnostic";
 
-export class TokenizingState {
+export class TokenizerState {
+    // The content of the file to be tokenized
     public readonly content: string;
+
+    // Index of the current cursor position in the content string
     private cursor: number;
+
+    // Same as cursor, but expressed in terms of line and character position rather than index
     private head: Position;
 
     public getCursor() {
@@ -70,7 +75,9 @@ export class TokenizingState {
     }
 }
 
-// Buffer for strings that are not Alphabets, numbers, or symbols | 英数字や記号以外の文字列のバッファ
+/**
+ * Buffer for strings that are not Alphabets, numbers, or symbols
+ */
 export class UnknownBuffer {
     private buffer: string = "";
     private location: LocationInfo | null = null;
@@ -89,9 +96,13 @@ export class UnknownBuffer {
         this.buffer += next;
     }
 
+    /**
+     * Flushes the buffer and reports an error if the buffer is not empty
+     */
     public flush() {
         if (this.buffer.length === 0) return;
         if (this.location === null) return;
+
         this.location.end.character++;
         diagnostic.addError(this.location, 'Unknown token: ' + this.buffer);
         this.buffer = "";

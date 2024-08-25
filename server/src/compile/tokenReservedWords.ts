@@ -1,23 +1,27 @@
 import {ReservedWordProperty} from "./tokens";
-import {Trie} from "../utils/trie";
+import {Trie, TriePair} from "../utils/trie";
 import assert = require("assert");
+import {Mutable} from "../utils/utilities";
 
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
 
-// All marks | 全記号郡
+// Symbols that are non-alphanumeric reserved words are referred to as "Marks" in this context.
+// A list of all Marks
 const reservedMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '&&', '||', '!', '[', ']', '^^', '@', '!is', '::',
-    '#', // For preprocessor
+    '#', // Strictly speaking, '#' is not a Mark, but is included here for use in preprocessing.
 ];
 
-// A group of marks with context-dependent elements removed. | 文脈依存の要素を取り除いた記号郡
+// A list of Marks with context-dependent reserved words removed. We call it Weak Marks.
+// For example, in "array<array<int>>", '>>' should be recognized as ['>', '>'].
 const reservedWeakMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
-    // '>=', '>>', '>>>', '>>=', '>>>=', '!is'
+    // '>=', '>>', '>>>', '>>=', '>>>=', '!is' // These are context-dependent.
     '#', // For preprocessor
 ];
 
-// Reserved keywords consisting of alphanumeric characters | 英数字から構成される予約後郡
+// Alphanumeric reserved words are referred to as "Keywords" in this context.
+// A list of reserved keywords composed of alphanumeric characters.
 const reservedKeywordArray = [
     'and', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'false', 'float', 'for', 'funcdef', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'property', 'protected', 'return', 'switch', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor',
     // Not really a reserved keyword, but is recognized by the compiler as a built-in keyword.
@@ -58,7 +62,7 @@ function makeEmptyProperty(): ReservedWordProperty {
 const reservedWordProperties = createProperties();
 
 function createProperties() {
-    const properties = new Map<string, ReservedWordProperty>();
+    const properties = new Map<string, Mutable<ReservedWordProperty>>();
     for (const symbol of [...reservedMarkArray, ...reservedKeywordArray]) {
         properties.set(symbol, makeEmptyProperty());
     }
@@ -116,8 +120,13 @@ function createWeakMarkPropertyTrie() {
     return markMap;
 }
 
-// 記号の予約語をプロパティ検索
-export function findReservedWeakMarkProperty(str: string, start: number) {
+/**
+ * Searches for a reserved word property in the trie for Marks with context-dependent reserved words removed.
+ * @param str - The string to search within.
+ * @param start - The starting position in the string to begin the search.
+ * @returns A `TriePair<ReservedWordProperty>` if a match is found, or `undefined` if not.
+ */
+export function findReservedWeakMarkProperty(str: string, start: number): TriePair<ReservedWordProperty> | undefined {
     return reservedWeakMarkProperties.find(str, start);
 }
 
@@ -131,12 +140,18 @@ function createKeywordPropertyMap() {
     return keywordMap;
 }
 
-// Search for reserved words of keywords | キーワードの予約語をプロパティ検索
+/**
+ * Searches for a reserved word property in the map for alphanumeric reserved words.
+ * @param str
+ */
 export function findReservedKeywordProperty(str: string) {
     return reservedKeywordProperties.get(str);
 }
 
-// Search for all reserved words | 予約後全てからプロパティ検索
+/**
+ * Searches for a reserved word property in the map for all reserved words.
+ * @param str
+ */
 export function findAllReservedWordProperty(str: string) {
     const result = reservedWordProperties.get(str);
     if (result !== undefined) return result;

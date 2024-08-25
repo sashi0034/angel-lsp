@@ -7,12 +7,12 @@ let s_diagnosticStack: DiagnosticList[] = [];
 
 let s_currentDiagnostics: DiagnosticList = [];
 
-function launchSession(): void {
+function beginSession(): void {
     s_currentDiagnostics = [];
     s_diagnosticStack.push(s_currentDiagnostics);
 }
 
-function completeSession(): DiagnosticList {
+function endSession(): DiagnosticList {
     const result = s_currentDiagnostics;
     s_diagnosticStack.pop();
     if (s_diagnosticStack.length > 0) s_currentDiagnostics = s_diagnosticStack[s_diagnosticStack.length - 1];
@@ -33,7 +33,7 @@ function addError(range: Range, message: string): void {
 }
 
 export const diagnostic = {
-    launchSession: launchSession,
-    completeSession: completeSession,
+    beginSession: beginSession,
+    endSession: endSession,
     addError,
 } as const;

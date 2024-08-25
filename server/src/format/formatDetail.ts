@@ -1,6 +1,6 @@
 import {Position} from "vscode-languageserver";
 import {FormatState, stepCursorAlongLines} from "./formatState";
-import {TokenizingToken, TokenKind} from "../compile/tokens";
+import {TokenizedToken, TokenKind} from "../compile/tokens";
 import {NodesBase} from "../compile/nodes";
 import {tracer} from "../code/tracer";
 import {getGlobalSettings} from "../code/settings";
@@ -22,7 +22,7 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
     return {line: line, character: character};
 }
 
-function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) {
+function formatTokenWithSpace(format: FormatState, frontToken: TokenizedToken) {
     const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
 
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
@@ -38,7 +38,7 @@ function formatTokenWithSpace(format: FormatState, frontToken: TokenizingToken) 
     format.setCursorToTail(frontToken);
 }
 
-function canInsertEditSpace(backToken: TokenizingToken | undefined, frontToken: TokenizingToken): boolean {
+function canInsertEditSpace(backToken: TokenizedToken | undefined, frontToken: TokenizedToken): boolean {
     const backTail = backToken?.location?.end;
     const frontHead = frontToken.location.start;
 
@@ -104,7 +104,7 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
     }
 }
 
-export function formatMoveToNonComment(format: FormatState): TokenizingToken | undefined {
+export function formatMoveToNonComment(format: FormatState): TokenizedToken | undefined {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -171,7 +171,7 @@ function executeFormatTargetWith(
     target: string,
     option: FormatTargetOption,
     cursor: Position,
-    next: TokenizingToken
+    next: TokenizedToken
 ) {
     const isCondenseLeft: boolean =
         format.popCondense() || option.condenseSides === true || option.condenseLeft === true;

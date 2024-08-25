@@ -1,13 +1,14 @@
-import {SymbolicObject, SymbolScope} from "../compile/symbolic";
+import {SymbolObject, SymbolScope} from "../compile/symbols";
 import {Location, Position} from "vscode-languageserver";
-import {isPositionInRange, TokenizingToken} from "../compile/tokens";
-import {ParsingToken} from "../compile/parsingToken";
-import {AnalyzedScope} from "../compile/scope";
+import {TokenizedToken} from "../compile/tokens";
+import {ParsedToken} from "../compile/parsedToken";
+import {AnalyzedScope} from "../compile/symbolScopes";
+import {isPositionInRange} from "../compile/tokenUtils";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.
  */
-export function getFileLocationOfToken(token: TokenizingToken): Location {
+export function getFileLocationOfToken(token: TokenizedToken): Location {
     return {
         uri: token.location.path.toString(),
         range: {
@@ -20,18 +21,18 @@ export function getFileLocationOfToken(token: TokenizingToken): Location {
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): SymbolicObject | undefined {
+export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): SymbolObject | undefined {
     return serveDefinitionInternal(analyzedScope.fullScope, caret, analyzedScope.path);
 }
 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
-export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParsingToken | undefined {
+export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParsedToken | undefined {
     return serveDefinition(analyzedScope, caret)?.declaredPlace;
 }
 
-function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolicObject | undefined {
+function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolMap) {
         const location = symbol.declaredPlace.location;

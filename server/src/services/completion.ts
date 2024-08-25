@@ -1,17 +1,16 @@
 import {Position, URI} from "vscode-languageserver";
 import {
-    ComplementHints,
-    ComplementKind,
     isSymbolInstanceMember,
-    SymbolicObject,
+    SymbolObject,
     SymbolKind,
     SymbolScope
-} from "../compile/symbolic";
+} from "../compile/symbols";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compile/nodes";
-import {isPositionInRange} from "../compile/tokens";
-import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/scope";
+import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/symbolScopes";
 import {isAllowedToAccessMember} from "../compile/checkType";
+import {isPositionInRange} from "../compile/tokenUtils";
+import {ComplementHints, ComplementKind} from "../compile/symbolComplement";
 
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
@@ -137,7 +136,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolicObject) {
+function symbolToCompletionKind(symbol: SymbolObject) {
     switch (symbol.symbolKind) {
     case SymbolKind.Type:
         if (typeof symbol.sourceType === 'string') return CompletionItemKind.Keyword;

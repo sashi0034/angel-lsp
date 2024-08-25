@@ -1,8 +1,8 @@
 import {SemanticTokensBuilder} from "vscode-languageserver/node";
-import {TokenizingToken} from "../compile/tokens";
+import {TokenizedToken} from "../compile/tokens";
 import {SemanticTokens} from "vscode-languageserver-protocol";
 
-export function serveSemanticTokens(tokens: TokenizingToken[]): SemanticTokens {
+export function serveSemanticTokens(tokens: TokenizedToken[]): SemanticTokens {
     const builder = new SemanticTokensBuilder();
     tokens.forEach((token, i) => {
         pushTokenToBuilder(builder, token);
@@ -11,7 +11,7 @@ export function serveSemanticTokens(tokens: TokenizingToken[]): SemanticTokens {
     return builder.build();
 }
 
-function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenizingToken) {
+function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenizedToken) {
     builder.push(
         token.location.start.line,
         token.location.start.character,
@@ -21,7 +21,7 @@ function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenizingTok
 
     if (token.location.start.line === token.location.end.line) return;
 
-    // Multi-line tokens have to be split by line | 複数行のトークンは行分割
+    // Multi-line tokens have to be split by line.
     for (let i = token.location.start.line + 1; i < token.location.end.line; i++) {
         builder.push(
             i,

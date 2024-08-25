@@ -3,11 +3,7 @@
 import {
     AccessModifier,
     funcHeadDestructor,
-    getIdentifierInType,
-    getLocationBetween,
-    getNextTokenIfExist,
-    getNodeLocation,
-    isFunctionHeadReturns,
+    isFunctionHeadReturnValue,
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
@@ -56,37 +52,18 @@ import {
     ParsedRange
 } from "./nodes";
 import {
-    builtinBoolType,
-    builtinDoubleType,
-    builtinFloatType,
-    builtinIntType,
-    builtinSetterValueToken,
-    builtinStringType,
-    builtinThisToken,
-    ComplementKind,
     DeducedType,
-    findSymbolShallowly,
-    findSymbolWithParent,
-    getSymbolAndScopeIfExist,
-    hintsCompletionScope,
-    insertSymbolicObject,
-    isDeducedAutoType,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
-    stringifyDeducedType,
-    stringifyDeducedTypes,
-    SymbolicFunction,
-    SymbolicType,
-    SymbolicVariable,
+    SymbolFunction,
+    SymbolType,
+    SymbolVariable,
     SymbolKind,
-    SymbolScope,
-    TemplateTranslation,
-    tryGetBuiltInType,
-    tryInsertSymbolicObject
-} from "./symbolic";
+    SymbolScope
+} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {NumberLiterals, TokenKind} from "./tokens";
+import {LocationInfo, NumberLiterals, TokenKind} from "./tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -98,11 +75,33 @@ import {
     findScopeShallowlyOrInsert,
     findScopeWithParentByNodes,
     isSymbolConstructorInScope
-} from "./scope";
+} from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
-import {ParsingToken} from "./parsingToken";
+import {ParsedToken} from "./parsedToken";
 import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
 import assert = require("node:assert");
+import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
+import {
+    builtinBoolType,
+    builtinDoubleType, builtinFloatType, builtinIntType,
+    builtinSetterValueToken, builtinStringType,
+    builtinThisToken,
+    tryGetBuiltInType
+} from "./symbolBuiltin";
+import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
+import {
+    findSymbolShallowly,
+    findSymbolWithParent,
+    getSymbolAndScopeIfExist,
+    insertSymbolObject,
+    isDeducedAutoType,
+    stringifyDeducedType,
+    stringifyDeducedTypes,
+    TemplateTranslation,
+    tryInsertSymbolObject
+} from "./symbolUtils";
+import {Mutable} from "../utils/utilities";
+
 
 type HoistingQueue = (() => void)[];
 
@@ -149,12 +148,12 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
     hoistScript(scopeIterator, nodeNamespace.script, queue, queue);
 
-    hintsCompletionScope(parentScope, scopeIterator, nodeNamespace.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scopeIterator, nodeNamespace.nodeRange);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
-    const symbol: SymbolicType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
@@ -162,7 +161,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         membersScope: undefined,
     };
 
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
     symbol.membersScope = scope;
@@ -172,7 +171,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: DeducedType) {
     for (const member of memberList) {
-        const symbol: SymbolicVariable = {
+        const symbol: SymbolVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: member.identifier,
             declaredScope: parentScope,
@@ -180,25 +179,25 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
             isInstanceMember: false,
             accessRestriction: undefined,
         };
-        insertSymbolicObject(parentScope.symbolMap, symbol);
+        insertSymbolObject(parentScope.symbolMap, symbol);
     }
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolicType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
         sourceType: nodeClass,
         membersScope: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
     symbol.membersScope = scope;
 
-    const thisVariable: SymbolicVariable = {
+    const thisVariable: SymbolVariable = {
         symbolKind: SymbolKind.Variable,
         declaredPlace: builtinThisToken,
         declaredScope: parentScope,
@@ -206,7 +205,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         isInstanceMember: false,
         accessRestriction: AccessModifier.Private,
     };
-    insertSymbolicObject(scope.symbolMap, thisVariable);
+    insertSymbolObject(scope.symbolMap, thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
@@ -219,19 +218,19 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    hintsCompletionScope(parentScope, scope, nodeClass.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scope, nodeClass.nodeRange);
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
-    const templateTypes: ParsingToken[] = [];
+    const templateTypes: ParsedToken[] = [];
     for (const type of types ?? []) {
-        insertSymbolicObject(scope.symbolMap, {
+        insertSymbolObject(scope.symbolMap, {
             symbolKind: SymbolKind.Type,
             declaredPlace: getIdentifierInType(type),
             declaredScope: scope,
             sourceType: PrimitiveType.Template,
             membersScope: undefined,
-        } satisfies SymbolicType);
+        } satisfies SymbolType);
 
         templateTypes.push(getIdentifierInType(type));
     }
@@ -274,7 +273,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)
 
         for (const [key, symbol] of baseScope.symbolMap) {
             if (key === 'this') continue;
-            const errored = tryInsertSymbolicObject(scope.symbolMap, symbol);
+            const errored = tryInsertSymbolObject(scope.symbolMap, symbol);
             if (errored !== undefined) {
                 diagnostic.addError(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
             }
@@ -302,14 +301,14 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const builtInType = tryGetBuiltInType(typeDef.type);
     if (builtInType === undefined) return;
 
-    const symbol: SymbolicType = {
+    const symbol: SymbolType = {
         symbolKind: SymbolKind.Type,
         declaredPlace: typeDef.identifier,
         declaredScope: parentScope,
         sourceType: builtInType.sourceType,
         membersScope: undefined,
     };
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    insertSymbolObject(parentScope.symbolMap, symbol);
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -318,18 +317,18 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const symbol: SymbolicFunction = {
+    const symbol: Mutable<SymbolFunction> = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
         declaredScope: parentScope,
-        returnType: isFunctionHeadReturns(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
+        returnType: isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
         parameterTypes: [],
         sourceNode: nodeFunc,
         nextOverload: undefined,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
 
@@ -357,14 +356,14 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolicType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
         sourceType: nodeInterface,
         membersScope: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
     symbol.membersScope = scope;
@@ -377,7 +376,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    hintsCompletionScope(parentScope, scope, nodeInterface.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scope, nodeInterface.nodeRange);
 }
 
 function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -426,7 +425,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 function analyzeVarInitializer(
     scope: SymbolScope,
     varType: DeducedType | undefined,
-    varIdentifier: ParsingToken,
+    varIdentifier: ParsedToken,
     initializer: NodeInitList | NodeAssign | NodeArgList
 ): DeducedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
@@ -443,7 +442,7 @@ function analyzeVarInitializer(
 
 function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
     for (const declaredVar of nodeVar.variables) {
-        const variable: SymbolicVariable = {
+        const variable: SymbolVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: declaredVar.identifier,
             declaredScope: scope,
@@ -451,7 +450,7 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
         };
-        insertSymbolicObject(scope.symbolMap, variable);
+        insertSymbolObject(scope.symbolMap, variable);
     }
 }
 
@@ -459,7 +458,7 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolicFunction = {
+    const symbol: Mutable<SymbolFunction> = {
         symbolKind: SymbolKind.Function,
         declaredPlace: funcDef.identifier,
         declaredScope: parentScope,
@@ -470,7 +469,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
         isInstanceMember: false,
         accessRestriction: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     hoisting.push(() => {
         symbol.parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
@@ -484,7 +483,7 @@ function hoistVirtualProp(
     const type = analyzeType(parentScope, virtualProp.type);
 
     const identifier = virtualProp.identifier;
-    const symbol: SymbolicVariable = {
+    const symbol: SymbolVariable = {
         symbolKind: SymbolKind.Variable,
         declaredPlace: identifier,
         declaredScope: parentScope,
@@ -492,7 +491,7 @@ function hoistVirtualProp(
         isInstanceMember: isInstanceMember,
         accessRestriction: virtualProp.accessor,
     };
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    insertSymbolObject(parentScope.symbolMap, symbol);
 
     const getter = virtualProp.getter;
     if (getter !== undefined && getter.statBlock !== undefined) {
@@ -509,7 +508,7 @@ function hoistVirtualProp(
         const setterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `set_${identifier.text}`);
 
         if (type !== undefined) {
-            const valueVariable: SymbolicVariable = {
+            const valueVariable: SymbolVariable = {
                 symbolKind: SymbolKind.Variable,
                 declaredPlace: builtinSetterValueToken,
                 declaredScope: parentScope,
@@ -517,7 +516,7 @@ function hoistVirtualProp(
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
             };
-            insertSymbolicObject(setterScope.symbolMap, valueVariable);
+            insertSymbolObject(setterScope.symbolMap, valueVariable);
         }
 
         const statBlock = setter.statBlock;
@@ -534,7 +533,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
-    const symbol: SymbolicFunction = {
+    const symbol: SymbolFunction = {
         symbolKind: SymbolKind.Function,
         declaredPlace: intfMethod.identifier,
         declaredScope: parentScope,
@@ -545,13 +544,13 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         isInstanceMember: true,
         accessRestriction: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 }
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // スコープ内の補完情報を追加
-    hintsCompletionScope(scope.parentScope, scope, statBlock.nodeRange);
+    pushHintOfCompletionScopeToParent(scope.parentScope, scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -571,7 +570,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         else deducedTypes.push(type);
 
         if (param.identifier === undefined) continue;
-        insertSymbolicObject(scope.symbolMap, {
+        insertSymbolObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             declaredPlace: param.identifier,
             declaredScope: scope,
@@ -631,8 +630,8 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
 
 function completeAnalyzingType(
     scope: SymbolScope,
-    identifier: ParsingToken,
-    foundSymbol: SymbolicType | SymbolicFunction,
+    identifier: ParsedToken,
+    foundSymbol: SymbolType | SymbolFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslation | undefined,
@@ -665,7 +664,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedTyp
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsingToken[] | undefined) {
+function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsedToken[] | undefined) {
     if (templateTypes === undefined) return undefined;
 
     const translation: TemplateTranslation = new Map();
@@ -724,7 +723,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // 名前空間に対する補完を行う
-        const complementRange = {...nextScope.location};
+        const complementRange: LocationInfo = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         parentScope.completionHints.push({
             complementKind: ComplementKind.Namespace,
@@ -901,7 +900,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefine
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
     type Term = [DeducedType | undefined, ParsedRange];
-    type Op = ParsingToken;
+    type Op = ParsedToken;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
         return 'text' in termOrOp;
@@ -951,7 +950,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefine
     return outputTerm.length > 0 ? outputTerm[0][0] : undefined;
 }
 
-function getOperatorPrecedence(operator: ParsingToken): number {
+function getOperatorPrecedence(operator: ParsedToken): number {
     const op = operator.text;
     switch (op) {
     case '**':
@@ -1044,7 +1043,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 // CONSTRUCTCALL ::= TYPE ARGLIST
 function analyzeConstructorCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsingToken,
+    callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
     constructorType: DeducedType
 ): DeducedType | undefined {
@@ -1150,7 +1149,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | un
     for (const param of lambda.paramList) {
         if (param.identifier === undefined) continue;
 
-        const argument: SymbolicVariable = {
+        const argument: SymbolVariable = {
             symbolKind: SymbolKind.Variable,
             declaredPlace: param.identifier,
             declaredScope: scope,
@@ -1158,7 +1157,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | un
             isInstanceMember: false,
             accessRestriction: undefined,
         };
-        insertSymbolicObject(childScope.symbolMap, argument);
+        insertSymbolObject(childScope.symbolMap, argument);
     }
 
     if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);
@@ -1232,7 +1231,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeSymbol, undefined);
 }
 
-function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolicVariable) {
+function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {
     const varType = calleeVariable.type;
     if (varType === undefined || varType.sourceScope === undefined) {
         diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable 💢`);
@@ -1253,9 +1252,9 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
 
 function analyzeFunctionCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsingToken,
+    callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
-    calleeFunc: SymbolicFunction,
+    calleeFunc: SymbolFunction,
     templateTranslate: TemplateTranslation | undefined
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
@@ -1298,7 +1297,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 }
 
 function analyzeVariableAccess(
-    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsingToken
+    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsedToken
 ): DeducedType | undefined {
     const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
@@ -1378,7 +1377,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function analyzeExprOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType | undefined, rhs: DeducedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1398,7 +1397,7 @@ function analyzeExprOp(
 }
 
 function analyzeOperatorAlias(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType | (DeducedType | undefined)[],
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
@@ -1439,7 +1438,7 @@ function analyzeOperatorAlias(
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1467,7 +1466,7 @@ const bitOpAliases = new Map<string, [string, string]>([
 
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1495,7 +1494,7 @@ const mathOpAliases = new Map<string, [string, string]>([
 
 // COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1523,7 +1522,7 @@ const compOpAliases = new Map<string, string>([
 
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 function analyzeLogicOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1534,7 +1533,7 @@ function analyzeLogicOp(
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType | undefined, rhs: DeducedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {

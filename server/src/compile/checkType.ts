@@ -1,21 +1,20 @@
 import {
     DeducedType,
-    findSymbolShallowly,
     isSourcePrimitiveType,
     PrimitiveType,
-    resolveTemplateType,
     SourceType,
-    stringifyDeducedType,
-    SymbolicFunction,
-    SymbolicObject,
-    SymbolicType,
+    SymbolFunction,
+    SymbolObject,
+    SymbolType,
     SymbolKind,
     SymbolScope
-} from "./symbolic";
-import {AccessModifier, getNodeLocation, NodeName, ParsedRange} from "./nodes";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./scope";
+} from "./symbols";
+import {AccessModifier, NodeName, ParsedRange} from "./nodes";
+import {getNodeLocation} from "./nodesUtils";
+import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
+import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
 
 export function checkTypeMatch(
     src: DeducedType | undefined,
@@ -84,7 +83,7 @@ export function isTypeMatchInternal(
     return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
 }
 
-function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicType | SymbolicFunction) {
+function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | SymbolFunction) {
     if (destType.symbolKind !== SymbolKind.Function) return false;
     if (isTypeMatch(srcType.returnType, destType.returnType) === false) return false;
     if (srcType.parameterTypes.length !== destType.parameterTypes.length) return false;
@@ -98,7 +97,7 @@ function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicTyp
 }
 
 function canDownCast(
-    srcType: SymbolicType, destType: SymbolicType
+    srcType: SymbolType, destType: SymbolType
 ): boolean {
     const srcNode = srcType.sourceType;
     if (isSourcePrimitiveType(srcNode)) return false;
@@ -118,7 +117,7 @@ function canDownCast(
 }
 
 function canCastFromPrimitiveType(
-    srcType: SymbolicType, destType: SymbolicType
+    srcType: SymbolType, destType: SymbolType
 ) {
     const srcNode = srcType.sourceType;
     const destNode = destType.sourceType;
@@ -151,7 +150,7 @@ function canCastFromPrimitiveType(
 }
 
 function canConstructImplicitly(
-    srcType: SymbolicType,
+    srcType: SymbolType,
     destScope: SymbolScope | undefined,
     destIdentifier: string
 ) {
@@ -170,7 +169,7 @@ function canConstructImplicitly(
     return canConstructBy(constructor, srcType.sourceType);
 }
 
-function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
+function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boolean {
     // OK if the constructor has one argument and that argument matches the source type.
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
@@ -192,7 +191,7 @@ function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boo
 }
 
 // Check if the symbol can be accessed from the scope. | シンボルがそのスコープからアクセス可能かを調べる
-export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolicObject): boolean {
+export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
     if (declaredSymbol.symbolKind === SymbolKind.Type) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 

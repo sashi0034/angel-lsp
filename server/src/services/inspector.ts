@@ -1,11 +1,11 @@
-import {TokenizingToken} from "../compile/tokens";
+import {TokenizedToken} from "../compile/tokens";
 import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
-import {AnalyzedScope, createSymbolScope} from "../compile/scope";
+import {AnalyzedScope, createSymbolScope} from "../compile/symbolScopes";
 import {tracer} from "../code/tracer";
 import {NodeScript} from "../compile/nodes";
 import {URI} from "vscode-languageserver";
@@ -14,14 +14,14 @@ import {URL} from "url";
 import * as path from "node:path";
 import * as fs from "fs";
 import {fileURLToPath} from "node:url";
-import {preprocessTokensForParser} from "../compile/parsingPreprocess";
+import {preprocessTokensForParser} from "../compile/parserPreprocess";
 import {getGlobalSettings} from "../code/settings";
 
 interface InspectResult {
     content: string;
     diagnosticsInParser: Diagnostic[]; // An diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenizingToken[];
+    tokenizedTokens: TokenizedToken[];
     parsedAst: NodeScript;
     analyzedScope: AnalyzedScope;
     includedScopes: AnalyzedScope[];
@@ -164,7 +164,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
     tracer.message(`🔬 Inspect "${targetUri}"`);
 
-    diagnostic.launchSession();
+    diagnostic.beginSession();
 
     const profiler = new Profiler("Inspector");
 
@@ -194,14 +194,14 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     const includedScopes = collectIncludedScope(targetUri, predefinedUri, includePaths, missingFileHandler);
 
     // Store the diagnostics that occurred before the analyzer phase.
-    const diagnosticsInParser = diagnostic.completeSession();
-    diagnostic.launchSession();
+    const diagnosticsInParser = diagnostic.endSession();
+    diagnostic.beginSession();
 
     // Analyzer-phase
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
     profiler.stamp("Analyzer");
 
-    const diagnosticsInAnalyzer = diagnostic.completeSession();
+    const diagnosticsInAnalyzer = diagnostic.endSession();
 
     return {
         content: content,
@@ -214,7 +214,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     };
 }
 
-function getIncludePathFromToken(token: TokenizingToken): string {
+function getIncludePathFromToken(token: TokenizedToken): string {
     return token.text.substring(1, token.text.length - 1);
 }
 
@@ -223,12 +223,12 @@ function getIncludePathFromToken(token: TokenizingToken): string {
 function reanalyzeFilesWithDependency(includedFile: URI) {
     const dependedFiles = Object.values(s_inspectedResults).filter(r => isContainInIncludedScopes(r.includedScopes, includedFile));
     for (const dependedFile of dependedFiles) {
-        diagnostic.launchSession();
+        diagnostic.beginSession();
 
         dependedFile.includedScopes = refreshScopeInIncludedScopes(dependedFile.includedScopes);
         dependedFile.analyzedScope = analyzeFromParsed(dependedFile.parsedAst, dependedFile.analyzedScope.path, dependedFile.includedScopes);
 
-        dependedFile.diagnosticsInAnalyzer = diagnostic.completeSession();
+        dependedFile.diagnosticsInAnalyzer = diagnostic.endSession();
     }
 }
 
@@ -245,7 +245,7 @@ function refreshScopeInIncludedScopes(includedScopes: AnalyzedScope[]): Analyzed
     });
 }
 
-function addErrorOfMissingIncludingFile(relativePath: string, includeFileTokens: TokenizingToken) {
+function addErrorOfMissingIncludingFile(relativePath: string, includeFileTokens: TokenizedToken) {
     diagnostic.addError(includeFileTokens.location, `File not found: "${relativePath}"`);
 }
 

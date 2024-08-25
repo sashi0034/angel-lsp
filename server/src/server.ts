@@ -25,7 +25,7 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
-import {stringifySymbolicObject} from "./compile/symbolic";
+import {stringifySymbolObject} from "./compile/symbolUtils";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -207,7 +207,7 @@ connection.onHover((params) => {
 
     return {
         // FIXME: Currently colored in C#, which is close in syntax, but will properly support AngelScript.
-        contents: [{language: 'c#', value: stringifySymbolicObject(definition)}]
+        contents: [{language: 'c#', value: stringifySymbolObject(definition)}]
     };
 });
 

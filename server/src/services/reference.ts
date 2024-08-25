@@ -1,22 +1,22 @@
-import {SymbolScope} from "../compile/symbolic";
+import {SymbolScope} from "../compile/symbols";
 import {Position} from "vscode-languageserver";
-import {ParsingToken} from "../compile/parsingToken";
+import {ParsedToken} from "../compile/parsedToken";
 import {serveDefinitionAsToken} from "./definition";
-import {isSameToken} from "../compile/tokens";
-import {AnalyzedScope} from "../compile/scope";
+import {AnalyzedScope} from "../compile/symbolScopes";
+import {isSameToken} from "../compile/tokenUtils";
 
-export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParsingToken[] {
+export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParsedToken[] {
     const targetDefinition = serveDefinitionAsToken(targetScope, caret);
     if (targetDefinition === undefined) return [];
 
-    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある
+    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?
 
     const result = analyzedScopes.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
     result.push(targetDefinition);
     return result;
 }
 
-function collectReferencesInScope(scope: SymbolScope, targetDefinition: ParsingToken): ParsingToken[] {
+function collectReferencesInScope(scope: SymbolScope, targetDefinition: ParsedToken): ParsedToken[] {
     const references = [];
 
     for (const reference of scope.referencedList) {

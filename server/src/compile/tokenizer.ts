@@ -1,20 +1,21 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
     HighlightInfo,
-    LocationInfo,
     NumberLiterals,
+    ReadonlyLocationInfo,
     ReservedWordProperty,
     TokenComment,
     TokenIdentifier,
-    TokenizingToken,
+    TokenizedToken,
     TokenKind,
     TokenNumber,
     TokenReserved,
     TokenString
 } from "./tokens";
 import {diagnostic} from "../code/diagnostic";
-import {TokenizingState, UnknownBuffer} from "./tokenizingState";
-import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReserves";
+import {TokenizerState, UnknownBuffer} from "./tokenizerState";
+import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReservedWords";
+import {Position} from "vscode-languageserver";
 
 function isDigit(c: string): boolean {
     return /^[0-9]$/.test(c);
@@ -36,17 +37,25 @@ function isAlphanumeric(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-// Check comment token | コメント解析
-function tryComment(reading: TokenizingState, location: LocationInfo): TokenComment | undefined {
-    if (reading.isNext('//')) {
-        return tokenizeLineComment(reading, location);
-    } else if (reading.isNext('/*')) {
-        return tokenizeBlockComment(reading, location);
+function copyLocationWithNewEnd(location: ReadonlyLocationInfo, end: Position): ReadonlyLocationInfo {
+    return {
+        path: location.path,
+        start: location.start,
+        end: end,
+    };
+}
+
+// Check if the next token is a comment and tokenize it.
+function tryComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenComment | undefined {
+    if (tokenizer.isNext('//')) {
+        return tokenizeLineComment(tokenizer, location);
+    } else if (tokenizer.isNext('/*')) {
+        return tokenizeBlockComment(tokenizer, location);
     }
     return undefined;
 }
 
-function createTokenComment(comment: string, location: LocationInfo): TokenComment | undefined {
+function createTokenComment(comment: string, location: ReadonlyLocationInfo): TokenComment | undefined {
     return {
         kind: TokenKind.Comment,
         text: comment,
@@ -55,100 +64,100 @@ function createTokenComment(comment: string, location: LocationInfo): TokenComme
     };
 }
 
-function tokenizeLineComment(reading: TokenizingState, location: LocationInfo) {
-    const start = reading.getCursor();
-    reading.stepFor(2);
+function tokenizeLineComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo) {
+    const start = tokenizer.getCursor();
+    tokenizer.stepFor(2);
     for (; ;) {
-        if (reading.isEnd() || reading.isNextWrap()) break;
-        reading.stepNext();
+        if (tokenizer.isEnd() || tokenizer.isNextWrap()) break;
+        tokenizer.stepNext();
     }
-    location.end = reading.copyHead();
-    return createTokenComment(reading.substrFrom(start), location);
+
+    return createTokenComment(tokenizer.substrFrom(start), copyLocationWithNewEnd(location, tokenizer.copyHead()));
 }
 
-function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) {
-    const start = reading.getCursor();
-    reading.stepFor(2);
+function tokenizeBlockComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo) {
+    const start = tokenizer.getCursor();
+    tokenizer.stepFor(2);
     for (; ;) {
-        if (reading.isEnd()) break;
-        if (reading.isNext('*/')) {
-            reading.stepFor(2);
+        if (tokenizer.isEnd()) break;
+        if (tokenizer.isNext('*/')) {
+            tokenizer.stepFor(2);
             break;
         }
-        reading.stepNext();
+        tokenizer.stepNext();
     }
-    location.end = reading.copyHead();
-    return createTokenComment(reading.substrFrom(start), location);
+
+    return createTokenComment(tokenizer.substrFrom(start), copyLocationWithNewEnd(location, tokenizer.copyHead()));
 }
 
-// Check number token | 数値解析
-function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
-    const start = reading.getCursor();
+// Check if the next token is a number and tokenize it.
+function tryNumber(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenNumber | undefined {
+    const start = tokenizer.getCursor();
 
-    const numeric = consumeNumber(reading);
+    const numeric = consumeNumber(tokenizer);
 
-    if (start === reading.getCursor()) return undefined;
+    if (start === tokenizer.getCursor()) return undefined;
 
-    location.end = reading.copyHead();
     return {
         kind: TokenKind.Number,
-        text: reading.substrFrom(start),
-        location: location,
+        text: tokenizer.substrFrom(start),
+        location: copyLocationWithNewEnd(location, tokenizer.copyHead()),
         highlight: createHighlight(HighlightToken.Number, HighlightModifier.Nothing),
         numeric: numeric
     };
 }
 
-function consumeNumber(reading: TokenizingState) {
-    if (/^[0-9.]/.test(reading.next()) === false) return NumberLiterals.Integer;
+function consumeNumber(tokenizer: TokenizerState) {
+    if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiterals.Integer;
 
-    if (reading.next(0) === '0') {
-        if (/^[bB]$/.test(reading.next(1))) {
-            reading.stepFor(2);
-            while (reading.isEnd() === false && isBinChara(reading.next())) reading.stepNext();
+    if (tokenizer.next(0) === '0') {
+        if (/^[bB]$/.test(tokenizer.next(1))) {
+            tokenizer.stepFor(2);
+            while (tokenizer.isEnd() === false && isBinChara(tokenizer.next())) tokenizer.stepNext();
             return NumberLiterals.Integer;
-        } else if (/^[oO]$/.test(reading.next(1))) {
-            reading.stepFor(2);
-            while (reading.isEnd() === false && isOctChara(reading.next())) reading.stepNext();
+        } else if (/^[oO]$/.test(tokenizer.next(1))) {
+            tokenizer.stepFor(2);
+            while (tokenizer.isEnd() === false && isOctChara(tokenizer.next())) tokenizer.stepNext();
             return NumberLiterals.Integer;
-        } else if (/^[dD]$/.test(reading.next(1))) {
-            reading.stepFor(2);
-            while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+        } else if (/^[dD]$/.test(tokenizer.next(1))) {
+            tokenizer.stepFor(2);
+            while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
             return NumberLiterals.Integer;
-        } else if (/^[xX]$/.test(reading.next(1))) {
-            reading.stepFor(2);
-            while (reading.isEnd() === false && isHexChar(reading.next())) reading.stepNext();
+        } else if (/^[xX]$/.test(tokenizer.next(1))) {
+            tokenizer.stepFor(2);
+            while (tokenizer.isEnd() === false && isHexChar(tokenizer.next())) tokenizer.stepNext();
             return NumberLiterals.Integer;
         }
     }
 
-    // Read 0-9 | 0-9 を読み取る
-    while (reading.isEnd() === false && isDigit(reading.next())) reading.stepNext();
+    // Read until it is 0-9.
+    while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
 
     let numeric = NumberLiterals.Integer;
 
-    // Check decimal point | 小数点を確認
+    // Check if it is a floating point number
     let f = 0;
-    if (reading.next() === '.') {
+    if (tokenizer.next() === '.') {
         f++;
-        while (isDigit(reading.next(f))) f++;
+        while (isDigit(tokenizer.next(f))) f++;
         numeric = NumberLiterals.Double;
     }
 
-    // Check exponent | 指数を確認
-    if (/^[eE]$/.test(reading.next(f)) && /^[+-]$/.test(reading.next(f + 1)) && isDigit(reading.next(f + 2))) {
+    // Check if it has an exponent
+    // e.g. 1e+3, 1E-3
+    if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer.next(f + 2))) {
         f += 3;
-        while (isDigit(reading.next(f))) f++;
+        while (isDigit(tokenizer.next(f))) f++;
         numeric = NumberLiterals.Double;
     }
 
     if (f > 1) {
-        reading.stepFor(f);
+        tokenizer.stepFor(f);
 
-        // Check half precision floating point | 半精度浮動小数と認識
+        // Check half precision floating point
         if (numeric === NumberLiterals.Double) {
-            if (/^[fF]$/.test(reading.next())) {
-                reading.stepNext();
+            if (/^[fF]$/.test(tokenizer.next())) {
+                tokenizer.stepNext();
                 return NumberLiterals.Float;
             }
         }
@@ -157,61 +166,60 @@ function consumeNumber(reading: TokenizingState) {
     return numeric;
 }
 
-// Check string token | 文字列解析
-function tryString(reading: TokenizingState, location: LocationInfo): TokenString | undefined {
+// Check if the next token is a string and tokenize it.
+function tryString(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenString | undefined {
 
-    const start = reading.getCursor();
-    if (reading.next() !== '\'' && reading.next() !== '"') return undefined;
+    const start = tokenizer.getCursor();
+    if (tokenizer.next() !== '\'' && tokenizer.next() !== '"') return undefined;
     const startQuote: '\'' | '"' | '"""' = (() => {
-        if (reading.isNext('"""')) return '"""';
-        else if (reading.isNext('"')) return '"';
+        if (tokenizer.isNext('"""')) return '"""';
+        else if (tokenizer.isNext('"')) return '"';
         return '\'';
     })();
-    reading.stepFor(startQuote.length);
+    tokenizer.stepFor(startQuote.length);
 
     let isEscaping = false;
     for (; ;) {
-        if (reading.isEnd()) break;
+        if (tokenizer.isEnd()) break;
 
-        if (startQuote !== '"""' && reading.isNextWrap()) {
+        if (startQuote !== '"""' && tokenizer.isNextWrap()) {
             diagnostic.addError({
-                start: reading.copyHead(),
-                end: reading.copyHead(),
+                start: tokenizer.copyHead(),
+                end: tokenizer.copyHead(),
             }, 'Missing end quote ' + startQuote);
             break;
-        } else if (isEscaping === false && reading.isNext(startQuote)) {
-            reading.stepFor(startQuote.length);
+        } else if (isEscaping === false && tokenizer.isNext(startQuote)) {
+            tokenizer.stepFor(startQuote.length);
             break;
         } else {
-            if (reading.next() === '\\' && isEscaping === false) {
+            if (tokenizer.next() === '\\' && isEscaping === false) {
                 isEscaping = true;
             } else {
                 isEscaping = false;
             }
-            reading.stepNext();
+            tokenizer.stepNext();
         }
     }
 
-    location.end = reading.copyHead();
     return {
         kind: TokenKind.String,
-        text: reading.substrFrom(start),
-        location: location,
+        text: tokenizer.substrFrom(start),
+        location: copyLocationWithNewEnd(location, tokenizer.copyHead()),
         highlight: createHighlight(HighlightToken.String, HighlightModifier.Nothing)
     };
 }
 
-// Check mark token | 記号解析
-function tryMark(reading: TokenizingState, location: LocationInfo): TokenReserved | undefined {
-    const mark = findReservedWeakMarkProperty(reading.content, reading.getCursor());
+// Check if the next token is a mark and tokenize it.
+function tryMark(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenReserved | undefined {
+    const mark = findReservedWeakMarkProperty(tokenizer.content, tokenizer.getCursor());
     if (mark === undefined) return undefined;
-    reading.stepFor(mark.key.length);
 
-    location.end = reading.copyHead();
-    return createTokenReserved(mark.key, mark.value, location);
+    tokenizer.stepFor(mark.key.length);
+
+    return createTokenReserved(mark.key, mark.value, copyLocationWithNewEnd(location, tokenizer.copyHead()));
 }
 
-function createTokenReserved(text: string, property: ReservedWordProperty, location: LocationInfo): TokenReserved {
+function createTokenReserved(text: string, property: ReservedWordProperty, location: ReadonlyLocationInfo): TokenReserved {
     return {
         kind: TokenKind.Reserved,
         text: text,
@@ -221,24 +229,24 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
     };
 }
 
-// Check identifier token | 識別子解析
-function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizingToken | TokenIdentifier | undefined {
-    const start = reading.getCursor();
-    while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
-        reading.stepFor(1);
+// Check if the next token is an identifier and tokenize it.
+function tryIdentifier(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenizedToken | TokenIdentifier | undefined {
+    const start = tokenizer.getCursor();
+    while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer.next())) {
+        tokenizer.stepFor(1);
     }
 
-    const identifier = reading.substrFrom(start);
+    const identifier = tokenizer.substrFrom(start);
     if (identifier === "") return undefined;
 
-    location.end = reading.copyHead();
+    const tokenLocation = copyLocationWithNewEnd(location, tokenizer.copyHead());
 
     const reserved = findReservedKeywordProperty(identifier);
-    if (reserved !== undefined) return createTokenReserved(identifier, reserved, location);
-    return createTokenIdentifier(identifier, location);
+    if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
+    return createTokenIdentifier(identifier, tokenLocation);
 }
 
-function createTokenIdentifier(identifier: string, location: LocationInfo): TokenIdentifier {
+function createTokenIdentifier(identifier: string, location: ReadonlyLocationInfo): TokenIdentifier {
     return {
         kind: TokenKind.Identifier,
         text: identifier,
@@ -254,62 +262,67 @@ function createHighlight(token: HighlightToken, modifier: HighlightModifier): Hi
     };
 }
 
-export function tokenize(str: string, path: string): TokenizingToken[] {
-    const tokens: TokenizingToken[] = [];
-    const reading = new TokenizingState(str);
+/**
+ * The entry point for the tokenizer.
+ * @param content The content of the file to tokenize.
+ * @param path The path of the file to tokenize.
+ */
+export function tokenize(content: string, path: string): TokenizedToken[] {
+    const tokens: TokenizedToken[] = [];
+    const tokenizer = new TokenizerState(content);
     const unknownBuffer = new UnknownBuffer();
 
     for (; ;) {
-        if (reading.isEnd()) break;
-        if (reading.isNextWrap()
-            || reading.isNextWhitespace()) {
-            reading.stepNext();
+        if (tokenizer.isEnd()) break;
+        if (tokenizer.isNextWrap()
+            || tokenizer.isNextWhitespace()) {
+            tokenizer.stepNext();
             continue;
         }
 
-        const location: LocationInfo = {
-            start: reading.copyHead(),
-            end: reading.copyHead(),
+        const location: ReadonlyLocationInfo = {
+            start: tokenizer.copyHead(),
+            end: tokenizer.copyHead(),
             path: path
         };
 
-        // Tokenize: Comment
-        const triedComment = tryComment(reading, location);
+        // Tokenize Comment
+        const triedComment = tryComment(tokenizer, location);
         if (triedComment !== undefined) {
             tokens.push(triedComment);
             continue;
         }
 
-        // Tokenize: Number
-        const triedNumber = tryNumber(reading, location);
+        // Tokenize Number
+        const triedNumber = tryNumber(tokenizer, location);
         if (triedNumber !== undefined) {
             tokens.push(triedNumber);
             continue;
         }
 
-        // Tokenize: String
-        const triedString = tryString(reading, location);
+        // Tokenize String
+        const triedString = tryString(tokenizer, location);
         if (triedString !== undefined) {
             tokens.push(triedString);
             continue;
         }
 
-        // Tokenize: Non-alphabetic symbol
-        const triedMark = tryMark(reading, location);
+        // Tokenize Non-alphabetic Symbol
+        const triedMark = tryMark(tokenizer, location);
         if (triedMark !== undefined) {
             tokens.push(triedMark);
             continue;
         }
 
-        // Tokenize: Identifier or reserved keyword
-        const triedIdentifier = tryIdentifier(reading, location);
+        // Tokenize Identifier or Reserved Keyword
+        const triedIdentifier = tryIdentifier(tokenizer, location);
         if (triedIdentifier !== undefined) {
             tokens.push(triedIdentifier);
             continue;
         }
 
-        unknownBuffer.append(location, reading.next());
-        reading.stepNext();
+        unknownBuffer.append(location, tokenizer.next());
+        tokenizer.stepNext();
     }
 
     unknownBuffer.flush();
