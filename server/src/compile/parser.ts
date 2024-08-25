@@ -6,8 +6,8 @@ import {
     funcHeadConstructor,
     funcHeadDestructor,
     FuncHeads,
-    FunctionAttribute, getLocationBetween,
-    isFunctionHeadReturns,
+    FunctionAttribute,
+    isFunctionHeadReturnValue,
     makeParsedRange,
     NodeArgList,
     NodeAssign,
@@ -64,8 +64,6 @@ import {
     ParsedPostIndexer,
     ParsedVariableInit,
     ReferenceModifier,
-    setEntityAttribute,
-    setFunctionAttribute,
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
@@ -75,6 +73,7 @@ import {BreakOrThrough, ParseFailure, ParserState, ParsedResult} from "./parserS
 import {ParsedCacheKind} from "./parsedCache";
 import {createVirtualToken, isTokensLinkedBy} from "./tokenUtils";
 import {Mutable} from "../utils/utilities";
+import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {
@@ -444,7 +443,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         head = {returnType: returnType, isRef: isRef};
     }
     const identifier = parser.next();
-    parser.confirm(isFunctionHeadReturns(head) ? HighlightToken.Function : HighlightToken.Type);
+    parser.confirm(isFunctionHeadReturnValue(head) ? HighlightToken.Function : HighlightToken.Type);
 
     const paramList = parseParamList(parser);
     if (paramList === undefined) {

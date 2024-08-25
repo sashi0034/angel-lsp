@@ -1,7 +1,6 @@
 import {LocationInfo, TokenKind} from "./tokens";
 import {
     AccessModifier,
-    getNodeLocation, isFunctionHeadReturns,
     NodeClass,
     NodeEnum,
     NodeFunc, NodeFuncDef,
@@ -17,6 +16,7 @@ import {numberTypeSet} from "./tokenReservedWords";
 import assert = require("assert");
 import {createSymbolScope, isAnonymousIdentifier} from "./scope";
 import {createVirtualToken} from "./tokenUtils";
+import {getNodeLocation} from "./nodesUtils";
 
 export enum SymbolKind {
     Type = 'Type',

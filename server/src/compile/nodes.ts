@@ -1,6 +1,4 @@
-import {LocationInfo} from "./tokens";
 import {ParsedToken} from "./parsedToken";
-import {Mutable} from "../utils/utilities";
 
 export enum AccessModifier {
     Private = 'Private',
@@ -30,27 +28,6 @@ export function makeParsedRange(start: ParsedToken, end: ParsedToken): ParsedRan
     };
 }
 
-export function getNextTokenIfExist(token: ParsedToken): ParsedToken {
-    if (token.next !== undefined) return token.next;
-    return token;
-}
-
-export function isRangeInOneLine(range: ParsedRange): boolean {
-    return range.start.location.start.line === range.end.location.end.line;
-}
-
-export function getLocationBetween(start: ParsedToken, end: ParsedToken): LocationInfo {
-    return {
-        path: start.location.path,
-        start: start.location.start,
-        end: end.location.end
-    };
-}
-
-export function getNodeLocation(range: ParsedRange): LocationInfo {
-    return getLocationBetween(range.start, range.end);
-}
-
 export interface EntityAttribute {
     readonly isShared: boolean,
     readonly isExternal: boolean,
@@ -58,29 +35,11 @@ export interface EntityAttribute {
     readonly isFinal: boolean,
 }
 
-export function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {
-    if (token === 'shared') attribute.isShared = true;
-    else if (token === 'external') attribute.isExternal = true;
-    else if (token === 'abstract') attribute.isAbstract = true;
-    else if (token === 'final') attribute.isFinal = true;
-}
-
-export function isEntityModifierForClass(modifier: EntityAttribute) {
-    return modifier.isAbstract || modifier.isFinal;
-}
-
 export interface FunctionAttribute {
     readonly isOverride: boolean,
     readonly isFinal: boolean,
     readonly isExplicit: boolean,
     readonly isProperty: boolean
-}
-
-export function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property') {
-    if (token === 'override') attribute.isOverride = true;
-    else if (token === 'final') attribute.isFinal = true;
-    else if (token === 'explicit') attribute.isExplicit = true;
-    else if (token === 'property') attribute.isProperty = true;
 }
 
 export enum NodeName {
@@ -219,7 +178,7 @@ export interface NodeFunc extends NodesBase {
     readonly statBlock: NodeStatBlock;
 }
 
-export interface FuncHeadReturns {
+export interface FuncHeadReturnValue {
     readonly returnType: NodeType;
     readonly isRef: boolean;
 }
@@ -230,9 +189,9 @@ export type FuncHeadDestructor = typeof funcHeadDestructor;
 export const funcHeadConstructor = Symbol();
 export type FuncHeadConstructor = typeof funcHeadConstructor;
 
-export type FuncHeads = FuncHeadReturns | FuncHeadDestructor | FuncHeadConstructor;
+export type FuncHeads = FuncHeadReturnValue | FuncHeadDestructor | FuncHeadConstructor;
 
-export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns {
+export function isFunctionHeadReturnValue(head: FuncHeads): head is FuncHeadReturnValue {
     return head !== funcHeadDestructor && head !== funcHeadConstructor;
 }
 
@@ -339,25 +298,6 @@ export interface NodeType extends NodesBase {
     readonly typeTemplates: NodeType[],
     readonly isArray: boolean,
     readonly refModifier: ReferenceModifier | undefined,
-}
-
-export function stringifyNodeType(type: NodeType): string {
-    let str = type.isConst ? 'const ' : '';
-    str += type.dataType.identifier.text;
-    if (type.typeTemplates.length > 0) {
-        str += '<' + type.typeTemplates.map(stringifyNodeType).join(', ') + '>';
-    }
-    if (type.isArray) {
-        str += '[]';
-    }
-    if (type.refModifier !== undefined) {
-        str += (type.refModifier === ReferenceModifier.AtConst ? '@const' : '@');
-    }
-    return str;
-}
-
-export function getIdentifierInType(type: NodeType): ParsedToken {
-    return type.dataType.identifier;
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'

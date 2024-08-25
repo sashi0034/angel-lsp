@@ -12,7 +12,8 @@ import {
     SymbolKind,
     SymbolScope
 } from "./symbolic";
-import {AccessModifier, getNodeLocation, NodeName, ParsedRange} from "./nodes";
+import {AccessModifier, NodeName, ParsedRange} from "./nodes";
+import {getNodeLocation} from "./nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");

@@ -1,18 +1,17 @@
 import {diagnostic} from "../code/diagnostic";
-import {getNodeLocation, ParsedRange, stringifyNodeType} from "./nodes";
+import {ParsedRange} from "./nodes";
 import {
     DeducedType,
-    PrimitiveType,
     resolveTemplateTypes,
     stringifyDeducedType,
     stringifyDeducedTypes,
     SymbolicFunction,
-    SymbolKind,
     SymbolScope,
     TemplateTranslation
 } from "./symbolic";
 import {isTypeMatch} from "./checkType";
 import {ParsedToken} from "./parsedToken";
+import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;

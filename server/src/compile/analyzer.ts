@@ -3,11 +3,7 @@
 import {
     AccessModifier,
     funcHeadDestructor,
-    getIdentifierInType,
-    getLocationBetween,
-    getNextTokenIfExist,
-    getNodeLocation,
-    isFunctionHeadReturns,
+    isFunctionHeadReturnValue,
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
@@ -103,6 +99,7 @@ import {checkFunctionMatch} from "./checkFunction";
 import {ParsedToken} from "./parsedToken";
 import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
 import assert = require("node:assert");
+import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
 
 type HoistingQueue = (() => void)[];
 
@@ -322,7 +319,7 @@ function hoistFunc(
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
         declaredScope: parentScope,
-        returnType: isFunctionHeadReturns(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
+        returnType: isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
         parameterTypes: [],
         sourceNode: nodeFunc,
         nextOverload: undefined,
