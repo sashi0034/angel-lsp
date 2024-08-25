@@ -56,23 +56,36 @@ export function createSymbolScopeAndInsert(
     return scope;
 }
 
+/**
+ * Represents the result of analyzing a file, such as scope information.
+ */
 export class AnalyzedScope {
+    /**
+     * The path of the file being analyzed.
+     */
     public readonly path: string;
-    public readonly fullScope: SymbolScope; // Include symbols from other modules as well. | 他モジュールのシンボルも含む
+    /**
+     * The scope that contains all symbols in the file.
+     * It includes symbols from other modules as well.
+     */
+    public readonly fullScope: SymbolScope;
 
-    private pureBuffer: SymbolScope | undefined; // Contains only its own module. | 自身のモジュールのみ含む
+    private pureBuffer: SymbolScope | undefined;
 
-    public constructor(path: string, full: SymbolScope) {
-        this.path = path;
-        this.fullScope = full;
-    }
-
+    /**
+     * The scope that contains only symbols in the file.
+     */
     public get pureScope(): SymbolScope {
         if (this.pureBuffer === undefined) {
             this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope, this.fullScope.key);
             copySymbolsInScope(this.fullScope, this.pureBuffer, {targetSrcPath: this.path});
         }
         return this.pureBuffer;
+    }
+
+    public constructor(path: string, full: SymbolScope) {
+        this.path = path;
+        this.fullScope = full;
     }
 }
 
@@ -125,6 +138,14 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
     }
 }
 
+/**
+ * Searches for a scope within the given scope that has an identifier matching the provided token.
+ * This search is non-recursive. If no matching scope is found, a new one is created and inserted.
+ * @param ownerNode The node associated with the scope.
+ * @param scope The scope to search within for a matching child scope.
+ * @param identifierToken The token of the identifier to search for.
+ * @returns The found or newly created scope.
+ */
 export function findScopeShallowlyOrInsert(
     ownerNode: SymbolOwnerNode | undefined,
     scope: SymbolScope,
@@ -132,8 +153,8 @@ export function findScopeShallowlyOrInsert(
 ): SymbolScope {
     const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
-        // When searching for a node that is not in the namespace, an error occurs if it is different from the search node.
-        // 名前空間でないノードを検索しているとき、それが検索ノードと異なっているときはエラー
+        // If searching for a non-namespace node, throw an error if it doesn't match the found node.
+        // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
         diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
     }
     return found;
