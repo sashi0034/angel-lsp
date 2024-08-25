@@ -2,16 +2,13 @@ import {diagnostic} from "../code/diagnostic";
 import {ParsedRange} from "./nodes";
 import {
     DeducedType,
-    resolveTemplateTypes,
-    stringifyDeducedType,
-    stringifyDeducedTypes,
     SymbolicFunction,
-    SymbolScope,
-    TemplateTranslation
+    SymbolScope
 } from "./symbolic";
 import {isTypeMatch} from "./checkType";
 import {ParsedToken} from "./parsedToken";
 import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
+import {resolveTemplateTypes, stringifyDeducedType, stringifyDeducedTypes, TemplateTranslation} from "./symbolUtils";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;

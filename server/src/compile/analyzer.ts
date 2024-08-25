@@ -52,34 +52,15 @@ import {
     ParsedRange
 } from "./nodes";
 import {
-    builtinBoolType,
-    builtinDoubleType,
-    builtinFloatType,
-    builtinIntType,
-    builtinSetterValueToken,
-    builtinStringType,
-    builtinThisToken,
-    ComplementKind,
     DeducedType,
-    findSymbolShallowly,
-    findSymbolWithParent,
-    getSymbolAndScopeIfExist,
-    hintsCompletionScope,
-    insertSymbolicObject,
-    isDeducedAutoType,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
-    stringifyDeducedType,
-    stringifyDeducedTypes,
     SymbolicFunction,
     SymbolicType,
     SymbolicVariable,
     SymbolKind,
-    SymbolScope,
-    TemplateTranslation,
-    tryGetBuiltInType,
-    tryInsertSymbolicObject
+    SymbolScope
 } from "./symbolic";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
@@ -100,6 +81,22 @@ import {ParsedToken} from "./parsedToken";
 import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
 import assert = require("node:assert");
 import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
+import {
+    builtinBoolType,
+    builtinDoubleType, builtinFloatType, builtinIntType,
+    builtinSetterValueToken, builtinStringType,
+    builtinThisToken,
+    tryGetBuiltInType
+} from "./symbolBuiltin";
+import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
+import {
+    findSymbolShallowly,
+    findSymbolWithParent,
+    getSymbolAndScopeIfExist,
+    insertSymbolicObject, isDeducedAutoType, stringifyDeducedType, stringifyDeducedTypes,
+    TemplateTranslation,
+    tryInsertSymbolicObject
+} from "./symbolUtils";
 
 type HoistingQueue = (() => void)[];
 
@@ -146,7 +143,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
     hoistScript(scopeIterator, nodeNamespace.script, queue, queue);
 
-    hintsCompletionScope(parentScope, scopeIterator, nodeNamespace.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scopeIterator, nodeNamespace.nodeRange);
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -216,7 +213,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    hintsCompletionScope(parentScope, scope, nodeClass.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scope, nodeClass.nodeRange);
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
@@ -374,7 +371,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    hintsCompletionScope(parentScope, scope, nodeInterface.nodeRange);
+    pushHintOfCompletionScopeToParent(parentScope, scope, nodeInterface.nodeRange);
 }
 
 function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
@@ -548,7 +545,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // スコープ内の補完情報を追加
-    hintsCompletionScope(scope.parentScope, scope, statBlock.nodeRange);
+    pushHintOfCompletionScopeToParent(scope.parentScope, scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {

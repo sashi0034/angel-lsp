@@ -25,7 +25,7 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
-import {stringifySymbolicObject} from "./compile/symbolic";
+import {stringifySymbolicObject} from "./compile/symbolUtils";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.

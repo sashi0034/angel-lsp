@@ -1,7 +1,5 @@
 import {Position, URI} from "vscode-languageserver";
 import {
-    ComplementHints,
-    ComplementKind,
     isSymbolInstanceMember,
     SymbolicObject,
     SymbolKind,
@@ -12,6 +10,7 @@ import {NodeName} from "../compile/nodes";
 import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/scope";
 import {isAllowedToAccessMember} from "../compile/checkType";
 import {isPositionInRange} from "../compile/tokenUtils";
+import {ComplementHints, ComplementKind} from "../compile/symbolComplement";
 
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI

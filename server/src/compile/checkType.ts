@@ -1,11 +1,8 @@
 import {
     DeducedType,
-    findSymbolShallowly,
     isSourcePrimitiveType,
     PrimitiveType,
-    resolveTemplateType,
     SourceType,
-    stringifyDeducedType,
     SymbolicFunction,
     SymbolicObject,
     SymbolicType,
@@ -17,6 +14,7 @@ import {getNodeLocation} from "./nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./scope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
+import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
 
 export function checkTypeMatch(
     src: DeducedType | undefined,
