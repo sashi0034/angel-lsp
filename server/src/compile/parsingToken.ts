@@ -1,13 +1,14 @@
 import {
     createEmptyLocation,
     createVirtualHighlight,
-    NumberLiterals,
-    TokenizingToken,
+    NumberLiterals, TokenBase,
+    TokenizedToken,
     TokenKind
 } from "./tokens";
 import {findAllReservedWordProperty} from "./tokenReserves";
+import {HighlightToken} from "../code/highlight";
 
-export type ParsingToken = TokenizingToken & {
+export type ParsingToken = TokenizedToken & {
     index: number;
     next: ParsingToken | undefined;
 }
@@ -55,4 +56,8 @@ export function createVirtualToken(
         ...result,
         kind: kind
     };
+}
+
+export function isVirtualToken(token: TokenBase): boolean {
+    return token.highlight.token === HighlightToken.Invalid;
 }

@@ -1,7 +1,7 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {isVirtualToken, TokenKind} from "./tokens";
-import {ParsingToken} from "./parsingToken";
+import {TokenKind} from "./tokens";
+import {isVirtualToken, ParsingToken} from "./parsingToken";
 import {
     ParseCachedData,
     ParseCacheKind,

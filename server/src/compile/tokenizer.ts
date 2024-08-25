@@ -6,7 +6,7 @@ import {
     ReservedWordProperty,
     TokenComment,
     TokenIdentifier,
-    TokenizingToken,
+    TokenizedToken,
     TokenKind,
     TokenNumber,
     TokenReserved,
@@ -222,7 +222,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 }
 
 // Check identifier token | 識別子解析
-function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizingToken | TokenIdentifier | undefined {
+function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizedToken | TokenIdentifier | undefined {
     const start = reading.getCursor();
     while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
         reading.stepFor(1);
@@ -254,8 +254,8 @@ function createHighlight(token: HighlightToken, modifier: HighlightModifier): Hi
     };
 }
 
-export function tokenize(str: string, path: string): TokenizingToken[] {
-    const tokens: TokenizingToken[] = [];
+export function tokenize(str: string, path: string): TokenizedToken[] {
+    const tokens: TokenizedToken[] = [];
     const reading = new TokenizingState(str);
     const unknownBuffer = new UnknownBuffer();
 

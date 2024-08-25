@@ -1,6 +1,10 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {Position, Range} from "vscode-languageserver";
 
+/**
+ * Tokenizer categorizes tokens into the following kinds.
+ * Unknown tokens such as non-alphanumeric characters are removed during the tokenization phase.
+ */
 export enum TokenKind {
     Reserved = 'Reserved',
     Identifier = 'Identifier',
@@ -62,14 +66,34 @@ export function createVirtualHighlight(): HighlightInfo {
     };
 }
 
+/**
+ * Base interface for all tokens.
+ * Every token is expected to have these properties.
+ */
 export interface TokenBase {
-    kind: TokenKind;
-    text: string;
-    location: LocationInfo;
+    /**
+     * Token type determined by tokenizer
+     */
+    readonly kind: TokenKind;
+    /**
+     * The text content of a token as it is
+     */
+    readonly text: string;
+    /**
+     * The location information of a token including the file path and the position within the file.
+     */
+    readonly location: LocationInfo;
+    /**
+     * Syntax highlighting information.
+     */
     highlight: HighlightInfo;
 }
 
-// Determine whether the two tokens match (performed regardless of the instance) | インスタンスに依らないトークンの一致判定
+/**
+ * Determines if two tokens are identical.
+ * This function does not check if they are the same instance;
+ * instead, it compares the members of each token object individually.
+ */
 export function isSameToken(l: TokenBase, r: TokenBase): boolean {
     return l.text === r.text
         && l.location.path === r.location.path
@@ -77,10 +101,6 @@ export function isSameToken(l: TokenBase, r: TokenBase): boolean {
         && l.location.start.character === r.location.start.character
         && l.location.end.line === r.location.end.line
         && l.location.end.character === r.location.end.character;
-}
-
-export function isVirtualToken(token: TokenBase): boolean {
-    return token.highlight.token === HighlightToken.Invalid;
 }
 
 export interface TokenReserved extends TokenBase {
@@ -124,4 +144,7 @@ export interface TokenComment extends TokenBase {
     kind: TokenKind.Comment;
 }
 
-export type TokenizingToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment
+/**
+ * TokenizingToken is a union type of all token types.
+ */
+export type TokenizedToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment

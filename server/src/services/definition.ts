@@ -1,13 +1,13 @@
 import {SymbolicObject, SymbolScope} from "../compile/symbolic";
 import {Location, Position} from "vscode-languageserver";
-import {isPositionInRange, TokenizingToken} from "../compile/tokens";
+import {isPositionInRange, TokenizedToken} from "../compile/tokens";
 import {ParsingToken} from "../compile/parsingToken";
 import {AnalyzedScope} from "../compile/scope";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.
  */
-export function getFileLocationOfToken(token: TokenizingToken): Location {
+export function getFileLocationOfToken(token: TokenizedToken): Location {
     return {
         uri: token.location.path.toString(),
         range: {

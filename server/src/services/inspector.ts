@@ -1,4 +1,4 @@
-import {TokenizingToken} from "../compile/tokens";
+import {TokenizedToken} from "../compile/tokens";
 import {Profiler} from "../code/profiler";
 import {tokenize} from "../compile/tokenizer";
 import {parseFromTokenized} from "../compile/parser";
@@ -21,7 +21,7 @@ interface InspectResult {
     content: string;
     diagnosticsInParser: Diagnostic[]; // An diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenizingToken[];
+    tokenizedTokens: TokenizedToken[];
     parsedAst: NodeScript;
     analyzedScope: AnalyzedScope;
     includedScopes: AnalyzedScope[];
@@ -214,7 +214,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     };
 }
 
-function getIncludePathFromToken(token: TokenizingToken): string {
+function getIncludePathFromToken(token: TokenizedToken): string {
     return token.text.substring(1, token.text.length - 1);
 }
 
@@ -245,7 +245,7 @@ function refreshScopeInIncludedScopes(includedScopes: AnalyzedScope[]): Analyzed
     });
 }
 
-function addErrorOfMissingIncludingFile(relativePath: string, includeFileTokens: TokenizingToken) {
+function addErrorOfMissingIncludingFile(relativePath: string, includeFileTokens: TokenizedToken) {
     diagnostic.addError(includeFileTokens.location, `File not found: "${relativePath}"`);
 }
 

@@ -1,7 +1,7 @@
 import {NodeScript} from "../compile/nodes";
 import {Position} from "vscode-languageserver";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {TokenBase, TokenizingToken} from "../compile/tokens";
+import {TokenBase, TokenizedToken} from "../compile/tokens";
 import {getGlobalSettings} from "../code/settings";
 
 interface IndentState {
@@ -33,7 +33,7 @@ export class FormatState {
 
     public constructor(
         private readonly content: string,
-        private readonly tokens: TokenizingToken[],
+        private readonly tokens: TokenizedToken[],
         private readonly ast: NodeScript
     ) {
         this.textLines = splitContent(content);
@@ -184,11 +184,11 @@ export function isEditedWrapAt(edits: TextEdit[], line: number) {
 
 // 文字が存在する位置に存在するトークンを一対一対応の写像で表現
 export class TokensMap {
-    private map: (TokenizingToken | undefined)[][] = [];
+    private map: (TokenizedToken | undefined)[][] = [];
 
-    public constructor(textLines: string[], tokens: TokenizingToken[]) {
+    public constructor(textLines: string[], tokens: TokenizedToken[]) {
         for (let i = 0; i < textLines.length; i++) {
-            const line: (TokenizingToken | undefined)[] = new Array(textLines[i].length).fill(undefined);
+            const line: (TokenizedToken | undefined)[] = new Array(textLines[i].length).fill(undefined);
             this.map.push(line);
         }
 
@@ -206,11 +206,11 @@ export class TokensMap {
         }
     }
 
-    public getToken(line: number, character: number): TokenizingToken | undefined {
+    public getToken(line: number, character: number): TokenizedToken | undefined {
         return this.map[line][character];
     }
 
-    public getTokenAt(pos: Position): TokenizingToken | undefined {
+    public getTokenAt(pos: Position): TokenizedToken | undefined {
         return this.map[pos.line][pos.character];
     }
 }
