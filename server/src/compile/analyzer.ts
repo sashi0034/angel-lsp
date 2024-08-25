@@ -63,7 +63,7 @@ import {
     SymbolScope
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {NumberLiterals, TokenKind} from "./tokens";
+import {LocationInfo, NumberLiterals, TokenKind} from "./tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -97,6 +97,7 @@ import {
     TemplateTranslation,
     tryInsertSymbolicObject
 } from "./symbolUtils";
+import {Mutable} from "../utils/utilities";
 
 type HoistingQueue = (() => void)[];
 
@@ -148,7 +149,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
-    const symbol: SymbolType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
@@ -180,7 +181,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
@@ -312,7 +313,7 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const symbol: SymbolFunction = {
+    const symbol: Mutable<SymbolFunction> = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
         declaredScope: parentScope,
@@ -351,7 +352,7 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolType = {
+    const symbol: Mutable<SymbolType> = {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
@@ -453,7 +454,7 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: SymbolFunction = {
+    const symbol: Mutable<SymbolFunction> = {
         symbolKind: SymbolKind.Function,
         declaredPlace: funcDef.identifier,
         declaredScope: parentScope,
@@ -718,7 +719,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // 名前空間に対する補完を行う
-        const complementRange = {...nextScope.location};
+        const complementRange: LocationInfo = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         parentScope.completionHints.push({
             complementKind: ComplementKind.Namespace,

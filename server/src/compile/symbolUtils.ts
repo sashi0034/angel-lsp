@@ -12,6 +12,7 @@ import {diagnostic} from "../code/diagnostic";
 import {ParsedToken} from "./parsedToken";
 import {isAnonymousIdentifier} from "./symbolScopes";
 import assert = require("node:assert");
+import {Mutable} from "../utils/utilities";
 
 /**
  * Returns the path to a file where the scope is defined.
@@ -36,7 +37,7 @@ export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject):
     if (canOverload === false) return hit;
 
     // Functions can be added as overloads | 関数はオーバーロードとして追加が可能
-    let cursor = hit;
+    let cursor: Mutable<SymbolFunction> = hit;
     for (; ;) {
         if (cursor.nextOverload === undefined) {
             cursor.nextOverload = symbol;

@@ -3,6 +3,7 @@ import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsedToken} from "./parsedToken";
 import {getPathOfScope} from "./symbolUtils";
+import {Mutable} from "../utils/utilities";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
@@ -143,7 +144,7 @@ function findScopeShallowlyOrInsertByIdentifier(
     scope: SymbolScope,
     identifier: string
 ): SymbolScope {
-    const found = scope.childScopes.get(identifier);
+    const found: Mutable<SymbolScope> | undefined = scope.childScopes.get(identifier);
     if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
     if (ownerNode === undefined) return found;
     if (found.ownerNode === undefined) found.ownerNode = ownerNode;

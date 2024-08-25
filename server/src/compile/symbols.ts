@@ -54,35 +54,35 @@ export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClas
  * The base interface for all symbols.
  */
 export interface SymbolBase {
-    symbolKind: SymbolKind;
-    declaredPlace: ParsedToken;
-    declaredScope: SymbolScope;
+    readonly symbolKind: SymbolKind;
+    readonly declaredPlace: ParsedToken;
+    readonly declaredScope: SymbolScope;
 }
 
 export interface SymbolType extends SymbolBase {
-    symbolKind: SymbolKind.Type;
-    sourceType: SourceType;
-    templateTypes?: ParsedToken[];
-    baseList?: (DeducedType | undefined)[];
-    isHandler?: boolean,
-    membersScope: SymbolScope | undefined;
+    readonly symbolKind: SymbolKind.Type;
+    readonly sourceType: SourceType;
+    readonly templateTypes?: ParsedToken[];
+    readonly baseList?: (DeducedType | undefined)[];
+    readonly isHandler?: boolean,
+    readonly membersScope: SymbolScope | undefined;
 }
 
 export interface SymbolFunction extends SymbolBase {
-    symbolKind: SymbolKind.Function;
-    sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
-    returnType: DeducedType | undefined;
-    parameterTypes: (DeducedType | undefined)[];
-    nextOverload: SymbolFunction | undefined;
-    isInstanceMember: boolean;
-    accessRestriction: AccessModifier | undefined;
+    readonly symbolKind: SymbolKind.Function;
+    readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
+    readonly returnType: DeducedType | undefined;
+    readonly parameterTypes: (DeducedType | undefined)[];
+    readonly nextOverload: SymbolFunction | undefined;
+    readonly isInstanceMember: boolean;
+    readonly accessRestriction: AccessModifier | undefined;
 }
 
 export interface SymbolVariable extends SymbolBase {
-    symbolKind: SymbolKind.Variable;
-    type: DeducedType | undefined;
-    isInstanceMember: boolean;
-    accessRestriction: AccessModifier | undefined;
+    readonly symbolKind: SymbolKind.Variable;
+    readonly type: DeducedType | undefined;
+    readonly isInstanceMember: boolean;
+    readonly accessRestriction: AccessModifier | undefined;
 }
 
 export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is SymbolFunction | SymbolVariable {
@@ -111,8 +111,8 @@ export type SymbolOwnerNode =
  * Information about a symbol that references a symbol declared elsewhere.
  */
 export interface ReferencedSymbolInfo {
-    declaredSymbol: SymbolicObject;
-    referencedToken: ParsedToken;
+    readonly declaredSymbol: SymbolicObject;
+    readonly referencedToken: ParsedToken;
 }
 
 export type ScopeMap = Map<string, SymbolScope>;
@@ -123,25 +123,25 @@ export type SymbolMap = Map<string, SymbolicObject>;
  * Information about the birth of a scope.
  */
 export interface ScopeBirthInfo {
-    ownerNode: SymbolOwnerNode | undefined;
-    parentScope: SymbolScope | undefined;
-    key: string;
+    readonly ownerNode: SymbolOwnerNode | undefined;
+    readonly parentScope: SymbolScope | undefined;
+    readonly key: string;
 }
 
 /**
  * Information about the child scopes and symbols contained in a scope.
  */
 export interface ScopeContainInfo {
-    childScopes: ScopeMap;
-    symbolMap: SymbolMap;
+    readonly childScopes: ScopeMap;
+    readonly symbolMap: SymbolMap;
 }
 
 /**
  * Information about the services provided by a scope.
  */
 export interface ScopeServiceInfo {
-    referencedList: ReferencedSymbolInfo[];
-    completionHints: ComplementHints[];
+    readonly referencedList: ReferencedSymbolInfo[];
+    readonly completionHints: ComplementHints[];
 }
 
 /**
@@ -151,16 +151,16 @@ export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServ
 }
 
 export interface SymbolAndScope {
-    symbol: SymbolicObject;
-    scope: SymbolScope;
+    readonly symbol: SymbolicObject;
+    readonly scope: SymbolScope;
 }
 
 /**
  * The type of symbol that has been resolved by deduction.
  */
 export interface DeducedType {
-    symbolType: SymbolType | SymbolFunction;
-    sourceScope: SymbolScope | undefined;
-    isHandler?: boolean;
-    templateTranslate?: TemplateTranslation;
+    readonly symbolType: SymbolType | SymbolFunction;
+    readonly sourceScope: SymbolScope | undefined;
+    readonly isHandler?: boolean;
+    readonly templateTranslate?: TemplateTranslation;
 }
