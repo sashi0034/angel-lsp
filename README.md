@@ -8,15 +8,12 @@ This is a Language Server for Visual Studio Code that offers features to make An
 # Introduction
 
 While there are already AngelScript Language Server extensions available for VSCode, many of them are platform-specific.
-
 For example, there are excellent Language Servers specialized for specific environments like 
-[Unreal Angelscript](https://marketplace.visualstudio.com/items?itemName=Hazelight.unreal-angelscript)  
-and
+[Unreal Angelscript](https://marketplace.visualstudio.com/items?itemName=Hazelight.unreal-angelscript) and
 [Openplanet Angelscript](https://marketplace.visualstudio.com/items?itemName=XertroV.openplanet-angelscript).
 Developers working in these environments are encouraged to use those options.
 
 However, if you are looking for a general-purpose Language Server that is not dependent on a particular application, this extension might be useful for you.
-
 This extension aims to serve as a universal Language Server, independent of any specific application that integrates AngelScript.
 
 
