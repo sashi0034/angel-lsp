@@ -549,7 +549,7 @@ function parseInterface(parser: ParserState): ParsedResult<NodeInterface> {
     const identifier = expectIdentifier(parser, HighlightToken.Interface);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    const result: NodeInterface = {
+    const result: Mutable<NodeInterface> = {
         nodeName: NodeName.Interface,
         nodeRange: {start: rangeStart, end: parser.prev()},
         entity: entity,
@@ -1369,7 +1369,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
         return ParseFailure.Pending;
     }
 
-    const result: NodeFor = {
+    const result: Mutable<NodeFor> = {
         nodeName: NodeName.For,
         nodeRange: {start: rangeStart, end: parser.prev()},
         initial: initial,
@@ -1405,7 +1405,7 @@ function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
     const assign = expectAssign(parser);
     if (assign === undefined) return ParseFailure.Pending;
 
-    const result: NodeWhile = {
+    const result: Mutable<NodeWhile> = {
         nodeName: NodeName.While,
         nodeRange: {start: rangeStart, end: parser.prev()},
         assign: assign,
@@ -1427,7 +1427,7 @@ function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
     const statement = expectStatement(parser);
     if (statement === undefined) return ParseFailure.Pending;
 
-    const result: NodeDoWhile = {
+    const result: Mutable<NodeDoWhile> = {
         nodeName: NodeName.DoWhile,
         nodeRange: {start: rangeStart, end: parser.prev()},
         statement: statement,
@@ -1457,7 +1457,7 @@ function parseIf(parser: ParserState): ParsedResult<NodeIf> {
     const assign = expectAssign(parser);
     if (assign === undefined) return ParseFailure.Pending;
 
-    const result: NodeIf = {
+    const result: Mutable<NodeIf> = {
         nodeName: NodeName.If,
         nodeRange: {start: rangeStart, end: parser.prev()},
         condition: assign,
@@ -1534,7 +1534,7 @@ function parseTry(parser: ParserState): ParsedResult<NodeTry> {
     const tryBlock = expectStatBlock(parser);
     if (tryBlock === undefined) return ParseFailure.Pending;
 
-    const result: NodeTry = {
+    const result: Mutable<NodeTry> = {
         nodeName: NodeName.Try,
         nodeRange: {start: rangeStart, end: parser.prev()},
         tryBlock: tryBlock,
@@ -1553,7 +1553,7 @@ function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
     const rangeStart = parser.next();
     parser.confirm(HighlightToken.Keyword);
 
-    const result: NodeReturn = {
+    const result: Mutable<NodeReturn> = {
         nodeName: NodeName.Return,
         nodeRange: {start: rangeStart, end: parser.prev()},
         assign: undefined
@@ -1907,7 +1907,7 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
 
     parser.expect('(', HighlightToken.Operator);
 
-    const result: NodeLambda = {
+    const result: Mutable<NodeLambda> = {
         nodeName: NodeName.Lambda,
         nodeRange: {start: rangeStart, end: parser.prev()},
         paramList: [],
