@@ -1,5 +1,6 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {Position, Range} from "vscode-languageserver";
+import {DeepReadonly} from "../utils/utilities";
 
 /**
  * Tokenizer categorizes tokens into the following kinds.
@@ -14,8 +15,10 @@ export enum TokenKind {
 }
 
 export interface LocationInfo extends Range {
-    readonly path: string;
+    path: string;
 }
+
+export type ReadonlyLocationInfo = DeepReadonly<LocationInfo>;
 
 export function createEmptyLocation(): LocationInfo {
     return {
@@ -82,7 +85,7 @@ export interface TokenBase {
     /**
      * The location information of a token including the file path and the position within the file.
      */
-    readonly location: LocationInfo;
+    readonly location: ReadonlyLocationInfo;
     /**
      * Syntax highlighting information.
      */
@@ -104,8 +107,8 @@ export function isSameToken(l: TokenBase, r: TokenBase): boolean {
 }
 
 export interface TokenReserved extends TokenBase {
-    kind: TokenKind.Reserved;
-    property: ReservedWordProperty;
+    readonly kind: TokenKind.Reserved;
+    readonly property: ReservedWordProperty;
 }
 
 export interface ReservedWordProperty {

@@ -1,8 +1,8 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
     HighlightInfo,
-    LocationInfo,
     NumberLiterals,
+    ReadonlyLocationInfo,
     ReservedWordProperty,
     TokenComment,
     TokenIdentifier,
@@ -15,6 +15,7 @@ import {
 import {diagnostic} from "../code/diagnostic";
 import {TokenizingState, UnknownBuffer} from "./tokenizingState";
 import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReservedWords";
+import {Position, Range} from "vscode-languageserver";
 
 function isDigit(c: string): boolean {
     return /^[0-9]$/.test(c);
@@ -36,8 +37,16 @@ function isAlphanumeric(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
+function copyLocationWithNewEnd(location: ReadonlyLocationInfo, end: Position): ReadonlyLocationInfo {
+    return {
+        path: location.path,
+        start: location.start,
+        end: end,
+    };
+}
+
 // Check comment token | コメント解析
-function tryComment(reading: TokenizingState, location: LocationInfo): TokenComment | undefined {
+function tryComment(reading: TokenizingState, location: ReadonlyLocationInfo): TokenComment | undefined {
     if (reading.isNext('//')) {
         return tokenizeLineComment(reading, location);
     } else if (reading.isNext('/*')) {
@@ -46,7 +55,7 @@ function tryComment(reading: TokenizingState, location: LocationInfo): TokenComm
     return undefined;
 }
 
-function createTokenComment(comment: string, location: LocationInfo): TokenComment | undefined {
+function createTokenComment(comment: string, location: ReadonlyLocationInfo): TokenComment | undefined {
     return {
         kind: TokenKind.Comment,
         text: comment,
@@ -55,18 +64,18 @@ function createTokenComment(comment: string, location: LocationInfo): TokenComme
     };
 }
 
-function tokenizeLineComment(reading: TokenizingState, location: LocationInfo) {
+function tokenizeLineComment(reading: TokenizingState, location: ReadonlyLocationInfo) {
     const start = reading.getCursor();
     reading.stepFor(2);
     for (; ;) {
         if (reading.isEnd() || reading.isNextWrap()) break;
         reading.stepNext();
     }
-    location.end = reading.copyHead();
-    return createTokenComment(reading.substrFrom(start), location);
+
+    return createTokenComment(reading.substrFrom(start), copyLocationWithNewEnd(location, reading.copyHead()));
 }
 
-function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) {
+function tokenizeBlockComment(reading: TokenizingState, location: ReadonlyLocationInfo) {
     const start = reading.getCursor();
     reading.stepFor(2);
     for (; ;) {
@@ -77,23 +86,22 @@ function tokenizeBlockComment(reading: TokenizingState, location: LocationInfo) 
         }
         reading.stepNext();
     }
-    location.end = reading.copyHead();
-    return createTokenComment(reading.substrFrom(start), location);
+
+    return createTokenComment(reading.substrFrom(start), copyLocationWithNewEnd(location, reading.copyHead()));
 }
 
 // Check number token | 数値解析
-function tryNumber(reading: TokenizingState, location: LocationInfo): TokenNumber | undefined {
+function tryNumber(reading: TokenizingState, location: ReadonlyLocationInfo): TokenNumber | undefined {
     const start = reading.getCursor();
 
     const numeric = consumeNumber(reading);
 
     if (start === reading.getCursor()) return undefined;
 
-    location.end = reading.copyHead();
     return {
         kind: TokenKind.Number,
         text: reading.substrFrom(start),
-        location: location,
+        location: copyLocationWithNewEnd(location, reading.copyHead()),
         highlight: createHighlight(HighlightToken.Number, HighlightModifier.Nothing),
         numeric: numeric
     };
@@ -158,7 +166,7 @@ function consumeNumber(reading: TokenizingState) {
 }
 
 // Check string token | 文字列解析
-function tryString(reading: TokenizingState, location: LocationInfo): TokenString | undefined {
+function tryString(reading: TokenizingState, location: ReadonlyLocationInfo): TokenString | undefined {
 
     const start = reading.getCursor();
     if (reading.next() !== '\'' && reading.next() !== '"') return undefined;
@@ -192,27 +200,25 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
         }
     }
 
-    location.end = reading.copyHead();
     return {
         kind: TokenKind.String,
         text: reading.substrFrom(start),
-        location: location,
+        location: copyLocationWithNewEnd(location, reading.copyHead()),
         highlight: createHighlight(HighlightToken.String, HighlightModifier.Nothing)
     };
 }
 
 // Check mark token | 記号解析
-function tryMark(reading: TokenizingState, location: LocationInfo): TokenReserved | undefined {
+function tryMark(reading: TokenizingState, location: ReadonlyLocationInfo): TokenReserved | undefined {
     const mark = findReservedWeakMarkProperty(reading.content, reading.getCursor());
     if (mark === undefined) return undefined;
 
     reading.stepFor(mark.key.length);
 
-    location.end = reading.copyHead();
-    return createTokenReserved(mark.key, mark.value, location);
+    return createTokenReserved(mark.key, mark.value, copyLocationWithNewEnd(location, reading.copyHead()));
 }
 
-function createTokenReserved(text: string, property: ReservedWordProperty, location: LocationInfo): TokenReserved {
+function createTokenReserved(text: string, property: ReservedWordProperty, location: ReadonlyLocationInfo): TokenReserved {
     return {
         kind: TokenKind.Reserved,
         text: text,
@@ -223,7 +229,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 }
 
 // Check identifier token | 識別子解析
-function tryIdentifier(reading: TokenizingState, location: LocationInfo): TokenizedToken | TokenIdentifier | undefined {
+function tryIdentifier(reading: TokenizingState, location: ReadonlyLocationInfo): TokenizedToken | TokenIdentifier | undefined {
     const start = reading.getCursor();
     while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
         reading.stepFor(1);
@@ -232,14 +238,14 @@ function tryIdentifier(reading: TokenizingState, location: LocationInfo): Tokeni
     const identifier = reading.substrFrom(start);
     if (identifier === "") return undefined;
 
-    location.end = reading.copyHead();
+    const tokenLocation = copyLocationWithNewEnd(location, reading.copyHead());
 
     const reserved = findReservedKeywordProperty(identifier);
-    if (reserved !== undefined) return createTokenReserved(identifier, reserved, location);
-    return createTokenIdentifier(identifier, location);
+    if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
+    return createTokenIdentifier(identifier, tokenLocation);
 }
 
-function createTokenIdentifier(identifier: string, location: LocationInfo): TokenIdentifier {
+function createTokenIdentifier(identifier: string, location: ReadonlyLocationInfo): TokenIdentifier {
     return {
         kind: TokenKind.Identifier,
         text: identifier,
@@ -268,7 +274,7 @@ export function tokenize(str: string, path: string): TokenizedToken[] {
             continue;
         }
 
-        const location: LocationInfo = {
+        const location: ReadonlyLocationInfo = {
             start: reading.copyHead(),
             end: reading.copyHead(),
             path: path
