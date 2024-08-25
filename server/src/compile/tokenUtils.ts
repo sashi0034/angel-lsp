@@ -1,5 +1,8 @@
 import {Position, Range} from "vscode-languageserver";
-import {TokenBase} from "./tokens";
+import {createEmptyLocation, createVirtualHighlight, NumberLiterals, TokenBase, TokenKind} from "./tokens";
+import {findAllReservedWordProperty} from "./tokenReservedWords";
+import {HighlightToken} from "../code/highlight";
+import {ParsedToken} from "./parsedToken";
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;
@@ -42,4 +45,61 @@ export function isSameToken(l: TokenBase, r: TokenBase): boolean {
         && l.location.start.character === r.location.start.character
         && l.location.end.line === r.location.end.line
         && l.location.end.character === r.location.end.character;
+}
+
+/**
+ * Determines if a given sequence of tokens matches the specified string sequence.
+ * For example, this can be used to check if tokens like ['>', '>'] form the string '>>'.
+ *
+ * @param head The starting token to check.
+ * @param targets The expected string sequence.
+ * @returns `true` if the tokens match the target sequence, otherwise `false`.
+ */
+export function isTokensLinkedBy(head: ParsedToken, targets: string[]): boolean {
+    if (head.text !== targets[0]) return false;
+
+    let cursor = head.next;
+    let column = head.location.end.character;
+    for (let i = 1; i < targets.length; i++) {
+        if (cursor === undefined || cursor.text !== targets[i]) return false;
+        if (cursor.location.start.line !== head.location.start.line) return false;
+        if (cursor.location.start.character !== column) return false;
+        column = cursor.location.end.character;
+        cursor = cursor.next;
+    }
+
+    return true;
+}
+
+export function createVirtualToken(
+    kind: TokenKind,
+    text: string
+): ParsedToken {
+    const result = {
+        text: text,
+        location: createEmptyLocation(),
+        highlight: createVirtualHighlight(),
+        index: -1,
+        next: undefined,
+    };
+
+    if (kind === TokenKind.Reserved) return {
+        ...result,
+        kind: TokenKind.Reserved,
+        property: findAllReservedWordProperty(text)
+    };
+    else if (kind === TokenKind.Number) return {
+        ...result,
+        kind: TokenKind.Number,
+        numeric: NumberLiterals.Integer
+    };
+
+    return {
+        ...result,
+        kind: kind
+    };
+}
+
+export function isVirtualToken(token: TokenBase): boolean {
+    return token.highlight.token === HighlightToken.Invalid;
 }

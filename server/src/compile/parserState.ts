@@ -1,29 +1,34 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
-import {isVirtualToken, ParsedToken} from "./parsedToken";
+import {ParsedToken} from "./parsedToken";
 import {
-    ParseCachedData,
-    ParseCacheKind,
-    ParseCacher, ParseCacheTargets
-} from "./parseCached";
+    ParsedCachedData,
+    ParsedCacheKind,
+    ParsedCacheServices, ParsedCacheTargets
+} from "./parsedCache";
+import {isVirtualToken} from "./tokenUtils";
 
 export enum ParseFailure {
     Mismatch = 'Mismatch',
     Pending = 'Pending',
 }
 
-export enum BreakThrough {
+export enum BreakOrThrough {
     Break = 'Break',
     Through = 'Through',
 }
 
-// Diagnostic messages are issued when 'Pending' occurs. | パース失敗時に診断メッセージを発行
+/**
+ * When a parsing error occurs, the parser may return a `ParsedResult<T>`.
+ * If the parser visits a function and the input is not in an acceptable format, 'Mismatch' is returned.
+ * If the input is in an acceptable format but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
+ * No diagnostic message is issued when a 'Mismatch' occurs, but when 'Pending' is returned, a diagnostic message is generated at that node.
+ */
+export type ParsedResult<T> = T | ParseFailure;
 
-export type TriedParse<T> = T | ParseFailure;
-
-export class ParsingState {
-    private readonly caches: (ParseCachedData<ParseCacheKind> | undefined)[] = [];
+export class ParserState {
+    private readonly caches: (ParsedCachedData<ParsedCacheKind> | undefined)[] = [];
 
     public constructor(
         private readonly tokens: ParsedToken[],
@@ -79,16 +84,23 @@ export class ParsingState {
         diagnostic.addError(this.next().location, message);
     }
 
-    public cache<T extends ParseCacheKind>(key: T): ParseCacher<T> {
+    /**
+     * At certain nodes, parsing results at a given index are cached using a DP-like approach.
+     * This caching mechanism helps improve performance by avoiding redundant parsing of the same tokens multiple times.
+     *
+     * @param key The cache key that identifies the type of parsing result to cache.
+     * @returns An object that allows restoring a cached result or storing a new one.
+     */
+    public cache<T extends ParsedCacheKind>(key: T): ParsedCacheServices<T> {
         const rangeStart = this.cursorIndex;
         const data = this.caches[rangeStart];
-        let restore: (() => ParseCacheTargets<T> | undefined) | undefined = undefined;
+        let restore: (() => ParsedCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
             this.cursorIndex = data.rangeEnd;
-            return data.data as ParseCacheTargets<T> | undefined;
+            return data.data as ParsedCacheTargets<T> | undefined;
         };
 
-        const store = (cache: ParseCacheTargets<T> | undefined) => {
+        const store = (cache: ParsedCacheTargets<T> | undefined) => {
             this.caches[rangeStart] = {
                 kind: key,
                 rangeEnd: this.cursorIndex,

@@ -11,11 +11,12 @@ import {
     NodeVirtualProp,
     ParsedRange
 } from "./nodes";
-import {createVirtualToken, ParsedToken} from "./parsedToken";
+import {ParsedToken} from "./parsedToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReservedWords";
 import assert = require("assert");
 import {createSymbolScope, isAnonymousIdentifier} from "./scope";
+import {createVirtualToken} from "./tokenUtils";
 
 export enum SymbolKind {
     Type = 'Type',
