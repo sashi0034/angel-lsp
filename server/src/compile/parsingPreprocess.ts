@@ -2,6 +2,7 @@ import {isSameLine, TokenizedToken, TokenKind} from "./tokens";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
+import {Mutable} from "../utils/utilities";
 
 /**
  * Output of the 'preprocessTokensForParser' function.
@@ -110,10 +111,12 @@ function sliceTokenListBySameLine(tokens: TokenizedToken[], head: number): Token
 }
 
 function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
-    const token = createVirtualToken(TokenKind.String, actualTokens[index].text + actualTokens[index + 1].text);
-    token.location.path = actualTokens[index].location.path;
-    token.location.start = actualTokens[index].location.start;
-    token.location.end = actualTokens[index + 1].location.end;
+    const token: Mutable<ParsingToken> = createVirtualToken(TokenKind.String, actualTokens[index].text + actualTokens[index + 1].text);
+    token.location = {
+        path: actualTokens[index].location.path,
+        start: actualTokens[index].location.start,
+        end: actualTokens[index + 1].location.end,
+    };
 
     return token;
 }

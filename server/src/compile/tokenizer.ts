@@ -14,7 +14,7 @@ import {
 } from "./tokens";
 import {diagnostic} from "../code/diagnostic";
 import {TokenizingState, UnknownBuffer} from "./tokenizingState";
-import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReserves";
+import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReservedWords";
 
 function isDigit(c: string): boolean {
     return /^[0-9]$/.test(c);
@@ -205,6 +205,7 @@ function tryString(reading: TokenizingState, location: LocationInfo): TokenStrin
 function tryMark(reading: TokenizingState, location: LocationInfo): TokenReserved | undefined {
     const mark = findReservedWeakMarkProperty(reading.content, reading.getCursor());
     if (mark === undefined) return undefined;
+
     reading.stepFor(mark.key.length);
 
     location.end = reading.copyHead();

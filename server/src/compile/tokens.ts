@@ -14,7 +14,7 @@ export enum TokenKind {
 }
 
 export interface LocationInfo extends Range {
-    path: string;
+    readonly path: string;
 }
 
 export function createEmptyLocation(): LocationInfo {
@@ -109,20 +109,20 @@ export interface TokenReserved extends TokenBase {
 }
 
 export interface ReservedWordProperty {
-    isMark: boolean;
-    isExprPreOp: boolean;
-    isExprOp: boolean;
-    isBitOp: boolean;
-    isMathOp: boolean;
-    isCompOp: boolean;
-    isLogicOp: boolean;
-    isAssignOp: boolean;
-    isNumber: boolean;
-    isPrimeType: boolean;
+    readonly isMark: boolean;
+    readonly isExprPreOp: boolean;
+    readonly isExprOp: boolean;
+    readonly isBitOp: boolean;
+    readonly isMathOp: boolean;
+    readonly isCompOp: boolean;
+    readonly isLogicOp: boolean;
+    readonly isAssignOp: boolean;
+    readonly isNumber: boolean;
+    readonly isPrimeType: boolean;
 }
 
 export interface TokenIdentifier extends TokenBase {
-    kind: TokenKind.Identifier;
+    readonly kind: TokenKind.Identifier;
 }
 
 export enum NumberLiterals {
@@ -132,16 +132,16 @@ export enum NumberLiterals {
 }
 
 export interface TokenNumber extends TokenBase {
-    kind: TokenKind.Number;
-    numeric: NumberLiterals;
+    readonly kind: TokenKind.Number;
+    readonly numeric: NumberLiterals;
 }
 
 export interface TokenString extends TokenBase {
-    kind: TokenKind.String;
+    readonly kind: TokenKind.String;
 }
 
 export interface TokenComment extends TokenBase {
-    kind: TokenKind.Comment;
+    readonly kind: TokenKind.Comment;
 }
 
 /**

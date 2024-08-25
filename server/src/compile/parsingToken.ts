@@ -5,7 +5,7 @@ import {
     TokenizedToken,
     TokenKind
 } from "./tokens";
-import {findAllReservedWordProperty} from "./tokenReserves";
+import {findAllReservedWordProperty} from "./tokenReservedWords";
 import {HighlightToken} from "../code/highlight";
 
 export type ParsingToken = TokenizedToken & {

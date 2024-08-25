@@ -13,7 +13,7 @@ import {
 } from "./nodes";
 import {createVirtualToken, ParsingToken} from "./parsingToken";
 import {diagnostic} from "../code/diagnostic";
-import {numberTypeSet} from "./tokenReserves";
+import {numberTypeSet} from "./tokenReservedWords";
 import assert = require("assert");
 import {createSymbolScope, isAnonymousIdentifier} from "./scope";
 
