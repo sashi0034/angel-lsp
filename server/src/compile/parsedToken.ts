@@ -8,12 +8,12 @@ import {
 import {findAllReservedWordProperty} from "./tokenReservedWords";
 import {HighlightToken} from "../code/highlight";
 
-export type ParsingToken = TokenizedToken & {
-    index: number;
-    next: ParsingToken | undefined;
+export type ParsedToken = TokenizedToken & {
+    readonly index: number;
+    readonly next: ParsedToken | undefined;
 }
 
-export function isTokensLinkedBy(head: ParsingToken, targets: string[]): boolean {
+export function isTokensLinkedBy(head: ParsedToken, targets: string[]): boolean {
     if (head.text !== targets[0]) return false;
 
     let cursor = head.next;
@@ -32,7 +32,7 @@ export function isTokensLinkedBy(head: ParsingToken, targets: string[]): boolean
 export function createVirtualToken(
     kind: TokenKind,
     text: string
-): ParsingToken {
+): ParsedToken {
     const result = {
         text: text,
         location: createEmptyLocation(),

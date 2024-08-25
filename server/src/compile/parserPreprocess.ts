@@ -1,5 +1,5 @@
 import {TokenizedToken, TokenKind} from "./tokens";
-import {createVirtualToken, ParsingToken} from "./parsingToken";
+import {createVirtualToken, ParsedToken} from "./parsedToken";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
 import {Mutable} from "../utils/utilities";
@@ -9,8 +9,8 @@ import {isSameLine} from "./tokenUtils";
  * Output of the 'preprocessTokensForParser' function.
  */
 export interface PreprocessedTokenOutput {
-    parsingTokens: ParsingToken[];
-    includeFiles: TokenizedToken[];
+    readonly parsingTokens: ParsedToken[];
+    readonly includeFiles: TokenizedToken[];
 }
 
 /**
@@ -20,7 +20,7 @@ export interface PreprocessedTokenOutput {
  */
 export function preprocessTokensForParser(tokens: TokenizedToken[]): PreprocessedTokenOutput {
     // Remove comments
-    const actualTokens: ParsingToken[] = tokens.filter(t => t.kind !== TokenKind.Comment).map(token => {
+    const actualTokens: Mutable<ParsedToken>[] = tokens.filter(t => t.kind !== TokenKind.Comment).map(token => {
         return {
             ...token,
             index: -1,
@@ -111,8 +111,8 @@ function sliceTokenListBySameLine(tokens: TokenizedToken[], head: number): Token
     return tokens.slice(head, tail + 1);
 }
 
-function createConnectedStringTokenAt(actualTokens: ParsingToken[], index: number): ParsingToken {
-    const token: Mutable<ParsingToken> = createVirtualToken(TokenKind.String, actualTokens[index].text + actualTokens[index + 1].text);
+function createConnectedStringTokenAt(actualTokens: ParsedToken[], index: number): ParsedToken {
+    const token: Mutable<ParsedToken> = createVirtualToken(TokenKind.String, actualTokens[index].text + actualTokens[index + 1].text);
     token.location = {
         path: actualTokens[index].location.path,
         start: actualTokens[index].location.start,

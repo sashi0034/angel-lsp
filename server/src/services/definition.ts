@@ -1,7 +1,7 @@
 import {SymbolicObject, SymbolScope} from "../compile/symbolic";
 import {Location, Position} from "vscode-languageserver";
 import {TokenizedToken} from "../compile/tokens";
-import {ParsingToken} from "../compile/parsingToken";
+import {ParsedToken} from "../compile/parsedToken";
 import {AnalyzedScope} from "../compile/scope";
 import {isPositionInRange} from "../compile/tokenUtils";
 
@@ -28,7 +28,7 @@ export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
-export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParsingToken | undefined {
+export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParsedToken | undefined {
     return serveDefinition(analyzedScope, caret)?.declaredPlace;
 }
 

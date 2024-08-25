@@ -1,7 +1,7 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind} from "./tokens";
-import {isVirtualToken, ParsingToken} from "./parsingToken";
+import {isVirtualToken, ParsedToken} from "./parsedToken";
 import {
     ParseCachedData,
     ParseCacheKind,
@@ -26,13 +26,13 @@ export class ParsingState {
     private readonly caches: (ParseCachedData<ParseCacheKind> | undefined)[] = [];
 
     public constructor(
-        private readonly tokens: ParsingToken[],
+        private readonly tokens: ParsedToken[],
         private cursorIndex: number = 0
     ) {
         this.caches = new Array(tokens.length);
     }
 
-    public backtrack(token: ParsingToken) {
+    public backtrack(token: ParsedToken) {
         this.cursorIndex = token.index;
     }
 
@@ -40,12 +40,12 @@ export class ParsingState {
         return this.cursorIndex >= this.tokens.length;
     }
 
-    public next(step: number = 0): ParsingToken {
+    public next(step: number = 0): ParsedToken {
         if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
         return this.tokens[this.cursorIndex + step];
     }
 
-    public prev(): ParsingToken {
+    public prev(): ParsedToken {
         if (this.cursorIndex <= 0) return this.tokens[0];
         return this.tokens[this.cursorIndex - 1];
     }

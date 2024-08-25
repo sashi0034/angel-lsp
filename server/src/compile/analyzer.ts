@@ -100,7 +100,7 @@ import {
     isSymbolConstructorInScope
 } from "./scope";
 import {checkFunctionMatch} from "./checkFunction";
-import {ParsingToken} from "./parsingToken";
+import {ParsedToken} from "./parsedToken";
 import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
 import assert = require("node:assert");
 
@@ -223,7 +223,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
-    const templateTypes: ParsingToken[] = [];
+    const templateTypes: ParsedToken[] = [];
     for (const type of types ?? []) {
         insertSymbolicObject(scope.symbolMap, {
             symbolKind: SymbolKind.Type,
@@ -426,7 +426,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 function analyzeVarInitializer(
     scope: SymbolScope,
     varType: DeducedType | undefined,
-    varIdentifier: ParsingToken,
+    varIdentifier: ParsedToken,
     initializer: NodeInitList | NodeAssign | NodeArgList
 ): DeducedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
@@ -631,7 +631,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
 
 function completeAnalyzingType(
     scope: SymbolScope,
-    identifier: ParsingToken,
+    identifier: ParsedToken,
     foundSymbol: SymbolicType | SymbolicFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
@@ -665,7 +665,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedTyp
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsingToken[] | undefined) {
+function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsedToken[] | undefined) {
     if (templateTypes === undefined) return undefined;
 
     const translation: TemplateTranslation = new Map();
@@ -901,7 +901,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefine
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
     type Term = [DeducedType | undefined, ParsedRange];
-    type Op = ParsingToken;
+    type Op = ParsedToken;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
         return 'text' in termOrOp;
@@ -951,7 +951,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefine
     return outputTerm.length > 0 ? outputTerm[0][0] : undefined;
 }
 
-function getOperatorPrecedence(operator: ParsingToken): number {
+function getOperatorPrecedence(operator: ParsedToken): number {
     const op = operator.text;
     switch (op) {
     case '**':
@@ -1044,7 +1044,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Deduced
 // CONSTRUCTCALL ::= TYPE ARGLIST
 function analyzeConstructorCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsingToken,
+    callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
     constructorType: DeducedType
 ): DeducedType | undefined {
@@ -1253,7 +1253,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
 
 function analyzeFunctionCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsingToken,
+    callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
     calleeFunc: SymbolicFunction,
     templateTranslate: TemplateTranslation | undefined
@@ -1298,7 +1298,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 }
 
 function analyzeVariableAccess(
-    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsingToken
+    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsedToken
 ): DeducedType | undefined {
     const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
@@ -1378,7 +1378,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function analyzeExprOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType | undefined, rhs: DeducedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1398,7 +1398,7 @@ function analyzeExprOp(
 }
 
 function analyzeOperatorAlias(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType | (DeducedType | undefined)[],
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
@@ -1439,7 +1439,7 @@ function analyzeOperatorAlias(
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1467,7 +1467,7 @@ const bitOpAliases = new Map<string, [string, string]>([
 
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1495,7 +1495,7 @@ const mathOpAliases = new Map<string, [string, string]>([
 
 // COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1523,7 +1523,7 @@ const compOpAliases = new Map<string, string>([
 
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 function analyzeLogicOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType, rhs: DeducedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
@@ -1534,7 +1534,7 @@ function analyzeLogicOp(
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
-    scope: SymbolScope, operator: ParsingToken,
+    scope: SymbolScope, operator: ParsedToken,
     lhs: DeducedType | undefined, rhs: DeducedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {

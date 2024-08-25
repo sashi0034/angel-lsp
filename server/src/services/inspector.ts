@@ -14,7 +14,7 @@ import {URL} from "url";
 import * as path from "node:path";
 import * as fs from "fs";
 import {fileURLToPath} from "node:url";
-import {preprocessTokensForParser} from "../compile/parsingPreprocess";
+import {preprocessTokensForParser} from "../compile/parserPreprocess";
 import {getGlobalSettings} from "../code/settings";
 
 interface InspectResult {

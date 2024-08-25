@@ -68,7 +68,7 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
-import {createVirtualToken, isTokensLinkedBy, ParsingToken} from "./parsingToken";
+import {createVirtualToken, isTokensLinkedBy, ParsedToken} from "./parsedToken";
 import {TokenKind} from "./tokens";
 import {BreakThrough, ParseFailure, ParsingState, TriedParse} from "./parsingState";
 import {ParseCacheKind} from "./parseCached";
@@ -168,7 +168,7 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     const rangeStart = parsing.next();
     parsing.confirm(HighlightToken.Builtin);
 
-    const namespaceList: ParsingToken[] = [];
+    const namespaceList: ParsedToken[] = [];
     while (parsing.isEnd() === false) {
         const identifier = expectIdentifier(parsing, HighlightToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
@@ -194,14 +194,14 @@ function parseNamespace(parsing: ParsingState): TriedParse<NodeNamespace> {
     };
 }
 
-function parseIdentifier(parsing: ParsingState, kind: HighlightToken): ParsingToken | undefined {
+function parseIdentifier(parsing: ParsingState, kind: HighlightToken): ParsedToken | undefined {
     const identifier = parsing.next();
     if (identifier.kind !== TokenKind.Identifier) return undefined;
     parsing.confirm(kind);
     return identifier;
 }
 
-function expectIdentifier(parsing: ParsingState, kind: HighlightToken): ParsingToken | undefined {
+function expectIdentifier(parsing: ParsingState, kind: HighlightToken): ParsedToken | undefined {
     const identifier = parseIdentifier(parsing, kind);
     if (identifier === undefined) {
         parsing.error("Expected identifier ❌");
@@ -318,7 +318,7 @@ function parseClass(parsing: ParsingState): TriedParse<NodeClass> {
 
     const typeTemplates = parseTypeTemplates(parsing);
 
-    const baseList: ParsingToken[] = [];
+    const baseList: ParsedToken[] = [];
     if (parsing.next().text === ':') {
         parsing.confirm(HighlightToken.Operator);
         while (parsing.isEnd() === false) {
@@ -930,7 +930,7 @@ function parseParamList(parsing: ParsingState): NodeParamList | undefined {
 
         const typeMod = parseTypeMod(parsing);
 
-        let identifier: ParsingToken | undefined = undefined;
+        let identifier: ParsedToken | undefined = undefined;
         if (parsing.next().kind === TokenKind.Identifier) {
             identifier = parsing.next();
             parsing.confirm(HighlightToken.Variable);
@@ -1149,7 +1149,7 @@ function parseScope(parsing: ParsingState): NodeScope | undefined {
         isGlobal = true;
     }
 
-    const scopeList: ParsingToken[] = [];
+    const scopeList: ParsedToken[] = [];
     let typeTemplates: NodeType[] | undefined = undefined;
     while (parsing.isEnd() === false) {
         const identifier = parsing.next(0);
@@ -1687,7 +1687,7 @@ function parseExprTerm1(parsing: ParsingState): NodeExprTerm1 | undefined {
 function parseExprTerm2(parsing: ParsingState): NodeExprTerm2 | undefined {
     const rangeStart = parsing.next();
 
-    const preOps: ParsingToken[] = [];
+    const preOps: ParsedToken[] = [];
     while (parsing.isEnd() === false) {
         const next = parsing.next();
         if (next.kind !== TokenKind.Reserved || next.property.isExprPreOp === false) break;
@@ -1857,7 +1857,7 @@ function parseExprPostOp2(parsing: ParsingState): NodeExprPostOp2 | undefined {
 }
 
 // [IDENTIFIER ':']
-function parseIdentifierWithColon(parsing: ParsingState): ParsingToken | undefined {
+function parseIdentifierWithColon(parsing: ParsingState): ParsedToken | undefined {
     if (parsing.next(0).kind === TokenKind.Identifier && parsing.next(1).text === ':') {
         const identifier = parsing.next();
         parsing.confirm(HighlightToken.Parameter);
@@ -1922,7 +1922,7 @@ const parseLambda = (parsing: ParsingState): TriedParse<NodeLambda> => {
 
         const type = parseType(parsing);
         const typeMod = type !== undefined ? parseTypeMod(parsing) : undefined;
-        const identifier: ParsingToken | undefined = parseIdentifier(parsing, HighlightToken.Parameter);
+        const identifier: ParsedToken | undefined = parseIdentifier(parsing, HighlightToken.Parameter);
         result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
@@ -2125,7 +2125,7 @@ function parseNotIsOperator(parsing: ParsingState) {
     parsing.confirm(HighlightToken.Builtin);
     parsing.confirm(HighlightToken.Builtin);
 
-    return {...uniqueNotIsToken, location: location} satisfies ParsingToken;
+    return {...uniqueNotIsToken, location: location} satisfies ParsedToken;
 }
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -2153,11 +2153,11 @@ const uniqueBitShiftRightArithmeticAssignToken = createVirtualToken(TokenKind.Re
 function getNextLinkedGreaterThan(parsing: ParsingState) {
     if (parsing.next().text !== '>') return parsing.next();
 
-    const check = (targets: string[], uniqueToken: ParsingToken) => {
+    const check = (targets: string[], uniqueToken: ParsedToken) => {
         if (isTokensLinkedBy(parsing.next(1), targets) === false) return undefined;
         const location = getLocationBetween(parsing.next(0), parsing.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parsing.confirm(HighlightToken.Operator);
-        return {...uniqueToken, location: location} satisfies ParsingToken;
+        return {...uniqueToken, location: location} satisfies ParsedToken;
     };
 
     // '>='
@@ -2183,7 +2183,7 @@ function getNextLinkedGreaterThan(parsing: ParsingState) {
     return parsing.next();
 }
 
-export function parseFromTokenized(tokens: ParsingToken[]): NodeScript {
+export function parseFromTokenized(tokens: ParsedToken[]): NodeScript {
     const parsing = new ParsingState(tokens);
 
     const script: NodeScript = [];

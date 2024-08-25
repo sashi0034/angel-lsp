@@ -1,5 +1,5 @@
 import {LocationInfo, TokenReserved} from "./tokens";
-import {ParsingToken} from "./parsingToken";
+import {ParsedToken} from "./parsedToken";
 
 export enum AccessModifier {
     Private = 'Private',
@@ -18,11 +18,11 @@ export enum ReferenceModifier {
 }
 
 export interface ParsedRange {
-    start: ParsingToken;
-    end: ParsingToken;
+    start: ParsedToken;
+    end: ParsedToken;
 }
 
-export function getNextTokenIfExist(token: ParsingToken): ParsingToken {
+export function getNextTokenIfExist(token: ParsedToken): ParsedToken {
     if (token.next !== undefined) return token.next;
     return token;
 }
@@ -31,7 +31,7 @@ export function isRangeInOneLine(range: ParsedRange): boolean {
     return range.start.location.start.line === range.end.location.end.line;
 }
 
-export function getLocationBetween(start: ParsingToken, end: ParsingToken): LocationInfo {
+export function getLocationBetween(start: ParsedToken, end: ParsedToken): LocationInfo {
     return {
         path: start.location.path,
         start: start.location.start,
@@ -162,7 +162,7 @@ export type NodeScriptMember =
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
     nodeName: NodeName.Namespace
-    namespaceList: ParsingToken[],
+    namespaceList: ParsedToken[],
     script: NodeScript
 }
 
@@ -171,12 +171,12 @@ export interface NodeEnum extends NodesBase {
     nodeName: NodeName.Enum;
     scopeRange: ParsedRange;
     entity: EntityAttribute | undefined;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     memberList: ParsedEnumMember[];
 }
 
 export interface ParsedEnumMember {
-    identifier: ParsingToken,
+    identifier: ParsedToken,
     expr: NodeExpr | undefined
 }
 
@@ -185,17 +185,17 @@ export interface NodeClass extends NodesBase {
     nodeName: NodeName.Class;
     scopeRange: ParsedRange;
     entity: EntityAttribute | undefined;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     typeTemplates: NodeType[] | undefined;
-    baseList: ParsingToken[];
+    baseList: ParsedToken[];
     memberList: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[];
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 export interface NodeTypeDef extends NodesBase {
     nodeName: NodeName.TypeDef;
-    type: ParsingToken;
-    identifier: ParsingToken;
+    type: ParsedToken;
+    identifier: ParsedToken;
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -204,7 +204,7 @@ export interface NodeFunc extends NodesBase {
     entity: EntityAttribute | undefined;
     accessor: AccessModifier | undefined;
     head: FuncHeads;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     paramList: NodeParamList;
     isConst: boolean;
     funcAttr: FunctionAttribute | undefined;
@@ -232,8 +232,8 @@ export function isFunctionHeadReturns(head: FuncHeads): head is FuncHeadReturns 
 export interface NodeInterface extends NodesBase {
     nodeName: NodeName.Interface;
     entity: EntityAttribute | undefined;
-    identifier: ParsingToken;
-    baseList: ParsingToken[];
+    identifier: ParsedToken;
+    baseList: ParsedToken[];
     memberList: (NodeVirtualProp | NodeIntfMethod)[];
 }
 
@@ -246,7 +246,7 @@ export interface NodeVar extends NodesBase {
 }
 
 export interface ParsedVariableInit {
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     initializer: NodeInitList | NodeAssign | NodeArgList | undefined;
 }
 
@@ -255,10 +255,10 @@ export interface NodeImport extends NodesBase {
     nodeName: NodeName.Import;
     type: NodeType;
     isRef: boolean;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     paramList: NodeParamList;
     funcAttr: FunctionAttribute | undefined;
-    path: ParsingToken;
+    path: ParsedToken;
 }
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
@@ -267,7 +267,7 @@ export interface NodeFuncDef extends NodesBase {
     entity: EntityAttribute | undefined;
     returnType: NodeType;
     isRef: boolean;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     paramList: NodeParamList;
 }
 
@@ -277,7 +277,7 @@ export interface NodeVirtualProp extends NodesBase {
     accessor: AccessModifier | undefined,
     type: NodeType,
     isRef: boolean,
-    identifier: ParsingToken,
+    identifier: ParsedToken,
     getter: ParsedGetterSetter | undefined,
     setter: ParsedGetterSetter | undefined
 }
@@ -299,7 +299,7 @@ export interface NodeIntfMethod extends NodesBase {
     nodeName: NodeName.IntfMethod;
     returnType: NodeType;
     isRef: boolean;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
     paramList: NodeParamList;
     isConst: boolean;
 }
@@ -316,7 +316,7 @@ export type NodeParamList = ParsedTypeIdentifier[];
 export interface ParsedTypeIdentifier {
     type: NodeType,
     modifier: TypeModifier | undefined,
-    identifier: ParsingToken | undefined
+    identifier: ParsedToken | undefined
     defaultExpr: NodeExpr | undefined
 }
 
@@ -348,7 +348,7 @@ export function stringifyNodeType(type: NodeType): string {
     return str;
 }
 
-export function getIdentifierInType(type: NodeType): ParsingToken {
+export function getIdentifierInType(type: NodeType): ParsedToken {
     return type.dataType.identifier;
 }
 
@@ -362,14 +362,14 @@ export interface NodeInitList extends NodesBase {
 export interface NodeScope extends NodesBase {
     nodeName: NodeName.Scope
     isGlobal: boolean,
-    scopeList: ParsingToken[],
+    scopeList: ParsedToken[],
     typeTemplates: NodeType[]
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export interface NodeDataType extends NodesBase {
     nodeName: NodeName.DataType;
-    identifier: ParsingToken;
+    identifier: ParsedToken;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -472,7 +472,7 @@ export interface NodeExpr extends NodesBase {
 }
 
 export interface ParsedOpExpr {
-    operator: ParsingToken,
+    operator: ParsedToken,
     expression: NodeExpr
 }
 
@@ -491,7 +491,7 @@ export interface NodeExprTerm1 extends NodesBase {
 export interface NodeExprTerm2 extends NodesBase {
     nodeName: NodeName.ExprTerm
     exprTerm: 2,
-    preOps: ParsingToken[],
+    preOps: ParsedToken[],
     value: NodeExprValue,
     postOps: NodeExprPostOp[]
 }
@@ -522,10 +522,10 @@ export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3
 export interface NodeExprPostOp1 extends NodesBase {
     nodeName: NodeName.ExprPostOp;
     postOp: 1;
-    member: NodeFuncCall | ParsingToken | undefined;
+    member: NodeFuncCall | ParsedToken | undefined;
 }
 
-export function isMemberMethodInPostOp(member: NodeFuncCall | ParsingToken | undefined): member is NodeFuncCall {
+export function isMemberMethodInPostOp(member: NodeFuncCall | ParsedToken | undefined): member is NodeFuncCall {
     return member !== undefined && 'nodeName' in member;
 }
 
@@ -537,7 +537,7 @@ export interface NodeExprPostOp2 extends NodesBase {
 }
 
 export interface ParsedPostIndexer {
-    identifier: ParsingToken | undefined,
+    identifier: ParsedToken | undefined,
     assign: NodeAssign
 }
 
@@ -572,20 +572,20 @@ export interface NodeLambda extends NodesBase {
 export interface ParsedLambdaParams {
     type: NodeType | undefined,
     typeMod: TypeModifier | undefined,
-    identifier: ParsingToken | undefined
+    identifier: ParsedToken | undefined
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLiteral extends NodesBase {
     nodeName: NodeName.Literal;
-    value: ParsingToken;
+    value: ParsedToken;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFuncCall extends NodesBase {
     nodeName: NodeName.FuncCall
     scope: NodeScope | undefined,
-    identifier: ParsingToken,
+    identifier: ParsedToken,
     argList: NodeArgList
 }
 
@@ -593,7 +593,7 @@ export interface NodeFuncCall extends NodesBase {
 export interface NodeVarAccess extends NodesBase {
     nodeName: NodeName.VarAccess;
     scope: NodeScope | undefined;
-    identifier: ParsingToken | undefined;
+    identifier: ParsedToken | undefined;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
@@ -603,7 +603,7 @@ export interface NodeArgList extends NodesBase {
 }
 
 export interface ParsedArgument {
-    identifier: ParsingToken | undefined,
+    identifier: ParsedToken | undefined,
     assign: NodeAssign
 }
 
@@ -615,7 +615,7 @@ export interface NodeAssign extends NodesBase {
 }
 
 export interface ParsedAssignTail {
-    operator: ParsingToken,
+    operator: ParsedToken,
     assign: NodeAssign
 }
 

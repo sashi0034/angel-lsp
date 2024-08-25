@@ -11,7 +11,7 @@ import {
     NodeVirtualProp,
     ParsedRange
 } from "./nodes";
-import {createVirtualToken, ParsingToken} from "./parsingToken";
+import {createVirtualToken, ParsedToken} from "./parsedToken";
 import {diagnostic} from "../code/diagnostic";
 import {numberTypeSet} from "./tokenReservedWords";
 import assert = require("assert");
@@ -46,14 +46,14 @@ export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClas
 
 export interface SymbolicBase {
     symbolKind: SymbolKind;
-    declaredPlace: ParsingToken;
+    declaredPlace: ParsedToken;
     declaredScope: SymbolScope;
 }
 
 export interface SymbolicType extends SymbolicBase {
     symbolKind: SymbolKind.Type;
     sourceType: SourceType;
-    templateTypes?: ParsingToken[];
+    templateTypes?: ParsedToken[];
     baseList?: (DeducedType | undefined)[];
     isHandler?: boolean,
     membersScope: SymbolScope | undefined;
@@ -95,7 +95,7 @@ export type SymbolOwnerNode =
 
 export interface ReferencedSymbolInfo {
     declaredSymbol: SymbolicObject;
-    referencedToken: ParsingToken;
+    referencedToken: ParsedToken;
 }
 
 export type ScopeMap = Map<string, SymbolScope>;
@@ -170,7 +170,7 @@ export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject):
     }
 }
 
-export type TemplateTranslation = Map<ParsingToken, DeducedType | undefined>;
+export type TemplateTranslation = Map<ParsedToken, DeducedType | undefined>;
 
 export function resolveTemplateType(
     templateTranslate: TemplateTranslation, type: DeducedType | undefined
@@ -293,12 +293,12 @@ export interface ComplementType extends ComplementBase {
 
 export interface CompletionNamespace extends ComplementBase {
     complementKind: ComplementKind.Namespace;
-    namespaceList: ParsingToken[];
+    namespaceList: ParsedToken[];
 }
 
 export type ComplementHints = ComplementScope | ComplementType | CompletionNamespace;
 
-function createBuiltinType(virtualToken: ParsingToken, name: PrimitiveType): SymbolicType {
+function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): SymbolicType {
     return {
         symbolKind: SymbolKind.Type,
         declaredPlace: virtualToken,
@@ -338,7 +338,7 @@ export const builtinAnyType: SymbolicType = createBuiltinType(createVirtualToken
 
 export const builtinAutoType: SymbolicType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'auto'), PrimitiveType.Auto);
 
-export function tryGetBuiltInType(token: ParsingToken): SymbolicType | undefined {
+export function tryGetBuiltInType(token: ParsedToken): SymbolicType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;

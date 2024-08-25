@@ -12,11 +12,11 @@ import {
     TemplateTranslation
 } from "./symbolic";
 import {isTypeMatch} from "./checkType";
-import {ParsingToken} from "./parsingToken";
+import {ParsedToken} from "./parsedToken";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
-    callerIdentifier: ParsingToken;
+    callerIdentifier: ParsedToken;
     callerRange: ParsedRange;
     callerArgRanges: ParsedRange[];
     callerArgTypes: (DeducedType | undefined)[];
@@ -31,7 +31,7 @@ export function checkFunctionMatch(
     return checkFunctionMatchInternal(args, args.calleeFunc);
 }
 
-function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsingToken, scope: SymbolScope, calleeFunc: SymbolicFunction) {
+function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: SymbolScope, calleeFunc: SymbolicFunction) {
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 
