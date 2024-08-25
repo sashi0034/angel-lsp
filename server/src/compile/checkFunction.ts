@@ -4,7 +4,7 @@ import {
     DeducedType,
     SymbolicFunction,
     SymbolScope
-} from "./symbolic";
+} from "./symbols";
 import {isTypeMatch} from "./checkType";
 import {ParsedToken} from "./parsedToken";
 import {getNodeLocation, stringifyNodeType} from "./nodesUtils";

@@ -7,10 +7,10 @@ import {
     SymbolKind,
     SymbolMap,
     SymbolScope
-} from "./symbolic";
+} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {ParsedToken} from "./parsedToken";
-import {isAnonymousIdentifier} from "./scope";
+import {isAnonymousIdentifier} from "./symbolScopes";
 import assert = require("node:assert");
 
 /**

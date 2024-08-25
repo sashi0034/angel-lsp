@@ -1,4 +1,4 @@
-import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbolic";
+import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsedToken} from "./parsedToken";

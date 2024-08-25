@@ -61,7 +61,7 @@ import {
     SymbolicVariable,
     SymbolKind,
     SymbolScope
-} from "./symbolic";
+} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NumberLiterals, TokenKind} from "./tokens";
 import {
@@ -75,7 +75,7 @@ import {
     findScopeShallowlyOrInsert,
     findScopeWithParentByNodes,
     isSymbolConstructorInScope
-} from "./scope";
+} from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsedToken} from "./parsedToken";
 import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";

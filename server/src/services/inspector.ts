@@ -5,7 +5,7 @@ import {parseFromTokenized} from "../compile/parser";
 import {analyzeFromParsed} from "../compile/analyzer";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
-import {AnalyzedScope, createSymbolScope} from "../compile/scope";
+import {AnalyzedScope, createSymbolScope} from "../compile/symbolScopes";
 import {tracer} from "../code/tracer";
 import {NodeScript} from "../compile/nodes";
 import {URI} from "vscode-languageserver";

@@ -1,9 +1,9 @@
 import {ParsedToken} from "./parsedToken";
-import {createSymbolScope} from "./scope";
+import {createSymbolScope} from "./symbolScopes";
 import {createVirtualToken} from "./tokenUtils";
 import {TokenKind} from "./tokens";
 import {numberTypeSet} from "./tokenReservedWords";
-import {PrimitiveType, SymbolicType, SymbolKind} from "./symbolic";
+import {PrimitiveType, SymbolicType, SymbolKind} from "./symbols";
 import assert = require("node:assert");
 
 function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): SymbolicType {

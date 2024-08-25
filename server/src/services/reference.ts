@@ -1,8 +1,8 @@
-import {SymbolScope} from "../compile/symbolic";
+import {SymbolScope} from "../compile/symbols";
 import {Position} from "vscode-languageserver";
 import {ParsedToken} from "../compile/parsedToken";
 import {serveDefinitionAsToken} from "./definition";
-import {AnalyzedScope} from "../compile/scope";
+import {AnalyzedScope} from "../compile/symbolScopes";
 import {isSameToken} from "../compile/tokenUtils";
 
 export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParsedToken[] {

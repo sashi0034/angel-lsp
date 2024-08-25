@@ -2,7 +2,7 @@ import {ParsedRange} from "./nodes";
 import {getNodeLocation} from "./nodesUtils";
 import {LocationInfo} from "./tokens";
 import {ParsedToken} from "./parsedToken";
-import {SymbolicType, SymbolScope} from "./symbolic";
+import {SymbolicType, SymbolScope} from "./symbols";
 
 /**
  * Types of autocomplete targets

@@ -8,10 +8,10 @@ import {
     SymbolicType,
     SymbolKind,
     SymbolScope
-} from "./symbolic";
+} from "./symbols";
 import {AccessModifier, NodeName, ParsedRange} from "./nodes";
 import {getNodeLocation} from "./nodesUtils";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./scope";
+import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
