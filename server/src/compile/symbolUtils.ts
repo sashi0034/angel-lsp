@@ -3,7 +3,7 @@ import {
     PrimitiveType,
     SymbolAndScope,
     SymbolFunction,
-    SymbolicObject,
+    SymbolObject,
     SymbolKind,
     SymbolMap,
     SymbolScope
@@ -30,7 +30,7 @@ export function getPathOfScope(scope: SymbolScope): string | undefined {
  * @param map The map to insert the symbol
  * @param symbol The symbol for insertion
  */
-export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): SymbolicObject | undefined {
+export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): SymbolObject | undefined {
     const identifier = symbol.declaredPlace.text;
     const hit = map.get(identifier);
     if (hit === undefined) {
@@ -52,8 +52,8 @@ export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject):
     }
 }
 
-export function insertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): boolean {
-    const result = tryInsertSymbolicObject(map, symbol);
+export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolean {
+    const result = tryInsertSymbolObject(map, symbol);
     if (result !== undefined) {
         diagnostic.addError(symbol.declaredPlace.location, `Symbol '${symbol.declaredPlace.text}' is already defined 💢`);
     }
@@ -131,7 +131,7 @@ export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): strin
 /**
  * Build a string representation of a symbol object.
  */
-export function stringifySymbolicObject(symbol: SymbolicObject): string {
+export function stringifySymbolObject(symbol: SymbolObject): string {
     const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
     if (symbol.symbolKind === SymbolKind.Type) {
         return fullName;
@@ -145,11 +145,11 @@ export function stringifySymbolicObject(symbol: SymbolicObject): string {
     assert(false);
 }
 
-export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolicObject | undefined {
+export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObject | undefined {
     return scope.symbolMap.get(identifier);
 }
 
-export function getSymbolAndScopeIfExist(symbol: SymbolicObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
+export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};
 }

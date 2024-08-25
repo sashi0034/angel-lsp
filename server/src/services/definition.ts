@@ -1,4 +1,4 @@
-import {SymbolicObject, SymbolScope} from "../compile/symbols";
+import {SymbolObject, SymbolScope} from "../compile/symbols";
 import {Location, Position} from "vscode-languageserver";
 import {TokenizedToken} from "../compile/tokens";
 import {ParsedToken} from "../compile/parsedToken";
@@ -21,7 +21,7 @@ export function getFileLocationOfToken(token: TokenizedToken): Location {
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): SymbolicObject | undefined {
+export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): SymbolObject | undefined {
     return serveDefinitionInternal(analyzedScope.fullScope, caret, analyzedScope.path);
 }
 
@@ -32,7 +32,7 @@ export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Posi
     return serveDefinition(analyzedScope, caret)?.declaredPlace;
 }
 
-function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolicObject | undefined {
+function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolMap) {
         const location = symbol.declaredPlace.location;

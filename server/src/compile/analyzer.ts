@@ -93,11 +93,15 @@ import {
     findSymbolShallowly,
     findSymbolWithParent,
     getSymbolAndScopeIfExist,
-    insertSymbolicObject, isDeducedAutoType, stringifyDeducedType, stringifyDeducedTypes,
+    insertSymbolObject,
+    isDeducedAutoType,
+    stringifyDeducedType,
+    stringifyDeducedTypes,
     TemplateTranslation,
-    tryInsertSymbolicObject
+    tryInsertSymbolObject
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
+
 
 type HoistingQueue = (() => void)[];
 
@@ -157,7 +161,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         membersScope: undefined,
     };
 
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
     symbol.membersScope = scope;
@@ -175,7 +179,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
             isInstanceMember: false,
             accessRestriction: undefined,
         };
-        insertSymbolicObject(parentScope.symbolMap, symbol);
+        insertSymbolObject(parentScope.symbolMap, symbol);
     }
 }
 
@@ -188,7 +192,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         sourceType: nodeClass,
         membersScope: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
     symbol.membersScope = scope;
@@ -201,7 +205,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         isInstanceMember: false,
         accessRestriction: AccessModifier.Private,
     };
-    insertSymbolicObject(scope.symbolMap, thisVariable);
+    insertSymbolObject(scope.symbolMap, thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
@@ -220,7 +224,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
     const templateTypes: ParsedToken[] = [];
     for (const type of types ?? []) {
-        insertSymbolicObject(scope.symbolMap, {
+        insertSymbolObject(scope.symbolMap, {
             symbolKind: SymbolKind.Type,
             declaredPlace: getIdentifierInType(type),
             declaredScope: scope,
@@ -269,7 +273,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)
 
         for (const [key, symbol] of baseScope.symbolMap) {
             if (key === 'this') continue;
-            const errored = tryInsertSymbolicObject(scope.symbolMap, symbol);
+            const errored = tryInsertSymbolObject(scope.symbolMap, symbol);
             if (errored !== undefined) {
                 diagnostic.addError(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
             }
@@ -304,7 +308,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
         sourceType: builtInType.sourceType,
         membersScope: undefined,
     };
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    insertSymbolObject(parentScope.symbolMap, symbol);
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -324,7 +328,7 @@ function hoistFunc(
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
 
@@ -359,7 +363,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         sourceType: nodeInterface,
         membersScope: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
     symbol.membersScope = scope;
@@ -446,7 +450,7 @@ function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, n
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
         };
-        insertSymbolicObject(scope.symbolMap, variable);
+        insertSymbolObject(scope.symbolMap, variable);
     }
 }
 
@@ -465,7 +469,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
         isInstanceMember: false,
         accessRestriction: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     hoisting.push(() => {
         symbol.parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
@@ -487,7 +491,7 @@ function hoistVirtualProp(
         isInstanceMember: isInstanceMember,
         accessRestriction: virtualProp.accessor,
     };
-    insertSymbolicObject(parentScope.symbolMap, symbol);
+    insertSymbolObject(parentScope.symbolMap, symbol);
 
     const getter = virtualProp.getter;
     if (getter !== undefined && getter.statBlock !== undefined) {
@@ -512,7 +516,7 @@ function hoistVirtualProp(
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
             };
-            insertSymbolicObject(setterScope.symbolMap, valueVariable);
+            insertSymbolObject(setterScope.symbolMap, valueVariable);
         }
 
         const statBlock = setter.statBlock;
@@ -540,7 +544,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         isInstanceMember: true,
         accessRestriction: undefined,
     };
-    if (insertSymbolicObject(parentScope.symbolMap, symbol) === false) return;
+    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 }
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
@@ -566,7 +570,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         else deducedTypes.push(type);
 
         if (param.identifier === undefined) continue;
-        insertSymbolicObject(scope.symbolMap, {
+        insertSymbolObject(scope.symbolMap, {
             symbolKind: SymbolKind.Variable,
             declaredPlace: param.identifier,
             declaredScope: scope,
@@ -1153,7 +1157,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | un
             isInstanceMember: false,
             accessRestriction: undefined,
         };
-        insertSymbolicObject(childScope.symbolMap, argument);
+        insertSymbolObject(childScope.symbolMap, argument);
     }
 
     if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);

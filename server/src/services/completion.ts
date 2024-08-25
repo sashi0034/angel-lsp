@@ -1,7 +1,7 @@
 import {Position, URI} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
-    SymbolicObject,
+    SymbolObject,
     SymbolKind,
     SymbolScope
 } from "../compile/symbols";
@@ -136,7 +136,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolicObject) {
+function symbolToCompletionKind(symbol: SymbolObject) {
     switch (symbol.symbolKind) {
     case SymbolKind.Type:
         if (typeof symbol.sourceType === 'string') return CompletionItemKind.Keyword;

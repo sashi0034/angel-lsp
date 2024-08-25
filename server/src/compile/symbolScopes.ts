@@ -1,4 +1,4 @@
-import {SymbolicObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbols";
+import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsedToken} from "./parsedToken";
@@ -177,7 +177,7 @@ export function findGlobalScope(scope: SymbolScope): SymbolScope {
     return findGlobalScope(scope.parentScope);
 }
 
-export function isSymbolConstructorInScope(symbol: SymbolicObject, scope: SymbolScope): boolean {
+export function isSymbolConstructorInScope(symbol: SymbolObject, scope: SymbolScope): boolean {
     return symbol !== undefined
         && symbol.symbolKind === SymbolKind.Function
         && scope.ownerNode !== undefined

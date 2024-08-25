@@ -4,7 +4,7 @@ import {
     PrimitiveType,
     SourceType,
     SymbolFunction,
-    SymbolicObject,
+    SymbolObject,
     SymbolType,
     SymbolKind,
     SymbolScope
@@ -191,7 +191,7 @@ function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boole
 }
 
 // Check if the symbol can be accessed from the scope. | シンボルがそのスコープからアクセス可能かを調べる
-export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolicObject): boolean {
+export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
     if (declaredSymbol.symbolKind === SymbolKind.Type) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 

@@ -85,13 +85,13 @@ export interface SymbolVariable extends SymbolBase {
     readonly accessRestriction: AccessModifier | undefined;
 }
 
-export function isSymbolInstanceMember(symbol: SymbolicObject): symbol is SymbolFunction | SymbolVariable {
+export function isSymbolInstanceMember(symbol: SymbolObject): symbol is SymbolFunction | SymbolVariable {
     const canBeMember = symbol.symbolKind === SymbolKind.Function || symbol.symbolKind === SymbolKind.Variable;
     if (canBeMember === false) return false;
     return canBeMember && symbol.isInstanceMember;
 }
 
-export type SymbolicObject = SymbolType | SymbolFunction | SymbolVariable;
+export type SymbolObject = SymbolType | SymbolFunction | SymbolVariable;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 
@@ -111,13 +111,13 @@ export type SymbolOwnerNode =
  * Information about a symbol that references a symbol declared elsewhere.
  */
 export interface ReferencedSymbolInfo {
-    readonly declaredSymbol: SymbolicObject;
+    readonly declaredSymbol: SymbolObject;
     readonly referencedToken: ParsedToken;
 }
 
 export type ScopeMap = Map<string, SymbolScope>;
 
-export type SymbolMap = Map<string, SymbolicObject>;
+export type SymbolMap = Map<string, SymbolObject>;
 
 /**
  * Information about the birth of a scope.
@@ -151,7 +151,7 @@ export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServ
 }
 
 export interface SymbolAndScope {
-    readonly symbol: SymbolicObject;
+    readonly symbol: SymbolObject;
     readonly scope: SymbolScope;
 }
 
