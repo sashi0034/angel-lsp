@@ -13,7 +13,7 @@ import {
     TokenString
 } from "./tokens";
 import {diagnostic} from "../code/diagnostic";
-import {TokenizingState, UnknownBuffer} from "./tokenizingState";
+import {TokenizerState, UnknownBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedWeakMarkProperty} from "./tokenReservedWords";
 import {Position, Range} from "vscode-languageserver";
 
@@ -46,7 +46,7 @@ function copyLocationWithNewEnd(location: ReadonlyLocationInfo, end: Position): 
 }
 
 // Check comment token | コメント解析
-function tryComment(reading: TokenizingState, location: ReadonlyLocationInfo): TokenComment | undefined {
+function tryComment(reading: TokenizerState, location: ReadonlyLocationInfo): TokenComment | undefined {
     if (reading.isNext('//')) {
         return tokenizeLineComment(reading, location);
     } else if (reading.isNext('/*')) {
@@ -64,7 +64,7 @@ function createTokenComment(comment: string, location: ReadonlyLocationInfo): To
     };
 }
 
-function tokenizeLineComment(reading: TokenizingState, location: ReadonlyLocationInfo) {
+function tokenizeLineComment(reading: TokenizerState, location: ReadonlyLocationInfo) {
     const start = reading.getCursor();
     reading.stepFor(2);
     for (; ;) {
@@ -75,7 +75,7 @@ function tokenizeLineComment(reading: TokenizingState, location: ReadonlyLocatio
     return createTokenComment(reading.substrFrom(start), copyLocationWithNewEnd(location, reading.copyHead()));
 }
 
-function tokenizeBlockComment(reading: TokenizingState, location: ReadonlyLocationInfo) {
+function tokenizeBlockComment(reading: TokenizerState, location: ReadonlyLocationInfo) {
     const start = reading.getCursor();
     reading.stepFor(2);
     for (; ;) {
@@ -91,7 +91,7 @@ function tokenizeBlockComment(reading: TokenizingState, location: ReadonlyLocati
 }
 
 // Check number token | 数値解析
-function tryNumber(reading: TokenizingState, location: ReadonlyLocationInfo): TokenNumber | undefined {
+function tryNumber(reading: TokenizerState, location: ReadonlyLocationInfo): TokenNumber | undefined {
     const start = reading.getCursor();
 
     const numeric = consumeNumber(reading);
@@ -107,7 +107,7 @@ function tryNumber(reading: TokenizingState, location: ReadonlyLocationInfo): To
     };
 }
 
-function consumeNumber(reading: TokenizingState) {
+function consumeNumber(reading: TokenizerState) {
     if (/^[0-9.]/.test(reading.next()) === false) return NumberLiterals.Integer;
 
     if (reading.next(0) === '0') {
@@ -166,7 +166,7 @@ function consumeNumber(reading: TokenizingState) {
 }
 
 // Check string token | 文字列解析
-function tryString(reading: TokenizingState, location: ReadonlyLocationInfo): TokenString | undefined {
+function tryString(reading: TokenizerState, location: ReadonlyLocationInfo): TokenString | undefined {
 
     const start = reading.getCursor();
     if (reading.next() !== '\'' && reading.next() !== '"') return undefined;
@@ -209,7 +209,7 @@ function tryString(reading: TokenizingState, location: ReadonlyLocationInfo): To
 }
 
 // Check mark token | 記号解析
-function tryMark(reading: TokenizingState, location: ReadonlyLocationInfo): TokenReserved | undefined {
+function tryMark(reading: TokenizerState, location: ReadonlyLocationInfo): TokenReserved | undefined {
     const mark = findReservedWeakMarkProperty(reading.content, reading.getCursor());
     if (mark === undefined) return undefined;
 
@@ -229,7 +229,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 }
 
 // Check identifier token | 識別子解析
-function tryIdentifier(reading: TokenizingState, location: ReadonlyLocationInfo): TokenizedToken | TokenIdentifier | undefined {
+function tryIdentifier(reading: TokenizerState, location: ReadonlyLocationInfo): TokenizedToken | TokenIdentifier | undefined {
     const start = reading.getCursor();
     while (reading.isEnd() === false && isAlphanumeric(reading.next())) {
         reading.stepFor(1);
@@ -263,7 +263,7 @@ function createHighlight(token: HighlightToken, modifier: HighlightModifier): Hi
 
 export function tokenize(str: string, path: string): TokenizedToken[] {
     const tokens: TokenizedToken[] = [];
-    const reading = new TokenizingState(str);
+    const reading = new TokenizerState(str);
     const unknownBuffer = new UnknownBuffer();
 
     for (; ;) {
