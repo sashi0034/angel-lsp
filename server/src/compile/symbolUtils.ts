@@ -2,7 +2,7 @@ import {
     DeducedType,
     PrimitiveType,
     SymbolAndScope,
-    SymbolicFunction,
+    SymbolFunction,
     SymbolicObject,
     SymbolKind,
     SymbolMap,
@@ -103,7 +103,7 @@ export function stringifyDeducedType(type: DeducedType | undefined,): string {
     if (type.isHandler === true) suffix = `${suffix}@`;
 
     if (type.symbolType.symbolKind === SymbolKind.Function) {
-        const func: SymbolicFunction = type.symbolType;
+        const func: SymbolFunction = type.symbolType;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyDeducedType(t)).join(', ');
         return `${stringifyDeducedType(returnType)}(${params})` + suffix;

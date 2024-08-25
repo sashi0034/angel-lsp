@@ -3,9 +3,9 @@ import {
     isSourcePrimitiveType,
     PrimitiveType,
     SourceType,
-    SymbolicFunction,
+    SymbolFunction,
     SymbolicObject,
-    SymbolicType,
+    SymbolType,
     SymbolKind,
     SymbolScope
 } from "./symbols";
@@ -83,7 +83,7 @@ export function isTypeMatchInternal(
     return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
 }
 
-function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicType | SymbolicFunction) {
+function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | SymbolFunction) {
     if (destType.symbolKind !== SymbolKind.Function) return false;
     if (isTypeMatch(srcType.returnType, destType.returnType) === false) return false;
     if (srcType.parameterTypes.length !== destType.parameterTypes.length) return false;
@@ -97,7 +97,7 @@ function isFunctionHandlerMatch(srcType: SymbolicFunction, destType: SymbolicTyp
 }
 
 function canDownCast(
-    srcType: SymbolicType, destType: SymbolicType
+    srcType: SymbolType, destType: SymbolType
 ): boolean {
     const srcNode = srcType.sourceType;
     if (isSourcePrimitiveType(srcNode)) return false;
@@ -117,7 +117,7 @@ function canDownCast(
 }
 
 function canCastFromPrimitiveType(
-    srcType: SymbolicType, destType: SymbolicType
+    srcType: SymbolType, destType: SymbolType
 ) {
     const srcNode = srcType.sourceType;
     const destNode = destType.sourceType;
@@ -150,7 +150,7 @@ function canCastFromPrimitiveType(
 }
 
 function canConstructImplicitly(
-    srcType: SymbolicType,
+    srcType: SymbolType,
     destScope: SymbolScope | undefined,
     destIdentifier: string
 ) {
@@ -169,7 +169,7 @@ function canConstructImplicitly(
     return canConstructBy(constructor, srcType.sourceType);
 }
 
-function canConstructBy(constructor: SymbolicFunction, srcType: SourceType): boolean {
+function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boolean {
     // OK if the constructor has one argument and that argument matches the source type.
     // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {

@@ -2,7 +2,7 @@ import {ParsedRange} from "./nodes";
 import {getNodeLocation} from "./nodesUtils";
 import {LocationInfo} from "./tokens";
 import {ParsedToken} from "./parsedToken";
-import {SymbolicType, SymbolScope} from "./symbols";
+import {SymbolType, SymbolScope} from "./symbols";
 
 /**
  * Types of autocomplete targets
@@ -35,7 +35,7 @@ export function pushHintOfCompletionScopeToParent(
 
 export interface ComplementType extends ComplementBase {
     complementKind: ComplementKind.Type;
-    targetType: SymbolicType;
+    targetType: SymbolType;
 }
 
 export interface CompletionNamespace extends ComplementBase {
