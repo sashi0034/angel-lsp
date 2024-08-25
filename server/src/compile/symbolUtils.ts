@@ -23,8 +23,13 @@ export function getPathOfScope(scope: SymbolScope): string | undefined {
     return scope.ownerNode.nodeRange.start.location.path;
 }
 
-// Insert a symbol into the map. If the insertion is successful, return undefined. If it fails, return the existing symbol corresponding to the key.
-// 挿入が成功したなら undefined を返す。失敗したらそのキーに対応する既存のシンボルを返す
+/**
+ * Insert a symbol into the symbol map.
+ * If the insertion succeeds, return undefined.
+ * If it fails, return the existing symbol corresponding to the key.
+ * @param map The map to insert the symbol
+ * @param symbol The symbol for insertion
+ */
 export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject): SymbolicObject | undefined {
     const identifier = symbol.declaredPlace.text;
     const hit = map.get(identifier);
@@ -36,7 +41,7 @@ export function tryInsertSymbolicObject(map: SymbolMap, symbol: SymbolicObject):
     const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
     if (canOverload === false) return hit;
 
-    // Functions can be added as overloads | 関数はオーバーロードとして追加が可能
+    // Functions can be added as overloads
     let cursor: Mutable<SymbolFunction> = hit;
     for (; ;) {
         if (cursor.nextOverload === undefined) {
@@ -124,7 +129,7 @@ export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): strin
 }
 
 /**
- * Build a string representation of a symbolic object.
+ * Build a string representation of a symbol object.
  */
 export function stringifySymbolicObject(symbol: SymbolicObject): string {
     const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
