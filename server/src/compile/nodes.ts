@@ -1,5 +1,6 @@
-import {LocationInfo, TokenReserved} from "./tokens";
+import {LocationInfo} from "./tokens";
 import {ParsedToken} from "./parsedToken";
+import {Mutable} from "../utils/utilities";
 
 export enum AccessModifier {
     Private = 'Private',
@@ -18,8 +19,15 @@ export enum ReferenceModifier {
 }
 
 export interface ParsedRange {
-    start: ParsedToken;
-    end: ParsedToken;
+    readonly start: ParsedToken;
+    readonly end: ParsedToken;
+}
+
+export function makeParsedRange(start: ParsedToken, end: ParsedToken): ParsedRange {
+    return {
+        start: start,
+        end: end
+    };
 }
 
 export function getNextTokenIfExist(token: ParsedToken): ParsedToken {
@@ -44,13 +52,13 @@ export function getNodeLocation(range: ParsedRange): LocationInfo {
 }
 
 export interface EntityAttribute {
-    isShared: boolean,
-    isExternal: boolean,
-    isAbstract: boolean,
-    isFinal: boolean,
+    readonly isShared: boolean,
+    readonly isExternal: boolean,
+    readonly isAbstract: boolean,
+    readonly isFinal: boolean,
 }
 
-export function setEntityAttribute(attribute: EntityAttribute, token: 'shared' | 'external' | 'abstract' | 'final') {
+export function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {
     if (token === 'shared') attribute.isShared = true;
     else if (token === 'external') attribute.isExternal = true;
     else if (token === 'abstract') attribute.isAbstract = true;
@@ -62,13 +70,13 @@ export function isEntityModifierForClass(modifier: EntityAttribute) {
 }
 
 export interface FunctionAttribute {
-    isOverride: boolean,
-    isFinal: boolean,
-    isExplicit: boolean,
-    isProperty: boolean
+    readonly isOverride: boolean,
+    readonly isFinal: boolean,
+    readonly isExplicit: boolean,
+    readonly isProperty: boolean
 }
 
-export function setFunctionAttribute(attribute: FunctionAttribute, token: 'override' | 'final' | 'explicit' | 'property') {
+export function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property') {
     if (token === 'override') attribute.isOverride = true;
     else if (token === 'final') attribute.isFinal = true;
     else if (token === 'explicit') attribute.isExplicit = true;
@@ -139,8 +147,8 @@ export enum NodeName {
 }
 
 export interface NodesBase {
-    nodeName: NodeName;
-    nodeRange: ParsedRange;
+    readonly nodeName: NodeName;
+    readonly nodeRange: ParsedRange;
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}

@@ -8,6 +8,7 @@ import {
     FuncHeads,
     FunctionAttribute, getLocationBetween,
     isFunctionHeadReturns,
+    makeParsedRange,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -73,6 +74,7 @@ import {TokenKind} from "./tokens";
 import {BreakOrThrough, ParseFailure, ParserState, ParsedResult} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
 import {createVirtualToken, isTokensLinkedBy} from "./tokenUtils";
+import {Mutable} from "../utils/utilities";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {
@@ -1477,8 +1479,8 @@ function parseIf(parser: ParserState): ParsedResult<NodeIf> {
     return appliedNodeEnd(parser, result);
 }
 
-function appliedNodeEnd<T extends NodesBase>(parser: ParserState, node: T): T {
-    node.nodeRange.end = parser.prev();
+function appliedNodeEnd<T extends NodesBase>(parser: ParserState, node: Mutable<T>): T {
+    node.nodeRange = makeParsedRange(node.nodeRange.start, parser.prev());
     return node;
 }
 
@@ -2049,7 +2051,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
 
     const operator = parseAssignOp(parser);
 
-    const result: NodeAssign = {
+    const result: Mutable<NodeAssign> = {
         nodeName: NodeName.Assign,
         nodeRange: {start: rangeStart, end: parser.prev()},
         condition: condition,
@@ -2062,7 +2064,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
     if (assign === undefined) return result;
 
     result.tail = {operator: operator, assign: assign};
-    result.nodeRange.end = parser.prev();
+    result.nodeRange = makeParsedRange(rangeStart, parser.prev());
 
     return result;
 }
@@ -2082,7 +2084,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
     const expr = parseExpr(parser);
     if (expr === undefined) return undefined;
 
-    const result: NodeCondition = {
+    const result: Mutable<NodeCondition> = {
         nodeName: NodeName.Condition,
         nodeRange: {start: rangeStart, end: rangeStart},
         expr: expr,
@@ -2103,7 +2105,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
         result.ternary = {trueAssign: trueAssign, falseAssign: falseAssign};
     }
 
-    result.nodeRange.end = parser.prev();
+    result.nodeRange = makeParsedRange(rangeStart, parser.prev());
     return result;
 }
 
