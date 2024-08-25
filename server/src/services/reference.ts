@@ -9,7 +9,7 @@ export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: Symb
     const targetDefinition = serveDefinitionAsToken(targetScope, caret);
     if (targetDefinition === undefined) return [];
 
-    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある
+    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?
 
     const result = analyzedScopes.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
     result.push(targetDefinition);

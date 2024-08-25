@@ -164,7 +164,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
     tracer.message(`🔬 Inspect "${targetUri}"`);
 
-    diagnostic.launchSession();
+    diagnostic.beginSession();
 
     const profiler = new Profiler("Inspector");
 
@@ -194,14 +194,14 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     const includedScopes = collectIncludedScope(targetUri, predefinedUri, includePaths, missingFileHandler);
 
     // Store the diagnostics that occurred before the analyzer phase.
-    const diagnosticsInParser = diagnostic.completeSession();
-    diagnostic.launchSession();
+    const diagnosticsInParser = diagnostic.endSession();
+    diagnostic.beginSession();
 
     // Analyzer-phase
     const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
     profiler.stamp("Analyzer");
 
-    const diagnosticsInAnalyzer = diagnostic.completeSession();
+    const diagnosticsInAnalyzer = diagnostic.endSession();
 
     return {
         content: content,
@@ -223,12 +223,12 @@ function getIncludePathFromToken(token: TokenizedToken): string {
 function reanalyzeFilesWithDependency(includedFile: URI) {
     const dependedFiles = Object.values(s_inspectedResults).filter(r => isContainInIncludedScopes(r.includedScopes, includedFile));
     for (const dependedFile of dependedFiles) {
-        diagnostic.launchSession();
+        diagnostic.beginSession();
 
         dependedFile.includedScopes = refreshScopeInIncludedScopes(dependedFile.includedScopes);
         dependedFile.analyzedScope = analyzeFromParsed(dependedFile.parsedAst, dependedFile.analyzedScope.path, dependedFile.includedScopes);
 
-        dependedFile.diagnosticsInAnalyzer = diagnostic.completeSession();
+        dependedFile.diagnosticsInAnalyzer = diagnostic.endSession();
     }
 }
 

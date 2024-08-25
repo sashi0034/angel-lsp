@@ -9,7 +9,7 @@ import assert = require("node:assert");
 function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): SymbolType {
     return {
         symbolKind: SymbolKind.Type,
-        declaredPlace: virtualToken,
+        declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: createSymbolScope(undefined, undefined, ''),
         sourceType: name,
         membersScope: undefined,
