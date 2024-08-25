@@ -9,9 +9,9 @@ import {
 } from "../compile/symbolic";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compile/nodes";
-import {isPositionInRange} from "../compile/tokens";
 import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/scope";
 import {isAllowedToAccessMember} from "../compile/checkType";
+import {isPositionInRange} from "../compile/tokenUtils";
 
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
