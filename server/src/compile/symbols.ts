@@ -73,7 +73,7 @@ export interface SymbolFunction extends SymbolBase {
     readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
     readonly returnType: DeducedType | undefined;
     readonly parameterTypes: (DeducedType | undefined)[];
-    readonly nextOverload: SymbolFunction | undefined;
+    nextOverload: SymbolFunction | undefined;
     readonly isInstanceMember: boolean;
     readonly accessRestriction: AccessModifier | undefined;
 }
@@ -123,7 +123,7 @@ export type SymbolMap = Map<string, SymbolObject>;
  * Information about the birth of a scope.
  */
 export interface ScopeBirthInfo {
-    readonly ownerNode: SymbolOwnerNode | undefined;
+    ownerNode: SymbolOwnerNode | undefined;
     readonly parentScope: SymbolScope | undefined;
     readonly key: string;
 }

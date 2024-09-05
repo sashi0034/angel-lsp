@@ -1,9 +1,8 @@
-import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope} from "./symbols";
+import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope, SymbolAndScope} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "./nodes";
 import {ParsedToken} from "./parsedToken";
 import {getPathOfScope} from "./symbolUtils";
-import {Mutable} from "../utils/utilities";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
@@ -133,7 +132,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
             }
         }
 
-        const destChild = findScopeShallowlyOrInsertByIdentifier(child.ownerNode, destScope, key);
+        const destChild = findScopeShallowlyThenInsertByIdentifier(child.ownerNode, destScope, key);
         copySymbolsInScope(child, destChild, option);
     }
 }
@@ -151,7 +150,7 @@ export function findScopeShallowlyOrInsert(
     scope: SymbolScope,
     identifierToken: ParsedToken
 ): SymbolScope {
-    const found = findScopeShallowlyOrInsertByIdentifier(ownerNode, scope, identifierToken.text);
+    const found = findScopeShallowlyThenInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
         // If searching for a non-namespace node, throw an error if it doesn't match the found node.
         // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
@@ -160,24 +159,35 @@ export function findScopeShallowlyOrInsert(
     return found;
 }
 
-function findScopeShallowlyOrInsertByIdentifier(
+function findScopeShallowlyThenInsertByIdentifier(
     ownerNode: SymbolOwnerNode | undefined,
     scope: SymbolScope,
     identifier: string
 ): SymbolScope {
-    const found: Mutable<SymbolScope> | undefined = scope.childScopes.get(identifier);
+    const found: SymbolScope | undefined = scope.childScopes.get(identifier);
     if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
     if (ownerNode === undefined) return found;
     if (found.ownerNode === undefined) found.ownerNode = ownerNode;
     return found;
 }
 
+/**
+ * Traverses up the parent scopes to find the global scope.
+ * @param scope The scope to start from.
+ * @returns The global scope.
+ */
 export function findGlobalScope(scope: SymbolScope): SymbolScope {
     if (scope.parentScope === undefined) return scope;
     return findGlobalScope(scope.parentScope);
 }
 
-export function isSymbolConstructorInScope(symbol: SymbolObject, scope: SymbolScope): boolean {
+/**
+ * Determines whether the given symbol in the scope is a constructor.
+ * @param pair A pair consisting of a symbol and the scope that contains it.
+ */
+export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
+    const symbol = pair.symbol;
+    const scope = pair.scope;
     return symbol !== undefined
         && symbol.symbolKind === SymbolKind.Function
         && scope.ownerNode !== undefined

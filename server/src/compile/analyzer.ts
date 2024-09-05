@@ -102,7 +102,6 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 
-
 type HoistingQueue = (() => void)[];
 
 type AnalyzingQueue = (() => void)[];
@@ -604,7 +603,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
 
     let symbolAndScope = findSymbolWithParent(searchScope, typeIdentifier.text);
     if (symbolAndScope !== undefined
-        && isSymbolConstructorInScope(symbolAndScope.symbol, symbolAndScope.scope)
+        && isSymbolConstructorInScope(symbolAndScope)
         && symbolAndScope.scope.parentScope !== undefined
     ) {
         // 親の階層を辿っていくと、クラス型よりも先にコンストラクタがヒットする時があるので、その場合は更に上の階層から検索
