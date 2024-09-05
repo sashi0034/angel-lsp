@@ -67,12 +67,12 @@ export class ParserState {
 
     public expect(word: string, analyzeToken: HighlightToken) {
         if (this.isEnd()) {
-            diagnostic.addError(this.next().location, "Unexpected end of file ❌");
+            diagnostic.addError(this.next().location, "Unexpected end of file.");
             return false;
         }
         const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === word;
         if (isExpectedWord === false) {
-            diagnostic.addError(this.next().location, `Expected '${word}' ❌`);
+            diagnostic.addError(this.next().location, `Expected '${word}'.`);
             // this.step();
             return false;
         }

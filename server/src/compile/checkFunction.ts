@@ -55,7 +55,7 @@ export function checkFunctionMatchInternal(
                     calleeFunc: calleeFunc.nextOverload
                 }, overloadedHead);
                 if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
-                    diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}' 💢`);
+                    diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
                 }
                 break;
             }
@@ -74,7 +74,7 @@ export function checkFunctionMatchInternal(
             overloadedHead);
         if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
-                `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}' 💢`);
+                `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}'.`);
         }
     }
 
@@ -91,7 +91,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
     }, overloadedHead);
     if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
         diagnostic.addError(getNodeLocation(callerRange),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided 💢`);
+            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
     return calleeFunc.returnType;
@@ -105,7 +105,7 @@ function handleErrorWhenOverloaded(
 ) {
     if (calleeFunc === overloadedHead) return false; // Not overloaded
 
-    let message = 'No viable function 💢';
+    let message = 'No viable function.';
     message += `\nArguments types: (${stringifyDeducedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 

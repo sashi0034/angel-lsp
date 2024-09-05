@@ -612,7 +612,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
             findSymbolShallowly(symbolAndScope.scope.parentScope, typeIdentifier.text), symbolAndScope.scope.parentScope);
     }
     if (symbolAndScope === undefined) {
-        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not defined 💢`);
+        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not defined.`);
         return undefined;
     }
 
@@ -620,7 +620,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
     if (foundSymbol.symbolKind === SymbolKind.Function && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
     } else if (foundSymbol.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type 💢`);
+        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type.`);
         return undefined;
     } else {
         const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.templateTypes);
@@ -655,7 +655,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedTyp
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        diagnostic.addError(typeIdentifier.location, `Invalid scope 💢`);
+        diagnostic.addError(typeIdentifier.location, `Invalid scope.`);
     }
 
     const foundBuiltin = tryGetBuiltInType(typeIdentifier);
@@ -670,7 +670,7 @@ function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], template
     const translation: TemplateTranslation = new Map();
     for (let i = 0; i < nodeType.length; i++) {
         if (i >= templateTypes.length) {
-            diagnostic.addError(getNodeLocation(nodeType[nodeType.length - 1].nodeRange), `Too many template types 💢`);
+            diagnostic.addError(getNodeLocation(nodeType[nodeType.length - 1].nodeRange), `Too many template types.`);
             break;
         }
 
@@ -839,7 +839,7 @@ function analyzeEexprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
     if (assign?.isHandler !== true && assign?.symbolType.symbolKind === SymbolKind.Function) {
-        diagnostic.addError(getNodeLocation(exprStat.assign.nodeRange), `Function call without handler 💢`);
+        diagnostic.addError(getNodeLocation(exprStat.assign.nodeRange), `Function call without handler.`);
     }
 }
 
@@ -865,7 +865,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const expectedReturn = functionReturn.returnType?.symbolType;
         if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.sourceType === PrimitiveType.Void) {
             if (nodeReturn.assign === undefined) return;
-            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value 💢`);
+            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value.`);
         } else {
             checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
         }
@@ -874,7 +874,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const isGetter = key.startsWith('get_');
         if (isGetter === false) {
             if (nodeReturn.assign === undefined) return;
-            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Property setter does not return a value 💢`);
+            diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Property setter does not return a value.`);
             return;
         }
 
@@ -1059,7 +1059,7 @@ function analyzeConstructorCaller(
             return constructorType;
         }
 
-        diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing 💢`);
+        diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing.`);
         return undefined;
     }
 
@@ -1081,7 +1081,7 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: DeducedType) {
     if (exprValue.symbolType.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type 💢`);
+        diagnostic.addError(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type.`);
         return undefined;
     }
 
@@ -1101,7 +1101,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     if (identifier === undefined) return undefined;
 
     if (isSourceNodeClassOrInterface(exprValue.symbolType.sourceType) === false) {
-        diagnostic.addError(identifier.location, `'${identifier.text}' is not a member 💢`);
+        diagnostic.addError(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
 
@@ -1112,12 +1112,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         // Analyze method call.
         const method = findSymbolShallowly(classScope, identifier.text);
         if (method === undefined) {
-            diagnostic.addError(identifier.location, `'${identifier.text}' is not defined 💢`);
+            diagnostic.addError(identifier.location, `'${identifier.text}' is not defined.`);
             return undefined;
         }
 
         if (method.symbolKind !== SymbolKind.Function) {
-            diagnostic.addError(identifier.location, `'${identifier.text}' is not a method 💢`);
+            diagnostic.addError(identifier.location, `'${identifier.text}' is not a method.`);
             return undefined;
         }
 
@@ -1204,7 +1204,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 
     const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
     if (calleeFunc?.symbol === undefined) {
-        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined 💢`);
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined.`);
         return undefined;
     }
 
@@ -1224,7 +1224,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     }
 
     if (calleeSymbol.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function 💢`);
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function.`);
         return undefined;
     }
 
@@ -1234,7 +1234,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
 function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {
     const varType = calleeVariable.type;
     if (varType === undefined || varType.sourceScope === undefined) {
-        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable 💢`);
+        diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable.`);
         return;
     }
 
@@ -1243,7 +1243,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
 
     const opCall = findSymbolShallowly(classScope, 'opCall');
     if (opCall === undefined || opCall.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(funcCall.identifier.location, `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}' 💢`);
+        diagnostic.addError(funcCall.identifier.location, `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}'.`);
         return;
     }
 
@@ -1301,17 +1301,17 @@ function analyzeVariableAccess(
 ): DeducedType | undefined {
     const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
-        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined 💢`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined.`);
         return undefined;
     }
 
     if (declared.symbol.symbolKind === SymbolKind.Type) {
-        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is type 💢`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is type.`);
         return undefined;
     }
 
     if (isAllowedToAccessMember(checkingScope, declared.symbol) === false) {
-        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not public member 💢`);
+        diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not public member.`);
         return undefined;
     }
 
@@ -1371,7 +1371,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (isTypeMatch(falseAssign, trueAssign)) return trueAssign;
 
     diagnostic.addError(getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
-        `Type mismatches between '${stringifyDeducedType(trueAssign)}' and '${stringifyDeducedType(falseAssign)}' 💢`);
+        `Type mismatches between '${stringifyDeducedType(trueAssign)}' and '${stringifyDeducedType(falseAssign)}'.`);
     return undefined;
 }
 
@@ -1405,12 +1405,12 @@ function analyzeOperatorAlias(
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
     if (lhs.symbolType.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyDeducedType(lhs)}' and '${stringifyDeducedTypes(rhsArgs)}' 💢`);
+        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyDeducedType(lhs)}' and '${stringifyDeducedTypes(rhsArgs)}'.`);
         return undefined;
     }
 
     if (isSourcePrimitiveType(lhs.symbolType.sourceType)) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined.`);
         return undefined;
     }
 
@@ -1421,7 +1421,7 @@ function analyzeOperatorAlias(
 
     const aliasFunction = findSymbolShallowly(classScope, alias);
     if (aliasFunction === undefined || aliasFunction.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined 💢`);
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined.`);
         return undefined;
     }
 

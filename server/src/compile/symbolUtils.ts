@@ -55,7 +55,7 @@ export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): Sym
 export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolean {
     const result = tryInsertSymbolObject(map, symbol);
     if (result !== undefined) {
-        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${symbol.declaredPlace.text}' is already defined 💢`);
+        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${symbol.declaredPlace.text}' is already defined.`);
     }
     return result === undefined;
 }

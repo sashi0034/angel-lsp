@@ -23,7 +23,7 @@ export function checkTypeMatch(
 ): boolean {
     if (isTypeMatch(src, dest)) return true;
 
-    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
+    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}'.`);
     return false;
 }
 

@@ -155,7 +155,7 @@ export function findScopeShallowlyOrInsert(
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {
         // If searching for a non-namespace node, throw an error if it doesn't match the found node.
         // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
-        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined 💢`);
+        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined.`);
     }
     return found;
 }
