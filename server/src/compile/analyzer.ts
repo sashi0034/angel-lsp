@@ -108,7 +108,6 @@ type AnalyzingQueue = (() => void)[];
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    // 宣言分析
     for (const statement of ast) {
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Enum) {
@@ -250,7 +249,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
-            // 継承元を発見
+            // Found the base class
             baseList.push({symbolType: baseType.symbol, sourceScope: baseType.scope});
 
             scope.referencedList.push({
@@ -346,10 +345,10 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
         return;
     }
 
-    // 引数をスコープに追加
+    // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
 
-    // スコープ分析
+    // Analyze the scope
     analyzeStatBlock(scope, func.statBlock);
 }
 
@@ -412,7 +411,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
-        // 自動推論の解決
+        // Resolve the auto type
         if (initType !== undefined && isDeducedAutoType(varType)) {
             varType = initType;
         }
@@ -548,7 +547,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
-    // スコープ内の補完情報を追加
+    // Append completion information to the scope
     pushHintOfCompletionScopeToParent(scope.parentScope, scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
@@ -606,7 +605,8 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         && isSymbolConstructorInScope(symbolAndScope)
         && symbolAndScope.scope.parentScope !== undefined
     ) {
-        // 親の階層を辿っていくと、クラス型よりも先にコンストラクタがヒットする時があるので、その場合は更に上の階層から検索
+        // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
+        // in which case search further up the hierarchy.
         symbolAndScope = getSymbolAndScopeIfExist(
             findSymbolShallowly(symbolAndScope.scope.parentScope, typeIdentifier.text), symbolAndScope.scope.parentScope);
     }
@@ -703,14 +703,14 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
     for (let i = 0; i < nodeScope.scopeList.length; i++) {
         const nextScope = nodeScope.scopeList[i];
 
-        // 名前に対応するスコープを探す
+        // Search for the scope corresponding to the name.
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
             found = findScopeShallowly(scopeIterator, nextScope.text);
             if (found?.ownerNode?.nodeName === NodeName.Func) found = undefined;
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
-                // グローバルスコープでないなら、上の階層を更に探索
+                // If it is not a global scope, search further up the hierarchy.
                 scopeIterator = scopeIterator.parentScope;
             } else {
                 diagnostic.addError(nextScope.location, `Undefined scope: ${nextScope.text}`);
@@ -718,10 +718,10 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
             }
         }
 
-        // スコープを更新
+        // Update the scope iterator.
         scopeIterator = found;
 
-        // 名前空間に対する補完を行う
+        // Append completion information for the namespace to the scope.
         const complementRange: LocationInfo = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         parentScope.completionHints.push({
@@ -1053,7 +1053,7 @@ function analyzeConstructorCaller(
     const constructor = classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
         if (callerArgList.argList.length === 0) {
-            // デフォルトコンストラクタ
+            // Default constructor
             scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
             return constructorType;
         }
@@ -1144,7 +1144,7 @@ function analyzeCast(scope: SymbolScope, cast: NodeCast): DeducedType | undefine
 function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | undefined {
     const childScope = createSymbolScopeAndInsert(lambda, scope, createAnonymousIdentifier());
 
-    // 引数をスコープに追加
+    // Append arguments to the scope
     for (const param of lambda.paramList) {
         if (param.identifier === undefined) continue;
 
@@ -1259,7 +1259,7 @@ function analyzeFunctionCaller(
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
     if (calleeFunc.sourceNode.nodeName === NodeName.FuncDef) {
-        // デリゲートの場合は、その関数ハンドラとしてそのまま返却
+        // If the callee is a delegate, return it as a function handler.
         const handlerType = {symbolType: calleeFunc, sourceScope: undefined};
         if (callerArgTypes.length === 1 && isTypeMatch(callerArgTypes[0], handlerType)) {
             return callerArgTypes[0];
@@ -1315,7 +1315,7 @@ function analyzeVariableAccess(
     }
 
     if (declared.symbol.declaredPlace.location.path !== '') {
-        // this といったキーワードは declaredPlace が空になっているので、そのような場合は参照リストに追加しない
+        // Keywords such as 'this' have an empty declaredPlace. They do not add to the reference list.
         checkingScope.referencedList.push({
             declaredSymbol: declared.symbol,
             referencedToken: varIdentifier
@@ -1340,7 +1340,7 @@ function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType 
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
-    // 左から畳み込みを行う
+    // Perform a left-fold operation
     let cursor = assign;
     let lhs = analyzeCondition(scope, assign.condition);
     for (; ;) {
@@ -1448,7 +1448,7 @@ function analyzeBitOp(
     const alias = bitOpAliases.get(operator.text);
     assert(alias !== undefined);
 
-    // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
+    // If the left-hand side is a primitive type, use the operator of the right-hand side type
     return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
@@ -1476,7 +1476,7 @@ function analyzeMathOp(
     const alias = mathOpAliases.get(operator.text);
     assert(alias !== undefined);
 
-    // 左辺がプリミティブ型なら、右辺の型のオペレータを仕様
+    // If the left-hand side is a primitive type, use the operator of the right-hand side type
     return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
