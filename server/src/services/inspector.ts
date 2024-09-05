@@ -19,7 +19,7 @@ import {getGlobalSettings} from "../code/settings";
 
 interface InspectResult {
     content: string;
-    diagnosticsInParser: Diagnostic[]; // An diagnosed messages occurred in the parser or tokenizer
+    diagnosticsInParser: Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: Diagnostic[];
     tokenizedTokens: TokenizedToken[];
     parsedAst: NodeScript;

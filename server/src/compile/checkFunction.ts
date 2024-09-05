@@ -20,6 +20,10 @@ export interface FunctionMatchingArgs {
     templateTranslators: (TemplateTranslation | undefined)[];
 }
 
+/**
+ * Checks whether the arguments provided by the caller match the parameters of the function definition.
+ * @param args
+ */
 export function checkFunctionMatch(
     args: FunctionMatchingArgs
 ): DeducedType | undefined {
@@ -31,7 +35,7 @@ function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: 
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 
-export function checkFunctionMatchInternal(
+function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
     overloadedHead: SymbolFunction
 ): DeducedType | undefined {
@@ -39,23 +43,23 @@ export function checkFunctionMatchInternal(
     const calleeParams = calleeFunc.sourceNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length) {
-        // Handle too many caller arguments | 呼び出し側の引数の数が多すぎる場合へ対処
+        // Handle too many caller arguments.
         return handleTooMuchCallerArgs(args, overloadedHead);
     }
 
     for (let i = 0; i < calleeParams.length; i++) {
         if (i >= callerArgTypes.length) {
-            // When the caller arguments are insufficient | 呼び出し側の引数が足りない場合
+            // When the caller arguments are insufficient
             const param = calleeParams[i];
 
             if (param.defaultExpr === undefined) {
-                // When there is no default value | デフォルト値も存在しない場合
+                // When there is also no default expression
                 if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
                     ...args,
                     calleeFunc: calleeFunc.nextOverload
                 }, overloadedHead);
                 if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
-                    diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}' 💢`);
+                    diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
                 }
                 break;
             }
@@ -68,13 +72,13 @@ export function checkFunctionMatchInternal(
 
         if (isTypeMatch(actualType, expectedType)) continue;
 
-        // Use the overload if it exists | オーバーロードが存在するなら使用
+        // Use the overload if it exists
         if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal(
             {...args, calleeFunc: calleeFunc.nextOverload},
             overloadedHead);
         if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
-                `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}' 💢`);
+                `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}'.`);
         }
     }
 
@@ -84,14 +88,14 @@ export function checkFunctionMatchInternal(
 function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolFunction) {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
 
-    // Use the overload if it exists | オーバーロードが存在するなら使用
+    // Use the overload if it exists
     if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
         ...args,
         calleeFunc: calleeFunc.nextOverload
     }, overloadedHead);
     if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
         diagnostic.addError(getNodeLocation(callerRange),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided 💢`);
+            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
     return calleeFunc.returnType;
@@ -105,7 +109,7 @@ function handleErrorWhenOverloaded(
 ) {
     if (calleeFunc === overloadedHead) return false; // Not overloaded
 
-    let message = 'No viable function 💢';
+    let message = 'No viable function.';
     message += `\nArguments types: (${stringifyDeducedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 

@@ -16,6 +16,13 @@ import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
 
+/**
+ * Check if the source type can be converted to the destination type.
+ * If it cannot be converted, an error message is added to the diagnostic.
+ * @param src
+ * @param dest
+ * @param nodeRange
+ */
 export function checkTypeMatch(
     src: DeducedType | undefined,
     dest: DeducedType | undefined,
@@ -23,10 +30,15 @@ export function checkTypeMatch(
 ): boolean {
     if (isTypeMatch(src, dest)) return true;
 
-    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}' 💢`);
+    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}'.`);
     return false;
 }
 
+/**
+ * Check if the source type can be converted to the destination type.
+ * @param src
+ * @param dest
+ */
 export function isTypeMatch(
     src: DeducedType | undefined, dest: DeducedType | undefined
 ): boolean {
@@ -45,15 +57,15 @@ export function isTypeMatch(
     return isTypeMatchInternal(resolvedSrc, resolvedDest);
 }
 
-export function isTypeMatchInternal(
+function isTypeMatchInternal(
     src: DeducedType, dest: DeducedType
 ): boolean {
     const srcType = src.symbolType;
     const destType = dest.symbolType;
 
-    // Check the function handler type. | 関数ハンドラ型のチェック
+    // Check the function handler type.
     if (srcType.symbolKind === SymbolKind.Function) {
-        // if (dest.isHandler === false) return false; // FIXME: ハンドラチェック?
+        // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
         return isFunctionHandlerMatch(srcType, destType);
     } else if (destType.symbolKind === SymbolKind.Function) {
         return false;
@@ -65,20 +77,20 @@ export function isTypeMatchInternal(
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
-        // OK if it can be cast from one primitive type to another. | プリミティブからプリミティブへキャスト可能なら OK
+        // OK if it can be cast from one primitive type to another primitive type.
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
-        // OK if they point to the same type. | 同じ型を指しているなら OK
+        // OK if they both point to the same type.
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
-        // OK if any of the inherited types match the destination. | 継承した型のいずれかが移動先に当てはまるなら OK
+        // OK if any of the inherited types in the source match the destination.
         if (canDownCast(srcType, destType)) return true;
     }
 
-    // NG if the destination type is not a class. | 移動先の型がクラスでないなら NG
+    // NG if the destination type is not a class.
     if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
 
-    // Determine if it matches the constructor. | コンストラクタに当てはまるかで判定
+    // Determine if it matches the constructor.
     const destIdentifier = destNode.identifier.text;
     return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
 }
@@ -156,13 +168,11 @@ function canConstructImplicitly(
 ) {
     if (destScope === undefined) return false;
 
-    // Search for the constructor of the type from the scope to which the type belongs.
-    // 型が属するスコープから、その型自身のスコープを検索
+    // Search for the constructor of the given type from the scope to which the given type belongs.
     const constructorScope = findScopeShallowly(destScope, destIdentifier);
     if (constructorScope === undefined || constructorScope.ownerNode?.nodeName !== NodeName.Class) return false;
 
-    // Search for the constructor from the scope of the type itself.
-    // 型自身のスコープから、そのコンストラクタを検索
+    // Search for the constructor of the given type from the scope of the type itself.
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
 
@@ -171,7 +181,6 @@ function canConstructImplicitly(
 
 function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boolean {
     // OK if the constructor has one argument and that argument matches the source type.
-    // コンストラクタの引数が1つで、その引数が移動元の型と一致するなら OK
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
@@ -182,7 +191,7 @@ function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boole
         }
     }
 
-    // If there are overloads, check those as well. | オーバーロードが存在するならそれについても確認
+    // If there are overloads, check those as well.
     if (constructor.nextOverload !== undefined) {
         return canConstructBy(constructor.nextOverload, srcType);
     }
@@ -190,7 +199,7 @@ function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boole
     return false;
 }
 
-// Check if the symbol can be accessed from the scope. | シンボルがそのスコープからアクセス可能かを調べる
+// Check if the symbol can be accessed from the scope.
 export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
     if (declaredSymbol.symbolKind === SymbolKind.Type) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
@@ -205,11 +214,11 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
         const checkingOuterScope = findScopeWithParentByNodes(checkingScope, [NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
 
-        // Get the symbol of the class to which the referring part belongs. | 使用された箇所が属するクラスのシンボルを取得
+        // Get the symbol of the class to which the referring part belongs.
         const checkingOuterClass = findSymbolShallowly(checkingOuterScope.parentScope, checkingOuterScope.key);
         if (checkingOuterClass?.symbolKind !== SymbolKind.Type) return false;
 
-        // Get the symbol of the class to which the declared part belongs. | 宣言された箇所が属するクラスのシンボルを取得
+        // Get the symbol of the class to which the declared part belongs.
         if (declaredScope.parentScope === undefined) return false;
         const declaredOuterClass = findSymbolShallowly(declaredScope.parentScope, declaredScope.key);
         if (declaredOuterClass?.symbolKind !== SymbolKind.Type) return false;

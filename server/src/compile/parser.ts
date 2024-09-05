@@ -206,14 +206,14 @@ function parseIdentifier(parser: ParserState, kind: HighlightToken): ParsedToken
 function expectIdentifier(parser: ParserState, kind: HighlightToken): ParsedToken | undefined {
     const identifier = parseIdentifier(parser, kind);
     if (identifier === undefined) {
-        parser.error("Expected identifier ❌");
+        parser.error("Expected identifier.");
     }
     return identifier;
 }
 
 function expectContextualKeyword(parser: ParserState, keyword: string): boolean {
     if (parser.next().text !== keyword) {
-        parser.error(`Expected '${keyword}' ❌`);
+        parser.error(`Expected '${keyword}'.`);
         return false;
     }
     parser.confirm(HighlightToken.Keyword);
@@ -383,7 +383,7 @@ function expectClassMembers(parser: ParserState) {
             continue;
         }
 
-        parser.error("Expected class member ❌");
+        parser.error("Expected class member.");
         parser.step();
     }
 
@@ -398,7 +398,7 @@ function parseTypeDef(parser: ParserState): ParsedResult<NodeTypeDef> {
 
     const primeType = parsePrimeType(parser);
     if (primeType === undefined) {
-        parser.error("Expected primitive type ❌");
+        parser.error("Expected primitive type.");
         return ParseFailure.Pending;
     }
 
@@ -601,7 +601,7 @@ function expectInterfaceMembers(parser: ParserState): (NodeIntfMethod | NodeVirt
             continue;
         }
 
-        parser.error("Expected interface member ❌");
+        parser.error("Expected interface member.");
         parser.step();
     }
     return members;
@@ -667,7 +667,7 @@ function expectInitListOrExpr(parser: ParserState) {
         return expr;
     }
 
-    parser.error("Expected initializer list or assignment ❌");
+    parser.error("Expected initializer list or assignment.");
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
@@ -694,7 +694,7 @@ function parseImport(parser: ParserState): ParsedResult<NodeImport> {
 
     const path = parser.next();
     if (path.kind !== TokenKind.String) {
-        parser.error("Expected string path ❌");
+        parser.error("Expected string path.");
         return ParseFailure.Pending;
     }
     parser.confirm(HighlightToken.String);
@@ -785,7 +785,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
         else if (next === 'get') getter = expectGetterSetter(parser);
         else if (next === 'set') setter = expectGetterSetter(parser);
         else {
-            parser.error("Expected getter or setter ❌");
+            parser.error("Expected getter or setter.");
             parser.step();
         }
     }
@@ -826,7 +826,7 @@ function parseMixin(parser: ParserState): ParsedResult<NodeMixin> {
     const parsedClass = parseClass(parser);
     if (parsedClass === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedClass === ParseFailure.Mismatch) {
-        parser.error("Expected class definition ❌");
+        parser.error("Expected class definition.");
         return ParseFailure.Pending;
     }
 
@@ -890,7 +890,7 @@ function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
             continue;
         }
 
-        parser.error("Expected statement ❌");
+        parser.error("Expected statement.");
         parser.step();
     }
 
@@ -904,7 +904,7 @@ function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
 function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     const statBlock = parseStatBlock(parser);
     if (statBlock === undefined) {
-        parser.error("Expected statement block ❌");
+        parser.error("Expected statement block.");
     }
     return statBlock;
 }
@@ -952,7 +952,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
 function expectParamList(parser: ParserState): NodeParamList | undefined {
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
-        parser.error("Expected parameter list ❌");
+        parser.error("Expected parameter list.");
     }
     return paramList;
 }
@@ -985,7 +985,7 @@ function expectContinuousOrClose(
     const parsed = parseContinuousOrClose(parser, continuousOp, closeOp, canColon);
     if (parsed !== undefined) return parsed;
 
-    parser.error(`Expected '${continuousOp}' or '${closeOp}' ❌`);
+    parser.error(`Expected '${continuousOp}' or '${closeOp}'.`);
     return BreakOrThrough.Break;
 }
 
@@ -1069,7 +1069,7 @@ function parseTypeTail(parser: ParserState) {
 function expectType(parser: ParserState): NodeType | undefined {
     const type = parseType(parser);
     if (type === undefined) {
-        parser.error("Expected type ❌");
+        parser.error("Expected type.");
     }
     return type;
 }
@@ -1128,7 +1128,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
             continue;
         }
 
-        parser.error("Expected assignment or initializer list ❌");
+        parser.error("Expected assignment or initializer list.");
         parser.step();
     }
     return {
@@ -1302,7 +1302,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
     const statement = parseStatement(parser);
     if (statement === ParseFailure.Pending) return undefined;
     if (statement === ParseFailure.Mismatch) {
-        parser.error("Expected statement ❌");
+        parser.error("Expected statement.");
         return undefined;
     }
     return statement;
@@ -1328,7 +1328,7 @@ function parseSwitch(parser: ParserState): ParsedResult<NodeSwitch> {
 
         const parsedCase = parseCase(parser);
         if (parsedCase === ParseFailure.Mismatch) {
-            parser.error("Expected case statement ❌");
+            parser.error("Expected case statement.");
             parser.step();
             continue;
         }
@@ -1364,7 +1364,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
 
     const initial: NodeExprStat | NodeVar | undefined = parseVar(parser) ?? parseExprStat(parser);
     if (initial === undefined) {
-        parser.error("Expected initial expression statement or variable declaration ❌");
+        parser.error("Expected initial expression statement or variable declaration.");
         return ParseFailure.Pending;
     }
 
@@ -1519,7 +1519,7 @@ function parseExprStat(parser: ParserState): NodeExprStat | undefined {
 function expectExprStat(parser: ParserState): NodeExprStat | undefined {
     const exprStat = parseExprStat(parser);
     if (exprStat === undefined) {
-        parser.error("Expected expression statement ❌");
+        parser.error("Expected expression statement.");
     }
     return exprStat;
 }
@@ -1641,7 +1641,7 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
 function expectExpr(parser: ParserState): NodeExpr | undefined {
     const expr = parseExpr(parser);
     if (expr === undefined) {
-        parser.error("Expected expression ❌");
+        parser.error("Expected expression.");
     }
     return expr;
 }
@@ -1997,7 +1997,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
     const next = parser.next();
     if (next.kind !== TokenKind.Identifier) {
         if (scope === undefined) return undefined;
-        parser.error("Expected identifier ❌");
+        parser.error("Expected identifier.");
         return {
             nodeName: NodeName.VarAccess,
             nodeRange: {start: rangeStart, end: parser.prev()},
@@ -2071,7 +2071,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
 function expectAssign(parser: ParserState): NodeAssign | undefined {
     const assign = parseAssign(parser);
     if (assign === undefined) {
-        parser.error("Expected assignment ❌");
+        parser.error("Expected assignment.");
     }
     return assign;
 }
@@ -2192,7 +2192,7 @@ export function parseFromTokenized(tokens: ParsedToken[]): NodeScript {
     while (parser.isEnd() === false) {
         script.push(...parseScript(parser));
         if (parser.isEnd() === false) {
-            parser.error("Unexpected token ❌");
+            parser.error("Unexpected token.");
             parser.step();
         }
     }
