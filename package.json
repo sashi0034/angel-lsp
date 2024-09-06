@@ -78,6 +78,16 @@
             "type": "object",
             "title": "AngelScript configuration",
             "properties": {
+                "angelScript.builtinStringTypes": {
+                    "scope": "window",
+                    "type": "array",
+                    "default": [
+                        "string",
+                        "string_t",
+                        "String"
+                    ],
+                    "description": "List of built-in string types. These types are considered to be constructible from string literals."
+                },
                 "angelScript.implicitMutualInclusion": {
                     "scope": "window",
                     "type": "boolean",

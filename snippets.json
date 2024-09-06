@@ -148,5 +148,12 @@
             "}"
         ],
         "description": "Virtual property getter and setter"
+    },
+    "Include statement": {
+        "prefix": "#include",
+        "body": [
+            "#include \"${1:HEADER}\""
+        ],
+        "description": "Include other file"
     }
 }
