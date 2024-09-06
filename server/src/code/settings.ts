@@ -4,6 +4,7 @@
  */
 export interface LanguageServerSettings {
     implicitMutualInclusion: boolean;
+    builtinStringTypes: string[];
     formatter: {
         maxBlankLines: number;
         indentSpaces: number;
@@ -16,6 +17,7 @@ export interface LanguageServerSettings {
 
 const defaultSettings: LanguageServerSettings = {
     implicitMutualInclusion: false,
+    builtinStringTypes: ["string", "String"],
     formatter: {
         maxBlankLines: 1,
         indentSpaces: 4,

@@ -15,6 +15,7 @@ import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
+import {getGlobalSettings} from "../code/settings";
 
 /**
  * Check if the source type can be converted to the destination type.
@@ -139,12 +140,7 @@ function canCastFromPrimitiveType(
         return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
     case PrimitiveType.String: {
         const destName = destType.declaredPlace.text;
-
-        const candidates = [
-            "string", "string_t", "String",
-        ];
-
-        return candidates.includes(destName);
+        return getGlobalSettings().builtinStringTypes.includes(destName);
     }
     case PrimitiveType.Void:
         return false;
