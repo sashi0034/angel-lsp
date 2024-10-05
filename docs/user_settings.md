@@ -21,6 +21,13 @@ Since AngelScript is a highly customizable language, you may need to adjust the 
     }
     ```
 
+  
+- Defining Built-in Array Type
+  - This can be configured using `Angel Script: Builtin Array Type`.
+  - This will handle `Type[]` as `array<Type>`.
+  - Unlike Built-in String Types, the current version does not yet allow the Built-in Array Type to be set in the metadata
+
+
 - Implicit Mutual Inclusion
 
     - This can be configured using `Angel Script: Implicit Mutual Inclusion`.
