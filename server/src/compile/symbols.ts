@@ -62,7 +62,7 @@ export interface SymbolBase {
 export interface SymbolType extends SymbolBase {
     readonly symbolKind: SymbolKind.Type;
     readonly sourceType: SourceType;
-    readonly templateTypes?: ParsedToken[];
+    readonly templateTypes?: ParsedToken[]; // e.g. <T, U>
     readonly baseList?: (DeducedType | undefined)[];
     readonly isHandler?: boolean,
     readonly membersScope: SymbolScope | undefined;
