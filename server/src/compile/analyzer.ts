@@ -101,6 +101,7 @@ import {
     tryInsertSymbolObject
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
+import {getGlobalSettings} from "../code/settings";
 
 type HoistingQueue = (() => void)[];
 
@@ -591,7 +592,7 @@ function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
-    const reservedType = analyzeReservedType(scope, nodeType);
+    const reservedType = nodeType.isArray ? undefined : analyzeReservedType(scope, nodeType);
     if (reservedType !== undefined) return reservedType;
 
     const typeIdentifier = nodeType.dataType.identifier;
@@ -600,7 +601,18 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         ? (analyzeScope(scope, nodeType.scope) ?? scope)
         : scope;
 
-    let symbolAndScope = findSymbolWithParent(searchScope, typeIdentifier.text);
+    let givenTypeTemplates = nodeType.typeTemplates;
+    let givenIdentifier = typeIdentifier.text;
+
+    if (nodeType.isArray) {
+        // If the type is an array, we replace the identifier with array type.
+        givenIdentifier = getGlobalSettings().builtinArrayType;
+        const copiedNodeType: Mutable<NodeType> = {...nodeType};
+        copiedNodeType.isArray = false;
+        givenTypeTemplates = [copiedNodeType];
+    }
+
+    let symbolAndScope = findSymbolWithParent(searchScope, givenIdentifier);
     if (symbolAndScope !== undefined
         && isSymbolConstructorInScope(symbolAndScope)
         && symbolAndScope.scope.parentScope !== undefined
@@ -608,10 +620,10 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
         // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
         // in which case search further up the hierarchy.
         symbolAndScope = getSymbolAndScopeIfExist(
-            findSymbolShallowly(symbolAndScope.scope.parentScope, typeIdentifier.text), symbolAndScope.scope.parentScope);
+            findSymbolShallowly(symbolAndScope.scope.parentScope, givenIdentifier), symbolAndScope.scope.parentScope);
     }
     if (symbolAndScope === undefined) {
-        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not defined.`);
+        diagnostic.addError(typeIdentifier.location, `'${givenIdentifier}' is not defined.`);
         return undefined;
     }
 
@@ -619,10 +631,10 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | unde
     if (foundSymbol.symbolKind === SymbolKind.Function && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
     } else if (foundSymbol.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(typeIdentifier.location, `'${typeIdentifier.text}' is not a type.`);
+        diagnostic.addError(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
     } else {
-        const typeTemplates = analyzeTemplateTypes(scope, nodeType.typeTemplates, foundSymbol.templateTypes);
+        const typeTemplates = analyzeTemplateTypes(scope, givenTypeTemplates, foundSymbol.templateTypes);
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined, typeTemplates);
     }
 }
