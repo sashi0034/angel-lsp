@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.11]
+
+- Added settings for builtin array and string types. [#11](https://github.com/sashi0034/angel-lsp/issues/11), [#34](https://github.com/sashi0034/angel-lsp/issues/34)
+
 ## [0.3.10]
 
 - Fixed bugs [#22](https://github.com/sashi0034/angel-lsp/issues/22)
