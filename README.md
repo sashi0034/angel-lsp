@@ -55,6 +55,10 @@ The Language Server analyzes AngelScript files within your project and offers th
 
     - [Sven Co-op/as.predefined](./examples/Sven%20Co-op/as.predefined) for [Sven Co-op](https://store.steampowered.com/app/225840/Sven_Coop) by [@DrAbcOfficial](https://github.com/DrAbcOfficial)
 
+# Documentation
+
+- [User Settings](./docs/user_settings.md)
+
 
 # Unimplemented Features
 

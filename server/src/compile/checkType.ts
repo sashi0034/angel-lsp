@@ -129,6 +129,16 @@ function canDownCast(
     return false;
 }
 
+// Judge if the class has a metadata that indicates it is a built-in string type.
+function isSourceTypeBuiltinString(sourceType: SourceType): boolean {
+    if (isSourcePrimitiveType(sourceType)) return false;
+
+    if (sourceType.nodeName != NodeName.Class) return false;
+
+    const builtinStringMetadata = "BuiltinString";
+    return sourceType.metadata.length === 1 && sourceType.metadata[0].text === builtinStringMetadata;
+}
+
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
@@ -140,6 +150,7 @@ function canCastFromPrimitiveType(
         return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
     case PrimitiveType.String: {
         const destName = destType.declaredPlace.text;
+        if (isSourceTypeBuiltinString(destNode)) return true;
         return getGlobalSettings().builtinStringTypes.includes(destName);
     }
     case PrimitiveType.Void:
