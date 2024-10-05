@@ -305,7 +305,7 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
 function parseClass(parser: ParserState): ParsedResult<NodeClass> {
     const rangeStart = parser.next();
 
-    parseMetadata(parser);
+    const metadata = parseMetadata(parser);
 
     const entity = parseEntityAttribute(parser);
 
@@ -343,6 +343,7 @@ function parseClass(parser: ParserState): ParsedResult<NodeClass> {
         nodeName: NodeName.Class,
         nodeRange: {start: rangeStart, end: parser.prev()},
         scopeRange: {start: scopeStart, end: scopeEnd},
+        metadata: metadata,
         entity: entity,
         identifier: identifier,
         typeTemplates: typeTemplates,
@@ -498,29 +499,34 @@ function parseRef(parser: ParserState) {
 
 // Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
 // eg. '[Hello[]]' is ok but '[Hello[]' is not.
-function parseMetadata(parser: ParserState) {
+function parseMetadata(parser: ParserState): ParsedToken[] {
     const rangeStart = parser.next();
-    if (parser.next().text !== '[') return;
+    if (parser.next().text !== '[') return [];
 
     let level = 0;
 
+    const metadata: ParsedToken[] = [];
     while (parser.isEnd() === false) {
         if (parser.next().text === '[') {
+            if (level > 0) metadata.push(parser.next());
+
             level++;
             parser.confirm(HighlightToken.Operator);
         } else if (parser.next().text === ']') {
             level--;
             parser.confirm(HighlightToken.Operator);
 
-            if (level === 0) return;
+            if (level === 0) return metadata;
+            else metadata.push(parser.next());
         } else {
+            metadata.push(parser.next());
             parser.confirm(HighlightToken.Decorator);
         }
     }
 
-    if (level !== 0) {
-        parser.backtrack(rangeStart);
-    }
+    // when level !== 0
+    parser.backtrack(rangeStart);
+    return [];
 }
 
 // ['private' | 'protected']

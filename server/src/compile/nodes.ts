@@ -151,6 +151,7 @@ export interface ParsedEnumMember {
 export interface NodeClass extends NodesBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: ParsedRange;
+    readonly metadata: ParsedToken[];
     readonly entity: EntityAttribute | undefined;
     readonly identifier: ParsedToken;
     readonly typeTemplates: NodeType[] | undefined;
