@@ -59,7 +59,7 @@ export class ParserState {
         this.cursorIndex++;
     }
 
-    public confirm(analyzeToken: HighlightToken) {
+    public commit(analyzeToken: HighlightToken) {
         const next = this.next();
         if (isVirtualToken(next) === false) next.highlight.token = analyzeToken;
         this.step();
@@ -76,7 +76,7 @@ export class ParserState {
             // this.step();
             return false;
         }
-        this.confirm(analyzeToken);
+        this.commit(analyzeToken);
         return true;
     }
 
