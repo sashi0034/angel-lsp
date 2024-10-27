@@ -232,8 +232,10 @@ connection.onCompletion(
         // info and always provide the same completion items.
 
         const uri = params.textDocument.uri;
+
         const diagnosedScope = getInspectedResult(uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
+
         return serveCompletions(diagnosedScope.fullScope, params.position, uri);
 
         // return [
