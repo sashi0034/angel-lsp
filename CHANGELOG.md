@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.12] 2023/10/28
+
+- Support for function signature help. [#30](https://github.com/sashi0034/angel-lsp/issues/30)
+
 ## [0.3.11]
 
 - Added settings for builtin array and string types. [#11](https://github.com/sashi0034/angel-lsp/issues/11), [#34](https://github.com/sashi0034/angel-lsp/issues/34)
