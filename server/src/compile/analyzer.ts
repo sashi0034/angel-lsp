@@ -733,7 +733,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Update the scope iterator.
         scopeIterator = found;
 
-        // Append completion information for the namespace to the scope.
+        // Append a hint for completion of the namespace to the scope.
         const complementRange: LocationInfo = {...nextScope.location};
         complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
         parentScope.completionHints.push({
@@ -783,7 +783,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeSwitch(scope, statement);
         break;
     case NodeName.ExprStat:
-        analyzeEexprStat(scope, statement);
+        analyzeExprStat(scope, statement);
         break;
     case NodeName.Try:
         analyzeTry(scope, statement);
@@ -806,9 +806,9 @@ function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
     if (nodeFor.initial.nodeName === NodeName.Var) analyzeVar(scope, nodeFor.initial, false);
-    else analyzeEexprStat(scope, nodeFor.initial);
+    else analyzeExprStat(scope, nodeFor.initial);
 
-    if (nodeFor.condition !== undefined) analyzeEexprStat(scope, nodeFor.condition);
+    if (nodeFor.condition !== undefined) analyzeExprStat(scope, nodeFor.condition);
 
     for (const inc of nodeFor.incrementList) {
         analyzeAssign(scope, inc);
@@ -846,7 +846,7 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 // CONTINUE      ::= 'continue' ';'
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function analyzeEexprStat(scope: SymbolScope, exprStat: NodeExprStat) {
+function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
     if (assign?.isHandler !== true && assign?.symbolType.symbolKind === SymbolKind.Function) {
@@ -1096,9 +1096,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
+    // Append a hint for complement of class members.
     const complementRange = getLocationBetween(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
-
-    // Complement class members.
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
@@ -1277,6 +1276,15 @@ function analyzeFunctionCaller(
             return callerArgTypes[0];
         }
     }
+
+    // Append a hint for completion of function arguments to the scope.
+    const complementRange = getLocationBetween(callerArgList.nodeRange.start, getNextTokenIfExist(callerArgList.nodeRange.start));
+    scope.completionHints.push({
+        complementKind: ComplementKind.Arguments,
+        complementLocation: complementRange,
+        expectedCallee: calleeFunc,
+        passingRanges: [] // TODO
+    });
 
     return checkFunctionMatch({
         scope: scope,

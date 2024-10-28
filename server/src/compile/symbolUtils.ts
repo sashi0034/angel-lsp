@@ -6,7 +6,7 @@ import {
     SymbolObject,
     SymbolKind,
     SymbolMap,
-    SymbolScope
+    SymbolScope, isSourceNodeClassOrInterface
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {ParsedToken} from "./parsedToken";
@@ -73,12 +73,13 @@ export function resolveTemplateType(
     if (templateTranslate.has(type.symbolType.declaredPlace)) {
         return templateTranslate.get(type.symbolType.declaredPlace);
     }
+
     return type;
 }
 
 export function resolveTemplateTypes(
     templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined
-) {
+): DeducedType | undefined {
     return templateTranslate
         .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
 }

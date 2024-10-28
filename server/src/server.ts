@@ -26,6 +26,7 @@ import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
 import {stringifySymbolObject} from "./compile/symbolUtils";
+import {serveSignatureHelp} from "./services/signatureHelp";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -62,10 +63,14 @@ connection.onInitialize((params: InitializeParams) => {
             referencesProvider: true,
             renameProvider: true,
             hoverProvider: true,
+            signatureHelpProvider: {
+                triggerCharacters: ["(", ")", ","],
+                retriggerCharacters: ["="],
+            },
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
-                triggerCharacters: [' ', '.', ':', '(', '[']
+                triggerCharacters: [' ', '.', ':']
             },
             diagnosticProvider: {
                 interFileDependencies: false,
@@ -269,9 +274,16 @@ connection.onCompletionResolve(
     }
 );
 
-/**
- * Document Formatting
- */
+connection.onSignatureHelp((params) => {
+    const uri = params.textDocument.uri;
+
+    const diagnosedScope = getInspectedResult(uri).analyzedScope;
+    if (diagnosedScope === undefined) return null;
+
+    return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);
+});
+
+// Document Formatting
 connection.onDocumentFormatting((params) => {
     const inspected = getInspectedResult(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);

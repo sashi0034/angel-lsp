@@ -16,13 +16,17 @@ import {
 import {isAllowedToAccessMember} from "../compile/checkType";
 import {isPositionInRange} from "../compile/tokenUtils";
 import {ComplementHints, ComplementKind} from "../compile/symbolComplement";
+import {findScopeContainingPosition} from "./serviceHelper";
 
+/**
+ * Returns the completion candidates for the specified position.
+ */
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    const targetScope = findIncludedScopes(diagnosedScope, caret, uri);
+    const targetScope = findScopeContainingPosition(diagnosedScope, caret, uri);
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
@@ -77,22 +81,6 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     }
 
     return items;
-}
-
-function findIncludedScopes(scope: SymbolScope, caret: Position, path: string): SymbolScope {
-    for (const hint of scope.completionHints) {
-        if (hint.complementKind !== ComplementKind.Scope) continue;
-
-        const location = hint.complementLocation;
-        if (location.path !== path) continue;
-
-        if (isPositionInRange(caret, location)) {
-            const found = findIncludedScopes(hint.targetScope, caret, path);
-            if (found !== undefined) return found;
-        }
-    }
-
-    return scope;
 }
 
 function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {

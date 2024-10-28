@@ -52,17 +52,19 @@ function checkFunctionMatchInternal(
             // When the caller arguments are insufficient
             const param = calleeParams[i];
 
-            if (param.defaultExpr === undefined) {
-                // When there is also no default expression
-                if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
-                    ...args,
-                    calleeFunc: calleeFunc.nextOverload
-                }, overloadedHead);
-                if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
-                    diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
-                }
-                break;
+            if (param.defaultExpr !== undefined) continue;
+
+            // When there is also no default expression
+
+            if (calleeFunc.nextOverload !== undefined) {
+                return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
             }
+
+            if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
+                diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
+            }
+
+            break;
         }
 
         let actualType = callerArgTypes[i];
@@ -73,10 +75,11 @@ function checkFunctionMatchInternal(
         if (isTypeMatch(actualType, expectedType)) continue;
 
         // Use the overload if it exists
-        if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal(
-            {...args, calleeFunc: calleeFunc.nextOverload},
-            overloadedHead);
-        if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
+        if (calleeFunc.nextOverload !== undefined) {
+            return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+        }
+
+        if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
                 `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}'.`);
         }
@@ -89,11 +92,11 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
 
     // Use the overload if it exists
-    if (calleeFunc.nextOverload !== undefined) return checkFunctionMatchInternal({
-        ...args,
-        calleeFunc: calleeFunc.nextOverload
-    }, overloadedHead);
-    if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead) === false) {
+    if (calleeFunc.nextOverload !== undefined) {
+        return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+    }
+
+    if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
         diagnostic.addError(getNodeLocation(callerRange),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
@@ -105,7 +108,8 @@ function handleErrorWhenOverloaded(
     callerRange: ParsedRange,
     callerArgs: (DeducedType | undefined)[],
     calleeFunc: SymbolFunction,
-    overloadedHead: SymbolFunction
+    overloadedHead: SymbolFunction,
+    templateTranslators: (TemplateTranslation | undefined)[]
 ) {
     if (calleeFunc === overloadedHead) return false; // Not overloaded
 
@@ -115,7 +119,8 @@ function handleErrorWhenOverloaded(
 
     let cursor: SymbolFunction | undefined = overloadedHead;
     while (cursor !== undefined) {
-        message += `\n(${stringifyDeducedTypes(cursor.parameterTypes)})`;
+        const resolvedTypes = cursor.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
+        message += `\n(${stringifyDeducedTypes(resolvedTypes)})`;
         cursor = cursor.nextOverload;
     }
 
