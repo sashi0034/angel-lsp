@@ -7,17 +7,26 @@ import {
 } from "../compile/symbols";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compile/nodes";
-import {collectParentScopes, findScopeShallowly, findScopeWithParent, isAnonymousIdentifier} from "../compile/symbolScopes";
+import {
+    collectParentScopes,
+    findScopeShallowly,
+    findScopeWithParent,
+    isAnonymousIdentifier
+} from "../compile/symbolScopes";
 import {isAllowedToAccessMember} from "../compile/checkType";
 import {isPositionInRange} from "../compile/tokenUtils";
 import {ComplementHints, ComplementKind} from "../compile/symbolComplement";
+import {findScopeContainingPosition} from "./serviceHelper";
 
+/**
+ * Returns the completion candidates for the specified position.
+ */
 export function serveCompletions(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    const targetScope = findIncludedScopes(diagnosedScope, caret, uri);
+    const targetScope = findScopeContainingPosition(diagnosedScope, caret, uri);
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
@@ -36,7 +45,7 @@ export function serveCompletions(
 function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    // Completion of symbols in the scope | スコープ内シンボルの補完
+    // Completion of symbols in the scope
     for (const [symbolName, symbol] of scope.symbolMap) {
         items.push({
             label: symbolName,
@@ -44,7 +53,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
         });
     }
 
-    // Completion of namespace | 名前空間の補完
+    // Completion of namespace
     for (const [childName, childScope] of scope.childScopes) {
         if (childScope.ownerNode !== undefined) continue;
         if (isAnonymousIdentifier(childName)) continue;
@@ -60,7 +69,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
 function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    // Completion of symbols in the scope | スコープ内シンボルの補完
+    // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolMap) {
         if (isSymbolInstanceMember(symbol) === false) continue;
         if (isAllowedToAccessMember(checkingScope, symbol) === false) continue;
@@ -74,32 +83,14 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     return items;
 }
 
-function findIncludedScopes(scope: SymbolScope, caret: Position, path: string): SymbolScope {
-    for (const hint of scope.completionHints) {
-        if (hint.complementKind !== ComplementKind.Scope) continue;
-
-        const location = hint.complementLocation;
-        if (location.path !== path) continue;
-
-        if (isPositionInRange(caret, location)) {
-            const found = findIncludedScopes(hint.targetScope, caret, path);
-            if (found !== undefined) return found;
-        }
-    }
-
-    return scope;
-}
-
 function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
     if (scope.completionHints.length === 0) return;
 
     for (const hint of scope.completionHints) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        // スコープ内で優先的に補完する対象がカーソル位置にあるかを調べる
         const location = hint.complementLocation;
         if (isPositionInRange(caret, location)) {
             // Return the completion target to be prioritized.
-            // 優先的に補完する対象を返す
             return searchMissingCompletion(scope, hint);
         }
     }
@@ -109,16 +100,16 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 
 function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
     if (completion.complementKind === ComplementKind.Type) {
-        // Find the scope to which the type to be completed belongs. | 補完対象の型が属するスコープを探す
+        // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
         const typeScope = findScopeShallowly(completion.targetType.declaredScope, completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
-        // Return the completion candidates in the scope. | スコープ内の補完候補を返す
+        // Return the completion candidates in the scope.
         return getCompletionMembersInScope(scope, typeScope);
     } else if (completion.complementKind === ComplementKind.Namespace) {
-        // Find the scope to which the namespace to be completed belongs. | 補完対象の名前空間が属するスコープを探す
+        // Find the scope to which the namespace to be completed belongs.
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
@@ -130,7 +121,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
             if (namespaceScope === undefined) return [];
         }
 
-        // Return the completion candidates in the scope. | スコープ内の補完候補を返す
+        // Return the completion candidates in the scope.
         return getCompletionSymbolsInScope(namespaceScope);
     }
     return undefined;

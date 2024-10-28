@@ -19,13 +19,14 @@ import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
 import {getInspectedResult, getInspectedResultList, inspectFile, reinspectAllFiles} from "./services/inspector";
 import {serveCompletions} from "./services/completion";
-import {serveSemanticTokens} from "./services/semantiTokens";
+import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
 import {stringifySymbolObject} from "./compile/symbolUtils";
+import {serveSignatureHelp} from "./services/signatureHelp";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -62,10 +63,14 @@ connection.onInitialize((params: InitializeParams) => {
             referencesProvider: true,
             renameProvider: true,
             hoverProvider: true,
+            signatureHelpProvider: {
+                triggerCharacters: ["(", ")", ","],
+                retriggerCharacters: ["="],
+            },
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
-                triggerCharacters: [' ', '.', ':', '(', '[']
+                triggerCharacters: [' ', '.', ':']
             },
             diagnosticProvider: {
                 interFileDependencies: false,
@@ -232,8 +237,10 @@ connection.onCompletion(
         // info and always provide the same completion items.
 
         const uri = params.textDocument.uri;
+
         const diagnosedScope = getInspectedResult(uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
+
         return serveCompletions(diagnosedScope.fullScope, params.position, uri);
 
         // return [
@@ -267,9 +274,17 @@ connection.onCompletionResolve(
     }
 );
 
-/**
- * Document Formatting
- */
+// Signature Help
+connection.onSignatureHelp((params) => {
+    const uri = params.textDocument.uri;
+
+    const diagnosedScope = getInspectedResult(uri).analyzedScope;
+    if (diagnosedScope === undefined) return null;
+
+    return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);
+});
+
+// Document Formatting
 connection.onDocumentFormatting((params) => {
     const inspected = getInspectedResult(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);

@@ -34,6 +34,20 @@ export function isSamePosition(l: Position, r: Position): boolean {
 }
 
 /**
+ * Determines if the left position is ahead of the right position.
+ */
+export function isAheadPosition(l: Position, r: Position): boolean {
+    return l.line < r.line || (l.line === r.line && l.character < r.character);
+}
+
+/**
+ * Determines if the left position is behind the right position.
+ */
+export function isBehindPosition(l: Position, r: Position): boolean {
+    return l.line > r.line || (l.line === r.line && l.character > r.character);
+}
+
+/**
  * Determines if two tokens are identical.
  * This function does not check if they are the same instance;
  * instead, it compares the members of each token object individually.

@@ -6,7 +6,7 @@ import {
     SymbolObject,
     SymbolKind,
     SymbolMap,
-    SymbolScope
+    SymbolScope, isSourceNodeClassOrInterface
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {ParsedToken} from "./parsedToken";
@@ -62,8 +62,10 @@ export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolea
 export type TemplateTranslation = Map<ParsedToken, DeducedType | undefined>;
 
 export function resolveTemplateType(
-    templateTranslate: TemplateTranslation, type: DeducedType | undefined
+    templateTranslate: TemplateTranslation | undefined, type: DeducedType | undefined
 ): DeducedType | undefined {
+    if (templateTranslate === undefined) return type;
+
     if (type === undefined) return undefined;
 
     if (type.symbolType.symbolKind === SymbolKind.Function) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
@@ -73,12 +75,13 @@ export function resolveTemplateType(
     if (templateTranslate.has(type.symbolType.declaredPlace)) {
         return templateTranslate.get(type.symbolType.declaredPlace);
     }
+
     return type;
 }
 
 export function resolveTemplateTypes(
     templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined
-) {
+): DeducedType | undefined {
     return templateTranslate
         .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
 }
@@ -138,7 +141,7 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
         const head = symbol.returnType === undefined ? '' : stringifyDeducedType(symbol.returnType) + ' ';
         return `${head}${fullName}(${stringifyDeducedTypes(symbol.parameterTypes)})`;
     } else if (symbol.symbolKind === SymbolKind.Variable) {
-        return `${fullName}: ${stringifyDeducedType(symbol.type)}`;
+        return `${stringifyDeducedType(symbol.type)} ${fullName}`;
     }
 
     assert(false);
