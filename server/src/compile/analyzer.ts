@@ -1278,12 +1278,12 @@ function analyzeFunctionCaller(
     }
 
     // Append a hint for completion of function arguments to the scope.
-    const complementRange = getLocationBetween(callerArgList.nodeRange.start, getNextTokenIfExist(callerArgList.nodeRange.start));
+    const complementRange = getLocationBetween(callerArgList.nodeRange.start, getNextTokenIfExist(callerArgList.nodeRange.end));
     scope.completionHints.push({
         complementKind: ComplementKind.Arguments,
         complementLocation: complementRange,
         expectedCallee: calleeFunc,
-        passingRanges: [] // TODO
+        passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange)
     });
 
     return checkFunctionMatch({

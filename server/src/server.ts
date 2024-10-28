@@ -19,7 +19,7 @@ import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
 import {getInspectedResult, getInspectedResultList, inspectFile, reinspectAllFiles} from "./services/inspector";
 import {serveCompletions} from "./services/completion";
-import {serveSemanticTokens} from "./services/semantiTokens";
+import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
@@ -274,6 +274,7 @@ connection.onCompletionResolve(
     }
 );
 
+// Signature Help
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
