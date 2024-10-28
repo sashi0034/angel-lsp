@@ -13,7 +13,7 @@ export function serveSignatureHelp(
 
     const signatures: SignatureInformation[] = [];
 
-    for (let i = targetScope.completionHints.length - 1; i >= 0; i--) {
+    for (let i = 0; i < targetScope.completionHints.length; i++) {
         const hint = targetScope.completionHints[i];
         if (hint.complementKind !== ComplementKind.Arguments) continue;
 
