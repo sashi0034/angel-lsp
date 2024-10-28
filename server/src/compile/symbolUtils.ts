@@ -62,8 +62,10 @@ export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolea
 export type TemplateTranslation = Map<ParsedToken, DeducedType | undefined>;
 
 export function resolveTemplateType(
-    templateTranslate: TemplateTranslation, type: DeducedType | undefined
+    templateTranslate: TemplateTranslation | undefined, type: DeducedType | undefined
 ): DeducedType | undefined {
+    if (templateTranslate === undefined) return type;
+
     if (type === undefined) return undefined;
 
     if (type.symbolType.symbolKind === SymbolKind.Function) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?

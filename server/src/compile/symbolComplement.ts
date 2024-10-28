@@ -3,6 +3,7 @@ import {getNodeLocation} from "./nodesUtils";
 import {LocationInfo} from "./tokens";
 import {ParsedToken} from "./parsedToken";
 import {SymbolType, SymbolScope, SymbolFunction} from "./symbols";
+import {TemplateTranslation} from "./symbolUtils";
 
 /**
  * Types of autocomplete targets
@@ -54,6 +55,7 @@ export interface CompletionArgument extends ComplementBase {
     complementKind: ComplementKind.Arguments;
     expectedCallee: SymbolFunction;
     passingRanges: ParsedRange[];
+    templateTranslate: TemplateTranslation | undefined;
 }
 
 export type ComplementHints =

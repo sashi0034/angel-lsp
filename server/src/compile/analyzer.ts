@@ -1283,7 +1283,8 @@ function analyzeFunctionCaller(
         complementKind: ComplementKind.Arguments,
         complementLocation: complementRange,
         expectedCallee: calleeFunc,
-        passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange)
+        passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
+        templateTranslate: templateTranslate
     });
 
     return checkFunctionMatch({
