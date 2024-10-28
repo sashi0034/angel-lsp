@@ -139,7 +139,7 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
         const head = symbol.returnType === undefined ? '' : stringifyDeducedType(symbol.returnType) + ' ';
         return `${head}${fullName}(${stringifyDeducedTypes(symbol.parameterTypes)})`;
     } else if (symbol.symbolKind === SymbolKind.Variable) {
-        return `${fullName}: ${stringifyDeducedType(symbol.type)}`;
+        return `${stringifyDeducedType(symbol.type)} ${fullName}`;
     }
 
     assert(false);
