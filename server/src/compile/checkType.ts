@@ -84,6 +84,8 @@ function isTypeMatchInternal(
         // OK if they both point to the same type.
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
+        if (srcNode.nodeName === NodeName.Enum && destNode === PrimitiveType.Number) return true;
+
         // OK if any of the inherited types in the source match the destination.
         if (canDownCast(srcType, destType)) return true;
     }
