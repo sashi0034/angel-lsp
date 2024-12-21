@@ -166,6 +166,9 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     symbol.membersScope = scope;
 
     hoistEnumMembers(scope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
+
+    if (getGlobalSettings().hoistEnumParentScope)
+        hoistEnumMembers(parentScope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: DeducedType) {

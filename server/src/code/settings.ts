@@ -4,6 +4,7 @@
  */
 export interface LanguageServerSettings {
     implicitMutualInclusion: boolean;
+    hoistEnumParentScope: boolean;
     builtinStringTypes: string[];
     builtinArrayType: string,
     formatter: {
@@ -18,6 +19,7 @@ export interface LanguageServerSettings {
 
 const defaultSettings: LanguageServerSettings = {
     implicitMutualInclusion: false,
+    hoistEnumParentScope: false,
     builtinStringTypes: ["string", "String"],
     builtinArrayType: "array",
     formatter: {

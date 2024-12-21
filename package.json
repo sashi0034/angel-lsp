@@ -100,6 +100,12 @@
                     "default": false,
                     "description": "Project files implicitly include each other (like C# or Java)"
                 },
+                "angelScript.hoistEnumParentScope": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Hoist enums to their parents scope."
+                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",
