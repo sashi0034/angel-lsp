@@ -1,14 +1,19 @@
 # Change Log
 
-## [0.3.12] 2023/10/28
+## [0.3.13] 2024/12/22
+
+- Added hoistEnumParentScope setting [#42](https://github.com/sashi0034/angel-lsp/pull/42) by Vam-Jam.
+- Fixed some bugs [#43](https://github.com/sashi0034/angel-lsp/pull/43), [#44](https://github.com/sashi0034/angel-lsp/pull/44) by Vam-Jam
+
+## [0.3.12] 2024/10/28
 
 - Support for function signature help. [#30](https://github.com/sashi0034/angel-lsp/issues/30)
 
-## [0.3.11]
+## [0.3.11] 2024/10/05
 
 - Added settings for builtin array and string types. [#11](https://github.com/sashi0034/angel-lsp/issues/11), [#34](https://github.com/sashi0034/angel-lsp/issues/34)
 
-## [0.3.10]
+## [0.3.10] 2024/08/20
 
 - Fixed bugs [#22](https://github.com/sashi0034/angel-lsp/issues/22)
 
