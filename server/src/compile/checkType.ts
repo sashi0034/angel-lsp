@@ -66,6 +66,11 @@ function isTypeMatchInternal(
 
     // Check the function handler type.
     if (srcType.symbolKind === SymbolKind.Function) {
+
+        // Are we trying to pass something into ?
+        if (destType.symbolKind === SymbolKind.Type)
+            if (destType.sourceType === PrimitiveType.Any) return true;
+
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
         return isFunctionHandlerMatch(srcType, destType);
     } else if (destType.symbolKind === SymbolKind.Function) {
