@@ -220,7 +220,7 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
     return true;
 }
 
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'))
 function parseEnum(parser: ParserState): ParsedResult<NodeEnum> {
     const rangeStart = parser.next();
 
@@ -254,12 +254,17 @@ function parseEnum(parser: ParserState): ParsedResult<NodeEnum> {
     };
 }
 
-// '{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'
+// '{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'
 function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
     const members: ParsedEnumMember[] = [];
     parser.expect('{', HighlightToken.Operator);
     while (parser.isEnd() === false) {
         if (expectContinuousOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) break;
+
+        if (parser.next().text === '}') {
+            parser.commit(HighlightToken.Operator);
+            break;
+        }
 
         const identifier = expectIdentifier(parser, HighlightToken.EnumMember);
         if (identifier === undefined) break;

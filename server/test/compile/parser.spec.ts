@@ -49,6 +49,13 @@ describe("Parser", () => {
             eValue200 = eValue2 * 100
         }
     `);
+    itParses(`
+        enum Foo
+        {
+            fizz,
+            buzz,
+        }
+    `);
     itParses("funcdef bool CALLBACK(int, int);");
     itParses("typedef double real64;");
     itParses(`
