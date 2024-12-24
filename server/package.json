@@ -15,5 +15,7 @@
 		"vscode-languageserver": "^9.0.1",
 		"vscode-languageserver-textdocument": "^1.0.11"
 	},
-	"scripts": {}
+	"scripts": {
+		"test": "mocha"
+	}
 }
