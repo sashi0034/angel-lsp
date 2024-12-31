@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.14] 2024/12/31
+
+- Fixed a bug in parsing enums [#45](https://github.com/sashi0034/angel-lsp/pull/45) by FnControlOption
+
 ## [0.3.13] 2024/12/22
 
 - Added hoistEnumParentScope setting [#42](https://github.com/sashi0034/angel-lsp/pull/42) by Vam-Jam.
