@@ -52,11 +52,11 @@ import {
     ParsedRange
 } from "./nodes";
 import {
-    ResolvedType,
     getSourceNodeName,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
+    ResolvedType,
     SymbolFunction,
     SymbolKind,
     SymbolScope,
@@ -79,7 +79,7 @@ import {
 } from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsedToken} from "./parsedToken";
-import {checkTypeMatch, isAllowedToAccessMember, canTypeConvert} from "./checkType";
+import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
 import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
 import {
     builtinBoolType,
@@ -878,8 +878,14 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     // TODO: Support for lambda
 
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
-        const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
+        let functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
         if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
+
+        // Select suitable overload if there are multiple overloads
+        while (functionReturn.nextOverload !== undefined) {
+            if (functionReturn.sourceNode === functionScope.ownerNode) break;
+            functionReturn = functionReturn.nextOverload;
+        }
 
         const expectedReturn = functionReturn.returnType?.symbolType;
         if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.sourceType === PrimitiveType.Void) {
