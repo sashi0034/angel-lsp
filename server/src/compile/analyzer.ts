@@ -79,7 +79,7 @@ import {
 } from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsedToken} from "./parsedToken";
-import {checkTypeMatch, isAllowedToAccessMember, isTypeMatch} from "./checkType";
+import {checkTypeMatch, isAllowedToAccessMember, canTypeConvert} from "./checkType";
 import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
 import {
     builtinBoolType,
@@ -875,7 +875,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
     if (functionScope === undefined || functionScope.ownerNode === undefined) return;
 
-    // TODO: ラムダ式に対応
+    // TODO: Support for lambda
 
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
         const functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
@@ -1092,7 +1092,7 @@ function analyzeBuiltinConstructorCaller(
         && getSourceNodeName(constructorType.symbolType.sourceType) === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
-        if (argList.length != 1 || isTypeMatch(analyzeAssign(scope, argList[0].assign), resolvedBuiltinInt) === false) {
+        if (argList.length != 1 || canTypeConvert(analyzeAssign(scope, argList[0].assign), resolvedBuiltinInt) === false) {
             diagnostic.addError(callerIdentifier.location, `Enum constructor '${constructorIdentifier}' requires an integer.`);
         }
 
@@ -1305,7 +1305,7 @@ function analyzeFunctionCaller(
     if (calleeFunc.sourceNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
         const handlerType = {symbolType: calleeFunc, sourceScope: undefined};
-        if (callerArgTypes.length === 1 && isTypeMatch(callerArgTypes[0], handlerType)) {
+        if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {
             return callerArgTypes[0];
         }
     }
@@ -1420,8 +1420,8 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (trueAssign !== undefined && falseAssign === undefined) return trueAssign;
     if (trueAssign === undefined || falseAssign === undefined) return undefined;
 
-    if (isTypeMatch(trueAssign, falseAssign)) return falseAssign;
-    if (isTypeMatch(falseAssign, trueAssign)) return trueAssign;
+    if (canTypeConvert(trueAssign, falseAssign)) return falseAssign;
+    if (canTypeConvert(falseAssign, trueAssign)) return trueAssign;
 
     diagnostic.addError(getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
         `Type mismatches between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`);
@@ -1496,7 +1496,7 @@ function analyzeBitOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (isTypeMatch(lhs, resolvedBuiltinInt) && isTypeMatch(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
+        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = bitOpAliases.get(operator.text);
@@ -1524,7 +1524,7 @@ function analyzeMathOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (isTypeMatch(lhs, resolvedBuiltinInt) && isTypeMatch(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
+        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = mathOpAliases.get(operator.text);
@@ -1552,7 +1552,7 @@ function analyzeCompOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (isTypeMatch(lhs, rhs) || isTypeMatch(rhs, lhs)) {
+        if (canTypeConvert(lhs, rhs) || canTypeConvert(rhs, lhs)) {
             return {symbolType: builtinBoolType, sourceScope: undefined};
         }
     }
@@ -1596,7 +1596,7 @@ function analyzeAssignOp(
     }
 
     if (operator.text === '=') {
-        if (isTypeMatch(rhs, lhs)) return lhs;
+        if (canTypeConvert(rhs, lhs)) return lhs;
     }
 
     const alias = assignOpAliases.get(operator.text);
