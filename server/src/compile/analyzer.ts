@@ -107,6 +107,7 @@ import {
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
+import {createVirtualToken} from "./tokenUtils";
 
 type HoistingQueue = (() => void)[];
 
@@ -324,11 +325,12 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
+    const returnType = isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined;
     const symbol: Mutable<SymbolFunction> = {
         symbolKind: SymbolKind.Function,
         declaredPlace: nodeFunc.identifier,
         declaredScope: parentScope,
-        returnType: isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined,
+        returnType: returnType,
         parameterTypes: [],
         sourceNode: nodeFunc,
         nextOverload: undefined,
@@ -337,6 +339,27 @@ function hoistFunc(
     };
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
+    // Check if the function is a virtual property setter or getter
+    if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
+        if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
+            const identifier: Mutable<ParsedToken> = createVirtualToken(TokenKind.Identifier, nodeFunc.identifier.text.substring(4));
+            identifier.location = nodeFunc.identifier.location;
+
+            const symbol: SymbolVariable = {
+                symbolKind: SymbolKind.Variable,
+                declaredPlace: identifier, // FIXME?
+                declaredScope: parentScope,
+                type: returnType,
+                isInstanceMember: isInstanceMember,
+                accessRestriction: nodeFunc.accessor,
+            };
+            tryInsertSymbolObject(parentScope.symbolMap, symbol);
+        }
+    } else if (nodeFunc.funcAttr?.isProperty === true) {
+        diagnostic.addError(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
+    }
+
+    // Create a new scope for the function
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
 
     hoisting.push(() => {
