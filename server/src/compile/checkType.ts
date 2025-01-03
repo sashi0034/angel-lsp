@@ -93,6 +93,16 @@ function isTypeMatchInternal(
 
         // Succeeds if any of the inherited types in the source match the destination.
         if (canDownCast(srcType, destType)) return true;
+
+        // Succeeds if the source type has an implicit conversion operator that matches the destination type.
+        let opImplConv = srcType.membersScope?.symbolMap.get('opImplConv');
+        if (opImplConv !== undefined && opImplConv.symbolKind === SymbolKind.Function) {
+            for (; ;) {
+                if (canTypeConvert(opImplConv.returnType, dest)) return true;
+                if (opImplConv.nextOverload === undefined) break;
+                opImplConv = opImplConv.nextOverload;
+            }
+        }
     }
 
     // Fails if the destination type is not a class.
