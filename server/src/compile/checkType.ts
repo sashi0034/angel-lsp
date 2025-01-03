@@ -1,5 +1,5 @@
 import {
-    DeducedType,
+    ResolvedType,
     isSourcePrimitiveType,
     PrimitiveType,
     SourceType,
@@ -14,7 +14,7 @@ import {getNodeLocation} from "./nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
-import {findSymbolShallowly, resolveTemplateType, stringifyDeducedType} from "./symbolUtils";
+import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {getGlobalSettings} from "../code/settings";
 
 /**
@@ -25,13 +25,13 @@ import {getGlobalSettings} from "../code/settings";
  * @param nodeRange
  */
 export function checkTypeMatch(
-    src: DeducedType | undefined,
-    dest: DeducedType | undefined,
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
     nodeRange: ParsedRange,
 ): boolean {
     if (isTypeMatch(src, dest)) return true;
 
-    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyDeducedType(src)}' cannot be converted to '${stringifyDeducedType(dest)}'.`);
+    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
     return false;
 }
 
@@ -41,15 +41,15 @@ export function checkTypeMatch(
  * @param dest
  */
 export function isTypeMatch(
-    src: DeducedType | undefined, dest: DeducedType | undefined
+    src: ResolvedType | undefined, dest: ResolvedType | undefined
 ): boolean {
     if (src === undefined || dest === undefined) return true;
 
-    let resolvedSrc: DeducedType | undefined = src;
+    let resolvedSrc: ResolvedType | undefined = src;
     if (src.templateTranslate !== undefined)
         resolvedSrc = resolveTemplateType(src.templateTranslate, src);
 
-    let resolvedDest: DeducedType | undefined = dest;
+    let resolvedDest: ResolvedType | undefined = dest;
     if (dest.templateTranslate !== undefined)
         resolvedDest = resolveTemplateType(dest.templateTranslate, dest);
 
@@ -59,7 +59,7 @@ export function isTypeMatch(
 }
 
 function isTypeMatchInternal(
-    src: DeducedType, dest: DeducedType
+    src: ResolvedType, dest: ResolvedType
 ): boolean {
     const srcType = src.symbolType;
     const destType = dest.symbolType;

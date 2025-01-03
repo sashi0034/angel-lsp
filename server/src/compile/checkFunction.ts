@@ -1,21 +1,21 @@
 import {diagnostic} from "../code/diagnostic";
 import {ParsedRange} from "./nodes";
 import {
-    DeducedType,
+    ResolvedType,
     SymbolFunction,
     SymbolScope
 } from "./symbols";
 import {isTypeMatch} from "./checkType";
 import {ParsedToken} from "./parsedToken";
 import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
-import {resolveTemplateTypes, stringifyDeducedType, stringifyDeducedTypes, TemplateTranslation} from "./symbolUtils";
+import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
     callerIdentifier: ParsedToken;
     callerRange: ParsedRange;
     callerArgRanges: ParsedRange[];
-    callerArgTypes: (DeducedType | undefined)[];
+    callerArgTypes: (ResolvedType | undefined)[];
     calleeFunc: SymbolFunction;
     templateTranslators: (TemplateTranslation | undefined)[];
 }
@@ -26,7 +26,7 @@ export interface FunctionMatchingArgs {
  */
 export function checkFunctionMatch(
     args: FunctionMatchingArgs
-): DeducedType | undefined {
+): ResolvedType | undefined {
     pushReferenceOfFuncOrConstructor(args.callerIdentifier, args.scope, args.calleeFunc);
     return checkFunctionMatchInternal(args, args.calleeFunc);
 }
@@ -38,7 +38,7 @@ function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: 
 function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
     overloadedHead: SymbolFunction
-): DeducedType | undefined {
+): ResolvedType | undefined {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
     const calleeParams = calleeFunc.sourceNode.paramList;
 
@@ -81,7 +81,7 @@ function checkFunctionMatchInternal(
 
         if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
             diagnostic.addError(getNodeLocation(callerRange),
-                `Cannot convert '${stringifyDeducedType(actualType)}' to parameter type '${stringifyDeducedType(expectedType)}'.`);
+                `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(expectedType)}'.`);
         }
     }
 
@@ -106,7 +106,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
 
 function handleErrorWhenOverloaded(
     callerRange: ParsedRange,
-    callerArgs: (DeducedType | undefined)[],
+    callerArgs: (ResolvedType | undefined)[],
     calleeFunc: SymbolFunction,
     overloadedHead: SymbolFunction,
     templateTranslators: (TemplateTranslation | undefined)[]
@@ -114,13 +114,13 @@ function handleErrorWhenOverloaded(
     if (calleeFunc === overloadedHead) return false; // Not overloaded
 
     let message = 'No viable function.';
-    message += `\nArguments types: (${stringifyDeducedTypes(callerArgs)})`;
+    message += `\nArguments types: (${stringifyResolvedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 
     let cursor: SymbolFunction | undefined = overloadedHead;
     while (cursor !== undefined) {
         const resolvedTypes = cursor.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
-        message += `\n(${stringifyDeducedTypes(resolvedTypes)})`;
+        message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         cursor = cursor.nextOverload;
     }
 
