@@ -30,7 +30,7 @@ function isOctChara(c: string): boolean {
 }
 
 function isHexChar(c: string): boolean {
-    return /^[0-9a-f]$/.test(c);
+    return /^[A-Fa-f0-9]$/.test(c);
 }
 
 function isAlphanumeric(c: string): boolean {
