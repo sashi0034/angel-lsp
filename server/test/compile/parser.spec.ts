@@ -65,4 +65,18 @@ describe("Parser", () => {
             int variable;
         }
     `);
+    itParses(`
+        enum Test {
+            A = 1,
+            B = 2
+        }
+
+        void Main() {
+            Test x = Test(1);
+            Test y = Test(Test::A + Test::B | Test::A);
+            bool z = (y & Test::A) != 0;
+            int v = 1;
+            bool w = v == Test::A;
+        }
+    `);
 });
