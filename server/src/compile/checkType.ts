@@ -2,7 +2,7 @@ import {
     ResolvedType,
     isSourcePrimitiveType,
     PrimitiveType,
-    SourceType,
+    DefinitionSource,
     SymbolFunction,
     SymbolObject,
     SymbolType,
@@ -69,7 +69,7 @@ function isTypeMatchInternal(
 
         // Are we trying to pass something into ?
         if (destType.symbolKind === SymbolKind.Type)
-            if (destType.sourceType === PrimitiveType.Any) return true;
+            if (destType.definitionSource === PrimitiveType.Any) return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
         return isFunctionHandlerMatch(srcType, destType);
@@ -77,8 +77,8 @@ function isTypeMatchInternal(
         return false;
     }
 
-    const srcNode = srcType.sourceType;
-    const destNode = destType.sourceType;
+    const srcNode = srcType.definitionSource;
+    const destNode = destType.definitionSource;
 
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
@@ -119,10 +119,10 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.sourceType;
+    const srcNode = srcType.definitionSource;
     if (isSourcePrimitiveType(srcNode)) return false;
 
-    if (srcType.sourceType === destType.sourceType) return true;
+    if (srcType.definitionSource === destType.definitionSource) return true;
 
     if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
         if (srcType.baseList === undefined) return false;
@@ -137,35 +137,35 @@ function canDownCast(
 }
 
 // Judge if the class has a metadata that indicates it is a built-in string type.
-function isSourceTypeBuiltinString(sourceType: SourceType): boolean {
-    if (isSourcePrimitiveType(sourceType)) return false;
+function isSourceBuiltinString(source: DefinitionSource): boolean {
+    if (isSourcePrimitiveType(source)) return false;
 
-    if (sourceType.nodeName != NodeName.Class) return false;
+    if (source.nodeName != NodeName.Class) return false;
 
     const builtinStringMetadata = "BuiltinString";
-    return sourceType.metadata.length === 1 && sourceType.metadata[0].text === builtinStringMetadata;
+    return source.metadata.length === 1 && source.metadata[0].text === builtinStringMetadata;
 }
 
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.sourceType;
-    const destNode = destType.sourceType;
+    const srcNode = srcType.definitionSource;
+    const destNode = destType.definitionSource;
 
     switch (srcNode) {
     case PrimitiveType.Template:
         return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
     case PrimitiveType.String: {
         const destName = destType.declaredPlace.text;
-        if (isSourceTypeBuiltinString(destNode)) return true;
+        if (isSourceBuiltinString(destNode)) return true;
         return getGlobalSettings().builtinStringTypes.includes(destName);
     }
     case PrimitiveType.Void:
         return false;
     case PrimitiveType.Number:
-        return destType.sourceType === PrimitiveType.Number;
+        return destType.definitionSource === PrimitiveType.Number;
     case PrimitiveType.Bool:
-        return destType.sourceType === PrimitiveType.Bool;
+        return destType.definitionSource === PrimitiveType.Bool;
     case PrimitiveType.Any:
         return true;
     case PrimitiveType.Auto:
@@ -190,16 +190,16 @@ function canConstructImplicitly(
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
 
-    return canConstructBy(constructor, srcType.sourceType);
+    return canConstructBy(constructor, srcType.definitionSource);
 }
 
-function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boolean {
+function canConstructBy(constructor: SymbolFunction, srcType: DefinitionSource): boolean {
     // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
             && paramType.symbolType.symbolKind === SymbolKind.Type
-            && paramType.symbolType.sourceType === srcType
+            && paramType.symbolType.definitionSource === srcType
         ) {
             return true;
         }
