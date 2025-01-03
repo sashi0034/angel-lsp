@@ -1496,7 +1496,7 @@ function analyzeBitOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+        if (isTypeMatch(lhs, deducedBuiltinInt) && isTypeMatch(rhs, deducedBuiltinInt)) return deducedBuiltinInt;
     }
 
     const alias = bitOpAliases.get(operator.text);
@@ -1524,7 +1524,7 @@ function analyzeMathOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+        if (isTypeMatch(lhs, deducedBuiltinInt) && isTypeMatch(rhs, deducedBuiltinInt)) return deducedBuiltinInt;
     }
 
     const alias = mathOpAliases.get(operator.text);
@@ -1552,7 +1552,7 @@ function analyzeCompOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): DeducedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (lhs.symbolType.sourceType === rhs.symbolType.sourceType) {
+        if (isTypeMatch(lhs, rhs) || isTypeMatch(rhs, lhs)) {
             return {symbolType: builtinBoolType, sourceScope: undefined};
         }
     }
