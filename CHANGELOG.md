@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.15] 2025/01/03
+
+- Fixed some bugs.
+
 ## [0.3.14] 2024/12/31
 
 - Fixed a bug in parsing enums [#45](https://github.com/sashi0034/angel-lsp/pull/45) by FnControlOption
