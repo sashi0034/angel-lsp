@@ -11,7 +11,7 @@ function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): Symb
         symbolKind: SymbolKind.Type,
         declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: createSymbolScope(undefined, undefined, ''),
-        sourceType: name,
+        definitionSource: name,
         membersScope: undefined,
     } as const;
 }

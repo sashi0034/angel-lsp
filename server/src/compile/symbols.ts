@@ -35,22 +35,22 @@ export enum PrimitiveType {
  * The node that serves as the origin of a symbol's declaration.
  * Types without a declaration node, such as built-in types, are represented using PrimitiveType.
  */
-export type SourceType = NodeEnum | NodeClass | NodeInterface | PrimitiveType;
+export type DefinitionSource = NodeEnum | NodeClass | NodeInterface | PrimitiveType;
 
 /**
- * Checks whether the given `SourceType` is a `PrimitiveType`.
- * In other words, returns `true` if the given `SourceType` does not have a declaration node.
+ * Checks whether the given `DefinitionSource` is a `PrimitiveType`.
+ * In other words, returns `true` if the given `DefinitionSource` does not have a declaration node.
  */
-export function isSourcePrimitiveType(type: SourceType | undefined): type is PrimitiveType {
+export function isSourcePrimitiveType(type: DefinitionSource | undefined): type is PrimitiveType {
     return typeof type === 'string';
 }
 
-export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClass {
+export function isSourceNodeClassOrInterface(type: DefinitionSource): type is NodeClass {
     if (isSourcePrimitiveType(type)) return false;
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
-export function getSourceNodeName(type: SourceType | undefined): NodeName | undefined {
+export function getSourceNodeName(type: DefinitionSource | undefined): NodeName | undefined {
     if (type === undefined || isSourcePrimitiveType(type)) return undefined;
     return type.nodeName;
 }
@@ -66,7 +66,7 @@ export interface SymbolBase {
 
 export interface SymbolType extends SymbolBase {
     readonly symbolKind: SymbolKind.Type;
-    readonly sourceType: SourceType;
+    readonly definitionSource: DefinitionSource;
     readonly templateTypes?: ParsedToken[]; // e.g. <T, U>
     readonly baseList?: (ResolvedType | undefined)[];
     readonly isHandler?: boolean,

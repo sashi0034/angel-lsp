@@ -161,7 +161,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
-        sourceType: nodeEnum,
+        definitionSource: nodeEnum,
         membersScope: undefined,
     };
 
@@ -196,7 +196,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
-        sourceType: nodeClass,
+        definitionSource: nodeClass,
         membersScope: undefined,
     };
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
@@ -235,7 +235,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
             symbolKind: SymbolKind.Type,
             declaredPlace: getIdentifierInType(type),
             declaredScope: scope,
-            sourceType: PrimitiveType.Template,
+            definitionSource: PrimitiveType.Template,
             membersScope: undefined,
         } satisfies SymbolType);
 
@@ -312,7 +312,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
         symbolKind: SymbolKind.Type,
         declaredPlace: typeDef.identifier,
         declaredScope: parentScope,
-        sourceType: builtInType.sourceType,
+        definitionSource: builtInType.definitionSource,
         membersScope: undefined,
     };
     insertSymbolObject(parentScope.symbolMap, symbol);
@@ -367,7 +367,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         symbolKind: SymbolKind.Type,
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
-        sourceType: nodeInterface,
+        definitionSource: nodeInterface,
         membersScope: undefined,
     };
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
@@ -888,7 +888,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         }
 
         const expectedReturn = functionReturn.returnType?.symbolType;
-        if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.sourceType === PrimitiveType.Void) {
+        if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.definitionSource === PrimitiveType.Void) {
             if (nodeReturn.assign === undefined) return;
             diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value.`);
         } else {
@@ -1095,7 +1095,7 @@ function analyzeBuiltinConstructorCaller(
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType.symbolKind === SymbolKind.Type
-        && getSourceNodeName(constructorType.symbolType.sourceType) === NodeName.Enum) {
+        && getSourceNodeName(constructorType.symbolType.definitionSource) === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
         if (argList.length != 1 || canTypeConvert(analyzeAssign(scope, argList[0].assign), resolvedBuiltinInt) === false) {
@@ -1149,7 +1149,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isSourceNodeClassOrInterface(exprValue.symbolType.sourceType) === false) {
+    if (isSourceNodeClassOrInterface(exprValue.symbolType.definitionSource) === false) {
         diagnostic.addError(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
@@ -1468,7 +1468,7 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    if (isSourcePrimitiveType(lhs.symbolType.sourceType)) {
+    if (isSourcePrimitiveType(lhs.symbolType.definitionSource)) {
         diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
         return undefined;
     }
@@ -1509,7 +1509,7 @@ function analyzeBitOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
+    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.definitionSource)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1537,7 +1537,7 @@ function analyzeMathOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.sourceType)
+    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.definitionSource)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1598,7 +1598,7 @@ function analyzeAssignOp(
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;
+        if (lhs.symbolType.definitionSource === PrimitiveType.Number && rhs.symbolType.definitionSource === PrimitiveType.Number) return lhs;
     }
 
     if (operator.text === '=') {

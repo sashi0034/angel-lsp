@@ -130,8 +130,8 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
 function symbolToCompletionKind(symbol: SymbolObject) {
     switch (symbol.symbolKind) {
     case SymbolKind.Type:
-        if (typeof symbol.sourceType === 'string') return CompletionItemKind.Keyword;
-        if (symbol.sourceType.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
+        if (typeof symbol.definitionSource === 'string') return CompletionItemKind.Keyword;
+        if (symbol.definitionSource.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     case SymbolKind.Function:
         return CompletionItemKind.Function;
