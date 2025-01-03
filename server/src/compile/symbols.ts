@@ -165,7 +165,7 @@ export interface SymbolAndScope {
  */
 export interface ResolvedType {
     readonly symbolType: SymbolType | SymbolFunction;
-    readonly sourceScope: SymbolScope | undefined;
+    readonly sourceScope: SymbolScope | undefined; // FIXME: Obsolete? Use symbolType.declaredScope instead.
     readonly isHandler?: boolean;
     readonly templateTranslate?: TemplateTranslation;
 }
