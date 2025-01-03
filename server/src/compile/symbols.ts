@@ -68,7 +68,7 @@ export interface SymbolType extends SymbolBase {
     readonly symbolKind: SymbolKind.Type;
     readonly sourceType: SourceType;
     readonly templateTypes?: ParsedToken[]; // e.g. <T, U>
-    readonly baseList?: (DeducedType | undefined)[];
+    readonly baseList?: (ResolvedType | undefined)[];
     readonly isHandler?: boolean,
     readonly membersScope: SymbolScope | undefined;
 }
@@ -76,8 +76,8 @@ export interface SymbolType extends SymbolBase {
 export interface SymbolFunction extends SymbolBase {
     readonly symbolKind: SymbolKind.Function;
     readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
-    readonly returnType: DeducedType | undefined;
-    readonly parameterTypes: (DeducedType | undefined)[];
+    readonly returnType: ResolvedType | undefined;
+    readonly parameterTypes: (ResolvedType | undefined)[];
     nextOverload: SymbolFunction | undefined;
     readonly isInstanceMember: boolean;
     readonly accessRestriction: AccessModifier | undefined;
@@ -85,7 +85,7 @@ export interface SymbolFunction extends SymbolBase {
 
 export interface SymbolVariable extends SymbolBase {
     readonly symbolKind: SymbolKind.Variable;
-    readonly type: DeducedType | undefined;
+    readonly type: ResolvedType | undefined;
     readonly isInstanceMember: boolean;
     readonly accessRestriction: AccessModifier | undefined;
 }
@@ -163,7 +163,7 @@ export interface SymbolAndScope {
 /**
  * The type of symbol that has been resolved by deduction.
  */
-export interface DeducedType {
+export interface ResolvedType {
     readonly symbolType: SymbolType | SymbolFunction;
     readonly sourceScope: SymbolScope | undefined;
     readonly isHandler?: boolean;

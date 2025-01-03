@@ -4,7 +4,7 @@ import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
 import {isAheadPosition, isPositionInRange} from "../compile/tokenUtils";
 import {ComplementKind, CompletionArgument} from "../compile/symbolComplement";
-import {resolveTemplateType, stringifyDeducedType} from "../compile/symbolUtils";
+import {resolveTemplateType, stringifyResolvedType} from "../compile/symbolUtils";
 
 export function serveSignatureHelp(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
@@ -49,7 +49,7 @@ function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFu
         const paramIdentifier = expectedCallee.sourceNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
-        let label = stringifyDeducedType(resolveTemplateType(hint.templateTranslate, paramType));
+        let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));
         if (paramIdentifier.identifier !== undefined) label += ' ' + paramIdentifier.identifier?.text;
         const parameter: ParameterInformation = {label: label};
 

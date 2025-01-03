@@ -3,7 +3,7 @@ import {createSymbolScope} from "./symbolScopes";
 import {createVirtualToken} from "./tokenUtils";
 import {TokenKind} from "./tokens";
 import {numberTypeSet} from "./tokenReservedWords";
-import {PrimitiveType, SymbolType, SymbolKind, DeducedType} from "./symbols";
+import {PrimitiveType, SymbolType, SymbolKind, ResolvedType} from "./symbols";
 import assert = require("node:assert");
 
 function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): SymbolType {
@@ -26,19 +26,19 @@ const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
 
 export const builtinStringType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.String, 'string'), PrimitiveType.String);
 
-export const deducedBuiltinString: DeducedType = {symbolType: builtinStringType, sourceScope: undefined};
+export const resolvedBuiltinString: ResolvedType = {symbolType: builtinStringType, sourceScope: undefined};
 
 export const builtinIntType = builtinNumberTypeMap.get('int')!;
 
-export const deducedBuiltinInt: DeducedType = {symbolType: builtinIntType, sourceScope: undefined};
+export const resolvedBuiltinInt: ResolvedType = {symbolType: builtinIntType, sourceScope: undefined};
 
 export const builtinFloatType = builtinNumberTypeMap.get('float')!;
 
-export const deducedBuiltinFloat: DeducedType = {symbolType: builtinFloatType, sourceScope: undefined};
+export const resolvedBuiltinFloat: ResolvedType = {symbolType: builtinFloatType, sourceScope: undefined};
 
 export const builtinDoubleType = builtinNumberTypeMap.get('double')!;
 
-export const deducedBuiltinDouble: DeducedType = {symbolType: builtinDoubleType, sourceScope: undefined};
+export const resolvedBuiltinDouble: ResolvedType = {symbolType: builtinDoubleType, sourceScope: undefined};
 
 function assignBuiltinNumberType(key: string): SymbolType {
     const type = builtinNumberTypeMap.get(key);
@@ -48,7 +48,7 @@ function assignBuiltinNumberType(key: string): SymbolType {
 
 export const builtinBoolType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'bool'), PrimitiveType.Bool);
 
-export const deducedBuiltinBool: DeducedType = {symbolType: builtinBoolType, sourceScope: undefined};
+export const resolvedBuiltinBool: ResolvedType = {symbolType: builtinBoolType, sourceScope: undefined};
 
 export const builtinVoidType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'void'), PrimitiveType.Void);
 

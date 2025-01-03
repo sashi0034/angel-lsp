@@ -52,7 +52,7 @@ import {
     ParsedRange
 } from "./nodes";
 import {
-    DeducedType,
+    ResolvedType,
     getSourceNodeName,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
@@ -85,11 +85,11 @@ import {
     builtinBoolType,
     builtinSetterValueToken,
     builtinThisToken,
-    deducedBuiltinBool,
-    deducedBuiltinDouble,
-    deducedBuiltinFloat,
-    deducedBuiltinInt,
-    deducedBuiltinString,
+    resolvedBuiltinBool,
+    resolvedBuiltinDouble,
+    resolvedBuiltinFloat,
+    resolvedBuiltinInt,
+    resolvedBuiltinString,
     tryGetBuiltInType
 } from "./symbolBuiltin";
 import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
@@ -98,9 +98,9 @@ import {
     findSymbolWithParent,
     getSymbolAndScopeIfExist,
     insertSymbolObject,
-    isDeducedAutoType,
-    stringifyDeducedType,
-    stringifyDeducedTypes,
+    isResolvedAutoType,
+    stringifyResolvedType,
+    stringifyResolvedTypes,
     TemplateTranslation,
     tryInsertSymbolObject
 } from "./symbolUtils";
@@ -176,7 +176,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         hoistEnumMembers(parentScope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
 }
 
-function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: DeducedType) {
+function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
         const symbol: SymbolVariable = {
             symbolKind: SymbolKind.Variable,
@@ -244,10 +244,10 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     return templateTypes;
 }
 
-function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface): (DeducedType | undefined)[] | undefined {
+function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface): (ResolvedType | undefined)[] | undefined {
     if (nodeClass.baseList.length === 0) return undefined;
 
-    const baseList: (DeducedType | undefined)[] = [];
+    const baseList: (ResolvedType | undefined)[] = [];
     for (const baseIdentifier of nodeClass.baseList) {
         const baseType = findSymbolWithParent(scope, baseIdentifier.text);
 
@@ -270,7 +270,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
     return baseList;
 }
 
-function copyBaseMembers(scope: SymbolScope, baseList: (DeducedType | undefined)[]) {
+function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
         if (baseType.symbolType.symbolKind === SymbolKind.Function) continue;
@@ -421,7 +421,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
         // Resolve the auto type
-        if (initType !== undefined && isDeducedAutoType(varType)) {
+        if (initType !== undefined && isResolvedAutoType(varType)) {
             varType = initType;
         }
     }
@@ -431,10 +431,10 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 
 function analyzeVarInitializer(
     scope: SymbolScope,
-    varType: DeducedType | undefined,
+    varType: ResolvedType | undefined,
     varIdentifier: ParsedToken,
     initializer: NodeInitList | NodeAssign | NodeArgList
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
         return analyzeInitList(scope, initializer);
     } else if (initializer.nodeName === NodeName.Assign) {
@@ -447,7 +447,7 @@ function analyzeVarInitializer(
     }
 }
 
-function insertVariables(scope: SymbolScope, varType: DeducedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
+function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
     for (const declaredVar of nodeVar.variables) {
         const variable: SymbolVariable = {
             symbolKind: SymbolKind.Variable,
@@ -570,11 +570,11 @@ function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
-    const deducedTypes: (DeducedType | undefined)[] = [];
+    const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
         const type = analyzeType(scope, param.type);
-        if (type === undefined) deducedTypes.push(undefined);
-        else deducedTypes.push(type);
+        if (type === undefined) resolvedTypes.push(undefined);
+        else resolvedTypes.push(type);
 
         if (param.identifier === undefined) continue;
         insertSymbolObject(scope.symbolMap, {
@@ -586,7 +586,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
             accessRestriction: undefined,
         });
     }
-    return deducedTypes;
+    return resolvedTypes;
 }
 
 function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
@@ -599,7 +599,7 @@ function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function analyzeType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
+function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedType | undefined {
     const reservedType = nodeType.isArray ? undefined : analyzeReservedType(scope, nodeType);
     if (reservedType !== undefined) return reservedType;
 
@@ -654,7 +654,7 @@ function completeAnalyzingType(
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslation | undefined,
-): DeducedType | undefined {
+): ResolvedType | undefined {
     scope.referencedList.push({
         declaredSymbol: foundSymbol,
         referencedToken: identifier
@@ -669,7 +669,7 @@ function completeAnalyzingType(
 }
 
 // PRIMTYPE | '?' | 'auto'
-function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): DeducedType | undefined {
+function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedType | undefined {
     const typeIdentifier = nodeType.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
@@ -914,11 +914,11 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeExpr(scope: SymbolScope, expr: NodeExpr): DeducedType | undefined {
+function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefined {
     // Evaluate by Shunting Yard Algorithm
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
-    type Term = [DeducedType | undefined, ParsedRange];
+    type Term = [ResolvedType | undefined, ParsedRange];
     type Op = ParsedToken;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
@@ -1015,7 +1015,7 @@ function getOperatorPrecedence(operator: ParsedToken): number {
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): DeducedType | undefined {
+function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | undefined {
     if (ast.exprTerm === 1) {
         // TODO
     } else if (ast.exprTerm === 2) {
@@ -1037,7 +1037,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): DeducedType | undefined {
+function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
     case NodeName.ConstructCall:
         break;
@@ -1064,8 +1064,8 @@ function analyzeConstructorCaller(
     scope: SymbolScope,
     callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
-    constructorType: DeducedType
-): DeducedType | undefined {
+    constructorType: ResolvedType
+): ResolvedType | undefined {
     const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
     if (constructorType.sourceScope === undefined) return undefined;
 
@@ -1083,7 +1083,7 @@ function analyzeBuiltinConstructorCaller(
     scope: SymbolScope,
     callerIdentifier: ParsedToken,
     callerArgList: NodeArgList,
-    constructorType: DeducedType
+    constructorType: ResolvedType
 ) {
     const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
     if (constructorType.sourceScope === undefined) return undefined;
@@ -1092,7 +1092,7 @@ function analyzeBuiltinConstructorCaller(
         && getSourceNodeName(constructorType.symbolType.sourceType) === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
-        if (argList.length != 1 || isTypeMatch(analyzeAssign(scope, argList[0].assign), deducedBuiltinInt) === false) {
+        if (argList.length != 1 || isTypeMatch(analyzeAssign(scope, argList[0].assign), resolvedBuiltinInt) === false) {
             diagnostic.addError(callerIdentifier.location, `Enum constructor '${constructorIdentifier}' requires an integer.`);
         }
 
@@ -1114,7 +1114,7 @@ function analyzeBuiltinConstructorCaller(
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: DeducedType, exprRange: ParsedRange) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: ParsedRange) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     } else if (exprPostOp.postOp === 2) {
@@ -1123,7 +1123,7 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 }
 
 // ('.' (FUNCCALL | IDENTIFIER))
-function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: DeducedType) {
+function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: ResolvedType) {
     if (exprValue.symbolType.symbolKind !== SymbolKind.Type) {
         diagnostic.addError(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type.`);
         return undefined;
@@ -1172,20 +1172,20 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
-function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: DeducedType, exprRange: ParsedRange) {
+function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: ParsedRange) {
     const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
     return analyzeOperatorAlias(scope, exprPostOp.nodeRange.end, exprValue, args, exprRange, exprPostOp.nodeRange, 'opIndex');
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function analyzeCast(scope: SymbolScope, cast: NodeCast): DeducedType | undefined {
+function analyzeCast(scope: SymbolScope, cast: NodeCast): ResolvedType | undefined {
     const castedType = analyzeType(scope, cast.type);
     analyzeAssign(scope, cast.assign);
     return castedType;
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | undefined {
+function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | undefined {
     const childScope = createSymbolScopeAndInsert(lambda, scope, createAnonymousIdentifier());
 
     // Append arguments to the scope
@@ -1211,25 +1211,25 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): DeducedType | un
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType | undefined {
+function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.kind === TokenKind.Number) {
         switch (literalValue.numeric) {
         case NumberLiterals.Integer:
-            return deducedBuiltinInt;
+            return resolvedBuiltinInt;
         case NumberLiterals.Float:
-            return deducedBuiltinFloat;
+            return resolvedBuiltinFloat;
         case NumberLiterals.Double:
-            return deducedBuiltinDouble;
+            return resolvedBuiltinDouble;
         }
     }
 
     if (literalValue.kind === TokenKind.String) {
-        return deducedBuiltinString;
+        return resolvedBuiltinString;
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
-        return deducedBuiltinBool;
+        return resolvedBuiltinBool;
     }
 
     // FIXME: Handling null?
@@ -1237,7 +1237,7 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType |
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedType | undefined {
+function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedType | undefined {
     let searchScope = scope;
     if (funcCall.scope !== undefined) {
         const namespaceScope = analyzeScope(scope, funcCall.scope);
@@ -1254,7 +1254,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): DeducedTyp
     const [calleeSymbol, calleeScope] = [calleeFunc.symbol, calleeFunc.scope];
 
     if (calleeSymbol.symbolKind === SymbolKind.Type) {
-        const constructorType: DeducedType = {symbolType: calleeSymbol, sourceScope: calleeScope};
+        const constructorType: ResolvedType = {symbolType: calleeSymbol, sourceScope: calleeScope};
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
@@ -1332,7 +1332,7 @@ function analyzeFunctionCaller(
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): DeducedType | undefined {
+function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): ResolvedType | undefined {
     let accessedScope = scope;
 
     if (varAccess.scope !== undefined) {
@@ -1351,7 +1351,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Deduced
 
 function analyzeVariableAccess(
     checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsedToken
-): DeducedType | undefined {
+): ResolvedType | undefined {
     const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
         diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is not defined.`);
@@ -1384,8 +1384,8 @@ function analyzeVariableAccess(
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType | undefined)[] {
-    const types: (DeducedType | undefined)[] = [];
+function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (ResolvedType | undefined)[] {
+    const types: (ResolvedType | undefined)[] = [];
     for (const arg of argList.argList) {
         types.push(analyzeAssign(scope, arg.assign));
     }
@@ -1393,7 +1393,7 @@ function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (DeducedType 
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | undefined {
+function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | undefined {
     // Perform a left-fold operation
     let cursor = assign;
     let lhs = analyzeCondition(scope, assign.condition);
@@ -1407,7 +1407,7 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): DeducedType | un
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): DeducedType | undefined {
+export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): ResolvedType | undefined {
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
 
@@ -1424,16 +1424,16 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (isTypeMatch(falseAssign, trueAssign)) return trueAssign;
 
     diagnostic.addError(getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
-        `Type mismatches between '${stringifyDeducedType(trueAssign)}' and '${stringifyDeducedType(falseAssign)}'.`);
+        `Type mismatches between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`);
     return undefined;
 }
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function analyzeExprOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType | undefined, rhs: DeducedType | undefined,
+    lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (operator.kind !== TokenKind.Reserved) return undefined;
     if (lhs === undefined || rhs === undefined) return undefined;
 
@@ -1451,19 +1451,19 @@ function analyzeExprOp(
 
 function analyzeOperatorAlias(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType, rhs: DeducedType | (DeducedType | undefined)[],
+    lhs: ResolvedType, rhs: ResolvedType | (ResolvedType | undefined)[],
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
 ) {
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
     if (lhs.symbolType.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyDeducedType(lhs)}' and '${stringifyDeducedTypes(rhsArgs)}'.`);
+        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyResolvedType(lhs)}' and '${stringifyResolvedTypes(rhsArgs)}'.`);
         return undefined;
     }
 
     if (isSourcePrimitiveType(lhs.symbolType.sourceType)) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined.`);
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
         return undefined;
     }
 
@@ -1474,7 +1474,7 @@ function analyzeOperatorAlias(
 
     const aliasFunction = findSymbolShallowly(classScope, alias);
     if (aliasFunction === undefined || aliasFunction.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyDeducedType(lhs)}' is not defined.`);
+        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
         return undefined;
     }
 
@@ -1492,11 +1492,11 @@ function analyzeOperatorAlias(
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType, rhs: DeducedType,
+    lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (isTypeMatch(lhs, deducedBuiltinInt) && isTypeMatch(rhs, deducedBuiltinInt)) return deducedBuiltinInt;
+        if (isTypeMatch(lhs, resolvedBuiltinInt) && isTypeMatch(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = bitOpAliases.get(operator.text);
@@ -1520,11 +1520,11 @@ const bitOpAliases = new Map<string, [string, string]>([
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType, rhs: DeducedType,
+    lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (isTypeMatch(lhs, deducedBuiltinInt) && isTypeMatch(rhs, deducedBuiltinInt)) return deducedBuiltinInt;
+        if (isTypeMatch(lhs, resolvedBuiltinInt) && isTypeMatch(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = mathOpAliases.get(operator.text);
@@ -1548,9 +1548,9 @@ const mathOpAliases = new Map<string, [string, string]>([
 // COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType, rhs: DeducedType,
+    lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
         if (isTypeMatch(lhs, rhs) || isTypeMatch(rhs, lhs)) {
             return {symbolType: builtinBoolType, sourceScope: undefined};
@@ -1576,9 +1576,9 @@ const compOpAliases = new Map<string, string>([
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 function analyzeLogicOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType, rhs: DeducedType,
+    lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     checkTypeMatch(lhs, {symbolType: builtinBoolType, sourceScope: undefined}, leftRange);
     checkTypeMatch(rhs, {symbolType: builtinBoolType, sourceScope: undefined}, rightRange);
     return {symbolType: builtinBoolType, sourceScope: undefined};
@@ -1587,9 +1587,9 @@ function analyzeLogicOp(
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
     scope: SymbolScope, operator: ParsedToken,
-    lhs: DeducedType | undefined, rhs: DeducedType | undefined,
+    lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
-): DeducedType | undefined {
+): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
     if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
         if (lhs.symbolType.sourceType === PrimitiveType.Number && rhs.symbolType.sourceType === PrimitiveType.Number) return lhs;

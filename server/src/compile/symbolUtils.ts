@@ -1,5 +1,5 @@
 import {
-    DeducedType,
+    ResolvedType,
     PrimitiveType,
     SymbolAndScope,
     SymbolFunction,
@@ -59,11 +59,11 @@ export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolea
     return result === undefined;
 }
 
-export type TemplateTranslation = Map<ParsedToken, DeducedType | undefined>;
+export type TemplateTranslation = Map<ParsedToken, ResolvedType | undefined>;
 
 export function resolveTemplateType(
-    templateTranslate: TemplateTranslation | undefined, type: DeducedType | undefined
-): DeducedType | undefined {
+    templateTranslate: TemplateTranslation | undefined, type: ResolvedType | undefined
+): ResolvedType | undefined {
     if (templateTranslate === undefined) return type;
 
     if (type === undefined) return undefined;
@@ -80,13 +80,13 @@ export function resolveTemplateType(
 }
 
 export function resolveTemplateTypes(
-    templateTranslate: (TemplateTranslation | undefined)[], type: DeducedType | undefined
-): DeducedType | undefined {
+    templateTranslate: (TemplateTranslation | undefined)[], type: ResolvedType | undefined
+): ResolvedType | undefined {
     return templateTranslate
         .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
 }
 
-export function isDeducedAutoType(type: DeducedType | undefined): boolean {
+export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
     return type !== undefined && type.symbolType.symbolKind === SymbolKind.Type && type.symbolType.sourceType === PrimitiveType.Auto;
 }
 
@@ -104,7 +104,7 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     return suffix.length === 0 ? '' : suffix + '::';
 }
 
-export function stringifyDeducedType(type: DeducedType | undefined,): string {
+export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     if (type === undefined) return '(undefined)';
 
     let suffix = '';
@@ -113,21 +113,21 @@ export function stringifyDeducedType(type: DeducedType | undefined,): string {
     if (type.symbolType.symbolKind === SymbolKind.Function) {
         const func: SymbolFunction = type.symbolType;
         const returnType = func.returnType;
-        const params = func.parameterTypes.map(t => stringifyDeducedType(t)).join(', ');
-        return `${stringifyDeducedType(returnType)}(${params})` + suffix;
+        const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
+        return `${stringifyResolvedType(returnType)}(${params})` + suffix;
     }
 
     // if (hasScopeSuffix) suffix = stringifyScopeSuffix(type.sourceScope) + suffix;
 
     if (type.templateTranslate !== undefined) {
-        suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyDeducedType(t)).join(', ')}>${suffix}`;
+        suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
     return type.symbolType.declaredPlace.text + suffix;
 }
 
-export function stringifyDeducedTypes(types: (DeducedType | undefined)[]): string {
-    return types.map(t => stringifyDeducedType(t)).join(', ');
+export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
+    return types.map(t => stringifyResolvedType(t)).join(', ');
 }
 
 /**
@@ -138,10 +138,10 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     if (symbol.symbolKind === SymbolKind.Type) {
         return fullName;
     } else if (symbol.symbolKind === SymbolKind.Function) {
-        const head = symbol.returnType === undefined ? '' : stringifyDeducedType(symbol.returnType) + ' ';
-        return `${head}${fullName}(${stringifyDeducedTypes(symbol.parameterTypes)})`;
+        const head = symbol.returnType === undefined ? '' : stringifyResolvedType(symbol.returnType) + ' ';
+        return `${head}${fullName}(${stringifyResolvedTypes(symbol.parameterTypes)})`;
     } else if (symbol.symbolKind === SymbolKind.Variable) {
-        return `${stringifyDeducedType(symbol.type)} ${fullName}`;
+        return `${stringifyResolvedType(symbol.type)} ${fullName}`;
     }
 
     assert(false);
