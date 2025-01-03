@@ -5,7 +5,7 @@ import {
     SymbolFunction,
     SymbolScope
 } from "./symbols";
-import {isTypeMatch} from "./checkType";
+import {canTypeConvert} from "./checkType";
 import {ParsedToken} from "./parsedToken";
 import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
@@ -72,7 +72,7 @@ function checkFunctionMatchInternal(
         actualType = resolveTemplateTypes(templateTranslators, actualType);
         expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
-        if (isTypeMatch(actualType, expectedType)) continue;
+        if (canTypeConvert(actualType, expectedType)) continue;
 
         // Use the overload if it exists
         if (calleeFunc.nextOverload !== undefined) {

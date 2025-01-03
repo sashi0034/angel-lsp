@@ -29,7 +29,7 @@ export function checkTypeMatch(
     dest: ResolvedType | undefined,
     nodeRange: ParsedRange,
 ): boolean {
-    if (isTypeMatch(src, dest)) return true;
+    if (canTypeConvert(src, dest)) return true;
 
     diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
     return false;
@@ -40,7 +40,7 @@ export function checkTypeMatch(
  * @param src
  * @param dest
  */
-export function isTypeMatch(
+export function canTypeConvert(
     src: ResolvedType | undefined, dest: ResolvedType | undefined
 ): boolean {
     if (src === undefined || dest === undefined) return true;
@@ -105,10 +105,10 @@ function isTypeMatchInternal(
 
 function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | SymbolFunction) {
     if (destType.symbolKind !== SymbolKind.Function) return false;
-    if (isTypeMatch(srcType.returnType, destType.returnType) === false) return false;
+    if (canTypeConvert(srcType.returnType, destType.returnType) === false) return false;
     if (srcType.parameterTypes.length !== destType.parameterTypes.length) return false;
     for (let i = 0; i < srcType.parameterTypes.length; i++) {
-        if (isTypeMatch(srcType.parameterTypes[i], destType.parameterTypes[i]) === false) return false;
+        if (canTypeConvert(srcType.parameterTypes[i], destType.parameterTypes[i]) === false) return false;
     }
 
     // FIXME: 関数ハンドラのオーバーロードなどの影響について要検証
