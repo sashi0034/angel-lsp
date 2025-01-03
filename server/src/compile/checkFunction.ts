@@ -35,6 +35,8 @@ function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: 
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 
+// FIXME: Calculate cost of conversion and consider it in the overload selection.
+
 function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
     overloadedHead: SymbolFunction

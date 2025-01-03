@@ -83,19 +83,19 @@ function isTypeMatchInternal(
     if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
 
     if (isSourcePrimitiveType(srcNode)) {
-        // OK if it can be cast from one primitive type to another primitive type.
+        // Succeeds if it can be cast from one primitive type to another primitive type.
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
-        // OK if they both point to the same type.
+        // Succeeds if they both point to the same type.
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
         if (srcNode.nodeName === NodeName.Enum && destNode === PrimitiveType.Number) return true;
 
-        // OK if any of the inherited types in the source match the destination.
+        // Succeeds if any of the inherited types in the source match the destination.
         if (canDownCast(srcType, destType)) return true;
     }
 
-    // NG if the destination type is not a class.
+    // Fails if the destination type is not a class.
     if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
 
     // Determine if it matches the constructor.
@@ -111,7 +111,7 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
         if (canTypeConvert(srcType.parameterTypes[i], destType.parameterTypes[i]) === false) return false;
     }
 
-    // FIXME: 関数ハンドラのオーバーロードなどの影響について要検証
+    // FIXME: Calculate cost of conversion
 
     return true;
 }
@@ -194,7 +194,7 @@ function canConstructImplicitly(
 }
 
 function canConstructBy(constructor: SymbolFunction, srcType: SourceType): boolean {
-    // OK if the constructor has one argument and that argument matches the source type.
+    // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
