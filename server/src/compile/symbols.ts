@@ -50,6 +50,11 @@ export function isSourceNodeClassOrInterface(type: SourceType): type is NodeClas
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
+export function getSourceNodeName(type: SourceType | undefined): NodeName | undefined {
+    if (type === undefined || isSourcePrimitiveType(type)) return undefined;
+    return type.nodeName;
+}
+
 /**
  * The base interface for all symbols.
  */

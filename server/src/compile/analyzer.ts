@@ -53,14 +53,15 @@ import {
 } from "./nodes";
 import {
     DeducedType,
+    getSourceNodeName,
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
     SymbolFunction,
-    SymbolType,
-    SymbolVariable,
     SymbolKind,
-    SymbolScope
+    SymbolScope,
+    SymbolType,
+    SymbolVariable
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {LocationInfo, NumberLiterals, TokenKind} from "./tokens";
@@ -78,14 +79,17 @@ import {
 } from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParsedToken} from "./parsedToken";
-import {isAllowedToAccessMember, checkTypeMatch, isTypeMatch} from "./checkType";
-import assert = require("node:assert");
+import {checkTypeMatch, isAllowedToAccessMember, isTypeMatch} from "./checkType";
 import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
 import {
     builtinBoolType,
-    builtinDoubleType, builtinFloatType, builtinIntType,
-    builtinSetterValueToken, builtinStringType,
+    builtinSetterValueToken,
     builtinThisToken,
+    deducedBuiltinBool,
+    deducedBuiltinDouble,
+    deducedBuiltinFloat,
+    deducedBuiltinInt,
+    deducedBuiltinString,
     tryGetBuiltInType
 } from "./symbolBuiltin";
 import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
@@ -102,6 +106,7 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
+import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
 
@@ -1067,18 +1072,43 @@ function analyzeConstructorCaller(
     const classScope = findScopeShallowly(constructorType.sourceScope, constructorIdentifier);
     const constructor = classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
-        if (callerArgList.argList.length === 0) {
-            // Default constructor
-            scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
-            return constructorType;
-        }
-
-        diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing.`);
-        return undefined;
+        return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
     analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslate);
     return constructorType;
+}
+
+function analyzeBuiltinConstructorCaller(
+    scope: SymbolScope,
+    callerIdentifier: ParsedToken,
+    callerArgList: NodeArgList,
+    constructorType: DeducedType
+) {
+    const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
+    if (constructorType.sourceScope === undefined) return undefined;
+
+    if (constructorType.symbolType.symbolKind === SymbolKind.Type
+        && getSourceNodeName(constructorType.symbolType.sourceType) === NodeName.Enum) {
+        // Constructor for enum
+        const argList = callerArgList.argList;
+        if (argList.length != 1 || isTypeMatch(analyzeAssign(scope, argList[0].assign), deducedBuiltinInt) === false) {
+            diagnostic.addError(callerIdentifier.location, `Enum constructor '${constructorIdentifier}' requires an integer.`);
+        }
+
+        scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
+
+        return constructorType;
+    }
+
+    if (callerArgList.argList.length === 0) {
+        // Default constructor
+        scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
+        return constructorType;
+    }
+
+    diagnostic.addError(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing.`);
+    return undefined;
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
@@ -1186,23 +1216,23 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): DeducedType |
     if (literalValue.kind === TokenKind.Number) {
         switch (literalValue.numeric) {
         case NumberLiterals.Integer:
-            return {symbolType: builtinIntType, sourceScope: undefined};
+            return deducedBuiltinInt;
         case NumberLiterals.Float:
-            return {symbolType: builtinFloatType, sourceScope: undefined};
+            return deducedBuiltinFloat;
         case NumberLiterals.Double:
-            return {symbolType: builtinDoubleType, sourceScope: undefined};
+            return deducedBuiltinDouble;
         }
     }
 
     if (literalValue.kind === TokenKind.String) {
-        return {symbolType: builtinStringType, sourceScope: undefined};
+        return deducedBuiltinString;
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
-        return {symbolType: builtinBoolType, sourceScope: undefined};
+        return deducedBuiltinBool;
     }
 
-    // FIXME: null へ対処?
+    // FIXME: Handling null?
     return undefined;
 }
 
