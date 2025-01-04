@@ -151,7 +151,7 @@ function consumeNumber(tokenizer: TokenizerState) {
         numeric = NumberLiterals.Double;
     }
 
-    if (f > 1) {
+    if (f >= 1) {
         tokenizer.stepFor(f);
 
         // Check half precision floating point
