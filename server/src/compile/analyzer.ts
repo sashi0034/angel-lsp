@@ -59,6 +59,7 @@ import {
     ResolvedType,
     SymbolFunction,
     SymbolKind,
+    SymbolObject,
     SymbolScope,
     SymbolType,
     SymbolVariable
@@ -106,8 +107,8 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
-import assert = require("node:assert");
 import {createVirtualToken} from "./tokenUtils";
+import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
 
@@ -218,12 +219,30 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
 
-    const baseList = hoistBaseList(scope, nodeClass);
-    if (baseList !== undefined) symbol.baseList = baseList;
+    symbol.baseList = hoistBaseList(scope, nodeClass);
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
-        if (baseList !== undefined) copyBaseMembers(scope, baseList);
+
+        hoisting.push(() => {
+            if (symbol.baseList === undefined) return;
+
+            // Copy the members of the base class
+            copyBaseMembers(scope, symbol.baseList);
+
+            // Check to insert the super constructor
+            const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
+            const superConstructor = findConstructorForResolvedType(primeBase);
+            if (superConstructor?.symbolKind === SymbolKind.Function) {
+                const superSymbol: Mutable<SymbolFunction> = {...superConstructor};
+
+                const declaredPlace: Mutable<ParsedToken> = createVirtualToken(TokenKind.Identifier, 'super');
+                declaredPlace.location = {...superSymbol.declaredPlace.location};
+
+                superSymbol.declaredPlace = declaredPlace;
+                insertSymbolObject(scope.symbolMap, superSymbol);
+            }
+        });
     });
 
     pushHintOfCompletionScopeToParent(parentScope, scope, nodeClass.nodeRange);
@@ -1095,17 +1114,21 @@ function analyzeConstructorCaller(
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ): ResolvedType | undefined {
-    const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
-    if (constructorType.sourceScope === undefined) return undefined;
-
-    const classScope = findScopeShallowly(constructorType.sourceScope, constructorIdentifier);
-    const constructor = classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
+    const constructor = findConstructorForResolvedType(constructorType);
     if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
         return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
     analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslate);
     return constructorType;
+}
+
+function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObject | undefined {
+    if (resolvedType?.sourceScope === undefined) return undefined;
+
+    const constructorIdentifier = resolvedType.symbolType.declaredPlace.text;
+    const classScope = findScopeShallowly(resolvedType.sourceScope, constructorIdentifier);
+    return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
 }
 
 function analyzeBuiltinConstructorCaller(

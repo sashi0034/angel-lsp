@@ -25,7 +25,7 @@ function itParses(content: string) {
 
 describe("Parser", () => {
     itParses("void foo() {}");
-    itParses("int MyValue = 0;");
+    itParses("int MyValue = 0; float MyFloat = 15.f;");
     itParses("const uint Flag1 = 0x01;");
     itParses(`
         class Foo
