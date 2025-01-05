@@ -108,7 +108,11 @@ function tryNumber(tokenizer: TokenizerState, location: ReadonlyLocationInfo): T
 }
 
 function consumeNumber(tokenizer: TokenizerState) {
+    // Fails if the next token is not a number or a dot.
     if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiterals.Integer;
+
+    // Fails if the next tokens are '.f' or '.F'
+    if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) return NumberLiterals.Integer;
 
     if (tokenizer.next(0) === '0') {
         if (/^[bB]$/.test(tokenizer.next(1))) {
