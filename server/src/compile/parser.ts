@@ -510,7 +510,7 @@ function parseMetadata(parser: ParserState): ParsedToken[] {
 
     let level = 0;
 
-    const metadata: ParsedToken[] = [];
+    let metadata: ParsedToken[] = [];
     while (parser.isEnd() === false) {
         if (parser.next().text === '[') {
             if (level > 0) metadata.push(parser.next());
@@ -521,7 +521,18 @@ function parseMetadata(parser: ParserState): ParsedToken[] {
             level--;
             parser.commit(HighlightToken.Operator);
 
-            if (level === 0) return metadata;
+            if (level === 0) {
+                // Since AngelScript supports multiple metadata declarations in subsequent pairs of '[' and ']', we recursively parse those declarations here.
+                // eg. '[Hello][World]' is valid, as is
+                // [Hello]
+                // [World]
+                if(parser.next().text === '[') {
+                    metadata = [...metadata, ...parseMetadata(parser)];
+                }
+
+                return metadata;
+            }
+
             else metadata.push(parser.next());
         } else {
             metadata.push(parser.next());
