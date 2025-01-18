@@ -79,4 +79,5 @@ describe("Parser", () => {
             bool w = v == Test::A;
         }
     `);
+    itParses(`bool foo = not true; bool bar = not not false;`)
 });
