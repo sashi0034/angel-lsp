@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.17] 2025/01/19
+
+- Fixed a bug [#71](https://github.com/sashi0034/angel-lsp/pull/71) by Vam-Jam.
+
 ## [0.3.16] 2025/01/06
 
 - Support for multiple subsequent metadata declarations [#66](https://github.com/sashi0034/angel-lsp/pull/66) by goulash32
