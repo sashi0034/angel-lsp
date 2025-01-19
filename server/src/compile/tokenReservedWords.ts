@@ -28,7 +28,7 @@ const reservedKeywordArray = [
     // 'abstract', 'explicit', 'external', 'function', 'final', 'from', 'get', 'set', 'shared', 'super', 'this',
 ];
 
-const exprPreOpSet = new Set(['-', '+', '!', '++', '--', '~', '@']);
+const exprPreOpSet = new Set(['-', '+', '!', '++', '--', '~', '@', 'not']);
 
 const bitOpSet = new Set(['&', '|', '^', '<<', '>>', '>>>']);
 
