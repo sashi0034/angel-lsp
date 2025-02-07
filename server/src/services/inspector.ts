@@ -29,6 +29,24 @@ interface InspectResult {
 
 const s_inspectedResults: { [uri: string]: InspectResult } = {};
 
+let s_cleanCounter = 0;
+
+// FIXME: This is a temporary solution to prevent memory leaks. In the future, this function will be eliminated to fundamentally solve the problem
+export function requestCleanInspectedResults() {
+    s_cleanCounter++;
+    if (s_cleanCounter > 10) {
+        // In the current implementation, clean when the number of inspections reaches a certain number
+        s_cleanCounter = 0;
+
+        tracer.message('🧹 Clean inspected results');
+
+        // When all keys are deleted, GC seems to occur properly
+        for (const uri in s_inspectedResults) {
+            delete s_inspectedResults[uri];
+        }
+    }
+}
+
 function createEmptyResult(): InspectResult {
     return {
         content: '',
