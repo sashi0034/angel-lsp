@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.18] 2025/02/07
+
+- Tentatively fixed to avoid a memory leak problem.
+
 ## [0.3.17] 2025/01/19
 
 - Fixed a bug [#71](https://github.com/sashi0034/angel-lsp/pull/71) by Vam-Jam.
