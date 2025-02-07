@@ -17,7 +17,13 @@ import {
 } from 'vscode-languageserver-textdocument';
 import {highlightModifiers, highlightTokens} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
-import {getInspectedResult, getInspectedResultList, inspectFile, reinspectAllFiles} from "./services/inspector";
+import {
+    requestCleanInspectedResults,
+    getInspectedResult,
+    getInspectedResultList,
+    inspectFile,
+    reinspectAllFiles
+} from "./services/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
@@ -219,6 +225,8 @@ connection.onHover((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
+    requestCleanInspectedResults(); // FIXME: Temporary solution to avoid memory leaks
+
     inspectFile(change.document.getText(), change.document.uri);
 
     connection.languages.diagnostics.refresh();
