@@ -35,10 +35,12 @@ let s_cleanCounter = 0;
 export function requestCleanInspectedResults() {
     s_cleanCounter++;
     if (s_cleanCounter > 10) {
+        // In the current implementation, clean when the number of inspections reaches a certain number
         s_cleanCounter = 0;
 
         tracer.message('🧹 Clean inspected results');
 
+        // When all keys are deleted, GC seems to occur properly
         for (const uri in s_inspectedResults) {
             delete s_inspectedResults[uri];
         }
