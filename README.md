@@ -1,5 +1,7 @@
 # AngelScript Language Server for VSCode
 
+[![Tests](https://github.com/sashi0034/angel-lsp/actions/workflows/tests.yml/badge.svg)](https://github.com/sashi0034/angel-lsp/actions/workflows/tests.yml)
+
 This is a Language Server for Visual Studio Code that offers features to make AngelScript development easier and faster.
 
 ![sample.png](https://raw.githubusercontent.com/sashi0034/angel-lsp/main/sample.png)
@@ -71,6 +73,7 @@ The following features are currently under development:
 - Code Actions: Considering features like method signature changes.
 - Debugger: While the approach is still undecided, adding a debugger is being explored.
 
+
 # Issues and Contributions
 
 Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues) .
@@ -78,6 +81,10 @@ Bug reports and feature requests are welcome via [GitHub Issues](https://github.
 If you fix a small bug or add an enhancement, feel free to submit a pull request.
 
 Additionally, if you create an `as.predefined` file for your application, contributing it as an example would be greatly appreciated and could be helpful to others.
+
+
+## Contributors
+![GitHub Contributors Image](https://contrib.rocks/image?repo=sashi0034/angel-lsp)
 
 
 # License
