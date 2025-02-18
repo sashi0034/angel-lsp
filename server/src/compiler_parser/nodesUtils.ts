@@ -1,9 +1,9 @@
-import {ParsedToken} from "./parsedToken";
+import {ParserToken} from "./parserToken";
 import {LocationInfo} from "../compiler_tokenizer/tokens";
 import {EntityAttribute, FunctionAttribute, NodeType, ParsedRange, ReferenceModifier} from "./nodes";
 import {Mutable} from "../utils/utilities";
 
-export function getNextTokenIfExist(token: ParsedToken): ParsedToken {
+export function getNextTokenIfExist(token: ParserToken): ParserToken {
     if (token.next !== undefined) return token.next;
     return token;
 }
@@ -12,7 +12,7 @@ export function isRangeInOneLine(range: ParsedRange): boolean {
     return range.start.location.start.line === range.end.location.end.line;
 }
 
-export function getLocationBetween(start: ParsedToken, end: ParsedToken): LocationInfo {
+export function getLocationBetween(start: ParserToken, end: ParserToken): LocationInfo {
     return {
         path: start.location.path,
         start: start.location.start,
@@ -57,6 +57,6 @@ export function stringifyNodeType(type: NodeType): string {
     return str;
 }
 
-export function getIdentifierInType(type: NodeType): ParsedToken {
+export function getIdentifierInType(type: NodeType): ParserToken {
     return type.dataType.identifier;
 }

@@ -6,7 +6,7 @@ import {
     ReservedWordProperty,
     TokenComment,
     TokenIdentifier,
-    TokenizedToken,
+    TokenizerToken,
     TokenKind,
     TokenNumber,
     TokenReserved,
@@ -234,7 +234,7 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 }
 
 // Check if the next token is an identifier and tokenize it.
-function tryIdentifier(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenizedToken | TokenIdentifier | undefined {
+function tryIdentifier(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenizerToken | TokenIdentifier | undefined {
     const start = tokenizer.getCursor();
     while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer.next())) {
         tokenizer.stepFor(1);
@@ -271,8 +271,8 @@ function createHighlight(token: HighlightToken, modifier: HighlightModifier): Hi
  * @param content The content of the file to tokenize.
  * @param path The path of the file to tokenize.
  */
-export function tokenize(content: string, path: string): TokenizedToken[] {
-    const tokens: TokenizedToken[] = [];
+export function tokenize(content: string, path: string): TokenizerToken[] {
+    const tokens: TokenizerToken[] = [];
     const tokenizer = new TokenizerState(content);
     const unknownBuffer = new UnknownBuffer();
 

@@ -1,4 +1,4 @@
-import {ParsedToken} from "../compiler_parser/parsedToken";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {createSymbolScope} from "./symbolScopes";
 import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import {TokenKind} from "../compiler_tokenizer/tokens";
@@ -6,7 +6,7 @@ import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
 import {PrimitiveType, SymbolType, SymbolKind, ResolvedType} from "./symbols";
 import assert = require("node:assert");
 
-function createBuiltinType(virtualToken: ParsedToken, name: PrimitiveType): SymbolType {
+function createBuiltinType(virtualToken: ParserToken, name: PrimitiveType): SymbolType {
     return {
         symbolKind: SymbolKind.Type,
         declaredPlace: virtualToken, // The built-in type uses a virtual token
@@ -56,7 +56,7 @@ export const builtinAnyType: SymbolType = createBuiltinType(createVirtualToken(T
 
 export const builtinAutoType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'auto'), PrimitiveType.Auto);
 
-export function tryGetBuiltInType(token: ParsedToken): SymbolType | undefined {
+export function tryGetBuiltInType(token: ParserToken): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;

@@ -9,7 +9,7 @@ import {
     SymbolScope, isSourceNodeClassOrInterface
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {ParsedToken} from "../compiler_parser/parsedToken";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {isAnonymousIdentifier} from "./symbolScopes";
 import assert = require("node:assert");
 
@@ -59,7 +59,7 @@ export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolea
     return result === undefined;
 }
 
-export type TemplateTranslation = Map<ParsedToken, ResolvedType | undefined>;
+export type TemplateTranslation = Map<ParserToken, ResolvedType | undefined>;
 
 export function resolveTemplateType(
     templateTranslate: TemplateTranslation | undefined, type: ResolvedType | undefined

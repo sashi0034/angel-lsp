@@ -6,13 +6,13 @@ import {
     SymbolScope
 } from "./symbols";
 import {canTypeConvert} from "./checkType";
-import {ParsedToken} from "../compiler_parser/parsedToken";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
-    callerIdentifier: ParsedToken;
+    callerIdentifier: ParserToken;
     callerRange: ParsedRange;
     callerArgRanges: ParsedRange[];
     callerArgTypes: (ResolvedType | undefined)[];
@@ -31,7 +31,7 @@ export function checkFunctionMatch(
     return checkFunctionMatchInternal(args, args.calleeFunc);
 }
 
-function pushReferenceOfFuncOrConstructor(callerIdentifier: ParsedToken, scope: SymbolScope, calleeFunc: SymbolFunction) {
+function pushReferenceOfFuncOrConstructor(callerIdentifier: ParserToken, scope: SymbolScope, calleeFunc: SymbolFunction) {
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 

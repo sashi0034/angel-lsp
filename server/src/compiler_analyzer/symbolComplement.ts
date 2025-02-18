@@ -1,7 +1,7 @@
 import {ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {LocationInfo} from "../compiler_tokenizer/tokens";
-import {ParsedToken} from "../compiler_parser/parsedToken";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {SymbolType, SymbolScope, SymbolFunction} from "./symbols";
 import {TemplateTranslation} from "./symbolUtils";
 
@@ -44,7 +44,7 @@ export interface ComplementType extends ComplementBase {
  */
 export interface CompletionNamespace extends ComplementBase {
     complementKind: ComplementKind.Namespace;
-    namespaceList: ParsedToken[];
+    namespaceList: ParserToken[];
 }
 
 /**
