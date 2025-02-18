@@ -10,8 +10,8 @@ import {
     NodeLambda,
     NodeName,
     NodeVirtualProp
-} from "./nodes";
-import {ParsedToken} from "./parsedToken";
+} from "../compiler_parser/nodes";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {ComplementHints} from "./symbolComplement";
 import {TemplateTranslation} from "./symbolUtils";
 
@@ -60,14 +60,14 @@ export function getSourceNodeName(type: DefinitionSource | undefined): NodeName 
  */
 export interface SymbolBase {
     readonly symbolKind: SymbolKind;
-    readonly declaredPlace: ParsedToken;
+    readonly declaredPlace: ParserToken;
     readonly declaredScope: SymbolScope;
 }
 
 export interface SymbolType extends SymbolBase {
     readonly symbolKind: SymbolKind.Type;
     readonly definitionSource: DefinitionSource;
-    readonly templateTypes?: ParsedToken[]; // e.g. <T, U>
+    readonly templateTypes?: ParserToken[]; // e.g. <T, U>
     readonly baseList?: (ResolvedType | undefined)[];
     readonly isHandler?: boolean,
     readonly membersScope: SymbolScope | undefined;
@@ -117,7 +117,7 @@ export type SymbolOwnerNode =
  */
 export interface ReferencedSymbolInfo {
     readonly declaredSymbol: SymbolObject;
-    readonly referencedToken: ParsedToken;
+    readonly referencedToken: ParserToken;
 }
 
 export type ScopeMap = Map<string, SymbolScope>;

@@ -50,7 +50,7 @@ import {
     NodeWhile,
     ParsedEnumMember,
     ParsedRange
-} from "./nodes";
+} from "../compiler_parser/nodes";
 import {
     getSourceNodeName,
     isSourceNodeClassOrInterface,
@@ -65,7 +65,7 @@ import {
     SymbolVariable
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {LocationInfo, NumberLiterals, TokenKind} from "./tokens";
+import {LocationInfo, NumberLiterals, TokenKind} from "../compiler_tokenizer/tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -79,9 +79,9 @@ import {
     isSymbolConstructorInScope
 } from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
-import {ParsedToken} from "./parsedToken";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
-import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
+import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "../compiler_parser/nodesUtils";
 import {
     builtinBoolType,
     builtinSetterValueToken,
@@ -107,7 +107,7 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
-import {createVirtualToken} from "./tokenUtils";
+import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];
@@ -236,7 +236,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             if (superConstructor?.symbolKind === SymbolKind.Function) {
                 const superSymbol: Mutable<SymbolFunction> = {...superConstructor};
 
-                const declaredPlace: Mutable<ParsedToken> = createVirtualToken(TokenKind.Identifier, 'super');
+                const declaredPlace: Mutable<ParserToken> = createVirtualToken(TokenKind.Identifier, 'super');
                 declaredPlace.location = {...superSymbol.declaredPlace.location};
 
                 superSymbol.declaredPlace = declaredPlace;
@@ -249,7 +249,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
-    const templateTypes: ParsedToken[] = [];
+    const templateTypes: ParserToken[] = [];
     for (const type of types ?? []) {
         insertSymbolObject(scope.symbolMap, {
             symbolKind: SymbolKind.Type,
@@ -361,7 +361,7 @@ function hoistFunc(
     // Check if the function is a virtual property setter or getter
     if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
         if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            const identifier: Mutable<ParsedToken> = createVirtualToken(TokenKind.Identifier, nodeFunc.identifier.text.substring(4));
+            const identifier: Mutable<ParserToken> = createVirtualToken(TokenKind.Identifier, nodeFunc.identifier.text.substring(4));
             identifier.location = nodeFunc.identifier.location;
 
             const symbol: SymbolVariable = {
@@ -474,7 +474,7 @@ function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: bool
 function analyzeVarInitializer(
     scope: SymbolScope,
     varType: ResolvedType | undefined,
-    varIdentifier: ParsedToken,
+    varIdentifier: ParserToken,
     initializer: NodeInitList | NodeAssign | NodeArgList
 ): ResolvedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
@@ -691,7 +691,7 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedType | und
 
 function completeAnalyzingType(
     scope: SymbolScope,
-    identifier: ParsedToken,
+    identifier: ParserToken,
     foundSymbol: SymbolType | SymbolFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
@@ -725,7 +725,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParsedToken[] | undefined) {
+function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: ParserToken[] | undefined) {
     if (templateTypes === undefined) return undefined;
 
     const translation: TemplateTranslation = new Map();
@@ -967,7 +967,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
     type Term = [ResolvedType | undefined, ParsedRange];
-    type Op = ParsedToken;
+    type Op = ParserToken;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
         return 'text' in termOrOp;
@@ -1017,7 +1017,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     return outputTerm.length > 0 ? outputTerm[0][0] : undefined;
 }
 
-function getOperatorPrecedence(operator: ParsedToken): number {
+function getOperatorPrecedence(operator: ParserToken): number {
     const op = operator.text;
     switch (op) {
     case '**':
@@ -1110,7 +1110,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Resolve
 // CONSTRUCTCALL ::= TYPE ARGLIST
 function analyzeConstructorCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsedToken,
+    callerIdentifier: ParserToken,
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ): ResolvedType | undefined {
@@ -1133,7 +1133,7 @@ function findConstructorForResolvedType(resolvedType: ResolvedType | undefined):
 
 function analyzeBuiltinConstructorCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsedToken,
+    callerIdentifier: ParserToken,
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ) {
@@ -1347,7 +1347,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
 
 function analyzeFunctionCaller(
     scope: SymbolScope,
-    callerIdentifier: ParsedToken,
+    callerIdentifier: ParserToken,
     callerArgList: NodeArgList,
     calleeFunc: SymbolFunction,
     templateTranslate: TemplateTranslation | undefined
@@ -1402,7 +1402,7 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Resolve
 }
 
 function analyzeVariableAccess(
-    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParsedToken
+    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: ParserToken
 ): ResolvedType | undefined {
     const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
     if (declared === undefined) {
@@ -1482,7 +1482,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
 
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function analyzeExprOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
@@ -1502,7 +1502,7 @@ function analyzeExprOp(
 }
 
 function analyzeOperatorAlias(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType, rhs: ResolvedType | (ResolvedType | undefined)[],
     leftRange: ParsedRange, rightRange: ParsedRange,
     alias: string
@@ -1543,7 +1543,7 @@ function analyzeOperatorAlias(
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
@@ -1571,7 +1571,7 @@ const bitOpAliases = new Map<string, [string, string]>([
 
 // MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
@@ -1599,7 +1599,7 @@ const mathOpAliases = new Map<string, [string, string]>([
 
 // COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
@@ -1627,7 +1627,7 @@ const compOpAliases = new Map<string, string>([
 
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 function analyzeLogicOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
@@ -1638,7 +1638,7 @@ function analyzeLogicOp(
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
-    scope: SymbolScope, operator: ParsedToken,
+    scope: SymbolScope, operator: ParserToken,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {

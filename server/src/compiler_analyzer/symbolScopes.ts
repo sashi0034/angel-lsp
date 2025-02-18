@@ -1,7 +1,7 @@
 import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope, SymbolAndScope} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {NodeName} from "./nodes";
-import {ParsedToken} from "./parsedToken";
+import {NodeName} from "../compiler_parser/nodes";
+import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
@@ -148,7 +148,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
 export function findScopeShallowlyOrInsert(
     ownerNode: SymbolOwnerNode | undefined,
     scope: SymbolScope,
-    identifierToken: ParsedToken
+    identifierToken: ParserToken
 ): SymbolScope {
     const found = findScopeShallowlyThenInsertByIdentifier(ownerNode, scope, identifierToken.text);
     if (ownerNode !== undefined && ownerNode !== found.ownerNode) {

@@ -67,11 +67,11 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
-import {ParsedToken} from "./parsedToken";
-import {TokenKind} from "./tokens";
+import {ParserToken} from "./parserToken";
+import {TokenKind} from "../compiler_tokenizer/tokens";
 import {BreakOrThrough, ParseFailure, ParserState, ParsedResult} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
-import {createVirtualToken, isTokensLinkedBy} from "./tokenUtils";
+import {createVirtualToken, isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 
@@ -170,7 +170,7 @@ function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
     const rangeStart = parser.next();
     parser.commit(HighlightToken.Builtin);
 
-    const namespaceList: ParsedToken[] = [];
+    const namespaceList: ParserToken[] = [];
     while (parser.isEnd() === false) {
         const identifier = expectIdentifier(parser, HighlightToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
@@ -196,14 +196,14 @@ function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
     };
 }
 
-function parseIdentifier(parser: ParserState, kind: HighlightToken): ParsedToken | undefined {
+function parseIdentifier(parser: ParserState, kind: HighlightToken): ParserToken | undefined {
     const identifier = parser.next();
     if (identifier.kind !== TokenKind.Identifier) return undefined;
     parser.commit(kind);
     return identifier;
 }
 
-function expectIdentifier(parser: ParserState, kind: HighlightToken): ParsedToken | undefined {
+function expectIdentifier(parser: ParserState, kind: HighlightToken): ParserToken | undefined {
     const identifier = parseIdentifier(parser, kind);
     if (identifier === undefined) {
         parser.error("Expected identifier.");
@@ -325,7 +325,7 @@ function parseClass(parser: ParserState): ParsedResult<NodeClass> {
 
     const typeTemplates = parseTypeTemplates(parser);
 
-    const baseList: ParsedToken[] = [];
+    const baseList: ParserToken[] = [];
     if (parser.next().text === ':') {
         parser.commit(HighlightToken.Operator);
         while (parser.isEnd() === false) {
@@ -504,13 +504,13 @@ function parseRef(parser: ParserState) {
 
 // Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
 // eg. '[Hello[]]' is ok but '[Hello[]' is not.
-function parseMetadata(parser: ParserState): ParsedToken[] {
+function parseMetadata(parser: ParserState): ParserToken[] {
     const rangeStart = parser.next();
     if (parser.next().text !== '[') return [];
 
     let level = 0;
 
-    let metadata: ParsedToken[] = [];
+    let metadata: ParserToken[] = [];
     while (parser.isEnd() === false) {
         if (parser.next().text === '[') {
             if (level > 0) metadata.push(parser.next());
@@ -954,7 +954,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
 
         const typeMod = parseTypeMod(parser);
 
-        let identifier: ParsedToken | undefined = undefined;
+        let identifier: ParserToken | undefined = undefined;
         if (parser.next().kind === TokenKind.Identifier) {
             identifier = parser.next();
             parser.commit(HighlightToken.Variable);
@@ -1173,7 +1173,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
         isGlobal = true;
     }
 
-    const scopeList: ParsedToken[] = [];
+    const scopeList: ParserToken[] = [];
     let typeTemplates: NodeType[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const identifier = parser.next(0);
@@ -1711,7 +1711,7 @@ function parseExprTerm1(parser: ParserState): NodeExprTerm1 | undefined {
 function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     const rangeStart = parser.next();
 
-    const preOps: ParsedToken[] = [];
+    const preOps: ParserToken[] = [];
     while (parser.isEnd() === false) {
         const next = parser.next();
         if (next.kind !== TokenKind.Reserved || next.property.isExprPreOp === false) break;
@@ -1881,7 +1881,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 }
 
 // [IDENTIFIER ':']
-function parseIdentifierWithColon(parser: ParserState): ParsedToken | undefined {
+function parseIdentifierWithColon(parser: ParserState): ParserToken | undefined {
     if (parser.next(0).kind === TokenKind.Identifier && parser.next(1).text === ':') {
         const identifier = parser.next();
         parser.commit(HighlightToken.Parameter);
@@ -1946,7 +1946,7 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
 
         const type = parseType(parser);
         const typeMod = type !== undefined ? parseTypeMod(parser) : undefined;
-        const identifier: ParsedToken | undefined = parseIdentifier(parser, HighlightToken.Parameter);
+        const identifier: ParserToken | undefined = parseIdentifier(parser, HighlightToken.Parameter);
         result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
@@ -2149,7 +2149,7 @@ function parseNotIsOperator(parser: ParserState) {
     parser.commit(HighlightToken.Builtin);
     parser.commit(HighlightToken.Builtin);
 
-    return {...uniqueNotIsToken, location: location} satisfies ParsedToken;
+    return {...uniqueNotIsToken, location: location} satisfies ParserToken;
 }
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -2177,11 +2177,11 @@ const uniqueBitShiftRightArithmeticAssignToken = createVirtualToken(TokenKind.Re
 function getNextLinkedGreaterThan(parser: ParserState) {
     if (parser.next().text !== '>') return parser.next();
 
-    const check = (targets: string[], uniqueToken: ParsedToken) => {
+    const check = (targets: string[], uniqueToken: ParserToken) => {
         if (isTokensLinkedBy(parser.next(1), targets) === false) return undefined;
         const location = getLocationBetween(parser.next(0), parser.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parser.commit(HighlightToken.Operator);
-        return {...uniqueToken, location: location} satisfies ParsedToken;
+        return {...uniqueToken, location: location} satisfies ParserToken;
     };
 
     // '>='
@@ -2207,7 +2207,7 @@ function getNextLinkedGreaterThan(parser: ParserState) {
     return parser.next();
 }
 
-export function parseFromTokenized(tokens: ParsedToken[]): NodeScript {
+export function parseFromTokenized(tokens: ParserToken[]): NodeScript {
     const parser = new ParserState(tokens);
 
     const script: NodeScript = [];

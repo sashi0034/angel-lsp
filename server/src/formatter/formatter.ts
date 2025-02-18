@@ -30,12 +30,12 @@ import {
     NodeVarAccess, NodeVirtualProp,
     NodeWhile,
     ReferenceModifier
-} from "../compile/nodes";
+} from "../compiler_parser/nodes";
 import {FormatState, isEditedWrapAt} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
-import {TokenizedToken} from "../compile/tokens";
-import {isRangeInOneLine} from "../compile/nodesUtils";
+import {TokenizerToken} from "../compiler_tokenizer/tokens";
+import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function formatScript(format: FormatState, nodeScript: NodeScript) {
@@ -821,7 +821,7 @@ function formatExprTerm(format: FormatState, exprTerm: NodeExprTerm) {
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
-    // formatMoveUntilNodeStart(format, exprValue);
+    // formatMoveUntilNodeStart(formatter, exprValue);
 
     if (exprValue.nodeName === NodeName.ConstructCall) {
         formatConstructCall(format, exprValue);
@@ -1032,7 +1032,7 @@ function formatCondition(format: FormatState, condition: NodeCondition) {
 // COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
-export function formatDocument(content: string, tokens: TokenizedToken[], ast: NodeScript): TextEdit[] {
+export function formatDocument(content: string, tokens: TokenizerToken[], ast: NodeScript): TextEdit[] {
     const format = new FormatState(content, tokens, ast);
     formatScript(format, ast);
 

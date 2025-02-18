@@ -1,7 +1,7 @@
 import {Position} from "vscode-languageserver";
 import {FormatState, stepCursorAlongLines} from "./formatState";
-import {TokenizedToken, TokenKind} from "../compile/tokens";
-import {NodesBase} from "../compile/nodes";
+import {TokenizerToken, TokenKind} from "../compiler_tokenizer/tokens";
+import {NodesBase} from "../compiler_parser/nodes";
 import {tracer} from "../code/tracer";
 import {getGlobalSettings} from "../code/settings";
 
@@ -22,7 +22,7 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
     return {line: line, character: character};
 }
 
-function formatTokenWithSpace(format: FormatState, frontToken: TokenizedToken) {
+function formatTokenWithSpace(format: FormatState, frontToken: TokenizerToken) {
     const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
 
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
@@ -38,7 +38,7 @@ function formatTokenWithSpace(format: FormatState, frontToken: TokenizedToken) {
     format.setCursorToTail(frontToken);
 }
 
-function canInsertEditSpace(backToken: TokenizedToken | undefined, frontToken: TokenizedToken): boolean {
+function canInsertEditSpace(backToken: TokenizerToken | undefined, frontToken: TokenizerToken): boolean {
     const backTail = backToken?.location?.end;
     const frontHead = frontToken.location.start;
 
@@ -99,12 +99,12 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
         }
 
         // 目的地に到達
-        // format.setCursor(destination);
+        // formatter.setCursor(destination);
         break;
     }
 }
 
-export function formatMoveToNonComment(format: FormatState): TokenizedToken | undefined {
+export function formatMoveToNonComment(format: FormatState): TokenizerToken | undefined {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -171,7 +171,7 @@ function executeFormatTargetWith(
     target: string,
     option: FormatTargetOption,
     cursor: Position,
-    next: TokenizedToken
+    next: TokenizerToken
 ) {
     const isCondenseLeft: boolean =
         format.popCondense() || option.condenseSides === true || option.condenseLeft === true;

@@ -9,8 +9,8 @@ import {
     SymbolKind,
     SymbolScope
 } from "./symbols";
-import {AccessModifier, NodeName, ParsedRange} from "./nodes";
-import {getNodeLocation} from "./nodesUtils";
+import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
+import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");

@@ -1,13 +1,13 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "./tokens";
-import {ParsedToken} from "./parsedToken";
+import {TokenKind} from "../compiler_tokenizer/tokens";
+import {ParserToken} from "./parserToken";
 import {
     ParsedCachedData,
     ParsedCacheKind,
     ParsedCacheServices, ParsedCacheTargets
 } from "./parsedCache";
-import {isVirtualToken} from "./tokenUtils";
+import {isVirtualToken} from "../compiler_tokenizer/tokenUtils";
 
 export enum ParseFailure {
     Mismatch = 'Mismatch',
@@ -21,8 +21,8 @@ export enum BreakOrThrough {
 
 /**
  * When a parsing error occurs, the parser may return a `ParsedResult<T>`.
- * If the parser visits a function and the input is not in an acceptable format, 'Mismatch' is returned.
- * If the input is in an acceptable format but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
+ * If the parser visits a function and the input is not in an acceptable formatter, 'Mismatch' is returned.
+ * If the input is in an acceptable formatter but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
  * No diagnostic message is issued when a 'Mismatch' occurs, but when 'Pending' is returned, a diagnostic message is generated at that node.
  */
 export type ParsedResult<T> = T | ParseFailure;
@@ -31,13 +31,13 @@ export class ParserState {
     private readonly caches: (ParsedCachedData<ParsedCacheKind> | undefined)[] = [];
 
     public constructor(
-        private readonly tokens: ParsedToken[],
+        private readonly tokens: ParserToken[],
         private cursorIndex: number = 0
     ) {
         this.caches = new Array(tokens.length);
     }
 
-    public backtrack(token: ParsedToken) {
+    public backtrack(token: ParserToken) {
         this.cursorIndex = token.index;
     }
 
@@ -45,12 +45,12 @@ export class ParserState {
         return this.cursorIndex >= this.tokens.length;
     }
 
-    public next(step: number = 0): ParsedToken {
+    public next(step: number = 0): ParserToken {
         if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
         return this.tokens[this.cursorIndex + step];
     }
 
-    public prev(): ParsedToken {
+    public prev(): ParserToken {
         if (this.cursorIndex <= 0) return this.tokens[0];
         return this.tokens[this.cursorIndex - 1];
     }
