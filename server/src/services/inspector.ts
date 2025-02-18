@@ -1,20 +1,20 @@
-import {TokenizedToken} from "../compile/tokens";
+import {TokenizedToken} from "../compiler_tokenizer/tokens";
 import {Profiler} from "../code/profiler";
-import {tokenize} from "../compile/tokenizer";
-import {parseFromTokenized} from "../compile/parser";
-import {analyzeFromParsed} from "../compile/analyzer";
+import {tokenize} from "../compiler_tokenizer/tokenizer";
+import {parseFromTokenized} from "../compiler_parser/parser";
+import {analyzeFromParsed} from "../compiler_analyzer/analyzer";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
-import {AnalyzedScope, createSymbolScope} from "../compile/symbolScopes";
+import {AnalyzedScope, createSymbolScope} from "../compiler_analyzer/symbolScopes";
 import {tracer} from "../code/tracer";
-import {NodeScript} from "../compile/nodes";
+import {NodeScript} from "../compiler_parser/nodes";
 import {URI} from "vscode-languageserver";
 import * as url from "url";
 import {URL} from "url";
 import * as path from "node:path";
 import * as fs from "fs";
 import {fileURLToPath} from "node:url";
-import {preprocessTokensForParser} from "../compile/parserPreprocess";
+import {preprocessTokensForParser} from "../compiler_parser/parserPreprocess";
 import {getGlobalSettings} from "../code/settings";
 
 interface InspectResult {

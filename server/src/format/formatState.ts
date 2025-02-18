@@ -1,7 +1,7 @@
-import {NodeScript} from "../compile/nodes";
+import {NodeScript} from "../compiler_parser/nodes";
 import {Position} from "vscode-languageserver";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {TokenBase, TokenizedToken} from "../compile/tokens";
+import {TokenBase, TokenizedToken} from "../compiler_tokenizer/tokens";
 import {getGlobalSettings} from "../code/settings";
 
 interface IndentState {

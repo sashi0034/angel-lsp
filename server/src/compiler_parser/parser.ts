@@ -68,10 +68,10 @@ import {
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
 import {ParsedToken} from "./parsedToken";
-import {TokenKind} from "./tokens";
+import {TokenKind} from "../compiler_tokenizer/tokens";
 import {BreakOrThrough, ParseFailure, ParserState, ParsedResult} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
-import {createVirtualToken, isTokensLinkedBy} from "./tokenUtils";
+import {createVirtualToken, isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 

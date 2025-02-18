@@ -30,12 +30,12 @@ import {
     NodeVarAccess, NodeVirtualProp,
     NodeWhile,
     ReferenceModifier
-} from "../compile/nodes";
+} from "../compiler_parser/nodes";
 import {FormatState, isEditedWrapAt} from "./formatState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
-import {TokenizedToken} from "../compile/tokens";
-import {isRangeInOneLine} from "../compile/nodesUtils";
+import {TokenizedToken} from "../compiler_tokenizer/tokens";
+import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function formatScript(format: FormatState, nodeScript: NodeScript) {

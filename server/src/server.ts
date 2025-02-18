@@ -31,7 +31,7 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./format/formatter";
-import {stringifySymbolObject} from "./compile/symbolUtils";
+import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {serveSignatureHelp} from "./services/signatureHelp";
 
 // Create a connection for the server, using Node's IPC as a transport.

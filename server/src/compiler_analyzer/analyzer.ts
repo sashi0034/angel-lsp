@@ -50,7 +50,7 @@ import {
     NodeWhile,
     ParsedEnumMember,
     ParsedRange
-} from "./nodes";
+} from "../compiler_parser/nodes";
 import {
     getSourceNodeName,
     isSourceNodeClassOrInterface,
@@ -65,7 +65,7 @@ import {
     SymbolVariable
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {LocationInfo, NumberLiterals, TokenKind} from "./tokens";
+import {LocationInfo, NumberLiterals, TokenKind} from "../compiler_tokenizer/tokens";
 import {
     AnalyzedScope,
     copySymbolsInScope,
@@ -79,9 +79,9 @@ import {
     isSymbolConstructorInScope
 } from "./symbolScopes";
 import {checkFunctionMatch} from "./checkFunction";
-import {ParsedToken} from "./parsedToken";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
-import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "./nodesUtils";
+import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "../compiler_parser/nodesUtils";
 import {
     builtinBoolType,
     builtinSetterValueToken,
@@ -107,7 +107,7 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
-import {createVirtualToken} from "./tokenUtils";
+import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import assert = require("node:assert");
 
 type HoistingQueue = (() => void)[];

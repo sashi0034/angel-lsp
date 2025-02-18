@@ -9,7 +9,7 @@ import {
     SymbolScope, isSourceNodeClassOrInterface
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {ParsedToken} from "./parsedToken";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 import {isAnonymousIdentifier} from "./symbolScopes";
 import assert = require("node:assert");
 

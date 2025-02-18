@@ -1,7 +1,7 @@
-import {tokenize} from "../../src/compile/tokenizer";
-import {parseFromTokenized} from "../../src/compile/parser";
+import {tokenize} from "../../src/compiler_tokenizer/tokenizer";
+import {parseFromTokenized} from "../../src/compiler_parser/parser";
 import {diagnostic} from '../../src/code/diagnostic';
-import {preprocessTokensForParser} from "../../src/compile/parserPreprocess";
+import {preprocessTokensForParser} from "../../src/compiler_parser/parserPreprocess";
 
 function itParses(content: string) {
     it(`parses ${content}`, () => {

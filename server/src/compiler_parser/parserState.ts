@@ -1,13 +1,13 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "./tokens";
+import {TokenKind} from "../compiler_tokenizer/tokens";
 import {ParsedToken} from "./parsedToken";
 import {
     ParsedCachedData,
     ParsedCacheKind,
     ParsedCacheServices, ParsedCacheTargets
 } from "./parsedCache";
-import {isVirtualToken} from "./tokenUtils";
+import {isVirtualToken} from "../compiler_tokenizer/tokenUtils";
 
 export enum ParseFailure {
     Mismatch = 'Mismatch',

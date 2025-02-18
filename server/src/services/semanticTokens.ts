@@ -1,5 +1,5 @@
 import {SemanticTokensBuilder} from "vscode-languageserver/node";
-import {TokenizedToken} from "../compile/tokens";
+import {TokenizedToken} from "../compiler_tokenizer/tokens";
 import {SemanticTokens} from "vscode-languageserver-protocol";
 
 export function serveSemanticTokens(tokens: TokenizedToken[]): SemanticTokens {

@@ -1,4 +1,4 @@
-import {TokenizedToken} from "./tokens";
+import {TokenizedToken} from "../compiler_tokenizer/tokens";
 
 /**
  * The list of tokens used by the parser has had certain tokens, such as comments, removed by the preprocessor.

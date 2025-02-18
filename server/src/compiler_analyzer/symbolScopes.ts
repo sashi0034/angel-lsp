@@ -1,7 +1,7 @@
 import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope, SymbolAndScope} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
-import {NodeName} from "./nodes";
-import {ParsedToken} from "./parsedToken";
+import {NodeName} from "../compiler_parser/nodes";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 import {getPathOfScope} from "./symbolUtils";
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {

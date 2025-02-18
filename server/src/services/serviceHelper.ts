@@ -1,6 +1,6 @@
-import {isPositionInRange} from "../compile/tokenUtils";
-import {ComplementKind} from "../compile/symbolComplement";
-import {SymbolScope} from "../compile/symbols";
+import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
+import {ComplementKind} from "../compiler_analyzer/symbolComplement";
+import {SymbolScope} from "../compiler_analyzer/symbols";
 import {Position} from "vscode-languageserver";
 
 /**

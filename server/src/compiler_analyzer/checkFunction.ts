@@ -1,13 +1,13 @@
 import {diagnostic} from "../code/diagnostic";
-import {ParsedRange} from "./nodes";
+import {ParsedRange} from "../compiler_parser/nodes";
 import {
     ResolvedType,
     SymbolFunction,
     SymbolScope
 } from "./symbols";
 import {canTypeConvert} from "./checkType";
-import {ParsedToken} from "./parsedToken";
-import {getNodeLocation, stringifyNodeType} from "./nodesUtils";
+import {ParsedToken} from "../compiler_parser/parsedToken";
+import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 
 export interface FunctionMatchingArgs {

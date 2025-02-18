@@ -1,5 +1,5 @@
 import {ParsedToken} from "./parsedToken";
-import {LocationInfo} from "./tokens";
+import {LocationInfo} from "../compiler_tokenizer/tokens";
 import {EntityAttribute, FunctionAttribute, NodeType, ParsedRange, ReferenceModifier} from "./nodes";
 import {Mutable} from "../utils/utilities";
 

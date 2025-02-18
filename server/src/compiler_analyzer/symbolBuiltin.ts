@@ -1,8 +1,8 @@
-import {ParsedToken} from "./parsedToken";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 import {createSymbolScope} from "./symbolScopes";
-import {createVirtualToken} from "./tokenUtils";
-import {TokenKind} from "./tokens";
-import {numberTypeSet} from "./tokenReservedWords";
+import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
+import {TokenKind} from "../compiler_tokenizer/tokens";
+import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
 import {PrimitiveType, SymbolType, SymbolKind, ResolvedType} from "./symbols";
 import assert = require("node:assert");
 

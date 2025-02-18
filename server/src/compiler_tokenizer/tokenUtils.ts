@@ -2,7 +2,7 @@ import {Position, Range} from "vscode-languageserver";
 import {createEmptyLocation, createVirtualHighlight, NumberLiterals, TokenBase, TokenKind} from "./tokens";
 import {findAllReservedWordProperty} from "./tokenReservedWords";
 import {HighlightToken} from "../code/highlight";
-import {ParsedToken} from "./parsedToken";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;

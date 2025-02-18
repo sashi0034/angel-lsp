@@ -10,8 +10,8 @@ import {
     NodeLambda,
     NodeName,
     NodeVirtualProp
-} from "./nodes";
-import {ParsedToken} from "./parsedToken";
+} from "../compiler_parser/nodes";
+import {ParsedToken} from "../compiler_parser/parsedToken";
 import {ComplementHints} from "./symbolComplement";
 import {TemplateTranslation} from "./symbolUtils";
 

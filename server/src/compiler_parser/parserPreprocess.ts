@@ -1,9 +1,9 @@
-import {TokenizedToken, TokenKind} from "./tokens";
+import {TokenizedToken, TokenKind} from "../compiler_tokenizer/tokens";
 import {ParsedToken} from "./parsedToken";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
 import {Mutable} from "../utils/utilities";
-import {createVirtualToken, isSameLine} from "./tokenUtils";
+import {createVirtualToken, isSameLine} from "../compiler_tokenizer/tokenUtils";
 
 /**
  * Output of the 'preprocessTokensForParser' function.

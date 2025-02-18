@@ -1,9 +1,9 @@
-import {SymbolObject, SymbolScope} from "../compile/symbols";
+import {SymbolObject, SymbolScope} from "../compiler_analyzer/symbols";
 import {Location, Position} from "vscode-languageserver";
-import {TokenizedToken} from "../compile/tokens";
-import {ParsedToken} from "../compile/parsedToken";
-import {AnalyzedScope} from "../compile/symbolScopes";
-import {isPositionInRange} from "../compile/tokenUtils";
+import {TokenizedToken} from "../compiler_tokenizer/tokens";
+import {ParsedToken} from "../compiler_parser/parsedToken";
+import {AnalyzedScope} from "../compiler_analyzer/symbolScopes";
+import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.

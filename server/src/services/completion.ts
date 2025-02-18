@@ -4,18 +4,18 @@ import {
     SymbolObject,
     SymbolKind,
     SymbolScope
-} from "../compile/symbols";
+} from "../compiler_analyzer/symbols";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {NodeName} from "../compile/nodes";
+import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopes,
     findScopeShallowly,
     findScopeWithParent,
     isAnonymousIdentifier
-} from "../compile/symbolScopes";
-import {isAllowedToAccessMember} from "../compile/checkType";
-import {isPositionInRange} from "../compile/tokenUtils";
-import {ComplementHints, ComplementKind} from "../compile/symbolComplement";
+} from "../compiler_analyzer/symbolScopes";
+import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
+import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
+import {ComplementHints, ComplementKind} from "../compiler_analyzer/symbolComplement";
 import {findScopeContainingPosition} from "./serviceHelper";
 
 /**
