@@ -10,7 +10,7 @@ This is a Language Server for Visual Studio Code that offers features to make An
 # Introduction
 
 While there are already AngelScript Language Server extensions available for VSCode, many of them are platform-specific.
-For example, there are excellent Language Servers specialized for specific environments like 
+For example, there are excellent Language Servers specialized for specific environments like
 [Unreal Angelscript](https://marketplace.visualstudio.com/items?itemName=Hazelight.unreal-angelscript) and
 [Openplanet Angelscript](https://marketplace.visualstudio.com/items?itemName=XertroV.openplanet-angelscript).
 Developers working in these environments are encouraged to use those options.
@@ -56,6 +56,10 @@ The Language Server analyzes AngelScript files within your project and offers th
     - [OpenSiv3D/as.predefined](./examples/OpenSiv3D/as.predefined) for [OpenSiv3D](https://github.com/Siv3D/OpenSiv3D) (v0.6)
 
     - [Sven Co-op/as.predefined](./examples/Sven%20Co-op/as.predefined) for [Sven Co-op](https://store.steampowered.com/app/225840/Sven_Coop) by [@DrAbcOfficial](https://github.com/DrAbcOfficial)
+
+   In many cases, `as.predefined` can also be automatically generated.
+
+   - [Example of generate `as.predefined` in C++](./examples/generate_as_predefined.cpp)
 
 # Documentation
 
