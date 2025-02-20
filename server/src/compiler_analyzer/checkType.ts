@@ -5,7 +5,7 @@ import {
     SymbolFunction,
     SymbolObject,
     SymbolType,
-} from "./symbols";
+} from "./symbolObject";
 import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";

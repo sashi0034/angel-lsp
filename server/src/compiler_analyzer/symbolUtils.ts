@@ -4,7 +4,7 @@ import {
     SymbolObject,
     SymbolType,
     SymbolVariable
-} from "./symbols";
+} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";

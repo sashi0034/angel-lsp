@@ -60,7 +60,7 @@ import {
     SymbolObject,
     SymbolType,
     SymbolVariable
-} from "./symbols";
+} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {LocationInfo, NumberLiterals, TokenKind} from "../compiler_tokenizer/tokens";
 import {

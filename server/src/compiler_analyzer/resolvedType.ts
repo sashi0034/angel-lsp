@@ -1,6 +1,6 @@
 import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
-import {SymbolFunction, SymbolType} from "./symbols";
+import {SymbolFunction, SymbolType} from "./symbolObject";
 
 /**
  * The type of symbol that has been resolved by deduction.

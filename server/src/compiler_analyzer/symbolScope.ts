@@ -3,7 +3,7 @@ import {
     SymbolFunction,
     SymbolObject,
     ReferencedSymbolInfo
-} from "./symbols";
+} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "../compiler_parser/nodes";
 import {ParserToken} from "../compiler_parser/parserToken";
