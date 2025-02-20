@@ -3,17 +3,16 @@ import {createSymbolScope} from "./symbolScopes";
 import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import {TokenKind} from "../compiler_tokenizer/tokens";
 import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
-import {PrimitiveType, SymbolType, SymbolKind, ResolvedType} from "./symbols";
+import {PrimitiveType, SymbolType, ResolvedType} from "./symbols";
 import assert = require("node:assert");
 
 function createBuiltinType(virtualToken: ParserToken, name: PrimitiveType): SymbolType {
-    return {
-        symbolKind: SymbolKind.Type,
+    return SymbolType.create({
         declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: createSymbolScope(undefined, undefined, ''),
         definitionSource: name,
         membersScope: undefined,
-    } as const;
+    } );
 }
 
 const builtinNumberTypeMap: Map<string, SymbolType> = (() => {

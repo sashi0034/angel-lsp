@@ -58,7 +58,6 @@ import {
     PrimitiveType,
     ResolvedType,
     SymbolFunction,
-    SymbolKind,
     SymbolObject,
     SymbolScope,
     SymbolType,
@@ -81,7 +80,12 @@ import {
 import {checkFunctionMatch} from "./checkFunction";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
-import {getIdentifierInType, getLocationBetween, getNextTokenIfExist, getNodeLocation} from "../compiler_parser/nodesUtils";
+import {
+    getIdentifierInType,
+    getLocationBetween,
+    getNextTokenIfExist,
+    getNodeLocation
+} from "../compiler_parser/nodesUtils";
 import {
     builtinBoolType,
     builtinSetterValueToken,
@@ -159,18 +163,17 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
-    const symbol: Mutable<SymbolType> = {
-        symbolKind: SymbolKind.Type,
+    const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
         definitionSource: nodeEnum,
         membersScope: undefined,
-    };
+    });
 
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
-    symbol.membersScope = scope;
+    symbol.mutate().membersScope = scope;
 
     hoistEnumMembers(scope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
 
@@ -180,46 +183,43 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
-        const symbol: SymbolVariable = {
-            symbolKind: SymbolKind.Variable,
+        const symbol: SymbolVariable = SymbolVariable.create({
             declaredPlace: member.identifier,
             declaredScope: parentScope,
             type: type,
             isInstanceMember: false,
             accessRestriction: undefined,
-        };
+        });
         insertSymbolObject(parentScope.symbolMap, symbol);
     }
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: Mutable<SymbolType> = {
-        symbolKind: SymbolKind.Type,
+    const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
         definitionSource: nodeClass,
         membersScope: undefined,
-    };
+    });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
-    symbol.membersScope = scope;
+    symbol.mutate().membersScope = scope;
 
-    const thisVariable: SymbolVariable = {
-        symbolKind: SymbolKind.Variable,
+    const thisVariable: SymbolVariable = SymbolVariable.create({
         declaredPlace: builtinThisToken,
         declaredScope: parentScope,
         type: {symbolType: symbol, sourceScope: scope},
         isInstanceMember: false,
         accessRestriction: AccessModifier.Private,
-    };
+    });
     insertSymbolObject(scope.symbolMap, thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
-    if (templateTypes.length > 0) symbol.templateTypes = templateTypes;
+    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
 
-    symbol.baseList = hoistBaseList(scope, nodeClass);
+    symbol.mutate().baseList = hoistBaseList(scope, nodeClass);
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
@@ -233,13 +233,13 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             // Check to insert the super constructor
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const superConstructor = findConstructorForResolvedType(primeBase);
-            if (superConstructor?.symbolKind === SymbolKind.Function) {
-                const superSymbol: Mutable<SymbolFunction> = {...superConstructor};
+            if (superConstructor instanceof SymbolFunction) {
+                const superSymbol: SymbolFunction = superConstructor.clone();
 
                 const declaredPlace: Mutable<ParserToken> = createVirtualToken(TokenKind.Identifier, 'super');
                 declaredPlace.location = {...superSymbol.declaredPlace.location};
 
-                superSymbol.declaredPlace = declaredPlace;
+                superSymbol.mutate().declaredPlace = declaredPlace;
                 insertSymbolObject(scope.symbolMap, superSymbol);
             }
         });
@@ -251,13 +251,12 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
     const templateTypes: ParserToken[] = [];
     for (const type of types ?? []) {
-        insertSymbolObject(scope.symbolMap, {
-            symbolKind: SymbolKind.Type,
+        insertSymbolObject(scope.symbolMap, SymbolType.create({
             declaredPlace: getIdentifierInType(type),
             declaredScope: scope,
             definitionSource: PrimitiveType.Template,
             membersScope: undefined,
-        } satisfies SymbolType);
+        }));
 
         templateTypes.push(getIdentifierInType(type));
     }
@@ -274,7 +273,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
         if (baseType === undefined) {
             diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
             baseList.push(undefined);
-        } else if (baseType.symbol.symbolKind !== SymbolKind.Type) {
+        } else if (baseType.symbol instanceof SymbolType === false) {
             diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
@@ -293,7 +292,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
-        if (baseType.symbolType.symbolKind === SymbolKind.Function) continue;
+        if (baseType.symbolType instanceof SymbolFunction) continue;
 
         const baseScope = baseType.symbolType.membersScope;
         if (baseScope === undefined) continue;
@@ -328,13 +327,12 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const builtInType = tryGetBuiltInType(typeDef.type);
     if (builtInType === undefined) return;
 
-    const symbol: SymbolType = {
-        symbolKind: SymbolKind.Type,
+    const symbol: SymbolType = SymbolType.create({
         declaredPlace: typeDef.identifier,
         declaredScope: parentScope,
         definitionSource: builtInType.definitionSource,
         membersScope: undefined,
-    };
+    });
     insertSymbolObject(parentScope.symbolMap, symbol);
 }
 
@@ -344,34 +342,35 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const returnType = isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(parentScope, nodeFunc.head.returnType) : undefined;
-    const symbol: Mutable<SymbolFunction> = {
-        symbolKind: SymbolKind.Function,
+    const returnType = isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(
+        parentScope,
+        nodeFunc.head.returnType) : undefined;
+    const symbol: SymbolFunction = SymbolFunction.create({
         declaredPlace: nodeFunc.identifier,
         declaredScope: parentScope,
         returnType: returnType,
         parameterTypes: [],
         sourceNode: nodeFunc,
-        nextOverload: undefined,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
-    };
+    });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
     if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
         if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            const identifier: Mutable<ParserToken> = createVirtualToken(TokenKind.Identifier, nodeFunc.identifier.text.substring(4));
+            const identifier: Mutable<ParserToken> = createVirtualToken(
+                TokenKind.Identifier,
+                nodeFunc.identifier.text.substring(4));
             identifier.location = nodeFunc.identifier.location;
 
-            const symbol: SymbolVariable = {
-                symbolKind: SymbolKind.Variable,
+            const symbol: SymbolVariable = SymbolVariable.create({
                 declaredPlace: identifier, // FIXME?
                 declaredScope: parentScope,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
                 accessRestriction: nodeFunc.accessor,
-            };
+            });
             tryInsertSymbolObject(parentScope.symbolMap, symbol);
         }
     } else if (nodeFunc.funcAttr?.isProperty === true) {
@@ -382,7 +381,7 @@ function hoistFunc(
     const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
 
     hoisting.push(() => {
-        symbol.parameterTypes = hoistParamList(scope, nodeFunc.paramList);
+        symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
     });
 
     analyzing.push(() => {
@@ -405,20 +404,19 @@ function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: Mutable<SymbolType> = {
-        symbolKind: SymbolKind.Type,
+    const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
         definitionSource: nodeInterface,
         membersScope: undefined,
-    };
+    });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
-    symbol.membersScope = scope;
+    symbol.mutate().membersScope = scope;
 
     const baseList = hoistBaseList(scope, nodeInterface);
-    if (baseList !== undefined) symbol.baseList = baseList;
+    if (baseList !== undefined) symbol.mutate().baseList = baseList;
 
     hoisting.push(() => {
         hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
@@ -484,21 +482,20 @@ function analyzeVarInitializer(
         checkTypeMatch(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined || varType.symbolType.symbolKind === SymbolKind.Function) return undefined;
+        if (varType === undefined || varType.symbolType instanceof SymbolFunction) return undefined;
         return analyzeConstructorCaller(scope, varIdentifier, initializer, varType);
     }
 }
 
 function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
     for (const declaredVar of nodeVar.variables) {
-        const variable: SymbolVariable = {
-            symbolKind: SymbolKind.Variable,
+        const variable: SymbolVariable = SymbolVariable.create({
             declaredPlace: declaredVar.identifier,
             declaredScope: scope,
             type: varType,
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
-        };
+        });
         insertSymbolObject(scope.symbolMap, variable);
     }
 }
@@ -507,21 +504,19 @@ function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, 
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzingQueue, hoisting: HoistingQueue) {
-    const symbol: Mutable<SymbolFunction> = {
-        symbolKind: SymbolKind.Function,
+    const symbol: SymbolFunction = SymbolFunction.create({
         declaredPlace: funcDef.identifier,
         declaredScope: parentScope,
         returnType: analyzeType(parentScope, funcDef.returnType),
         parameterTypes: [],
         sourceNode: funcDef,
-        nextOverload: undefined,
         isInstanceMember: false,
         accessRestriction: undefined,
-    };
+    });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 
     hoisting.push(() => {
-        symbol.parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
+        symbol.mutate().parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
     });
 }
 
@@ -532,14 +527,13 @@ function hoistVirtualProp(
     const type = analyzeType(parentScope, virtualProp.type);
 
     const identifier = virtualProp.identifier;
-    const symbol: SymbolVariable = {
-        symbolKind: SymbolKind.Variable,
+    const symbol: SymbolVariable = SymbolVariable.create({
         declaredPlace: identifier,
         declaredScope: parentScope,
         type: type,
         isInstanceMember: isInstanceMember,
         accessRestriction: virtualProp.accessor,
-    };
+    });
     insertSymbolObject(parentScope.symbolMap, symbol);
 
     const getter = virtualProp.getter;
@@ -557,14 +551,13 @@ function hoistVirtualProp(
         const setterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `set_${identifier.text}`);
 
         if (type !== undefined) {
-            const valueVariable: SymbolVariable = {
-                symbolKind: SymbolKind.Variable,
+            const valueVariable: SymbolVariable = SymbolVariable.create({
                 declaredPlace: builtinSetterValueToken,
                 declaredScope: parentScope,
                 type: {symbolType: type.symbolType, sourceScope: setterScope},
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
-            };
+            });
             insertSymbolObject(setterScope.symbolMap, valueVariable);
         }
 
@@ -582,17 +575,15 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
-    const symbol: SymbolFunction = {
-        symbolKind: SymbolKind.Function,
+    const symbol: SymbolFunction = SymbolFunction.create({
         declaredPlace: intfMethod.identifier,
         declaredScope: parentScope,
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
         sourceNode: intfMethod,
-        nextOverload: undefined,
         isInstanceMember: true,
         accessRestriction: undefined,
-    };
+    });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
 }
 
@@ -619,14 +610,13 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         else resolvedTypes.push(type);
 
         if (param.identifier === undefined) continue;
-        insertSymbolObject(scope.symbolMap, {
-            symbolKind: SymbolKind.Variable,
+        insertSymbolObject(scope.symbolMap, SymbolVariable.create({
             declaredPlace: param.identifier,
             declaredScope: scope,
             type: type,
             isInstanceMember: false,
             accessRestriction: undefined,
-        });
+        }));
     }
     return resolvedTypes;
 }
@@ -678,9 +668,9 @@ function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedType | und
     }
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
-    if (foundSymbol.symbolKind === SymbolKind.Function && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
+    if (foundSymbol instanceof SymbolFunction && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
-    } else if (foundSymbol.symbolKind !== SymbolKind.Type) {
+    } else if (foundSymbol instanceof SymbolType === false) {
         diagnostic.addError(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
     } else {
@@ -899,7 +889,7 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (assign?.isHandler !== true && assign?.symbolType.symbolKind === SymbolKind.Function) {
+    if (assign?.isHandler !== true && assign?.symbolType instanceof SymbolFunction) {
         diagnostic.addError(getNodeLocation(exprStat.assign.nodeRange), `Function call without handler.`);
     }
 }
@@ -921,7 +911,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 
     if (functionScope.ownerNode.nodeName === NodeName.Func) {
         let functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
-        if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Function) return;
+        if (functionReturn === undefined || functionReturn instanceof SymbolFunction === false) return;
 
         // Select suitable overload if there are multiple overloads
         while (functionReturn.nextOverload !== undefined) {
@@ -930,7 +920,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         }
 
         const expectedReturn = functionReturn.returnType?.symbolType;
-        if (expectedReturn?.symbolKind === SymbolKind.Type && expectedReturn?.definitionSource === PrimitiveType.Void) {
+        if (expectedReturn instanceof SymbolType && expectedReturn?.definitionSource === PrimitiveType.Void) {
             if (nodeReturn.assign === undefined) return;
             diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value.`);
         } else {
@@ -947,7 +937,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 
         const varName = key.substring(4, key.length);
         const functionReturn = functionScope.parentScope?.symbolMap.get(varName);
-        if (functionReturn === undefined || functionReturn.symbolKind !== SymbolKind.Variable) return;
+        if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) return;
 
         checkTypeMatch(returnType, functionReturn.type, nodeReturn.nodeRange);
     }
@@ -1115,7 +1105,7 @@ function analyzeConstructorCaller(
     constructorType: ResolvedType
 ): ResolvedType | undefined {
     const constructor = findConstructorForResolvedType(constructorType);
-    if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) {
+    if (constructor === undefined || constructor instanceof SymbolFunction === false) {
         return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
@@ -1140,12 +1130,16 @@ function analyzeBuiltinConstructorCaller(
     const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
     if (constructorType.sourceScope === undefined) return undefined;
 
-    if (constructorType.symbolType.symbolKind === SymbolKind.Type
+    if (constructorType.symbolType instanceof SymbolType
         && getSourceNodeName(constructorType.symbolType.definitionSource) === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
-        if (argList.length != 1 || canTypeConvert(analyzeAssign(scope, argList[0].assign), resolvedBuiltinInt) === false) {
-            diagnostic.addError(callerIdentifier.location, `Enum constructor '${constructorIdentifier}' requires an integer.`);
+        if (argList.length != 1 || canTypeConvert(
+            analyzeAssign(scope, argList[0].assign),
+            resolvedBuiltinInt) === false) {
+            diagnostic.addError(
+                callerIdentifier.location,
+                `Enum constructor '${constructorIdentifier}' requires an integer.`);
         }
 
         scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
@@ -1176,13 +1170,15 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: ResolvedType) {
-    if (exprValue.symbolType.symbolKind !== SymbolKind.Type) {
+    if (exprValue.symbolType instanceof SymbolType === false) {
         diagnostic.addError(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type.`);
         return undefined;
     }
 
     // Append a hint for complement of class members.
-    const complementRange = getLocationBetween(exprPostOp.nodeRange.start, getNextTokenIfExist(exprPostOp.nodeRange.start));
+    const complementRange = getLocationBetween(
+        exprPostOp.nodeRange.start,
+        getNextTokenIfExist(exprPostOp.nodeRange.start));
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
@@ -1211,7 +1207,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        if (method.symbolKind !== SymbolKind.Function) {
+        if (method instanceof SymbolFunction === false) {
             diagnostic.addError(identifier.location, `'${identifier.text}' is not a method.`);
             return undefined;
         }
@@ -1226,7 +1222,14 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: ParsedRange) {
     const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
-    return analyzeOperatorAlias(scope, exprPostOp.nodeRange.end, exprValue, args, exprRange, exprPostOp.nodeRange, 'opIndex');
+    return analyzeOperatorAlias(
+        scope,
+        exprPostOp.nodeRange.end,
+        exprValue,
+        args,
+        exprRange,
+        exprPostOp.nodeRange,
+        'opIndex');
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -1244,14 +1247,13 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
     for (const param of lambda.paramList) {
         if (param.identifier === undefined) continue;
 
-        const argument: SymbolVariable = {
-            symbolKind: SymbolKind.Variable,
+        const argument: SymbolVariable = SymbolVariable.create({
             declaredPlace: param.identifier,
             declaredScope: scope,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
             accessRestriction: undefined,
-        };
+        });
         insertSymbolObject(childScope.symbolMap, argument);
     }
 
@@ -1305,20 +1307,25 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
     const [calleeSymbol, calleeScope] = [calleeFunc.symbol, calleeFunc.scope];
 
-    if (calleeSymbol.symbolKind === SymbolKind.Type) {
+    if (calleeSymbol instanceof SymbolType) {
         const constructorType: ResolvedType = {symbolType: calleeSymbol, sourceScope: calleeScope};
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    if (calleeSymbol.symbolKind === SymbolKind.Variable && calleeSymbol.type?.symbolType.symbolKind === SymbolKind.Function) {
-        return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeSymbol.type.symbolType, undefined);
+    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.symbolType instanceof SymbolFunction) {
+        return analyzeFunctionCaller(
+            scope,
+            funcCall.identifier,
+            funcCall.argList,
+            calleeSymbol.type.symbolType,
+            undefined);
     }
 
-    if (calleeSymbol.symbolKind === SymbolKind.Variable) {
+    if (calleeSymbol instanceof SymbolVariable) {
         return analyzeOpCallCaller(scope, funcCall, calleeSymbol);
     }
 
-    if (calleeSymbol.symbolKind !== SymbolKind.Function) {
+    if (calleeSymbol instanceof SymbolFunction === false) {
         diagnostic.addError(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function.`);
         return undefined;
     }
@@ -1337,8 +1344,10 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
     if (classScope === undefined) return undefined;
 
     const opCall = findSymbolShallowly(classScope, 'opCall');
-    if (opCall === undefined || opCall.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(funcCall.identifier.location, `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}'.`);
+    if (opCall === undefined || opCall instanceof SymbolFunction === false) {
+        diagnostic.addError(
+            funcCall.identifier.location,
+            `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}'.`);
         return;
     }
 
@@ -1363,7 +1372,9 @@ function analyzeFunctionCaller(
     }
 
     // Append a hint for completion of function arguments to the scope.
-    const complementRange = getLocationBetween(callerArgList.nodeRange.start, getNextTokenIfExist(callerArgList.nodeRange.end));
+    const complementRange = getLocationBetween(
+        callerArgList.nodeRange.start,
+        getNextTokenIfExist(callerArgList.nodeRange.end));
     scope.completionHints.push({
         complementKind: ComplementKind.Arguments,
         complementLocation: complementRange,
@@ -1410,7 +1421,7 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (declared.symbol.symbolKind === SymbolKind.Type) {
+    if (declared.symbol instanceof SymbolType) {
         diagnostic.addError(varIdentifier.location, `'${varIdentifier.text}' is type.`);
         return undefined;
     }
@@ -1428,7 +1439,7 @@ function analyzeVariableAccess(
         });
     }
 
-    if (declared.symbol.symbolKind === SymbolKind.Variable) {
+    if (declared.symbol instanceof SymbolVariable) {
         return declared.symbol.type;
     } else {
         return {symbolType: declared.symbol, sourceScope: declared.scope};
@@ -1452,7 +1463,13 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | u
     for (; ;) {
         if (cursor.tail === undefined) break;
         const rhs = analyzeCondition(scope, cursor.tail.assign.condition);
-        lhs = analyzeAssignOp(scope, cursor.tail.operator, lhs, rhs, cursor.condition.nodeRange, cursor.tail.assign.condition.nodeRange);
+        lhs = analyzeAssignOp(
+            scope,
+            cursor.tail.operator,
+            lhs,
+            rhs,
+            cursor.condition.nodeRange,
+            cursor.tail.assign.condition.nodeRange);
         cursor = cursor.tail.assign;
     }
     return lhs;
@@ -1475,7 +1492,8 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (canTypeConvert(trueAssign, falseAssign)) return falseAssign;
     if (canTypeConvert(falseAssign, trueAssign)) return trueAssign;
 
-    diagnostic.addError(getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
+    diagnostic.addError(
+        getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
         `Type mismatches between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`);
     return undefined;
 }
@@ -1509,13 +1527,17 @@ function analyzeOperatorAlias(
 ) {
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
-    if (lhs.symbolType.symbolKind !== SymbolKind.Type) {
-        diagnostic.addError(operator.location, `Invalid operation '${alias}' between '${stringifyResolvedType(lhs)}' and '${stringifyResolvedTypes(rhsArgs)}'.`);
+    if (lhs.symbolType instanceof SymbolType === false) {
+        diagnostic.addError(
+            operator.location,
+            `Invalid operation '${alias}' between '${stringifyResolvedType(lhs)}' and '${stringifyResolvedTypes(rhsArgs)}'.`);
         return undefined;
     }
 
     if (isSourcePrimitiveType(lhs.symbolType.definitionSource)) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
+        diagnostic.addError(
+            operator.location,
+            `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
         return undefined;
     }
 
@@ -1525,8 +1547,10 @@ function analyzeOperatorAlias(
     if (classScope === undefined) return undefined;
 
     const aliasFunction = findSymbolShallowly(classScope, alias);
-    if (aliasFunction === undefined || aliasFunction.symbolKind !== SymbolKind.Function) {
-        diagnostic.addError(operator.location, `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
+    if (aliasFunction === undefined || aliasFunction instanceof SymbolFunction === false) {
+        diagnostic.addError(
+            operator.location,
+            `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
         return undefined;
     }
 
@@ -1547,15 +1571,17 @@ function analyzeBitOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
-    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
+    if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
+        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
+            rhs,
+            resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = bitOpAliases.get(operator.text);
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.definitionSource)
+    return lhs.symbolType instanceof SymbolType && isSourcePrimitiveType(lhs.symbolType.definitionSource)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1575,15 +1601,17 @@ function analyzeMathOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
-    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
-        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(rhs, resolvedBuiltinInt)) return resolvedBuiltinInt;
+    if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
+        if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
+            rhs,
+            resolvedBuiltinInt)) return resolvedBuiltinInt;
     }
 
     const alias = mathOpAliases.get(operator.text);
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType.symbolKind === SymbolKind.Type && isSourcePrimitiveType(lhs.symbolType.definitionSource)
+    return lhs.symbolType instanceof SymbolType && isSourcePrimitiveType(lhs.symbolType.definitionSource)
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1603,7 +1631,7 @@ function analyzeCompOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
-    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+    if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, rhs) || canTypeConvert(rhs, lhs)) {
             return {symbolType: builtinBoolType, sourceScope: undefined};
         }
@@ -1643,7 +1671,7 @@ function analyzeAssignOp(
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
-    if (lhs.symbolType.symbolKind === SymbolKind.Type && rhs.symbolType.symbolKind === SymbolKind.Type) {
+    if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (lhs.symbolType.definitionSource === PrimitiveType.Number && rhs.symbolType.definitionSource === PrimitiveType.Number) return lhs;
     }
 

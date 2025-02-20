@@ -2,8 +2,7 @@ import {Position, URI} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
     SymbolObject,
-    SymbolKind,
-    SymbolScope
+    SymbolScope, SymbolType, SymbolFunction, SymbolVariable
 } from "../compiler_analyzer/symbols";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
@@ -103,7 +102,9 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = findScopeShallowly(completion.targetType.declaredScope, completion.targetType.declaredPlace.text);
+        const typeScope = findScopeShallowly(
+            completion.targetType.declaredScope,
+            completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope.
@@ -127,17 +128,14 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolObject) {
-    switch (symbol.symbolKind) {
-    case SymbolKind.Type:
+function symbolToCompletionKind(symbol: SymbolObject): CompletionItemKind {
+    if (symbol instanceof SymbolType) {
         if (typeof symbol.definitionSource === 'string') return CompletionItemKind.Keyword;
         if (symbol.definitionSource.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
-    case SymbolKind.Function:
+    } else if (symbol instanceof SymbolFunction) {
         return CompletionItemKind.Function;
-    case SymbolKind.Variable:
+    } else { // SymbolVariable
         return CompletionItemKind.Variable;
-    default:
-        return CompletionItemKind.Text;
     }
 }

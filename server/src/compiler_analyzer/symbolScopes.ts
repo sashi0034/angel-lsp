@@ -1,4 +1,4 @@
-import {SymbolObject, SymbolKind, SymbolOwnerNode, SymbolScope, SymbolAndScope} from "./symbols";
+import {SymbolOwnerNode, SymbolScope, SymbolAndScope, SymbolFunction} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "../compiler_parser/nodes";
 import {ParserToken} from "../compiler_parser/parserToken";
@@ -76,7 +76,10 @@ export class AnalyzedScope {
      */
     public get pureScope(): SymbolScope {
         if (this.pureBuffer === undefined) {
-            this.pureBuffer = createSymbolScope(this.fullScope.ownerNode, this.fullScope.parentScope, this.fullScope.key);
+            this.pureBuffer = createSymbolScope(
+                this.fullScope.ownerNode,
+                this.fullScope.parentScope,
+                this.fullScope.key);
             copySymbolsInScope(this.fullScope, this.pureBuffer, {targetSrcPath: this.path});
         }
         return this.pureBuffer;
@@ -189,7 +192,7 @@ export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
     const symbol = pair.symbol;
     const scope = pair.scope;
     return symbol !== undefined
-        && symbol.symbolKind === SymbolKind.Function
+        && symbol instanceof SymbolFunction
         && scope.ownerNode !== undefined
         && scope.ownerNode.nodeName === NodeName.Class
         && scope.ownerNode.identifier.text === symbol.declaredPlace.text;
