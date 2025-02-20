@@ -174,10 +174,10 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
     symbol.mutate().membersScope = scope;
 
-    hoistEnumMembers(scope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
+    hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
 
     if (getGlobalSettings().hoistEnumParentScope)
-        hoistEnumMembers(parentScope, nodeEnum.memberList, {symbolType: symbol, sourceScope: scope});
+        hoistEnumMembers(parentScope, nodeEnum.memberList, new ResolvedType(symbol));
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
@@ -209,7 +209,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const thisVariable: SymbolVariable = SymbolVariable.create({
         declaredPlace: builtinThisToken,
         declaredScope: parentScope,
-        type: {symbolType: symbol, sourceScope: scope},
+        type: new ResolvedType(symbol),
         isInstanceMember: false,
         accessRestriction: AccessModifier.Private,
     });
@@ -277,7 +277,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             baseList.push(undefined);
         } else {
             // Found the base class
-            baseList.push({symbolType: baseType.symbol, sourceScope: baseType.scope});
+            baseList.push(new ResolvedType(baseType.symbol));
 
             scope.referencedList.push({
                 declaredSymbol: baseType.symbol,
@@ -553,7 +553,7 @@ function hoistVirtualProp(
             const valueVariable: SymbolVariable = SymbolVariable.create({
                 declaredPlace: builtinSetterValueToken,
                 declaredScope: parentScope,
-                type: {symbolType: type.symbolType, sourceScope: setterScope},
+                type: new ResolvedType(type.symbolType),
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
             });
@@ -691,12 +691,11 @@ function completeAnalyzingType(
         referencedToken: identifier
     });
 
-    return {
+    return ResolvedType.create({
         symbolType: foundSymbol,
-        sourceScope: foundScope,
         isHandler: isHandler,
         templateTranslate: typeTemplates
-    };
+    });
 }
 
 // PRIMTYPE | '?' | 'auto'
@@ -709,7 +708,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     }
 
     const foundBuiltin = tryGetBuiltInType(typeIdentifier);
-    if (foundBuiltin !== undefined) return {symbolType: foundBuiltin, sourceScope: undefined};
+    if (foundBuiltin !== undefined) return new ResolvedType(foundBuiltin);
 
     return undefined;
 }
@@ -859,7 +858,7 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
-    checkTypeMatch(assignType, {symbolType: builtinBoolType, sourceScope: undefined}, nodeWhile.assign.nodeRange);
+    checkTypeMatch(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
 
     if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
@@ -870,13 +869,13 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
 
     if (doWhile.assign === undefined) return;
     const assignType = analyzeAssign(scope, doWhile.assign);
-    checkTypeMatch(assignType, {symbolType: builtinBoolType, sourceScope: undefined}, doWhile.assign.nodeRange);
+    checkTypeMatch(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
-    checkTypeMatch(conditionType, {symbolType: builtinBoolType, sourceScope: undefined}, nodeIf.condition.nodeRange);
+    checkTypeMatch(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
 
     if (nodeIf.thenStat !== undefined) analyzeStatement(scope, nodeIf.thenStat);
     if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
@@ -1307,7 +1306,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
     const [calleeSymbol, calleeScope] = [calleeFunc.symbol, calleeFunc.scope];
 
     if (calleeSymbol instanceof SymbolType) {
-        const constructorType: ResolvedType = {symbolType: calleeSymbol, sourceScope: calleeScope};
+        const constructorType: ResolvedType = new ResolvedType(calleeSymbol);
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
@@ -1364,7 +1363,7 @@ function analyzeFunctionCaller(
 
     if (calleeFunc.sourceNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
-        const handlerType = {symbolType: calleeFunc, sourceScope: undefined};
+        const handlerType = new ResolvedType(calleeFunc);
         if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {
             return callerArgTypes[0];
         }
@@ -1441,7 +1440,7 @@ function analyzeVariableAccess(
     if (declared.symbol instanceof SymbolVariable) {
         return declared.symbol.type;
     } else {
-        return {symbolType: declared.symbol, sourceScope: declared.scope};
+        return new ResolvedType(declared.symbol);
     }
 }
 
@@ -1479,7 +1478,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
 
-    checkTypeMatch(exprType, {symbolType: builtinBoolType, sourceScope: undefined}, condition.expr.nodeRange);
+    checkTypeMatch(exprType, new ResolvedType(builtinBoolType), condition.expr.nodeRange);
 
     const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
     const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
@@ -1632,7 +1631,7 @@ function analyzeCompOp(
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, rhs) || canTypeConvert(rhs, lhs)) {
-            return {symbolType: builtinBoolType, sourceScope: undefined};
+            return new ResolvedType(builtinBoolType);
         }
     }
 
@@ -1658,9 +1657,9 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: ParsedRange, rightRange: ParsedRange
 ): ResolvedType | undefined {
-    checkTypeMatch(lhs, {symbolType: builtinBoolType, sourceScope: undefined}, leftRange);
-    checkTypeMatch(rhs, {symbolType: builtinBoolType, sourceScope: undefined}, rightRange);
-    return {symbolType: builtinBoolType, sourceScope: undefined};
+    checkTypeMatch(lhs, new ResolvedType(builtinBoolType), leftRange);
+    checkTypeMatch(rhs, new ResolvedType(builtinBoolType), rightRange);
+    return new ResolvedType(builtinBoolType);
 }
 
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='

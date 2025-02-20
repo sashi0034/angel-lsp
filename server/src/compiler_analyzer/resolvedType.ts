@@ -5,9 +5,24 @@ import {SymbolFunction, SymbolType} from "./symbols";
 /**
  * The type of symbol that has been resolved by deduction.
  */
-export interface ResolvedType {
-    readonly symbolType: SymbolType | SymbolFunction;
-    readonly sourceScope: SymbolScope | undefined; // FIXME: Obsolete? Use symbolType.declaredScope instead.
-    readonly isHandler?: boolean;
-    readonly templateTranslate?: TemplateTranslation;
+export class ResolvedType {
+    constructor(
+        public readonly symbolType: SymbolType | SymbolFunction,
+        // public readonly sourceScope: SymbolScope | undefined,
+        public readonly isHandler?: boolean,
+        public readonly templateTranslate?: TemplateTranslation,
+    ) {
+    }
+
+    public static create(args: {
+        symbolType: SymbolType | SymbolFunction
+        isHandler?: boolean
+        templateTranslate?: TemplateTranslation
+    }) {
+        return new ResolvedType(args.symbolType, args.isHandler, args.templateTranslate);
+    }
+
+    public get sourceScope(): SymbolScope | undefined {
+        return this.symbolType.declaredScope;
+    }
 }
