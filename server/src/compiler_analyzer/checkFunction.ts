@@ -1,14 +1,14 @@
 import {diagnostic} from "../code/diagnostic";
 import {ParsedRange} from "../compiler_parser/nodes";
 import {
-    ResolvedType,
     SymbolFunction,
-    SymbolScope
 } from "./symbols";
 import {canTypeConvert} from "./checkType";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
+import {SymbolScope} from "./symbolScope";
+import {ResolvedType} from "./resolvedType";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
@@ -62,8 +62,15 @@ function checkFunctionMatchInternal(
                 return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
             }
 
-            if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
-                diagnostic.addError(getNodeLocation(callerRange), `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
+            if (handleErrorWhenOverloaded(
+                callerRange,
+                callerArgTypes,
+                calleeFunc,
+                overloadedHead,
+                templateTranslators) === false) {
+                diagnostic.addError(
+                    getNodeLocation(callerRange),
+                    `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
             }
 
             break;
@@ -81,9 +88,16 @@ function checkFunctionMatchInternal(
             return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
         }
 
-        if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
-            diagnostic.addError(getNodeLocation(callerRange),
-                `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(expectedType)}'.`);
+        if (handleErrorWhenOverloaded(
+            callerRange,
+            callerArgTypes,
+            calleeFunc,
+            overloadedHead,
+            templateTranslators) === false) {
+            diagnostic.addError(
+                getNodeLocation(callerRange),
+                `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
+                    expectedType)}'.`);
         }
     }
 
@@ -98,8 +112,14 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
         return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
     }
 
-    if (handleErrorWhenOverloaded(callerRange, callerArgTypes, calleeFunc, overloadedHead, templateTranslators) === false) {
-        diagnostic.addError(getNodeLocation(callerRange),
+    if (handleErrorWhenOverloaded(
+        callerRange,
+        callerArgTypes,
+        calleeFunc,
+        overloadedHead,
+        templateTranslators) === false) {
+        diagnostic.addError(
+            getNodeLocation(callerRange),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 

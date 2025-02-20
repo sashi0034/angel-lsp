@@ -1,17 +1,15 @@
 import {
-    ResolvedType,
     PrimitiveType,
-    SymbolAndScope,
     SymbolFunction,
     SymbolObject,
-    SymbolKind,
-    SymbolMap,
-    SymbolScope, isSourceNodeClassOrInterface
+    SymbolType,
+    SymbolVariable
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {ParserToken} from "../compiler_parser/parserToken";
-import {isAnonymousIdentifier} from "./symbolScopes";
+import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
+import {ResolvedType} from "./resolvedType";
 
 /**
  * Returns the path to a file where the scope is defined.
@@ -37,14 +35,14 @@ export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): Sym
         return undefined;
     }
 
-    const canOverload = symbol.symbolKind === SymbolKind.Function && hit.symbolKind === SymbolKind.Function;
+    const canOverload = symbol instanceof SymbolFunction && hit instanceof SymbolFunction;
     if (canOverload === false) return hit;
 
     // Functions can be added as overloads
     let cursor: SymbolFunction = hit;
     for (; ;) {
         if (cursor.nextOverload === undefined) {
-            cursor.nextOverload = symbol;
+            cursor.setNextOverload(symbol);
             return undefined;
         }
         cursor = cursor.nextOverload;
@@ -68,7 +66,7 @@ export function resolveTemplateType(
 
     if (type === undefined) return undefined;
 
-    if (type.symbolType.symbolKind === SymbolKind.Function) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+    if (type.symbolType instanceof SymbolFunction) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
     if (type.symbolType.definitionSource !== PrimitiveType.Template) return type;
 
@@ -87,7 +85,7 @@ export function resolveTemplateTypes(
 }
 
 export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
-    return type !== undefined && type.symbolType.symbolKind === SymbolKind.Type && type.symbolType.definitionSource === PrimitiveType.Auto;
+    return type !== undefined && type.symbolType instanceof SymbolType && type.symbolType.definitionSource === PrimitiveType.Auto;
 }
 
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
@@ -110,7 +108,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     let suffix = '';
     if (type.isHandler === true) suffix = `${suffix}@`;
 
-    if (type.symbolType.symbolKind === SymbolKind.Function) {
+    if (type.symbolType instanceof SymbolFunction) {
         const func: SymbolFunction = type.symbolType;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
@@ -135,12 +133,12 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
     const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
-    if (symbol.symbolKind === SymbolKind.Type) {
+    if (symbol instanceof SymbolType) {
         return fullName;
-    } else if (symbol.symbolKind === SymbolKind.Function) {
+    } else if (symbol instanceof SymbolFunction) {
         const head = symbol.returnType === undefined ? '' : stringifyResolvedType(symbol.returnType) + ' ';
         return `${head}${fullName}(${stringifyResolvedTypes(symbol.parameterTypes)})`;
-    } else if (symbol.symbolKind === SymbolKind.Variable) {
+    } else if (symbol instanceof SymbolVariable) {
         return `${stringifyResolvedType(symbol.type)} ${fullName}`;
     }
 

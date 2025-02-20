@@ -1,21 +1,19 @@
 import {
-    ResolvedType,
     isSourcePrimitiveType,
     PrimitiveType,
     DefinitionSource,
     SymbolFunction,
     SymbolObject,
     SymbolType,
-    SymbolKind,
-    SymbolScope
 } from "./symbols";
 import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
+import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {getGlobalSettings} from "../code/settings";
+import {ResolvedType} from "./resolvedType";
 
 /**
  * Check if the source type can be converted to the destination type.
@@ -65,15 +63,15 @@ function isTypeMatchInternal(
     const destType = dest.symbolType;
 
     // Check the function handler type.
-    if (srcType.symbolKind === SymbolKind.Function) {
+    if (srcType instanceof SymbolFunction) {
 
         // Are we trying to pass something into ?
-        if (destType.symbolKind === SymbolKind.Type)
+        if (destType instanceof SymbolType)
             if (destType.definitionSource === PrimitiveType.Any) return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
         return isFunctionHandlerMatch(srcType, destType);
-    } else if (destType.symbolKind === SymbolKind.Function) {
+    } else if (destType instanceof SymbolFunction) {
         return false;
     }
 
@@ -96,7 +94,7 @@ function isTypeMatchInternal(
 
         // Succeeds if the source type has an implicit conversion operator that matches the destination type.
         let opImplConv = srcType.membersScope?.symbolMap.get('opImplConv');
-        if (opImplConv !== undefined && opImplConv.symbolKind === SymbolKind.Function) {
+        if (opImplConv !== undefined && opImplConv instanceof SymbolFunction) {
             for (; ;) {
                 if (canTypeConvert(opImplConv.returnType, dest)) return true;
                 if (opImplConv.nextOverload === undefined) break;
@@ -114,7 +112,7 @@ function isTypeMatchInternal(
 }
 
 function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | SymbolFunction) {
-    if (destType.symbolKind !== SymbolKind.Function) return false;
+    if (destType instanceof SymbolFunction === false) return false;
     if (canTypeConvert(srcType.returnType, destType.returnType) === false) return false;
     if (srcType.parameterTypes.length !== destType.parameterTypes.length) return false;
     for (let i = 0; i < srcType.parameterTypes.length; i++) {
@@ -138,7 +136,7 @@ function canDownCast(
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
             if (srcBase?.symbolType === undefined) continue;
-            if (srcBase.symbolType.symbolKind !== SymbolKind.Type) continue;
+            if (srcBase.symbolType instanceof SymbolType === false) continue;
             if (canDownCast(srcBase.symbolType, destType)) return true;
         }
     }
@@ -198,7 +196,7 @@ function canConstructImplicitly(
 
     // Search for the constructor of the given type from the scope of the type itself.
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
-    if (constructor === undefined || constructor.symbolKind !== SymbolKind.Function) return false;
+    if (constructor === undefined || constructor instanceof SymbolFunction === false) return false;
 
     return canConstructBy(constructor, srcType.definitionSource);
 }
@@ -208,7 +206,7 @@ function canConstructBy(constructor: SymbolFunction, srcType: DefinitionSource):
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
-            && paramType.symbolType.symbolKind === SymbolKind.Type
+            && paramType.symbolType instanceof SymbolType
             && paramType.symbolType.definitionSource === srcType
         ) {
             return true;
@@ -225,7 +223,7 @@ function canConstructBy(constructor: SymbolFunction, srcType: DefinitionSource):
 
 // Check if the symbol can be accessed from the scope.
 export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
-    if (declaredSymbol.symbolKind === SymbolKind.Type) return true;
+    if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
     const declaredScope = declaredSymbol.declaredScope;
@@ -240,12 +238,12 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
 
         // Get the symbol of the class to which the referring part belongs.
         const checkingOuterClass = findSymbolShallowly(checkingOuterScope.parentScope, checkingOuterScope.key);
-        if (checkingOuterClass?.symbolKind !== SymbolKind.Type) return false;
+        if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
         if (declaredScope.parentScope === undefined) return false;
         const declaredOuterClass = findSymbolShallowly(declaredScope.parentScope, declaredScope.key);
-        if (declaredOuterClass?.symbolKind !== SymbolKind.Type) return false;
+        if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));
     } else {

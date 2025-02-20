@@ -14,12 +14,10 @@ import {
 import {ParserToken} from "../compiler_parser/parserToken";
 import {ComplementHints} from "./symbolComplement";
 import {TemplateTranslation} from "./symbolUtils";
-
-export enum SymbolKind {
-    Type = 'Type',
-    Function = 'Function',
-    Variable = 'Variable',
-}
+import assert = require("node:assert");
+import {Mutable} from "../utils/utilities";
+import {ResolvedType} from "./resolvedType";
+import {SymbolScope} from "./symbolScope";
 
 export enum PrimitiveType {
     Template = 'Template',
@@ -59,41 +57,117 @@ export function getSourceNodeName(type: DefinitionSource | undefined): NodeName 
  * The base interface for all symbols.
  */
 export interface SymbolBase {
-    readonly symbolKind: SymbolKind;
     readonly declaredPlace: ParserToken;
     readonly declaredScope: SymbolScope;
 }
 
-export interface SymbolType extends SymbolBase {
-    readonly symbolKind: SymbolKind.Type;
-    readonly definitionSource: DefinitionSource;
-    readonly templateTypes?: ParserToken[]; // e.g. <T, U>
-    readonly baseList?: (ResolvedType | undefined)[];
-    readonly isHandler?: boolean,
-    readonly membersScope: SymbolScope | undefined;
+export class SymbolType implements SymbolBase {
+    constructor(
+        public readonly declaredPlace: ParserToken,
+        public readonly declaredScope: SymbolScope,
+        public readonly definitionSource: DefinitionSource,
+        public readonly membersScope: SymbolScope | undefined,
+        public readonly templateTypes?: ParserToken[], // e.g. <T, U>
+        public readonly baseList?: (ResolvedType | undefined)[],
+        public readonly isHandler?: boolean,
+    ) {
+    }
+
+    public static create(args: {
+        declaredPlace: ParserToken
+        declaredScope: SymbolScope
+        definitionSource: DefinitionSource
+        membersScope: SymbolScope | undefined
+    }) {
+        return new SymbolType(args.declaredPlace, args.declaredScope, args.definitionSource, args.membersScope);
+    }
+
+    public mutate(): Mutable<this> {
+        return this;
+    }
 }
 
-export interface SymbolFunction extends SymbolBase {
-    readonly symbolKind: SymbolKind.Function;
-    readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
-    readonly returnType: ResolvedType | undefined;
-    readonly parameterTypes: (ResolvedType | undefined)[];
-    nextOverload: SymbolFunction | undefined;
-    readonly isInstanceMember: boolean;
-    readonly accessRestriction: AccessModifier | undefined;
+export class SymbolFunction implements SymbolBase {
+    private nextOverloadFunction: SymbolFunction | undefined = undefined;
+
+    constructor(
+        public readonly declaredPlace: ParserToken,
+        public readonly declaredScope: SymbolScope,
+        public readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly returnType: ResolvedType | undefined,
+        public readonly parameterTypes: (ResolvedType | undefined)[],
+        public readonly isInstanceMember: boolean,
+        public readonly accessRestriction: AccessModifier | undefined,
+    ) {
+    }
+
+    public static create(args: {
+        declaredPlace: ParserToken
+        declaredScope: SymbolScope
+        sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod
+        returnType: ResolvedType | undefined
+        parameterTypes: (ResolvedType | undefined)[]
+        isInstanceMember: boolean
+        accessRestriction: AccessModifier | undefined
+    }) {
+        return new SymbolFunction(
+            args.declaredPlace,
+            args.declaredScope,
+            args.sourceNode,
+            args.returnType,
+            args.parameterTypes,
+            args.isInstanceMember,
+            args.accessRestriction);
+    }
+
+    public clone(): this {
+        return {...this};
+    }
+
+    public mutate(): Mutable<this> {
+        return this;
+    }
+
+    public setNextOverload(nextOverload: SymbolFunction) {
+        assert(this.nextOverloadFunction === undefined);
+        this.nextOverloadFunction = nextOverload;
+    }
+
+    public get nextOverload(): SymbolFunction | undefined {
+        return this.nextOverloadFunction;
+    }
 }
 
-export interface SymbolVariable extends SymbolBase {
-    readonly symbolKind: SymbolKind.Variable;
-    readonly type: ResolvedType | undefined;
-    readonly isInstanceMember: boolean;
-    readonly accessRestriction: AccessModifier | undefined;
+export class SymbolVariable implements SymbolBase {
+    constructor(
+        public readonly declaredPlace: ParserToken,
+        public readonly declaredScope: SymbolScope,
+        public readonly type: ResolvedType | undefined,
+        public readonly isInstanceMember: boolean,
+        public readonly accessRestriction: AccessModifier | undefined,
+    ) {
+    }
+
+    public static create(args: {
+        declaredPlace: ParserToken
+        declaredScope: SymbolScope
+        type: ResolvedType | undefined
+        isInstanceMember: boolean
+        accessRestriction: AccessModifier | undefined
+    }) {
+        return new SymbolVariable(
+            args.declaredPlace,
+            args.declaredScope,
+            args.type,
+            args.isInstanceMember,
+            args.accessRestriction);
+    }
 }
 
 export function isSymbolInstanceMember(symbol: SymbolObject): symbol is SymbolFunction | SymbolVariable {
-    const canBeMember = symbol.symbolKind === SymbolKind.Function || symbol.symbolKind === SymbolKind.Variable;
+    const canBeMember = (symbol instanceof SymbolFunction) || (symbol instanceof SymbolVariable);
     if (canBeMember === false) return false;
-    return canBeMember && symbol.isInstanceMember;
+    return symbol.isInstanceMember;
 }
 
 export type SymbolObject = SymbolType | SymbolFunction | SymbolVariable;
@@ -120,52 +194,4 @@ export interface ReferencedSymbolInfo {
     readonly referencedToken: ParserToken;
 }
 
-export type ScopeMap = Map<string, SymbolScope>;
 
-export type SymbolMap = Map<string, SymbolObject>;
-
-/**
- * Information about the birth of a scope.
- */
-export interface ScopeBirthInfo {
-    ownerNode: SymbolOwnerNode | undefined;
-    readonly parentScope: SymbolScope | undefined;
-    readonly key: string;
-}
-
-/**
- * Information about the child scopes and symbols contained in a scope.
- */
-export interface ScopeContainInfo {
-    readonly childScopes: ScopeMap;
-    readonly symbolMap: SymbolMap;
-}
-
-/**
- * Information about the services provided by a scope.
- */
-export interface ScopeServiceInfo {
-    readonly referencedList: ReferencedSymbolInfo[];
-    readonly completionHints: ComplementHints[];
-}
-
-/**
- * Interface representing a symbol scope.
- */
-export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServiceInfo {
-}
-
-export interface SymbolAndScope {
-    readonly symbol: SymbolObject;
-    readonly scope: SymbolScope;
-}
-
-/**
- * The type of symbol that has been resolved by deduction.
- */
-export interface ResolvedType {
-    readonly symbolType: SymbolType | SymbolFunction;
-    readonly sourceScope: SymbolScope | undefined; // FIXME: Obsolete? Use symbolType.declaredScope instead.
-    readonly isHandler?: boolean;
-    readonly templateTranslate?: TemplateTranslation;
-}

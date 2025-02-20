@@ -1,19 +1,19 @@
 import {ParserToken} from "../compiler_parser/parserToken";
-import {createSymbolScope} from "./symbolScopes";
+import {createSymbolScope} from "./symbolScope";
 import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import {TokenKind} from "../compiler_tokenizer/tokens";
 import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
-import {PrimitiveType, SymbolType, SymbolKind, ResolvedType} from "./symbols";
+import {PrimitiveType, SymbolType} from "./symbols";
 import assert = require("node:assert");
+import {ResolvedType} from "./resolvedType";
 
 function createBuiltinType(virtualToken: ParserToken, name: PrimitiveType): SymbolType {
-    return {
-        symbolKind: SymbolKind.Type,
+    return SymbolType.create({
         declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: createSymbolScope(undefined, undefined, ''),
         definitionSource: name,
         membersScope: undefined,
-    } as const;
+    });
 }
 
 const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
@@ -24,21 +24,23 @@ const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
     return map;
 })();
 
-export const builtinStringType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.String, 'string'), PrimitiveType.String);
+export const builtinStringType: SymbolType = createBuiltinType(
+    createVirtualToken(TokenKind.String, 'string'),
+    PrimitiveType.String);
 
-export const resolvedBuiltinString: ResolvedType = {symbolType: builtinStringType, sourceScope: undefined};
+export const resolvedBuiltinString: ResolvedType = new ResolvedType(builtinStringType);
 
 export const builtinIntType = builtinNumberTypeMap.get('int')!;
 
-export const resolvedBuiltinInt: ResolvedType = {symbolType: builtinIntType, sourceScope: undefined};
+export const resolvedBuiltinInt: ResolvedType = new ResolvedType(builtinIntType);
 
 export const builtinFloatType = builtinNumberTypeMap.get('float')!;
 
-export const resolvedBuiltinFloat: ResolvedType = {symbolType: builtinFloatType, sourceScope: undefined};
+export const resolvedBuiltinFloat: ResolvedType = new ResolvedType(builtinFloatType);
 
 export const builtinDoubleType = builtinNumberTypeMap.get('double')!;
 
-export const resolvedBuiltinDouble: ResolvedType = {symbolType: builtinDoubleType, sourceScope: undefined};
+export const resolvedBuiltinDouble: ResolvedType = new ResolvedType(builtinDoubleType);
 
 function assignBuiltinNumberType(key: string): SymbolType {
     const type = builtinNumberTypeMap.get(key);
@@ -46,15 +48,23 @@ function assignBuiltinNumberType(key: string): SymbolType {
     assert(false);
 }
 
-export const builtinBoolType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'bool'), PrimitiveType.Bool);
+export const builtinBoolType: SymbolType = createBuiltinType(
+    createVirtualToken(TokenKind.Reserved, 'bool'),
+    PrimitiveType.Bool);
 
-export const resolvedBuiltinBool: ResolvedType = {symbolType: builtinBoolType, sourceScope: undefined};
+export const resolvedBuiltinBool: ResolvedType = new ResolvedType(builtinBoolType);
 
-export const builtinVoidType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'void'), PrimitiveType.Void);
+export const builtinVoidType: SymbolType = createBuiltinType(
+    createVirtualToken(TokenKind.Reserved, 'void'),
+    PrimitiveType.Void);
 
-export const builtinAnyType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, '?'), PrimitiveType.Any);
+export const builtinAnyType: SymbolType = createBuiltinType(
+    createVirtualToken(TokenKind.Reserved, '?'),
+    PrimitiveType.Any);
 
-export const builtinAutoType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'auto'), PrimitiveType.Auto);
+export const builtinAutoType: SymbolType = createBuiltinType(
+    createVirtualToken(TokenKind.Reserved, 'auto'),
+    PrimitiveType.Auto);
 
 export function tryGetBuiltInType(token: ParserToken): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
