@@ -1,16 +1,15 @@
 import {
-    ResolvedType,
     PrimitiveType,
-    SymbolAndScope,
     SymbolFunction,
     SymbolObject,
-    SymbolMap,
-    SymbolScope, isSourceNodeClassOrInterface, SymbolType, SymbolVariable
+    SymbolType,
+    SymbolVariable
 } from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {ParserToken} from "../compiler_parser/parserToken";
-import {isAnonymousIdentifier} from "./symbolScopes";
+import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
+import {ResolvedType} from "./resolvedType";
 
 /**
  * Returns the path to a file where the scope is defined.

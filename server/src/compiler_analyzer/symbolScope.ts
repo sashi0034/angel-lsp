@@ -1,8 +1,68 @@
-import {SymbolOwnerNode, SymbolScope, SymbolAndScope, SymbolFunction} from "./symbols";
+import {
+    SymbolOwnerNode,
+    SymbolFunction,
+    SymbolObject,
+    ReferencedSymbolInfo
+} from "./symbols";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "../compiler_parser/nodes";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
+import {ComplementHints} from "./symbolComplement";
+import assert = require("node:assert");
+
+export type ScopeMap = Map<string, SymbolScope>;
+
+export type SymbolMap = Map<string, SymbolObject>;
+
+/**
+ * Represents a scope that contains symbols.
+ */
+export class SymbolScope {
+    private symbolOwnerNode: SymbolOwnerNode | undefined;
+
+    public constructor(
+        ownerNode: SymbolOwnerNode | undefined,
+        public readonly parentScope: SymbolScope | undefined,
+        public readonly key: string,
+        public readonly childScopes: ScopeMap,
+        public readonly symbolMap: SymbolMap,
+        public readonly referencedList: ReferencedSymbolInfo[],
+        public readonly completionHints: ComplementHints[],
+    ) {
+        this.symbolOwnerNode = ownerNode;
+    }
+
+    public static create(args: {
+        ownerNode: SymbolOwnerNode | undefined
+        parentScope: SymbolScope | undefined
+        key: string
+    }) {
+        return new SymbolScope(
+            args.ownerNode,
+            args.parentScope,
+            args.key,
+            new Map(),
+            new Map(),
+            [],
+            []);
+    }
+
+    public setOwnerNode(ownerNode: SymbolOwnerNode | undefined) {
+        assert(this.symbolOwnerNode === undefined);
+        this.symbolOwnerNode = ownerNode;
+    }
+
+    public get ownerNode(): SymbolOwnerNode | undefined {
+        return this.symbolOwnerNode;
+    }
+
+}
+
+export interface SymbolAndScope {
+    readonly symbol: SymbolObject;
+    readonly scope: SymbolScope;
+}
 
 export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
@@ -34,15 +94,11 @@ export function findScopeShallowly(scope: SymbolScope, identifier: string): Symb
 export function createSymbolScope(
     ownerNode: SymbolOwnerNode | undefined, parentScope: SymbolScope | undefined, key: string
 ): SymbolScope {
-    return {
+    return SymbolScope.create({
         ownerNode: ownerNode,
         parentScope: parentScope,
         key: key,
-        childScopes: new Map(),
-        symbolMap: new Map(),
-        referencedList: [],
-        completionHints: [],
-    };
+    });
 }
 
 export function createSymbolScopeAndInsert(
@@ -170,7 +226,7 @@ function findScopeShallowlyThenInsertByIdentifier(
     const found: SymbolScope | undefined = scope.childScopes.get(identifier);
     if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
     if (ownerNode === undefined) return found;
-    if (found.ownerNode === undefined) found.ownerNode = ownerNode;
+    if (found.ownerNode === undefined) found.setOwnerNode(ownerNode);
     return found;
 }
 

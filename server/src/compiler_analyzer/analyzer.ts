@@ -56,10 +56,8 @@ import {
     isSourceNodeClassOrInterface,
     isSourcePrimitiveType,
     PrimitiveType,
-    ResolvedType,
     SymbolFunction,
     SymbolObject,
-    SymbolScope,
     SymbolType,
     SymbolVariable
 } from "./symbols";
@@ -75,8 +73,8 @@ import {
     findScopeShallowly,
     findScopeShallowlyOrInsert,
     findScopeWithParentByNodes,
-    isSymbolConstructorInScope
-} from "./symbolScopes";
+    isSymbolConstructorInScope, SymbolScope
+} from "./symbolScope";
 import {checkFunctionMatch} from "./checkFunction";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
@@ -113,6 +111,7 @@ import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
 import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import assert = require("node:assert");
+import {ResolvedType} from "./resolvedType";
 
 type HoistingQueue = (() => void)[];
 

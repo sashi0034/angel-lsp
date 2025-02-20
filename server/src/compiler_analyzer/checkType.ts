@@ -1,20 +1,19 @@
 import {
-    ResolvedType,
     isSourcePrimitiveType,
     PrimitiveType,
     DefinitionSource,
     SymbolFunction,
     SymbolObject,
     SymbolType,
-    SymbolScope
 } from "./symbols";
 import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild} from "./symbolScopes";
+import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import {diagnostic} from "../code/diagnostic";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {getGlobalSettings} from "../code/settings";
+import {ResolvedType} from "./resolvedType";
 
 /**
  * Check if the source type can be converted to the destination type.

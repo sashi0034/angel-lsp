@@ -16,6 +16,8 @@ import {ComplementHints} from "./symbolComplement";
 import {TemplateTranslation} from "./symbolUtils";
 import assert = require("node:assert");
 import {Mutable} from "../utils/utilities";
+import {ResolvedType} from "./resolvedType";
+import {SymbolScope} from "./symbolScope";
 
 export enum PrimitiveType {
     Template = 'Template',
@@ -192,52 +194,4 @@ export interface ReferencedSymbolInfo {
     readonly referencedToken: ParserToken;
 }
 
-export type ScopeMap = Map<string, SymbolScope>;
 
-export type SymbolMap = Map<string, SymbolObject>;
-
-/**
- * Information about the birth of a scope.
- */
-export interface ScopeBirthInfo {
-    ownerNode: SymbolOwnerNode | undefined;
-    readonly parentScope: SymbolScope | undefined;
-    readonly key: string;
-}
-
-/**
- * Information about the child scopes and symbols contained in a scope.
- */
-export interface ScopeContainInfo {
-    readonly childScopes: ScopeMap;
-    readonly symbolMap: SymbolMap;
-}
-
-/**
- * Information about the services provided by a scope.
- */
-export interface ScopeServiceInfo {
-    readonly referencedList: ReferencedSymbolInfo[];
-    readonly completionHints: ComplementHints[];
-}
-
-/**
- * Interface representing a symbol scope.
- */
-export interface SymbolScope extends ScopeBirthInfo, ScopeContainInfo, ScopeServiceInfo {
-}
-
-export interface SymbolAndScope {
-    readonly symbol: SymbolObject;
-    readonly scope: SymbolScope;
-}
-
-/**
- * The type of symbol that has been resolved by deduction.
- */
-export interface ResolvedType {
-    readonly symbolType: SymbolType | SymbolFunction;
-    readonly sourceScope: SymbolScope | undefined; // FIXME: Obsolete? Use symbolType.declaredScope instead.
-    readonly isHandler?: boolean;
-    readonly templateTranslate?: TemplateTranslation;
-}

@@ -2,7 +2,7 @@ import {Position, URI} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
     SymbolObject,
-    SymbolScope, SymbolType, SymbolFunction, SymbolVariable
+    SymbolType, SymbolFunction, SymbolVariable
 } from "../compiler_analyzer/symbols";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
@@ -10,8 +10,8 @@ import {
     collectParentScopes,
     findScopeShallowly,
     findScopeWithParent,
-    isAnonymousIdentifier
-} from "../compiler_analyzer/symbolScopes";
+    isAnonymousIdentifier, SymbolScope
+} from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
 import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementHints, ComplementKind} from "../compiler_analyzer/symbolComplement";

@@ -1,8 +1,7 @@
-import {SymbolScope} from "../compiler_analyzer/symbols";
 import {Position} from "vscode-languageserver";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {serveDefinitionAsToken} from "./definition";
-import {AnalyzedScope} from "../compiler_analyzer/symbolScopes";
+import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {isSameToken} from "../compiler_tokenizer/tokenUtils";
 
 export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParserToken[] {
@@ -21,8 +20,11 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: ParserTo
 
     for (const reference of scope.referencedList) {
         // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        // スコープ内の参照箇所を検索 (コンパイルのたびにトークンのインスタンスが変わるので、厳密な比較を行う必要がある)
-        if (reference.declaredSymbol.declaredPlace === targetDefinition || isSameToken(reference.declaredSymbol.declaredPlace, targetDefinition)) {
+        if (reference.declaredSymbol.declaredPlace === targetDefinition
+            || isSameToken(
+                reference.declaredSymbol.declaredPlace,
+                targetDefinition)
+        ) {
             references.push(reference.referencedToken);
         }
     }

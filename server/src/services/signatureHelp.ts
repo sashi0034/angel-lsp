@@ -1,10 +1,11 @@
-import {SymbolFunction, SymbolScope} from "../compiler_analyzer/symbols";
+import {SymbolFunction} from "../compiler_analyzer/symbols";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
 import {isAheadPosition, isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementKind, CompletionArgument} from "../compiler_analyzer/symbolComplement";
 import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
+import {SymbolScope} from "../compiler_analyzer/symbolScope";
 
 export function serveSignatureHelp(
     diagnosedScope: SymbolScope, caret: Position, uri: URI

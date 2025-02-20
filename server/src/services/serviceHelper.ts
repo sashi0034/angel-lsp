@@ -1,7 +1,7 @@
 import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementKind} from "../compiler_analyzer/symbolComplement";
-import {SymbolScope} from "../compiler_analyzer/symbols";
 import {Position} from "vscode-languageserver";
+import {SymbolScope} from "../compiler_analyzer/symbolScope";
 
 /**
  * Find the scope that includes the specified position.

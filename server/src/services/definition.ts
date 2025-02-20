@@ -1,8 +1,8 @@
-import {SymbolObject, SymbolScope} from "../compiler_analyzer/symbols";
+import {SymbolObject} from "../compiler_analyzer/symbols";
 import {Location, Position} from "vscode-languageserver";
 import {TokenizerToken} from "../compiler_tokenizer/tokens";
 import {ParserToken} from "../compiler_parser/parserToken";
-import {AnalyzedScope} from "../compiler_analyzer/symbolScopes";
+import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 
 /**
