@@ -14,6 +14,8 @@
     <codeStyleSettings language="TypeScript">
       <option name="KEEP_BLANK_LINES_IN_CODE" value="1" />
       <option name="INDENT_CASE_FROM_SWITCH" value="false" />
+      <option name="CALL_PARAMETERS_WRAP" value="5" />
+      <option name="CALL_PARAMETERS_LPAREN_ON_NEXT_LINE" value="true" />
     </codeStyleSettings>
   </code_scheme>
 </component>
