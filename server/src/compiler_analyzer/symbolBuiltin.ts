@@ -24,10 +24,9 @@ const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
     return map;
 })();
 
-// TODO: Remove this?
-export const builtinStringType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.String, 'string'));
+// export const builtinStringType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.String, 'string'));
 
-export const resolvedBuiltinString: ResolvedType = new ResolvedType(builtinStringType);
+// export const resolvedBuiltinString: ResolvedType = new ResolvedType(builtinStringType);
 
 export const builtinIntType = builtinNumberTypeMap.get('int')!;
 
