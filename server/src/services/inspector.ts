@@ -1,8 +1,8 @@
 import {TokenizerToken} from "../compiler_tokenizer/tokens";
 import {Profiler} from "../code/profiler";
 import {tokenize} from "../compiler_tokenizer/tokenizer";
-import {parseFromTokenized} from "../compiler_parser/parser";
-import {analyzeFromParsed} from "../compiler_analyzer/analyzer";
+import {parseAfterTokenized} from "../compiler_parser/parser";
+import {analyzeAfterHoisted} from "../compiler_analyzer/analyzer";
 import {diagnostic} from '../code/diagnostic';
 import {Diagnostic} from "vscode-languageserver/node";
 import {AnalyzedScope, createSymbolScope} from "../compiler_analyzer/symbolScope";
@@ -16,6 +16,7 @@ import * as fs from "fs";
 import {fileURLToPath} from "node:url";
 import {preprocessTokensForParser} from "../compiler_parser/parserPreprocess";
 import {getGlobalSettings} from "../code/settings";
+import {hoistAfterParsed} from "../compiler_analyzer/hoist";
 
 interface InspectResult {
     content: string;
@@ -195,7 +196,7 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     profiler.stamp("Preprocess");
 
     // Parser-phase
-    const parsedAst = parseFromTokenized(preprocessedTokens.parsingTokens);
+    const parsedAst = parseAfterTokenized(preprocessedTokens.parsingTokens);
     profiler.stamp("Parser");
 
     // Collect scopes in included files
@@ -208,7 +209,9 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
         }
     }
 
-    const missingFileHandler = (path: string) => addErrorOfMissingIncludingFile(path, preprocessedTokens.includeFiles.find(token => getIncludePathFromToken(token) === path)!);
+    const missingFileHandler = (path: string) => addErrorOfMissingIncludingFile(
+        path,
+        preprocessedTokens.includeFiles.find(token => getIncludePathFromToken(token) === path)!);
     const includedScopes = collectIncludedScope(targetUri, predefinedUri, includePaths, missingFileHandler);
 
     // Store the diagnostics that occurred before the analyzer phase.
@@ -216,7 +219,8 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
     diagnostic.beginSession();
 
     // Analyzer-phase
-    const analyzedScope = analyzeFromParsed(parsedAst, targetUri, includedScopes);
+    const hoistResult = hoistAfterParsed(parsedAst, targetUri, includedScopes);
+    const analyzedScope = analyzeAfterHoisted(targetUri, hoistResult);
     profiler.stamp("Analyzer");
 
     const diagnosticsInAnalyzer = diagnostic.endSession();
@@ -239,12 +243,17 @@ function getIncludePathFromToken(token: TokenizerToken): string {
 // We will reanalyze the files that include the file specified by the given URI.
 // Since this does not involve executing the tokenizer or parser steps, it should be faster than a straightforward reanalysis.
 function reanalyzeFilesWithDependency(includedFile: URI) {
-    const dependedFiles = Object.values(s_inspectedResults).filter(r => isContainInIncludedScopes(r.includedScopes, includedFile));
+    const dependedFiles = Object.values(s_inspectedResults).filter(r => isContainInIncludedScopes(
+        r.includedScopes,
+        includedFile));
     for (const dependedFile of dependedFiles) {
         diagnostic.beginSession();
 
         dependedFile.includedScopes = refreshScopeInIncludedScopes(dependedFile.includedScopes);
-        dependedFile.analyzedScope = analyzeFromParsed(dependedFile.parsedAst, dependedFile.analyzedScope.path, dependedFile.includedScopes);
+        const hoistResult =
+            hoistAfterParsed(dependedFile.parsedAst, dependedFile.analyzedScope.path, dependedFile.includedScopes);
+        dependedFile.analyzedScope =
+            analyzeAfterHoisted(dependedFile.analyzedScope.path, hoistResult);
 
         dependedFile.diagnosticsInAnalyzer = diagnostic.endSession();
     }

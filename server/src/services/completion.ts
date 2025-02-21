@@ -3,7 +3,7 @@ import {
     isSymbolInstanceMember,
     SymbolObject,
     SymbolType, SymbolFunction, SymbolVariable
-} from "../compiler_analyzer/symbols";
+} from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {

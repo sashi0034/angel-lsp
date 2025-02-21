@@ -1,4 +1,4 @@
-import {SymbolFunction} from "../compiler_analyzer/symbols";
+import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";

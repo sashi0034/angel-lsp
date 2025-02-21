@@ -1,5 +1,5 @@
 import {tokenize} from "../../src/compiler_tokenizer/tokenizer";
-import {parseFromTokenized} from "../../src/compiler_parser/parser";
+import {parseAfterTokenized} from "../../src/compiler_parser/parser";
 import {diagnostic} from '../../src/code/diagnostic';
 import {preprocessTokensForParser} from "../../src/compiler_parser/parserPreprocess";
 
@@ -10,7 +10,7 @@ function itParses(content: string) {
         const targetUri = "/foo/bar.as";
         const tokenizedTokens = tokenize(content, targetUri);
         const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
-        parseFromTokenized(preprocessedTokens.parsingTokens);
+        parseAfterTokenized(preprocessedTokens.parsingTokens);
 
         const diagnosticsInAnalyzer = diagnostic.endSession();
         if (diagnosticsInAnalyzer.length > 0) {
@@ -79,5 +79,5 @@ describe("Parser", () => {
             bool w = v == Test::A;
         }
     `);
-    itParses(`bool foo = not true; bool bar = not not false;`)
+    itParses(`bool foo = not true; bool bar = not not false;`);
 });

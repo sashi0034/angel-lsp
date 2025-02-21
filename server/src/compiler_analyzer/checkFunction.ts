@@ -2,7 +2,7 @@ import {diagnostic} from "../code/diagnostic";
 import {ParsedRange} from "../compiler_parser/nodes";
 import {
     SymbolFunction,
-} from "./symbols";
+} from "./symbolObject";
 import {canTypeConvert} from "./checkType";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";

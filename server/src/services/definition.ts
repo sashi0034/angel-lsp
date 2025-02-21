@@ -1,4 +1,4 @@
-import {SymbolObject} from "../compiler_analyzer/symbols";
+import {SymbolObject} from "../compiler_analyzer/symbolObject";
 import {Location, Position} from "vscode-languageserver";
 import {TokenizerToken} from "../compiler_tokenizer/tokens";
 import {ParserToken} from "../compiler_parser/parserToken";

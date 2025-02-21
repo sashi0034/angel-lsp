@@ -3,7 +3,7 @@ import {createSymbolScope} from "./symbolScope";
 import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import {TokenKind} from "../compiler_tokenizer/tokens";
 import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
-import {PrimitiveType, SymbolType} from "./symbols";
+import {PrimitiveType, SymbolType} from "./symbolObject";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 
