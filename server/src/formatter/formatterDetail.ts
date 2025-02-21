@@ -1,5 +1,5 @@
 import {Position} from "vscode-languageserver";
-import {FormatState, stepCursorAlongLines} from "./formatState";
+import {FormatterState, stepCursorAlongLines} from "./formatterState";
 import {TokenizerToken, TokenKind} from "../compiler_tokenizer/tokens";
 import {NodesBase} from "../compiler_parser/nodes";
 import {tracer} from "../code/tracer";
@@ -10,7 +10,7 @@ function isNullOrWhitespace(char: string | undefined): boolean {
     return /\s/.test(char);
 }
 
-function walkBackUntilWhitespace(format: FormatState, cursor: Position): Position {
+function walkBackUntilWhitespace(format: FormatterState, cursor: Position): Position {
     const line = cursor.line;
     let character = cursor.character;
 
@@ -22,7 +22,7 @@ function walkBackUntilWhitespace(format: FormatState, cursor: Position): Positio
     return {line: line, character: character};
 }
 
-function formatTokenWithSpace(format: FormatState, frontToken: TokenizerToken) {
+function formatTokenWithSpace(format: FormatterState, frontToken: TokenizerToken) {
     const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
 
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
@@ -61,11 +61,11 @@ export interface FormatTargetOption {
     connectTail?: boolean;
 }
 
-export function formatMoveUntilNodeStart(format: FormatState, node: NodesBase) {
+export function formatMoveUntilNodeStart(format: FormatterState, node: NodesBase) {
     formatMoveUntil(format, node.nodeRange.start.location.start);
 }
 
-export function formatMoveUntil(format: FormatState, destination: Position) {
+export function formatMoveUntil(format: FormatterState, destination: Position) {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         if (cursor.line >= format.textLines.length) {
@@ -104,7 +104,7 @@ export function formatMoveUntil(format: FormatState, destination: Position) {
     }
 }
 
-export function formatMoveToNonComment(format: FormatState): TokenizerToken | undefined {
+export function formatMoveToNonComment(format: FormatterState): TokenizerToken | undefined {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -122,7 +122,7 @@ export function formatMoveToNonComment(format: FormatState): TokenizerToken | un
     return undefined;
 }
 
-export function formatTargetBy(format: FormatState, target: string, option: FormatTargetOption): boolean {
+export function formatTargetBy(format: FormatterState, target: string, option: FormatTargetOption): boolean {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -151,7 +151,7 @@ function getMaxBlankLines(): number {
     return Math.max(1, getGlobalSettings().formatter.maxBlankLines);
 }
 
-function formatBlankLines(format: FormatState, startLine: number, endLine: number) {
+function formatBlankLines(format: FormatterState, startLine: number, endLine: number) {
     for (let i = startLine; i <= endLine; i++) {
         if (/^\s*$/.test(format.textLines[i]) === false) {
             tracer.verbose(`Not a blank line at ${i}`);
@@ -167,7 +167,7 @@ function formatBlankLines(format: FormatState, startLine: number, endLine: numbe
 }
 
 function executeFormatTargetWith(
-    format: FormatState,
+    format: FormatterState,
     target: string,
     option: FormatTargetOption,
     cursor: Position,

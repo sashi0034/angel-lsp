@@ -31,14 +31,14 @@ import {
     NodeWhile,
     ReferenceModifier
 } from "../compiler_parser/nodes";
-import {FormatState, isEditedWrapAt} from "./formatState";
+import {FormatterState, isEditedWrapAt} from "./formatterState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatDetail";
+import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
 import {TokenizerToken} from "../compiler_tokenizer/tokens";
 import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function formatScript(format: FormatState, nodeScript: NodeScript) {
+function formatScript(format: FormatterState, nodeScript: NodeScript) {
     for (const node of nodeScript) {
         const name = node.nodeName;
 
@@ -69,7 +69,7 @@ function formatScript(format: FormatState, nodeScript: NodeScript) {
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
+function formatNamespace(format: FormatterState, nodeNamespace: NodeNamespace) {
     formatMoveUntilNodeStart(format, nodeNamespace);
     format.pushWrap();
 
@@ -89,7 +89,7 @@ function formatNamespace(format: FormatState, nodeNamespace: NodeNamespace) {
     });
 }
 
-function formatBraceBlock(format: FormatState, action: () => void, isIndent: boolean = true) {
+function formatBraceBlock(format: FormatterState, action: () => void, isIndent: boolean = true) {
     if (formatTargetBy(format, '{', {connectTail: true}) === false) return;
 
     const startLine = format.getCursor().line;
@@ -105,7 +105,7 @@ function formatBraceBlock(format: FormatState, action: () => void, isIndent: boo
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-function formatEnum(format: FormatState, nodeEnum: NodeEnum) {
+function formatEnum(format: FormatterState, nodeEnum: NodeEnum) {
     formatMoveUntilNodeStart(format, nodeEnum);
     format.pushWrap();
 
@@ -131,7 +131,7 @@ function formatEnum(format: FormatState, nodeEnum: NodeEnum) {
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function formatClass(format: FormatState, nodeClass: NodeClass) {
+function formatClass(format: FormatterState, nodeClass: NodeClass) {
     formatMoveUntilNodeStart(format, nodeClass);
     format.pushWrap();
 
@@ -161,7 +161,7 @@ function formatClass(format: FormatState, nodeClass: NodeClass) {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
-function formatTypeDef(format: FormatState, typeDef: NodeTypeDef) {
+function formatTypeDef(format: FormatterState, typeDef: NodeTypeDef) {
     formatMoveUntilNodeStart(format, typeDef);
     format.pushWrap();
 
@@ -175,7 +175,7 @@ function formatTypeDef(format: FormatState, typeDef: NodeTypeDef) {
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
-function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
+function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
     formatMoveUntilNodeStart(format, nodeFunc);
     format.pushWrap();
 
@@ -205,7 +205,7 @@ function formatFunc(format: FormatState, nodeFunc: NodeFunc) {
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
-function formatEntityModifier(format: FormatState) {
+function formatEntityModifier(format: FormatterState) {
     for (; ;) {
         const next = formatMoveToNonComment(format);
         if (next === undefined) return;
@@ -216,7 +216,7 @@ function formatEntityModifier(format: FormatState) {
 }
 
 // ['private' | 'protected']
-function formatAccessModifier(format: FormatState) {
+function formatAccessModifier(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
     if (next.text === 'private' || next.text === 'protected') {
@@ -225,7 +225,7 @@ function formatAccessModifier(format: FormatState) {
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
-function formatInterface(format: FormatState, nodeInterface: NodeInterface) {
+function formatInterface(format: FormatterState, nodeInterface: NodeInterface) {
     formatMoveUntilNodeStart(format, nodeInterface);
     format.pushWrap();
 
@@ -251,7 +251,7 @@ function formatInterface(format: FormatState, nodeInterface: NodeInterface) {
 }
 
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-function formatVar(format: FormatState, nodeVar: NodeVar) {
+function formatVar(format: FormatterState, nodeVar: NodeVar) {
     formatMoveUntilNodeStart(format, nodeVar);
     format.pushWrap();
 
@@ -285,7 +285,7 @@ function formatVar(format: FormatState, nodeVar: NodeVar) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-function formatImport(format: FormatState, nodeImport: NodeImport) {
+function formatImport(format: FormatterState, nodeImport: NodeImport) {
     formatMoveUntilNodeStart(format, nodeImport);
     format.pushWrap();
 
@@ -309,7 +309,7 @@ function formatImport(format: FormatState, nodeImport: NodeImport) {
 }
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-function formatFuncDef(format: FormatState, funcDef: NodeFuncDef) {
+function formatFuncDef(format: FormatterState, funcDef: NodeFuncDef) {
     formatMoveUntilNodeStart(format, funcDef);
     format.pushWrap();
 
@@ -329,7 +329,7 @@ function formatFuncDef(format: FormatState, funcDef: NodeFuncDef) {
 }
 
 // VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-function formatVirtualProp(format: FormatState, virtualProp: NodeVirtualProp) {
+function formatVirtualProp(format: FormatterState, virtualProp: NodeVirtualProp) {
     formatMoveUntilNodeStart(format, virtualProp);
     format.pushWrap();
 
@@ -360,7 +360,7 @@ function formatVirtualProp(format: FormatState, virtualProp: NodeVirtualProp) {
 }
 
 // ['const'] FUNCATTR (STATBLOCK | ';')
-function formatGetterSetterStatement(format: FormatState, isConst: boolean, statBlock: NodeStatBlock | undefined) {
+function formatGetterSetterStatement(format: FormatterState, isConst: boolean, statBlock: NodeStatBlock | undefined) {
     if (isConst) formatTargetBy(format, 'const', {});
 
     formatFuncAttr(format);
@@ -373,7 +373,7 @@ function formatGetterSetterStatement(format: FormatState, isConst: boolean, stat
 }
 
 // MIXIN         ::= 'mixin' CLASS
-function formatMixin(format: FormatState, mixin: NodeMixin) {
+function formatMixin(format: FormatterState, mixin: NodeMixin) {
     formatMoveUntilNodeStart(format, mixin);
     format.pushWrap();
 
@@ -383,7 +383,7 @@ function formatMixin(format: FormatState, mixin: NodeMixin) {
 }
 
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
-function formatIntfMethod(format: FormatState, intfMethod: NodeIntfMethod) {
+function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
     formatMoveUntilNodeStart(format, intfMethod);
     format.pushWrap();
 
@@ -401,7 +401,7 @@ function formatIntfMethod(format: FormatState, intfMethod: NodeIntfMethod) {
 }
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
-function formatStatBlock(format: FormatState, statBlock: NodeStatBlock) {
+function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
     formatMoveUntilNodeStart(format, statBlock);
 
     const isOneLine = isRangeInOneLine(statBlock.nodeRange);
@@ -420,7 +420,7 @@ function formatStatBlock(format: FormatState, statBlock: NodeStatBlock) {
 }
 
 // PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
-function formatParamList(format: FormatState, paramList: NodeParamList) {
+function formatParamList(format: FormatterState, paramList: NodeParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
             formatTargetBy(format, 'void', {});
@@ -445,7 +445,7 @@ function formatParamList(format: FormatState, paramList: NodeParamList) {
     });
 }
 
-function formatParenthesesBlock(format: FormatState, action: () => void, condenseLeft: boolean = true) {
+function formatParenthesesBlock(format: FormatterState, action: () => void, condenseLeft: boolean = true) {
     if (formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true}) === false) return;
 
     format.pushIndent();
@@ -456,7 +456,7 @@ function formatParenthesesBlock(format: FormatState, action: () => void, condens
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
-function formatTypeMod(format: FormatState) {
+function formatTypeMod(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
     if (next.text === '&') {
@@ -471,7 +471,7 @@ function formatTypeMod(format: FormatState) {
 }
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-function formatType(format: FormatState, nodeType: NodeType) {
+function formatType(format: FormatterState, nodeType: NodeType) {
     formatMoveUntilNodeStart(format, nodeType);
 
     if (nodeType.isConst) formatTargetBy(format, 'const', {});
@@ -496,7 +496,7 @@ function formatType(format: FormatState, nodeType: NodeType) {
 }
 
 // ['<' TYPE {',' TYPE} '>']
-function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
+function formatTypeTemplates(format: FormatterState, templates: NodeType[]) {
     if (templates.length === 0) return;
 
     formatChevronsBlock(format, () => {
@@ -507,7 +507,7 @@ function formatTypeTemplates(format: FormatState, templates: NodeType[]) {
     });
 }
 
-function formatChevronsBlock(format: FormatState, action: () => void) {
+function formatChevronsBlock(format: FormatterState, action: () => void) {
     if (formatTargetBy(format, '<', {condenseSides: true}) === false) return;
     format.pushIndent();
 
@@ -518,7 +518,7 @@ function formatChevronsBlock(format: FormatState, action: () => void) {
 }
 
 // INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-function formatInitList(format: FormatState, initList: NodeInitList) {
+function formatInitList(format: FormatterState, initList: NodeInitList) {
     formatMoveUntilNodeStart(format, initList);
 
     formatBraceBlock(format, () => {
@@ -536,7 +536,7 @@ function formatInitList(format: FormatState, initList: NodeInitList) {
 }
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function formatScope(format: FormatState, scope: NodeScope) {
+function formatScope(format: FormatterState, scope: NodeScope) {
     formatMoveUntilNodeStart(format, scope);
 
     if (scope.isGlobal) formatTargetBy(format, '::', {condenseSides: true});
@@ -549,7 +549,7 @@ function formatScope(format: FormatState, scope: NodeScope) {
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-function formatDataType(format: FormatState, dataType: NodeDataType) {
+function formatDataType(format: FormatterState, dataType: NodeDataType) {
     formatMoveUntilNodeStart(format, dataType);
 
     formatTargetBy(format, dataType.identifier.text, {});
@@ -558,7 +558,7 @@ function formatDataType(format: FormatState, dataType: NodeDataType) {
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
-function formatFuncAttr(format: FormatState) {
+function formatFuncAttr(format: FormatterState) {
     for (; ;) {
         const next = formatMoveToNonComment(format);
         if (next === undefined) return;
@@ -569,7 +569,7 @@ function formatFuncAttr(format: FormatState) {
 }
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function formatStatement(format: FormatState, statement: NodeStatement, canIndent: boolean = false) {
+function formatStatement(format: FormatterState, statement: NodeStatement, canIndent: boolean = false) {
     const isIndented = canIndent && statement.nodeName !== NodeName.StatBlock;
     if (isIndented) format.pushIndent();
 
@@ -613,7 +613,7 @@ function formatStatement(format: FormatState, statement: NodeStatement, canInden
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function formatSwitch(format: FormatState, nodeSwitch: NodeSwitch) {
+function formatSwitch(format: FormatterState, nodeSwitch: NodeSwitch) {
     formatMoveUntilNodeStart(format, nodeSwitch);
 
     formatTargetBy(format, 'switch', {});
@@ -630,7 +630,7 @@ function formatSwitch(format: FormatState, nodeSwitch: NodeSwitch) {
 }
 
 // BREAK         ::= 'break' ';'
-function formatBreak(format: FormatState, nodeBreak: NodeBreak) {
+function formatBreak(format: FormatterState, nodeBreak: NodeBreak) {
     formatMoveUntilNodeStart(format, nodeBreak);
 
     formatTargetBy(format, 'break', {});
@@ -639,7 +639,7 @@ function formatBreak(format: FormatState, nodeBreak: NodeBreak) {
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function formatFor(format: FormatState, nodeFor: NodeFor) {
+function formatFor(format: FormatterState, nodeFor: NodeFor) {
     formatMoveUntilNodeStart(format, nodeFor);
 
     formatTargetBy(format, 'for', {});
@@ -662,7 +662,7 @@ function formatFor(format: FormatState, nodeFor: NodeFor) {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function formatWhile(format: FormatState, nodeWhile: NodeWhile) {
+function formatWhile(format: FormatterState, nodeWhile: NodeWhile) {
     formatMoveUntilNodeStart(format, nodeWhile);
 
     formatTargetBy(format, 'while', {});
@@ -675,7 +675,7 @@ function formatWhile(format: FormatState, nodeWhile: NodeWhile) {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function formatDoWhile(format: FormatState, doWhile: NodeDoWhile) {
+function formatDoWhile(format: FormatterState, doWhile: NodeDoWhile) {
     formatMoveUntilNodeStart(format, doWhile);
 
     formatTargetBy(format, 'do', {});
@@ -692,7 +692,7 @@ function formatDoWhile(format: FormatState, doWhile: NodeDoWhile) {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function formatIf(format: FormatState, nodeIf: NodeIf) {
+function formatIf(format: FormatterState, nodeIf: NodeIf) {
     formatMoveUntilNodeStart(format, nodeIf);
 
     formatTargetBy(format, 'if', {});
@@ -712,14 +712,14 @@ function formatIf(format: FormatState, nodeIf: NodeIf) {
 }
 
 // CONTINUE      ::= 'continue' ';'
-function formatContinue(format: FormatState, nodeContinue: NodeContinue) {
+function formatContinue(format: FormatterState, nodeContinue: NodeContinue) {
     formatMoveUntilNodeStart(format, nodeContinue);
     formatTargetBy(format, 'continue', {});
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
-function formatExprStat(format: FormatState, exprStat: NodeExprStat) {
+function formatExprStat(format: FormatterState, exprStat: NodeExprStat) {
     formatMoveUntilNodeStart(format, exprStat);
 
     if (exprStat.assign !== undefined) formatAssign(format, exprStat.assign);
@@ -728,7 +728,7 @@ function formatExprStat(format: FormatState, exprStat: NodeExprStat) {
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
-function formatTry(format: FormatState, nodeTry: NodeTry) {
+function formatTry(format: FormatterState, nodeTry: NodeTry) {
     formatMoveUntilNodeStart(format, nodeTry);
 
     formatTargetBy(format, 'try', {});
@@ -741,7 +741,7 @@ function formatTry(format: FormatState, nodeTry: NodeTry) {
 }
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function formatReturn(format: FormatState, nodeReturn: NodeReturn) {
+function formatReturn(format: FormatterState, nodeReturn: NodeReturn) {
     formatMoveUntilNodeStart(format, nodeReturn);
 
     formatTargetBy(format, 'return', {});
@@ -758,7 +758,7 @@ function formatReturn(format: FormatState, nodeReturn: NodeReturn) {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function formatCase(format: FormatState, nodeCase: NodeCase) {
+function formatCase(format: FormatterState, nodeCase: NodeCase) {
     formatMoveUntilNodeStart(format, nodeCase);
 
     if (nodeCase.expr !== undefined) {
@@ -778,7 +778,7 @@ function formatCase(format: FormatState, nodeCase: NodeCase) {
 }
 
 // EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
+function formatExpr(format: FormatterState, nodeExpr: NodeExpr) {
     formatMoveUntilNodeStart(format, nodeExpr);
 
     formatExprTerm(format, nodeExpr.head);
@@ -795,7 +795,7 @@ function formatExpr(format: FormatState, nodeExpr: NodeExpr) {
 }
 
 // EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function formatExprTerm(format: FormatState, exprTerm: NodeExprTerm) {
+function formatExprTerm(format: FormatterState, exprTerm: NodeExprTerm) {
     formatMoveUntilNodeStart(format, exprTerm);
 
     if (exprTerm.exprTerm === 1) {
@@ -820,7 +820,7 @@ function formatExprTerm(format: FormatState, exprTerm: NodeExprTerm) {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
+function formatExprValue(format: FormatterState, exprValue: NodeExprValue) {
     // formatMoveUntilNodeStart(formatter, exprValue);
 
     if (exprValue.nodeName === NodeName.ConstructCall) {
@@ -843,7 +843,7 @@ function formatExprValue(format: FormatState, exprValue: NodeExprValue) {
 }
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
-function formatConstructCall(format: FormatState, constructCall: NodeConstructCall) {
+function formatConstructCall(format: FormatterState, constructCall: NodeConstructCall) {
     formatMoveUntilNodeStart(format, constructCall);
 
     formatType(format, constructCall.type);
@@ -854,7 +854,7 @@ function formatConstructCall(format: FormatState, constructCall: NodeConstructCa
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
+function formatExprPostOp(format: FormatterState, postOp: NodeExprPostOp) {
     formatMoveUntilNodeStart(format, postOp);
 
     format.pushIndent();
@@ -892,7 +892,7 @@ function formatExprPostOp(format: FormatState, postOp: NodeExprPostOp) {
     format.popIndent();
 }
 
-function formatBracketsBlock(format: FormatState, action: () => void) {
+function formatBracketsBlock(format: FormatterState, action: () => void) {
     if (formatTargetBy(format, '[', {condenseSides: true}) === false) return;
 
     format.pushIndent();
@@ -903,7 +903,7 @@ function formatBracketsBlock(format: FormatState, action: () => void) {
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function formatCast(format: FormatState, nodeCast: NodeCast) {
+function formatCast(format: FormatterState, nodeCast: NodeCast) {
     formatMoveUntilNodeStart(format, nodeCast);
 
     formatTargetBy(format, 'cast', {});
@@ -918,7 +918,7 @@ function formatCast(format: FormatState, nodeCast: NodeCast) {
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-function formatLambda(format: FormatState, nodeLambda: NodeLambda) {
+function formatLambda(format: FormatterState, nodeLambda: NodeLambda) {
     formatMoveUntilNodeStart(format, nodeLambda);
 
     formatTargetBy(format, 'function', {});
@@ -943,7 +943,7 @@ function formatLambda(format: FormatState, nodeLambda: NodeLambda) {
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-function formatFuncCall(format: FormatState, funcCall: NodeFuncCall) {
+function formatFuncCall(format: FormatterState, funcCall: NodeFuncCall) {
     formatMoveUntilNodeStart(format, funcCall);
 
     if (funcCall.scope !== undefined) {
@@ -956,7 +956,7 @@ function formatFuncCall(format: FormatState, funcCall: NodeFuncCall) {
 }
 
 // VARACCESS     ::= SCOPE IDENTIFIER
-function formatVarAccess(format: FormatState, varAccess: NodeVarAccess) {
+function formatVarAccess(format: FormatterState, varAccess: NodeVarAccess) {
     formatMoveUntilNodeStart(format, varAccess);
 
     if (varAccess.scope !== undefined) {
@@ -969,7 +969,7 @@ function formatVarAccess(format: FormatState, varAccess: NodeVarAccess) {
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function formatArgList(format: FormatState, nodeArgList: NodeArgList) {
+function formatArgList(format: FormatterState, nodeArgList: NodeArgList) {
     formatMoveUntilNodeStart(format, nodeArgList);
 
     formatParenthesesBlock(format, () => {
@@ -988,7 +988,7 @@ function formatArgList(format: FormatState, nodeArgList: NodeArgList) {
 }
 
 // ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function formatAssign(format: FormatState, nodeAssign: NodeAssign) {
+function formatAssign(format: FormatterState, nodeAssign: NodeAssign) {
     formatMoveUntilNodeStart(format, nodeAssign);
 
     formatCondition(format, nodeAssign.condition);
@@ -1001,7 +1001,7 @@ function formatAssign(format: FormatState, nodeAssign: NodeAssign) {
 }
 
 // CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-function formatCondition(format: FormatState, condition: NodeCondition) {
+function formatCondition(format: FormatterState, condition: NodeCondition) {
     formatMoveUntilNodeStart(format, condition);
 
     formatExpr(format, condition.expr);
@@ -1033,7 +1033,7 @@ function formatCondition(format: FormatState, condition: NodeCondition) {
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
 export function formatDocument(content: string, tokens: TokenizerToken[], ast: NodeScript): TextEdit[] {
-    const format = new FormatState(content, tokens, ast);
+    const format = new FormatterState(content, tokens, ast);
     formatScript(format, ast);
 
     formatMoveUntil(format, {line: format.textLines.length, character: 0});

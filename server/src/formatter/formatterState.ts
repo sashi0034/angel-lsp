@@ -17,7 +17,7 @@ function getIndentUnit() {
     }
 }
 
-export class FormatState {
+export class FormatterState {
     private resultEdits: TextEdit[] = [];
     private cursor: Position = {line: 0, character: 0};
 
