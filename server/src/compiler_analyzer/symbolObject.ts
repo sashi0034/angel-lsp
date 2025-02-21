@@ -34,6 +34,7 @@ export enum PrimitiveType {
  * Types without a declaration node, such as built-in types, are represented using PrimitiveType.
  */
 export type DefinitionSource = NodeEnum | NodeClass | NodeInterface | PrimitiveType;
+// TODO: rename to TypeSource?
 
 /**
  * Checks whether the given `DefinitionSource` is a `PrimitiveType`.
