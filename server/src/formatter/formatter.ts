@@ -177,7 +177,7 @@ function formatTypeDef(format: FormatterState, typeDef: NodeTypeDef) {
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
     formatMoveUntilNodeStart(format, nodeFunc);
-    format.pushWrap();
+    format.pushWrap(); // TODO: Move to the caller?
 
     formatEntityModifier(format);
     formatAccessModifier(format);
@@ -253,7 +253,6 @@ function formatInterface(format: FormatterState, nodeInterface: NodeInterface) {
 // VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function formatVar(format: FormatterState, nodeVar: NodeVar) {
     formatMoveUntilNodeStart(format, nodeVar);
-    format.pushWrap();
 
     formatAccessModifier(format);
 
