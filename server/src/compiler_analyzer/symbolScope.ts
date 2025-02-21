@@ -2,7 +2,7 @@ import {
     SymbolOwnerNode,
     SymbolFunction,
     SymbolObject,
-    ReferencedSymbolInfo
+    ReferencedSymbolInfo, TypeSourceNode, SymbolType
 } from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {NodeName} from "../compiler_parser/nodes";
@@ -10,26 +10,35 @@ import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
 import {ComplementHints} from "./symbolComplement";
 import assert = require("node:assert");
+import {getGlobalSettings} from "../code/settings";
 
 export type ScopeMap = Map<string, SymbolScope>;
 
 export type SymbolMap = Map<string, SymbolObject>;
 
+interface RootScopeContext {
+    builtinStringType: SymbolType | undefined;
+}
+
 /**
  * Represents a scope that contains symbols.
  */
 export class SymbolScope {
+    // A node associated with this scope
     private symbolOwnerNode: SymbolOwnerNode | undefined;
+    // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file.
+    private readonly parentOrContext: SymbolScope | RootScopeContext;
 
     public constructor(
         ownerNode: SymbolOwnerNode | undefined,
-        public readonly parentScope: SymbolScope | undefined,
+        parentScope: SymbolScope | undefined,
         public readonly key: string,
         public readonly childScopes: ScopeMap,
         public readonly symbolMap: SymbolMap,
         public readonly referencedList: ReferencedSymbolInfo[],
         public readonly completionHints: ComplementHints[],
     ) {
+        this.parentOrContext = parentScope ?? {builtinStringType: undefined};
         this.symbolOwnerNode = ownerNode;
     }
 
@@ -48,6 +57,11 @@ export class SymbolScope {
             []);
     }
 
+    public get parentScope(): SymbolScope | undefined {
+        if (this.parentOrContext instanceof SymbolScope) return this.parentOrContext;
+        return undefined;
+    }
+
     public setOwnerNode(ownerNode: SymbolOwnerNode | undefined) {
         assert(this.symbolOwnerNode === undefined);
         this.symbolOwnerNode = ownerNode;
@@ -57,6 +71,44 @@ export class SymbolScope {
         return this.symbolOwnerNode;
     }
 
+    /**
+     * Cache information in the context of the file
+     */
+    public commitContext() {
+        assert(this.parentOrContext instanceof SymbolScope === false);
+        this.parentOrContext.builtinStringType = findBuiltinStringType(this);
+    }
+
+    public getBuiltinStringType(): SymbolType | undefined {
+        if (this.parentOrContext instanceof SymbolScope) return this.parentOrContext.getBuiltinStringType();
+        return this.parentOrContext.builtinStringType;
+    }
+}
+
+function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
+    for (const [key, symbol] of scope.symbolMap) {
+        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.sourceNode)) return symbol;
+    }
+
+    for (const [key, child] of scope.childScopes) {
+        const found = findBuiltinStringType(child);
+        if (found !== undefined) return found;
+    }
+
+    return undefined;
+}
+
+// Judge if the class has a metadata that indicates it is a built-in string type.
+function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
+    if (source === undefined) return false;
+    if (source.nodeName != NodeName.Class) return false;
+
+    // Check if the class has a metadata that indicates it is a built-in string type.
+    const builtinStringMetadata = "BuiltinString";
+    if (source.metadata.length === 1 && source.metadata[0].text === builtinStringMetadata) return true;
+
+    // Check whether the class name is a built-in string type with global settings.
+    return getGlobalSettings().builtinStringTypes.includes(source.identifier.text);
 }
 
 export interface SymbolAndScope {

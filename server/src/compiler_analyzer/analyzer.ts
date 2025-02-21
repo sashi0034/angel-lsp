@@ -90,7 +90,6 @@ import {
     resolvedBuiltinDouble,
     resolvedBuiltinFloat,
     resolvedBuiltinInt,
-    resolvedBuiltinString,
     tryGetBuiltInType
 } from "./symbolBuiltin";
 import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
@@ -873,7 +872,8 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     }
 
     if (literalValue.kind === TokenKind.String) {
-        return resolvedBuiltinString;
+        const stringType = scope.getBuiltinStringType();
+        return stringType === undefined ? undefined : new ResolvedType(stringType);
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
@@ -1305,6 +1305,8 @@ export interface HoistResult {
  */
 export function analyzeAfterHoisted(path: string, hoistResult: HoistResult): AnalyzedScope {
     const {globalScope, analyzeQueue} = hoistResult;
+
+    globalScope.commitContext();
 
     // Analyze the contents of the scope to be processed.
     while (analyzeQueue.length > 0) {

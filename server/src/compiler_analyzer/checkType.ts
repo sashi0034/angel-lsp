@@ -145,15 +145,6 @@ function canDownCast(
     return false;
 }
 
-// Judge if the class has a metadata that indicates it is a built-in string type.
-function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
-    if (source === undefined) return false;
-    if (source.nodeName != NodeName.Class) return false;
-
-    const builtinStringMetadata = "BuiltinString";
-    return source.metadata.length === 1 && source.metadata[0].text === builtinStringMetadata;
-}
-
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
@@ -162,12 +153,6 @@ function canCastFromPrimitiveType(
 
     if (srcType.isTypeParameter) {
         return destType.isTypeParameter && isSameToken(srcType.declaredPlace, destType.declaredPlace);
-    }
-
-    if (srcType.identifierText === 'string') { // TODO: fix this
-        const destName = destType.declaredPlace.text;
-        if (isSourceBuiltinString(destNode)) return true;
-        return getGlobalSettings().builtinStringTypes.includes(destName);
     }
 
     if (srcType.identifierText === 'void') {
