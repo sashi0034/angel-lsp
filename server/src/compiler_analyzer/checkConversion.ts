@@ -71,10 +71,28 @@ export function evaluateConversionCost(
     return ConversionConst.NoConv;
 }
 
-function evaluateConvPrimitiveToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType) {
-    // TODO
+function evaluateConvPrimitiveToPrimitive(
+    src: ResolvedType,
+    dest: ResolvedType,
+    type: ConversionType,
+) {
+    // const srcType = src.symbolType.identifierText;
     return ConversionConst.PrimitiveSizeUpConv;
 }
+
+// TODO: Use this for evaluating object to primitive
+const numberConversionCostTable = new Map<string, string[]>([
+    ['double', ['float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
+    ['float', ['double', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
+    ['int64', ['uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
+    ['uint64', ['int64', 'uint', 'int', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
+    ['int', ['uint', 'int64', 'uint64', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
+    ['uint', ['int', 'uint64', 'int64', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
+    ['int16', ['uint16', 'int', 'uint', 'int64', 'uint64', 'int8', 'uint8', 'double', 'float']],
+    ['uint16', ['int16', 'uint', 'int', 'uint64', 'int64', 'uint8', 'int8', 'double', 'float']],
+    ['int8', ['uint8', 'int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'double', 'float']],
+    ['uint8', ['int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
+]);
 
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType) {
     // TODO
