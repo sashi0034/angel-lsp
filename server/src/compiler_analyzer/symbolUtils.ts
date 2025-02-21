@@ -15,8 +15,8 @@ import {ResolvedType} from "./resolvedType";
  * It returns undefined if the scope is namespace or etc.
  */
 export function getPathOfScope(scope: SymbolScope): string | undefined {
-    if (scope.ownerNode === undefined) return undefined;
-    return scope.ownerNode.nodeRange.start.location.path;
+    if (scope.linkedNode === undefined) return undefined;
+    return scope.linkedNode.nodeRange.start.location.path;
 }
 
 /**

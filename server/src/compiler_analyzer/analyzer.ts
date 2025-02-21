@@ -352,7 +352,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
             found = findScopeShallowly(scopeIterator, nextScope.text);
-            if (found?.ownerNode?.nodeName === NodeName.Func) found = undefined;
+            if (found?.linkedNode?.nodeName === NodeName.Func) found = undefined;
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
                 // If it is not a global scope, search further up the hierarchy.
@@ -498,17 +498,17 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const returnType = nodeReturn.assign !== undefined ? analyzeAssign(scope, nodeReturn.assign) : undefined;
 
     const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
-    if (functionScope === undefined || functionScope.ownerNode === undefined) return;
+    if (functionScope === undefined || functionScope.linkedNode === undefined) return;
 
     // TODO: Support for lambda
 
-    if (functionScope.ownerNode.nodeName === NodeName.Func) {
+    if (functionScope.linkedNode.nodeName === NodeName.Func) {
         let functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
         if (functionReturn === undefined || functionReturn instanceof SymbolFunction === false) return;
 
         // Select suitable overload if there are multiple overloads
         while (functionReturn.nextOverload !== undefined) {
-            if (functionReturn.sourceNode === functionScope.ownerNode) break;
+            if (functionReturn.sourceNode === functionScope.linkedNode) break;
             functionReturn = functionReturn.nextOverload;
         }
 
@@ -519,7 +519,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         } else {
             checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
         }
-    } else if (functionScope.ownerNode.nodeName === NodeName.VirtualProp) {
+    } else if (functionScope.linkedNode.nodeName === NodeName.VirtualProp) {
         const key = functionScope.key;
         const isGetter = key.startsWith('get_');
         if (isGetter === false) {
