@@ -46,7 +46,7 @@ export class SymbolScope {
     private readonly parentOrContext: SymbolScope | RootScopeContext;
 
     public constructor(
-        ownerNode: ScopeLinkedNode | undefined,
+        linkedNode: ScopeLinkedNode | undefined,
         parentScope: SymbolScope | undefined,
         public readonly key: string,
         public readonly childScopes: ScopeMap,
@@ -55,16 +55,16 @@ export class SymbolScope {
         public readonly completionHints: ComplementHints[],
     ) {
         this.parentOrContext = parentScope ?? {builtinStringType: undefined};
-        this.scopeLinkedNode = ownerNode;
+        this.scopeLinkedNode = linkedNode;
     }
 
     public static create(args: {
-        ownerNode: ScopeLinkedNode | undefined
+        linkedNode: ScopeLinkedNode | undefined
         parentScope: SymbolScope | undefined
         key: string
     }) {
         return new SymbolScope(
-            args.ownerNode,
+            args.linkedNode,
             args.parentScope,
             args.key,
             new Map(),
@@ -78,9 +78,9 @@ export class SymbolScope {
         return undefined;
     }
 
-    public setLinkedNode(ownerNode: ScopeLinkedNode | undefined) {
+    public setLinkedNode(node: ScopeLinkedNode | undefined) {
         assert(this.scopeLinkedNode === undefined);
-        this.scopeLinkedNode = ownerNode;
+        this.scopeLinkedNode = node;
     }
 
     public get linkedNode(): ScopeLinkedNode | undefined {
@@ -160,21 +160,21 @@ export function findScopeShallowly(scope: SymbolScope, identifier: string): Symb
 }
 
 export function createSymbolScope(
-    ownerNode: ScopeLinkedNode | undefined, parentScope: SymbolScope | undefined, key: string
+    linkedNode: ScopeLinkedNode | undefined, parentScope: SymbolScope | undefined, key: string
 ): SymbolScope {
     return SymbolScope.create({
-        ownerNode: ownerNode,
+        linkedNode: linkedNode,
         parentScope: parentScope,
         key: key,
     });
 }
 
 export function createSymbolScopeAndInsert(
-    ownerNode: ScopeLinkedNode | undefined,
+    linkedNode: ScopeLinkedNode | undefined,
     parentScope: SymbolScope | undefined,
     identifier: string,
 ): SymbolScope {
-    const scope = createSymbolScope(ownerNode, parentScope, identifier);
+    const scope = createSymbolScope(linkedNode, parentScope, identifier);
     parentScope?.childScopes.set(identifier, scope);
     return scope;
 }
@@ -267,18 +267,18 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
 /**
  * Searches for a scope within the given scope that has an identifier matching the provided token.
  * This search is non-recursive. If no matching scope is found, a new one is created and inserted.
- * @param ownerNode The node associated with the scope.
+ * @param linkedNode The node associated with the scope.
  * @param scope The scope to search within for a matching child scope.
  * @param identifierToken The token of the identifier to search for.
  * @returns The found or newly created scope.
  */
 export function findScopeShallowlyOrInsert(
-    ownerNode: ScopeLinkedNode | undefined,
+    linkedNode: ScopeLinkedNode | undefined,
     scope: SymbolScope,
     identifierToken: ParserToken
 ): SymbolScope {
-    const found = findScopeShallowlyThenInsertByIdentifier(ownerNode, scope, identifierToken.text);
-    if (ownerNode !== undefined && ownerNode !== found.linkedNode) {
+    const found = findScopeShallowlyThenInsertByIdentifier(linkedNode, scope, identifierToken.text);
+    if (linkedNode !== undefined && linkedNode !== found.linkedNode) {
         // If searching for a non-namespace node, throw an error if it doesn't match the found node.
         // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
         diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined.`);
@@ -287,14 +287,14 @@ export function findScopeShallowlyOrInsert(
 }
 
 function findScopeShallowlyThenInsertByIdentifier(
-    ownerNode: ScopeLinkedNode | undefined,
+    linkedNode: ScopeLinkedNode | undefined,
     scope: SymbolScope,
     identifier: string
 ): SymbolScope {
     const found: SymbolScope | undefined = scope.childScopes.get(identifier);
-    if (found === undefined) return createSymbolScopeAndInsert(ownerNode, scope, identifier);
-    if (ownerNode === undefined) return found;
-    if (found.linkedNode === undefined) found.setLinkedNode(ownerNode);
+    if (found === undefined) return createSymbolScopeAndInsert(linkedNode, scope, identifier);
+    if (linkedNode === undefined) return found;
+    if (found.linkedNode === undefined) found.setLinkedNode(linkedNode);
     return found;
 }
 
