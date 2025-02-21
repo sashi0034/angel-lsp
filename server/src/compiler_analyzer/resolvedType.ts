@@ -7,7 +7,7 @@ import {SymbolFunction, SymbolType} from "./symbolObject";
  */
 export class ResolvedType {
     constructor(
-        public readonly symbolType: SymbolType | SymbolFunction,
+        public readonly symbolType: SymbolType | SymbolFunction, // TODO: rename?
         // public readonly sourceScope: SymbolScope | undefined,
         public readonly isHandler?: boolean,
         public readonly templateTranslate?: TemplateTranslation,

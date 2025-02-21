@@ -18,38 +18,21 @@ import assert = require("node:assert");
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
 import {SymbolScope} from "./symbolScope";
-
-export enum PrimitiveType {
-    Template = 'Template',
-    String = 'String',
-    Bool = 'Bool',
-    Number = 'Number',
-    Void = 'Void',
-    Any = 'Any',
-    Auto = 'Auto',
-}
+import {TokenKind} from "../compiler_tokenizer/tokens";
+import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
 
 /**
- * The node that serves as the origin of a symbol's declaration.
- * Types without a declaration node, such as built-in types, are represented using PrimitiveType.
+ * The node that serves as the origin of a type declaration.
  */
-export type DefinitionSource = NodeEnum | NodeClass | NodeInterface | PrimitiveType;
+export type TypeSourceNode = NodeEnum | NodeClass | NodeInterface;
 
-/**
- * Checks whether the given `DefinitionSource` is a `PrimitiveType`.
- * In other words, returns `true` if the given `DefinitionSource` does not have a declaration node.
- */
-export function isSourcePrimitiveType(type: DefinitionSource | undefined): type is PrimitiveType {
-    return typeof type === 'string';
-}
-
-export function isSourceNodeClassOrInterface(type: DefinitionSource): type is NodeClass {
-    if (isSourcePrimitiveType(type)) return false;
+export function isSourceNodeClassOrInterface(type: TypeSourceNode | undefined): type is NodeClass {
+    if (type === undefined) return false;
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
-export function getSourceNodeName(type: DefinitionSource | undefined): NodeName | undefined {
-    if (type === undefined || isSourcePrimitiveType(type)) return undefined;
+export function getSourceNodeName(type: TypeSourceNode | undefined): NodeName | undefined {
+    if (type === undefined) return undefined;
     return type.nodeName;
 }
 
@@ -65,9 +48,12 @@ export class SymbolType implements SymbolBase {
     constructor(
         public readonly declaredPlace: ParserToken,
         public readonly declaredScope: SymbolScope,
-        public readonly definitionSource: DefinitionSource,
+        public readonly sourceNode: TypeSourceNode | undefined,
         public readonly membersScope: SymbolScope | undefined,
-        public readonly templateTypes?: ParserToken[], // e.g. <T, U>
+        // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
+        public readonly isTypeParameter?: boolean,
+        // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
+        public readonly templateTypes?: ParserToken[],
         public readonly baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
     ) {
@@ -76,14 +62,41 @@ export class SymbolType implements SymbolBase {
     public static create(args: {
         declaredPlace: ParserToken
         declaredScope: SymbolScope
-        definitionSource: DefinitionSource
+        sourceNode: TypeSourceNode | undefined
         membersScope: SymbolScope | undefined
+        isTypeParameter?: boolean
+        templateTypes?: ParserToken[]
+        baseList?: (ResolvedType | undefined)[]
+        isHandler?: boolean
     }) {
-        return new SymbolType(args.declaredPlace, args.declaredScope, args.definitionSource, args.membersScope);
+        return new SymbolType(
+            args.declaredPlace,
+            args.declaredScope,
+            args.sourceNode,
+            args.membersScope,
+            args.isTypeParameter,
+            args.templateTypes,
+            args.baseList,
+            args.isHandler);
     }
 
     public mutate(): Mutable<this> {
         return this;
+    }
+
+    public get identifierText(): string {
+        return this.declaredPlace.text;
+    }
+
+    /**
+     * Determine if the type is a system type. (e.g. int, float, void)
+     */
+    public isSystemType(): boolean {
+        return this.sourceNode === undefined;
+    }
+
+    public isNumberType(): boolean {
+        return this.declaredPlace.kind === TokenKind.Reserved && this.declaredPlace.property.isNumber;
     }
 }
 

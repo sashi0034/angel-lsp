@@ -54,8 +54,6 @@ import {
 import {
     getSourceNodeName,
     isSourceNodeClassOrInterface,
-    isSourcePrimitiveType,
-    PrimitiveType,
     SymbolFunction,
     SymbolObject,
     SymbolType,
@@ -516,7 +514,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         }
 
         const expectedReturn = functionReturn.returnType?.symbolType;
-        if (expectedReturn instanceof SymbolType && expectedReturn?.definitionSource === PrimitiveType.Void) {
+        if (expectedReturn instanceof SymbolType && expectedReturn?.identifierText === 'void') {
             if (nodeReturn.assign === undefined) return;
             diagnostic.addError(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value.`);
         } else {
@@ -727,7 +725,7 @@ function analyzeBuiltinConstructorCaller(
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType instanceof SymbolType
-        && getSourceNodeName(constructorType.symbolType.definitionSource) === NodeName.Enum) {
+        && getSourceNodeName(constructorType.symbolType.sourceNode) === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
         if (argList.length != 1 || canTypeConvert(
@@ -787,7 +785,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isSourceNodeClassOrInterface(exprValue.symbolType.definitionSource) === false) {
+    if (isSourceNodeClassOrInterface(exprValue.symbolType.sourceNode) === false) {
         diagnostic.addError(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
@@ -1130,7 +1128,7 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    if (isSourcePrimitiveType(lhs.symbolType.definitionSource)) {
+    if (lhs.symbolType.isSystemType()) {
         diagnostic.addError(
             operator.location,
             `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
@@ -1177,7 +1175,7 @@ function analyzeBitOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType instanceof SymbolType && isSourcePrimitiveType(lhs.symbolType.definitionSource)
+    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isSystemType()
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1207,7 +1205,7 @@ function analyzeMathOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType instanceof SymbolType && isSourcePrimitiveType(lhs.symbolType.definitionSource)
+    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isSystemType()
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1268,7 +1266,7 @@ function analyzeAssignOp(
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
-        if (lhs.symbolType.definitionSource === PrimitiveType.Number && rhs.symbolType.definitionSource === PrimitiveType.Number) return lhs;
+        if (lhs.symbolType.isNumberType() && rhs.symbolType.isNumberType()) return lhs;
     }
 
     if (operator.text === '=') {

@@ -15,7 +15,7 @@ import {
     ParsedEnumMember
 } from "../compiler_parser/nodes";
 import {pushHintOfCompletionScopeToParent} from "./symbolComplement";
-import {PrimitiveType, SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
+import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent, insertSymbolObject, tryInsertSymbolObject} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../code/settings";
@@ -84,7 +84,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
-        definitionSource: nodeEnum,
+        sourceNode: nodeEnum,
         membersScope: undefined,
     });
 
@@ -117,7 +117,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
-        definitionSource: nodeClass,
+        sourceNode: nodeClass,
         membersScope: undefined,
     });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
@@ -172,8 +172,9 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
         insertSymbolObject(scope.symbolMap, SymbolType.create({
             declaredPlace: getIdentifierInType(type),
             declaredScope: scope,
-            definitionSource: PrimitiveType.Template,
+            sourceNode: undefined,
             membersScope: undefined,
+            isTypeParameter: true,
         }));
 
         templateTypes.push(getIdentifierInType(type));
@@ -248,7 +249,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: typeDef.identifier,
         declaredScope: parentScope,
-        definitionSource: builtInType.definitionSource,
+        sourceNode: builtInType.sourceNode,
         membersScope: undefined,
     });
     insertSymbolObject(parentScope.symbolMap, symbol);
@@ -312,7 +313,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
-        definitionSource: nodeInterface,
+        sourceNode: nodeInterface,
         membersScope: undefined,
     });
     if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;

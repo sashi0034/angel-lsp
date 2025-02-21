@@ -1,10 +1,8 @@
 import {
-    isSourcePrimitiveType,
-    PrimitiveType,
-    DefinitionSource,
+    TypeSourceNode,
     SymbolFunction,
     SymbolObject,
-    SymbolType,
+    SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
 import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
@@ -14,6 +12,7 @@ import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {getGlobalSettings} from "../code/settings";
 import {ResolvedType} from "./resolvedType";
+import {isSameToken} from "../compiler_tokenizer/tokenUtils";
 
 /**
  * Check if the source type can be converted to the destination type.
@@ -29,7 +28,9 @@ export function checkTypeMatch(
 ): boolean {
     if (canTypeConvert(src, dest)) return true;
 
-    diagnostic.addError(getNodeLocation(nodeRange), `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
+    diagnostic.addError(
+        getNodeLocation(nodeRange),
+        `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
     return false;
 }
 
@@ -67,7 +68,7 @@ function isTypeMatchInternal(
 
         // Are we trying to pass something into ?
         if (destType instanceof SymbolType)
-            if (destType.definitionSource === PrimitiveType.Any) return true;
+            if (destType.identifierText === '?') return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
         return isFunctionHandlerMatch(srcType, destType);
@@ -75,19 +76,19 @@ function isTypeMatchInternal(
         return false;
     }
 
-    const srcNode = srcType.definitionSource;
-    const destNode = destType.definitionSource;
+    const srcNode = srcType.sourceNode;
+    const destNode = destType.sourceNode;
 
-    if (destNode === PrimitiveType.Any || destNode === PrimitiveType.Auto) return true;
+    if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
-    if (isSourcePrimitiveType(srcNode)) {
+    if (srcType.isSystemType()) {
         // Succeeds if it can be cast from one primitive type to another primitive type.
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
         // Succeeds if they both point to the same type.
         if (srcType.declaredPlace === destType.declaredPlace) return true;
 
-        if (srcNode.nodeName === NodeName.Enum && destNode === PrimitiveType.Number) return true;
+        if (srcNode?.nodeName === NodeName.Enum && destType.isNumberType()) return true;
 
         // Succeeds if any of the inherited types in the source match the destination.
         if (canDownCast(srcType, destType)) return true;
@@ -104,7 +105,7 @@ function isTypeMatchInternal(
     }
 
     // Fails if the destination type is not a class.
-    if (isSourcePrimitiveType(destNode) || destNode.nodeName !== NodeName.Class) return false;
+    if (destType.isSystemType() || destNode?.nodeName !== NodeName.Class) return false;
 
     // Determine if it matches the constructor.
     const destIdentifier = destNode.identifier.text;
@@ -127,12 +128,12 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.definitionSource;
-    if (isSourcePrimitiveType(srcNode)) return false;
+    const srcNode = srcType.sourceNode;
+    if (srcType.isSystemType()) return false;
 
-    if (srcType.definitionSource === destType.definitionSource) return true;
+    if (srcType.sourceNode === destType.sourceNode) return true;
 
-    if (srcNode.nodeName === NodeName.Class || srcNode.nodeName === NodeName.Interface) {
+    if (isSourceNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
             if (srcBase?.symbolType === undefined) continue;
@@ -145,9 +146,8 @@ function canDownCast(
 }
 
 // Judge if the class has a metadata that indicates it is a built-in string type.
-function isSourceBuiltinString(source: DefinitionSource): boolean {
-    if (isSourcePrimitiveType(source)) return false;
-
+function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
+    if (source === undefined) return false;
     if (source.nodeName != NodeName.Class) return false;
 
     const builtinStringMetadata = "BuiltinString";
@@ -157,30 +157,33 @@ function isSourceBuiltinString(source: DefinitionSource): boolean {
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.definitionSource;
-    const destNode = destType.definitionSource;
+    const srcNode = srcType.sourceNode;
+    const destNode = destType.sourceNode;
 
-    switch (srcNode) {
-    case PrimitiveType.Template:
-        return destNode === PrimitiveType.Template && srcType.declaredPlace === destType.declaredPlace;
-    case PrimitiveType.String: {
+    if (srcType.isTypeParameter) {
+        return destType.isTypeParameter && isSameToken(srcType.declaredPlace, destType.declaredPlace);
+    }
+
+    if (srcType.identifierText === 'string') { // TODO: fix this
         const destName = destType.declaredPlace.text;
         if (isSourceBuiltinString(destNode)) return true;
         return getGlobalSettings().builtinStringTypes.includes(destName);
     }
-    case PrimitiveType.Void:
+
+    if (srcType.identifierText === 'void') {
         return false;
-    case PrimitiveType.Number:
-        return destType.definitionSource === PrimitiveType.Number;
-    case PrimitiveType.Bool:
-        return destType.definitionSource === PrimitiveType.Bool;
-    case PrimitiveType.Any:
-        return true;
-    case PrimitiveType.Auto:
-        return true;
-    default:
-        assert(false);
     }
+
+    if (srcType.isNumberType()) {
+        return destType.isNumberType();
+    }
+
+    if (srcType.identifierText === 'bool') {
+        return destType.identifierText === 'bool';
+    }
+
+    // FIXME?
+    return true;
 }
 
 function canConstructImplicitly(
@@ -198,16 +201,18 @@ function canConstructImplicitly(
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor instanceof SymbolFunction === false) return false;
 
-    return canConstructBy(constructor, srcType.definitionSource);
+    if (srcType.sourceNode === undefined) return true; // FIXME?
+
+    return canConstructBy(constructor, srcType.sourceNode);
 }
 
-function canConstructBy(constructor: SymbolFunction, srcType: DefinitionSource): boolean {
+function canConstructBy(constructor: SymbolFunction, srcType: TypeSourceNode): boolean {
     // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
             && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.definitionSource === srcType
+            && paramType.symbolType.sourceNode === srcType
         ) {
             return true;
         }
