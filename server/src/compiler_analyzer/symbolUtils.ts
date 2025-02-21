@@ -1,5 +1,4 @@
 import {
-    PrimitiveType,
     SymbolFunction,
     SymbolObject,
     SymbolType,
@@ -68,7 +67,7 @@ export function resolveTemplateType(
 
     if (type.symbolType instanceof SymbolFunction) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
-    if (type.symbolType.definitionSource !== PrimitiveType.Template) return type;
+    if (type.symbolType.isTypeParameter !== true) return type;
 
     if (templateTranslate.has(type.symbolType.declaredPlace)) {
         return templateTranslate.get(type.symbolType.declaredPlace);
@@ -85,7 +84,7 @@ export function resolveTemplateTypes(
 }
 
 export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
-    return type !== undefined && type.symbolType instanceof SymbolType && type.symbolType.definitionSource === PrimitiveType.Auto;
+    return type !== undefined && type.symbolType instanceof SymbolType && type.symbolType.identifierText === 'auto';
 }
 
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {

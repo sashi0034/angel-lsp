@@ -4,7 +4,7 @@
  * @param dest
  */
 import {ResolvedType} from "./resolvedType";
-import {isSourcePrimitiveType, PrimitiveType, SymbolFunction} from "./symbolObject";
+import {SymbolFunction} from "./symbolObject";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -48,15 +48,15 @@ export function evaluateConversionCost(
 
     // FIXME: Handle init list?
 
-    if (srcType.definitionSource === PrimitiveType.Void) return ConversionConst.NoConv;
+    if (srcType.identifierText === 'void') return ConversionConst.NoConv;
 
     // FIXME?
-    if (srcType.definitionSource === PrimitiveType.Any) return ConversionConst.VariableConv;
-    if (srcType.definitionSource === PrimitiveType.Auto) return ConversionConst.VariableConv;
+    if (srcType.identifierText === '?') return ConversionConst.VariableConv;
+    if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
 
-    if (isSourcePrimitiveType(destType.definitionSource)) {
+    if (destType.isSystemType()) {
         // Destination is a primitive type
-        if (isSourcePrimitiveType(srcType.definitionSource)) {
+        if (srcType.isSystemType()) {
             // Source is a primitive type
             return evaluateConvPrimitiveToPrimitive(src, dest, type);
         } else {
