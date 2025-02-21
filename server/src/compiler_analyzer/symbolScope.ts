@@ -1,14 +1,14 @@
 import {ReferencedSymbolInfo, SymbolFunction, SymbolObject, SymbolType, TypeSourceNode} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {
-    NodeClass,
-    NodeEnum,
+    NodeClass, NodeDoWhile,
+    NodeEnum, NodeFor,
     NodeFunc,
     NodeIf,
     NodeInterface,
     NodeLambda,
-    NodeName,
-    NodeVirtualProp
+    NodeName, NodeStatBlock, NodeTry,
+    NodeVirtualProp, NodeWhile
 } from "../compiler_parser/nodes";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
@@ -33,8 +33,15 @@ export type ScopeLinkedNode =
     | NodeVirtualProp
     | NodeInterface
     | NodeFunc
+    | NodeLambda
+
+    // Statement nodes
+    | NodeStatBlock
+    | NodeFor
+    | NodeWhile
+    | NodeDoWhile
     | NodeIf
-    | NodeLambda;
+    | NodeTry;
 
 /**
  * Represents a scope that contains symbols.

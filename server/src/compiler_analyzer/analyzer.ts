@@ -1,18 +1,14 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    AccessModifier,
     funcHeadDestructor,
-    isFunctionHeadReturnValue,
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
     NodeCase,
     NodeCast,
-    NodeClass,
     NodeCondition,
     NodeDoWhile,
-    NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -24,31 +20,22 @@ import {
     NodeFor,
     NodeFunc,
     NodeFuncCall,
-    NodeFuncDef,
     NodeIf,
     NodeInitList,
-    NodeInterface,
-    NodeIntfMethod,
     NodeLambda,
     NodeLiteral,
-    NodeMixin,
     NodeName,
-    NodeNamespace,
     NodeParamList,
     NodeReturn,
     NodeScope,
-    NodeScript,
     NodeStatBlock,
     NodeStatement,
     NodeSwitch,
     NodeTry,
     NodeType,
-    NodeTypeDef,
     NodeVar,
     NodeVarAccess,
-    NodeVirtualProp,
     NodeWhile,
-    ParsedEnumMember,
     ParsedRange
 } from "../compiler_parser/nodes";
 import {
@@ -63,13 +50,10 @@ import {diagnostic} from "../code/diagnostic";
 import {LocationInfo, NumberLiterals, TokenKind} from "../compiler_tokenizer/tokens";
 import {
     AnalyzedScope,
-    copySymbolsInScope,
     createAnonymousIdentifier,
-    createSymbolScope,
     createSymbolScopeAndInsert,
     findGlobalScope,
     findScopeShallowly,
-    findScopeShallowlyOrInsert,
     findScopeWithParentByNodes,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
@@ -77,15 +61,12 @@ import {checkFunctionMatch} from "./checkFunction";
 import {ParserToken} from "../compiler_parser/parserToken";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
 import {
-    getIdentifierInType,
     getLocationBetween,
     getNextTokenIfExist,
     getNodeLocation
 } from "../compiler_parser/nodesUtils";
 import {
     builtinBoolType,
-    builtinSetterValueToken,
-    builtinThisToken,
     resolvedBuiltinBool,
     resolvedBuiltinDouble,
     resolvedBuiltinFloat,
@@ -101,12 +82,10 @@ import {
     isResolvedAutoType,
     stringifyResolvedType,
     stringifyResolvedTypes,
-    TemplateTranslation,
-    tryInsertSymbolObject
+    TemplateTranslation
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../code/settings";
-import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 
@@ -391,17 +370,21 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     case NodeName.If:
         analyzeIf(scope, statement);
         break;
-    case NodeName.For:
-        analyzeFor(scope, statement);
+    case NodeName.For: {
+        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        analyzeFor(childScope, statement);
         break;
-    case NodeName.While:
-        analyzeWhile(scope, statement);
+    }
+    case NodeName.While: {
+        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        analyzeWhile(childScope, statement);
         break;
+    }
     case NodeName.Return:
         analyzeReturn(scope, statement);
         break;
     case NodeName.StatBlock: {
-        const childScope = createSymbolScopeAndInsert(undefined, scope, createAnonymousIdentifier());
+        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
         analyzeStatBlock(childScope, statement);
         break;
     }
@@ -409,18 +392,22 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         break;
     case NodeName.Continue:
         break;
-    case NodeName.DoWhile:
-        analyzeDoWhile(scope, statement);
+    case NodeName.DoWhile: {
+        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        analyzeDoWhile(childScope, statement);
         break;
+    }
     case NodeName.Switch:
         analyzeSwitch(scope, statement);
         break;
     case NodeName.ExprStat:
         analyzeExprStat(scope, statement);
         break;
-    case NodeName.Try:
-        analyzeTry(scope, statement);
+    case NodeName.Try: {
+        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        analyzeTry(childScope, statement);
         break;
+    }
     default:
         break;
     }
