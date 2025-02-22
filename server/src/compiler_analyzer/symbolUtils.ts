@@ -9,6 +9,7 @@ import {ParserToken} from "../compiler_parser/parserToken";
 import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
+import {analyzerDiagnostic} from "./analyzerDiagnostic";
 
 /**
  * Returns the path to a file where the scope is defined.
@@ -51,7 +52,9 @@ export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): Sym
 export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolean {
     const result = tryInsertSymbolObject(map, symbol);
     if (result !== undefined) {
-        diagnostic.addError(symbol.declaredPlace.location, `Symbol '${symbol.declaredPlace.text}' is already defined.`);
+        analyzerDiagnostic.add(
+            symbol.declaredPlace.location,
+            `Symbol '${symbol.declaredPlace.text}' is already defined.`);
     }
     return result === undefined;
 }

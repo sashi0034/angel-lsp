@@ -9,6 +9,7 @@ import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils"
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
+import {analyzerDiagnostic} from "./analyzerDiagnostic";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
@@ -68,7 +69,7 @@ function checkFunctionMatchInternal(
                 calleeFunc,
                 overloadedHead,
                 templateTranslators) === false) {
-                diagnostic.addError(
+                analyzerDiagnostic.add(
                     getNodeLocation(callerRange),
                     `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
             }
@@ -94,7 +95,7 @@ function checkFunctionMatchInternal(
             calleeFunc,
             overloadedHead,
             templateTranslators) === false) {
-            diagnostic.addError(
+            analyzerDiagnostic.add(
                 getNodeLocation(callerRange),
                 `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
                     expectedType)}'.`);
@@ -118,7 +119,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
         calleeFunc,
         overloadedHead,
         templateTranslators) === false) {
-        diagnostic.addError(
+        analyzerDiagnostic.add(
             getNodeLocation(callerRange),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
@@ -146,6 +147,6 @@ function handleErrorWhenOverloaded(
         cursor = cursor.nextOverload;
     }
 
-    diagnostic.addError(getNodeLocation(callerRange), message);
+    analyzerDiagnostic.add(getNodeLocation(callerRange), message);
     return true;
 }

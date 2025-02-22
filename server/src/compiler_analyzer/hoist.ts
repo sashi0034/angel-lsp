@@ -35,6 +35,7 @@ import {
     HoistQueue, HoistResult,
     insertVariables
 } from "./analyzer";
+import {analyzerDiagnostic} from "./analyzerDiagnostic";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
@@ -190,10 +191,10 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
         const baseType = findSymbolWithParent(scope, baseIdentifier.text);
 
         if (baseType === undefined) {
-            diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
+            analyzerDiagnostic.add(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
             baseList.push(undefined);
         } else if (baseType.symbol instanceof SymbolType === false) {
-            diagnostic.addError(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
+            analyzerDiagnostic.add(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
             // Found the base class
@@ -220,7 +221,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
             if (key === 'this') continue;
             const errored = tryInsertSymbolObject(scope.symbolMap, symbol);
             if (errored !== undefined) {
-                diagnostic.addError(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
+                analyzerDiagnostic.add(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
             }
         }
     }
@@ -293,7 +294,7 @@ function hoistFunc(
             tryInsertSymbolObject(parentScope.symbolMap, symbol);
         }
     } else if (nodeFunc.funcAttr?.isProperty === true) {
-        diagnostic.addError(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
+        analyzerDiagnostic.add(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 
     // Create a new scope for the function
