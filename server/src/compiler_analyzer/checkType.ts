@@ -180,7 +180,7 @@ function canConstructImplicitly(
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
     const constructorScope = findScopeShallowly(destScope, destIdentifier);
-    if (constructorScope === undefined || constructorScope.ownerNode?.nodeName !== NodeName.Class) return false;
+    if (constructorScope === undefined || constructorScope.linkedNode?.nodeName !== NodeName.Class) return false;
 
     // Search for the constructor of the given type from the scope of the type itself.
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
@@ -221,7 +221,7 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
         return isScopeChildOrGrandchild(checkingScope, declaredScope);
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (declaredScope.ownerNode === undefined) return false;
+        if (declaredScope.linkedNode === undefined) return false;
 
         const checkingOuterScope = findScopeWithParentByNodes(checkingScope, [NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;

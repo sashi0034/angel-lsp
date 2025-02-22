@@ -4,22 +4,16 @@ import {
     NodeEnum,
     NodeFunc,
     NodeFuncDef,
-    NodeIf,
     NodeInterface,
     NodeIntfMethod,
-    NodeLambda,
-    NodeName,
-    NodeVirtualProp
+    NodeName
 } from "../compiler_parser/nodes";
 import {ParserToken} from "../compiler_parser/parserToken";
-import {ComplementHints} from "./symbolComplement";
-import {TemplateTranslation} from "./symbolUtils";
-import assert = require("node:assert");
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
 import {SymbolScope} from "./symbolScope";
 import {TokenKind} from "../compiler_tokenizer/tokens";
-import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
+import assert = require("node:assert");
 
 /**
  * The node that serves as the origin of a type declaration.
@@ -186,18 +180,6 @@ export function isSymbolInstanceMember(symbol: SymbolObject): symbol is SymbolFu
 export type SymbolObject = SymbolType | SymbolFunction | SymbolVariable;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-
-/**
- * Nodes that can have a scope containing symbols.
- */
-export type SymbolOwnerNode =
-    NodeEnum
-    | NodeClass
-    | NodeVirtualProp
-    | NodeInterface
-    | NodeFunc
-    | NodeIf
-    | NodeLambda;
 
 /**
  * Information about a symbol that references a symbol declared elsewhere.

@@ -54,7 +54,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
 
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopes) {
-        if (childScope.ownerNode !== undefined) continue;
+        if (childScope.linkedNode !== undefined) continue;
         if (isAnonymousIdentifier(childName)) continue;
         items.push({
             label: childName,
