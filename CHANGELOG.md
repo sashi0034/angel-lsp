@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.3.19] 2025/02/22
+
+- Fixed some bugs.
+- Added a setting 'suppressAnalyzerErrors'.
+
 ## [0.3.18] 2025/02/07
 
 - Tentatively fixed to avoid a memory leak problem.
@@ -78,7 +83,7 @@ Fix README.md
 
 - Support for `#include` directive (Preview)
 - Modified the search method for `as.predefined`
-   - Search recursively from the parent directory of the file instead of the root of the workspace directory.
+  - Search recursively from the parent directory of the file instead of the root of the workspace directory.
 - Fix minor bugs.
 
 ## [0.2.0] - 2024/05/10
