@@ -3,6 +3,7 @@
  * See package.json because the settings in VSCode are defined in it.
  */
 export interface LanguageServerSettings {
+    suppressAnalyzerErrors: boolean;
     implicitMutualInclusion: boolean;
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
@@ -19,6 +20,7 @@ export interface LanguageServerSettings {
 }
 
 const defaultSettings: LanguageServerSettings = {
+    suppressAnalyzerErrors: true,
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
@@ -47,6 +49,6 @@ export function changeGlobalSettings(config: any) {
  * Get the global settings.
  * The behavior of the LanguageServer configuration is controlled from here.
  */
-export function getGlobalSettings(): LanguageServerSettings {
+export function getGlobalSettings(): Readonly<LanguageServerSettings> {
     return globalSettings;
 }

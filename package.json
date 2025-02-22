@@ -78,6 +78,12 @@
             "type": "object",
             "title": "AngelScript configuration",
             "properties": {
+                "angelScript.suppressAnalyzerErrors": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Report problems found in the analyzer as warnings instead of errors (true is recommended since the current analyzer is a preview version and has bugs)"
+                },
                 "angelScript.builtinStringTypes": {
                     "scope": "window",
                     "type": "array",

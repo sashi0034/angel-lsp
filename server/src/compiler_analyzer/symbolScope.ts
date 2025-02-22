@@ -15,6 +15,7 @@ import {getPathOfScope} from "./symbolUtils";
 import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
+import {analyzerDiagnostic} from "./analyzerDiagnostic";
 
 export type ScopeMap = Map<string, SymbolScope>;
 
@@ -288,7 +289,7 @@ export function findScopeShallowlyOrInsert(
     if (linkedNode !== undefined && linkedNode !== found.linkedNode) {
         // If searching for a non-namespace node, throw an error if it doesn't match the found node.
         // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
-        diagnostic.addError(identifierToken.location, `Symbol ${identifierToken.text}' is already defined.`);
+        analyzerDiagnostic.add(identifierToken.location, `Symbol ${identifierToken.text}' is already defined.`);
     }
     return found;
 }

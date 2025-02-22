@@ -17,6 +17,7 @@ import {fileURLToPath} from "node:url";
 import {preprocessTokensForParser} from "../compiler_parser/parserPreprocess";
 import {getGlobalSettings} from "../code/settings";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
+import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 
 interface InspectResult {
     content: string;
@@ -216,14 +217,15 @@ function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | u
 
     // Store the diagnostics that occurred before the analyzer phase.
     const diagnosticsInParser = diagnostic.endSession();
-    diagnostic.beginSession();
+
+    analyzerDiagnostic.reset();
 
     // Analyzer-phase
     const hoistResult = hoistAfterParsed(parsedAst, targetUri, includedScopes);
     const analyzedScope = analyzeAfterHoisted(targetUri, hoistResult);
     profiler.stamp("Analyzer");
 
-    const diagnosticsInAnalyzer = diagnostic.endSession();
+    const diagnosticsInAnalyzer = analyzerDiagnostic.flush();
 
     return {
         content: content,
