@@ -24,8 +24,8 @@
             "match": "\\bNAME_None\\b"
         },
         {
-            "name": "keyword.code.angelscript.nullptr.reference",
-            "match": "\\bnullptr\\b"
+            "name": "keyword.code.angelscript.null.reference",
+            "match": "\\bnull\\b"
         },
         {
             "name": "keyword.code.angelscript.this.reference",
