@@ -1864,12 +1864,17 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 
     const indexerList: ParsedPostIndexer[] = [];
     while (parser.isEnd() === false) {
+        const loopStart = parser.next();
         const identifier = parseIdentifierWithColon(parser);
 
         const assign = expectAssign(parser);
         if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
 
         if (expectContinuousOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
+
+        // Cancel infinite loop
+        // FIXME: check other places too?
+        if (loopStart === parser.next()) break;
     }
 
     return {
