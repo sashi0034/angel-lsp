@@ -526,14 +526,12 @@ function parseMetadata(parser: ParserState): ParserToken[] {
                 // eg. '[Hello][World]' is valid, as is
                 // [Hello]
                 // [World]
-                if(parser.next().text === '[') {
+                if (parser.next().text === '[') {
                     metadata = [...metadata, ...parseMetadata(parser)];
                 }
 
                 return metadata;
-            }
-
-            else metadata.push(parser.next());
+            } else metadata.push(parser.next());
         } else {
             metadata.push(parser.next());
             parser.commit(HighlightToken.Decorator);
@@ -1864,12 +1862,17 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 
     const indexerList: ParsedPostIndexer[] = [];
     while (parser.isEnd() === false) {
+        const loopStart = parser.next();
         const identifier = parseIdentifierWithColon(parser);
 
         const assign = expectAssign(parser);
         if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
 
         if (expectContinuousOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
+
+        // Cancel infinite loop
+        // FIXME: check other places too?
+        if (loopStart === parser.next()) break;
     }
 
     return {
