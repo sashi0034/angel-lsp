@@ -526,14 +526,12 @@ function parseMetadata(parser: ParserState): ParserToken[] {
                 // eg. '[Hello][World]' is valid, as is
                 // [Hello]
                 // [World]
-                if(parser.next().text === '[') {
+                if (parser.next().text === '[') {
                     metadata = [...metadata, ...parseMetadata(parser)];
                 }
 
                 return metadata;
-            }
-
-            else metadata.push(parser.next());
+            } else metadata.push(parser.next());
         } else {
             metadata.push(parser.next());
             parser.commit(HighlightToken.Decorator);
