@@ -140,7 +140,7 @@ function inspectAllFilesUnderDirectory(dirUri: string) {
     for (const entry of entries) {
         const fileUri = resolveUri(dirUri, entry.name);
         if (entry.isDirectory()) {
-            inspectAllFilesUnderDirectory(fileUri);
+            inspectAllFilesUnderDirectory(`${fileUri}/`);
         } else if (entry.isFile() && fileUri.endsWith('.as')) {
             const content = readFileFromUri(fileUri);
             if (content !== undefined) inspectFile(content, fileUri);
