@@ -28,6 +28,22 @@ export class TextPosition implements languageserver.Position {
     }
 }
 
+export class MutableTextPosition implements languageserver.Position {
+    public constructor(
+        public line: number,
+        public character: number
+    ) {
+    }
+
+    public static create(position: languageserver.Position): MutableTextPosition {
+        return new MutableTextPosition(position.line, position.character);
+    }
+
+    public freeze(): TextPosition {
+        return new TextPosition(this.line, this.character);
+    }
+}
+
 export class TextRange implements languageserver.Range {
     constructor(
         public readonly start: TextPosition,
@@ -45,6 +61,22 @@ export class TextRange implements languageserver.Range {
 
     public clone(): TextRange {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    }
+}
+
+export class MutableTextRange implements languageserver.Range {
+    public constructor(
+        public start: MutableTextPosition,
+        public end: MutableTextPosition
+    ) {
+    }
+
+    public static create(range: languageserver.Range): MutableTextRange {
+        return new MutableTextRange(MutableTextPosition.create(range.start), MutableTextPosition.create(range.end));
+    }
+
+    public freeze(): TextRange {
+        return new TextRange(this.start.freeze(), this.end.freeze());
     }
 }
 

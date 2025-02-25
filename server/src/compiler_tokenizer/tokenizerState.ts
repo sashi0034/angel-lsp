@@ -1,6 +1,5 @@
 import {diagnostic} from "../code/diagnostic";
-import {TextLocation, TextPosition, TextRange} from "./textLocation";
-import {DeepMutable, Mutable} from "../utils/utilities";
+import {MutableTextPosition, MutableTextRange, TextPosition, TextRange} from "./textLocation";
 
 export class TokenizerState {
     // The content of the file to be tokenized
@@ -10,7 +9,7 @@ export class TokenizerState {
     private cursor: number;
 
     // Same as cursor, but expressed in terms of line and character position rather than index
-    private readonly head: Mutable<TextPosition>;
+    private readonly head: MutableTextPosition;
 
     public getCursor() {
         return this.cursor;
@@ -19,7 +18,7 @@ export class TokenizerState {
     constructor(content: string) {
         this.content = content;
         this.cursor = 0;
-        this.head = new TextPosition(0, 0);
+        this.head = new MutableTextPosition(0, 0);
     }
 
     next(offset: number = 0) {
@@ -68,7 +67,7 @@ export class TokenizerState {
     }
 
     copyHead(): TextPosition {
-        return this.head.clone();
+        return this.head.freeze();
     }
 }
 
@@ -77,19 +76,19 @@ export class TokenizerState {
  */
 export class UnknownBuffer {
     private buffer: string = "";
-    private location: DeepMutable<TextRange> | null = null;
+    private location: MutableTextRange | null = null;
 
     public append(head: TextRange, next: string) {
         if (this.location === null) {
-            this.location = head;
+            this.location = MutableTextRange.create(head);
         } else if (head.start.line !== this.location.start.line
             || head.start.character - this.location.end.character > 1
         ) {
             this.flush();
-            this.location = head;
+            this.location = MutableTextRange.create(head);
         }
 
-        this.location.end = head.end;
+        this.location.end = MutableTextPosition.create(head.end);
         this.buffer += next;
     }
 

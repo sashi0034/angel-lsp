@@ -8,13 +8,13 @@ export type Mutable<T> = {
     -readonly [P in keyof T]: T[P];
 };
 
-export type DeepMutable<T> = {
-    -readonly [P in keyof T]: T[P] extends (infer U)[]
-        ? Array<DeepMutable<U>>
-        : T[P] extends object
-            ? DeepMutable<T[P]>
-            : T[P];
-};
+// export type DeepMutable<T> = {
+//     -readonly [P in keyof T]: T[P] extends (infer U)[]
+//         ? Array<DeepMutable<U>>
+//         : T[P] extends object
+//             ? DeepMutable<T[P]>
+//             : T[P];
+// };
 
 export type DeepReadonly<T> = {
     readonly [P in keyof T]: T[P] extends (infer U)[]
