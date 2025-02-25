@@ -127,7 +127,7 @@ export class SymbolFunction implements SymbolBase {
     }
 
     public clone(): this {
-        return {...this};
+        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }
 
     public mutate(): Mutable<this> {
