@@ -95,7 +95,7 @@ export class SymbolType implements SymbolBase {
 }
 
 export class SymbolFunction implements SymbolBase {
-    private nextOverloadFunction: SymbolFunction | undefined = undefined;
+    private _nextOverload: SymbolFunction | undefined = undefined;
 
     constructor(
         public readonly declaredPlace: ParserToken,
@@ -136,12 +136,12 @@ export class SymbolFunction implements SymbolBase {
     }
 
     public setNextOverload(nextOverload: SymbolFunction) {
-        assert(this.nextOverloadFunction === undefined);
-        this.nextOverloadFunction = nextOverload;
+        assert(this._nextOverload === undefined);
+        this._nextOverload = nextOverload;
     }
 
     public get nextOverload(): SymbolFunction | undefined {
-        return this.nextOverloadFunction;
+        return this._nextOverload;
     }
 }
 
