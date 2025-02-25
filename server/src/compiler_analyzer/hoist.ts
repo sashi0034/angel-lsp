@@ -1,17 +1,30 @@
 import {
-    AnalyzedScope, copySymbolsInScope,
+    AnalyzedScope,
+    copySymbolsInScope,
     createSymbolScope,
     createSymbolScopeAndInsert,
     findScopeShallowlyOrInsert,
     SymbolScope
 } from "./symbolScope";
 import {
-    AccessModifier, funcHeadDestructor, isFunctionHeadReturnValue,
+    AccessModifier,
+    funcHeadDestructor,
+    isFunctionHeadReturnValue,
     NodeClass,
-    NodeEnum, NodeFunc, NodeFuncDef, NodeInterface, NodeIntfMethod, NodeMixin,
+    NodeEnum,
+    NodeFunc,
+    NodeFuncDef,
+    NodeInterface,
+    NodeIntfMethod,
+    NodeMixin,
     NodeName,
-    NodeNamespace, NodeParamList,
-    NodeScript, NodeType, NodeTypeDef, NodeVar, NodeVirtualProp,
+    NodeNamespace,
+    NodeParamList,
+    NodeScript,
+    NodeType,
+    NodeTypeDef,
+    NodeVar,
+    NodeVirtualProp,
     ParsedEnumMember
 } from "../compiler_parser/nodes";
 import {pushHintOfCompletionScopeToParent} from "./symbolComplement";
@@ -21,18 +34,17 @@ import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../code/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./symbolBuiltin";
 import {Mutable} from "../utils/utilities";
-import {ParserToken} from "../compiler_parser/parserToken";
-import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
-import {TokenKind} from "../compiler_tokenizer/tokens";
+import {TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokens";
 import {getIdentifierInType} from "../compiler_parser/nodesUtils";
-import {diagnostic} from "../code/diagnostic";
 import {
     analyzeFunc,
     AnalyzeQueue,
     analyzeStatBlock,
     analyzeType,
-    analyzeVarInitializer, findConstructorForResolvedType,
-    HoistQueue, HoistResult,
+    analyzeVarInitializer,
+    findConstructorForResolvedType,
+    HoistQueue,
+    HoistResult,
     insertVariables
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
@@ -155,10 +167,10 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             if (superConstructor instanceof SymbolFunction) {
                 const superSymbol: SymbolFunction = superConstructor.clone();
 
-                const declaredPlace: Mutable<ParserToken> = createVirtualToken(TokenKind.Identifier, 'super');
-                declaredPlace.location = {...superSymbol.declaredPlace.location};
-
-                superSymbol.mutate().declaredPlace = declaredPlace;
+                superSymbol.mutate().declaredPlace = TokenIdentifier.createVirtual(
+                    'super',
+                    {...superSymbol.declaredPlace.location}
+                );
                 insertSymbolObject(scope.symbolMap, superSymbol);
             }
         });
@@ -168,7 +180,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
-    const templateTypes: ParserToken[] = [];
+    const templateTypes: TokenObject[] = [];
     for (const type of types ?? []) {
         insertSymbolObject(scope.symbolMap, SymbolType.create({
             declaredPlace: getIdentifierInType(type),
@@ -279,10 +291,9 @@ function hoistFunc(
     // Check if the function is a virtual property setter or getter
     if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
         if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            const identifier: Mutable<ParserToken> = createVirtualToken(
-                TokenKind.Identifier,
-                nodeFunc.identifier.text.substring(4));
-            identifier.location = nodeFunc.identifier.location;
+            const identifier: TokenObject = TokenIdentifier.createVirtual(
+                nodeFunc.identifier.text.substring(4),
+                nodeFunc.identifier.location);
 
             const symbol: SymbolVariable = SymbolVariable.create({
                 declaredPlace: identifier, // FIXME?

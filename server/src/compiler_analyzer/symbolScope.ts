@@ -10,12 +10,12 @@ import {
     NodeName, NodeStatBlock, NodeTry,
     NodeVirtualProp, NodeWhile
 } from "../compiler_parser/nodes";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
 import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenObject} from "../compiler_tokenizer/tokens";
 
 export type ScopeMap = Map<string, SymbolScope>;
 
@@ -283,7 +283,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
 export function findScopeShallowlyOrInsert(
     linkedNode: ScopeLinkedNode | undefined,
     scope: SymbolScope,
-    identifierToken: ParserToken
+    identifierToken: TokenObject
 ): SymbolScope {
     const found = findScopeShallowlyThenInsertByIdentifier(linkedNode, scope, identifierToken.text);
     if (linkedNode !== undefined && linkedNode !== found.linkedNode) {

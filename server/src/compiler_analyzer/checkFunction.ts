@@ -4,16 +4,16 @@ import {
     SymbolFunction,
 } from "./symbolObject";
 import {canTypeConvert} from "./checkType";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenObject} from "../compiler_tokenizer/tokens";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
-    callerIdentifier: ParserToken;
+    callerIdentifier: TokenObject;
     callerRange: ParsedRange;
     callerArgRanges: ParsedRange[];
     callerArgTypes: (ResolvedType | undefined)[];
@@ -32,7 +32,7 @@ export function checkFunctionMatch(
     return checkFunctionMatchInternal(args, args.calleeFunc);
 }
 
-function pushReferenceOfFuncOrConstructor(callerIdentifier: ParserToken, scope: SymbolScope, calleeFunc: SymbolFunction) {
+function pushReferenceOfFuncOrConstructor(callerIdentifier: TokenObject, scope: SymbolScope, calleeFunc: SymbolFunction) {
     scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
 }
 

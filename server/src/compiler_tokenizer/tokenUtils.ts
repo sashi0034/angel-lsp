@@ -1,8 +1,12 @@
 import {Position, Range} from "vscode-languageserver";
-import {createEmptyLocation, createVirtualHighlight, NumberLiterals, TokenBase, TokenKind} from "./tokens";
-import {findAllReservedWordProperty} from "./tokenReservedWords";
-import {HighlightToken} from "../code/highlight";
-import {ParserToken} from "../compiler_parser/parserToken";
+import {
+    createEmptyLocation, LocationInfo,
+    TokenBase,
+    TokenIdentifier,
+    TokenKind,
+    TokenObject,
+    TokenReserved
+} from "./tokens";
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;
@@ -69,7 +73,7 @@ export function isSameToken(l: TokenBase, r: TokenBase): boolean {
  * @param targets The expected string sequence.
  * @returns `true` if the tokens match the target sequence, otherwise `false`.
  */
-export function isTokensLinkedBy(head: ParserToken, targets: string[]): boolean {
+export function isTokensLinkedBy(head: TokenObject, targets: string[]): boolean {
     if (head.text !== targets[0]) return false;
 
     let cursor = head.next;
@@ -83,37 +87,4 @@ export function isTokensLinkedBy(head: ParserToken, targets: string[]): boolean 
     }
 
     return true;
-}
-
-export function createVirtualToken(
-    kind: TokenKind,
-    text: string
-): ParserToken {
-    const result = {
-        text: text,
-        location: createEmptyLocation(),
-        highlight: createVirtualHighlight(),
-        index: -1,
-        next: undefined,
-    };
-
-    if (kind === TokenKind.Reserved) return {
-        ...result,
-        kind: TokenKind.Reserved,
-        property: findAllReservedWordProperty(text)
-    };
-    else if (kind === TokenKind.Number) return {
-        ...result,
-        kind: TokenKind.Number,
-        numeric: NumberLiterals.Integer
-    };
-
-    return {
-        ...result,
-        kind: kind
-    };
-}
-
-export function isVirtualToken(token: TokenBase): boolean {
-    return token.highlight.token === HighlightToken.Invalid;
 }

@@ -1,4 +1,4 @@
-import {ParserToken} from "./parserToken";
+import {TokenObject} from "../compiler_tokenizer/tokens";
 
 export enum AccessModifier {
     Private = 'Private',
@@ -17,11 +17,11 @@ export enum ReferenceModifier {
 }
 
 export interface ParsedRange {
-    readonly start: ParserToken;
-    readonly end: ParserToken;
+    readonly start: TokenObject;
+    readonly end: TokenObject;
 }
 
-export function makeParsedRange(start: ParserToken, end: ParserToken): ParsedRange {
+export function makeParsedRange(start: TokenObject, end: TokenObject): ParsedRange {
     return {
         start: start,
         end: end
@@ -129,7 +129,7 @@ export type NodeScriptMember =
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
     nodeName: NodeName.Namespace
-    namespaceList: ParserToken[],
+    namespaceList: TokenObject[],
     script: NodeScript
 }
 
@@ -138,12 +138,12 @@ export interface NodeEnum extends NodesBase {
     readonly nodeName: NodeName.Enum;
     readonly scopeRange: ParsedRange;
     readonly entity: EntityAttribute | undefined;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];
 }
 
 export interface ParsedEnumMember {
-    readonly identifier: ParserToken,
+    readonly identifier: TokenObject,
     readonly expr: NodeExpr | undefined
 }
 
@@ -151,19 +151,19 @@ export interface ParsedEnumMember {
 export interface NodeClass extends NodesBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: ParsedRange;
-    readonly metadata: ParserToken[];
+    readonly metadata: TokenObject[];
     readonly entity: EntityAttribute | undefined;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly typeTemplates: NodeType[] | undefined;
-    readonly baseList: ParserToken[];
+    readonly baseList: TokenObject[];
     readonly memberList: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[];
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 export interface NodeTypeDef extends NodesBase {
     readonly nodeName: NodeName.TypeDef;
-    readonly type: ParserToken;
-    readonly identifier: ParserToken;
+    readonly type: TokenObject;
+    readonly identifier: TokenObject;
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -172,7 +172,7 @@ export interface NodeFunc extends NodesBase {
     readonly entity: EntityAttribute | undefined;
     readonly accessor: AccessModifier | undefined;
     readonly head: FuncHeads;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
     readonly isConst: boolean;
     readonly funcAttr: FunctionAttribute | undefined;
@@ -200,8 +200,8 @@ export function isFunctionHeadReturnValue(head: FuncHeads): head is FuncHeadRetu
 export interface NodeInterface extends NodesBase {
     readonly nodeName: NodeName.Interface;
     readonly entity: EntityAttribute | undefined;
-    readonly identifier: ParserToken;
-    readonly baseList: ParserToken[];
+    readonly identifier: TokenObject;
+    readonly baseList: TokenObject[];
     readonly memberList: (NodeVirtualProp | NodeIntfMethod)[];
 }
 
@@ -214,7 +214,7 @@ export interface NodeVar extends NodesBase {
 }
 
 export interface ParsedVariableInit {
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly initializer: NodeInitList | NodeAssign | NodeArgList | undefined;
 }
 
@@ -223,10 +223,10 @@ export interface NodeImport extends NodesBase {
     readonly nodeName: NodeName.Import;
     readonly type: NodeType;
     readonly isRef: boolean;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
     readonly funcAttr: FunctionAttribute | undefined;
-    readonly path: ParserToken;
+    readonly path: TokenObject;
 }
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
@@ -235,7 +235,7 @@ export interface NodeFuncDef extends NodesBase {
     readonly entity: EntityAttribute | undefined;
     readonly returnType: NodeType;
     readonly isRef: boolean;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
 }
 
@@ -245,7 +245,7 @@ export interface NodeVirtualProp extends NodesBase {
     readonly accessor: AccessModifier | undefined,
     readonly type: NodeType,
     readonly isRef: boolean,
-    readonly identifier: ParserToken,
+    readonly identifier: TokenObject,
     readonly getter: ParsedGetterSetter | undefined,
     readonly setter: ParsedGetterSetter | undefined
 }
@@ -267,7 +267,7 @@ export interface NodeIntfMethod extends NodesBase {
     readonly nodeName: NodeName.IntfMethod;
     readonly returnType: NodeType;
     readonly isRef: boolean;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
     readonly isConst: boolean;
 }
@@ -284,7 +284,7 @@ export type NodeParamList = ParsedTypeIdentifier[];
 export interface ParsedTypeIdentifier {
     readonly type: NodeType,
     readonly modifier: TypeModifier | undefined,
-    readonly identifier: ParserToken | undefined
+    readonly identifier: TokenObject | undefined
     readonly defaultExpr: NodeExpr | undefined
 }
 
@@ -311,14 +311,14 @@ export interface NodeInitList extends NodesBase {
 export interface NodeScope extends NodesBase {
     readonly nodeName: NodeName.Scope
     readonly isGlobal: boolean,
-    readonly scopeList: ParserToken[],
+    readonly scopeList: TokenObject[],
     readonly typeTemplates: NodeType[]
 }
 
 // DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 export interface NodeDataType extends NodesBase {
     readonly nodeName: NodeName.DataType;
-    readonly identifier: ParserToken;
+    readonly identifier: TokenObject;
 }
 
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
@@ -421,7 +421,7 @@ export interface NodeExpr extends NodesBase {
 }
 
 export interface ParsedOpExpr {
-    readonly operator: ParserToken,
+    readonly operator: TokenObject,
     readonly expression: NodeExpr
 }
 
@@ -440,7 +440,7 @@ export interface NodeExprTerm1 extends NodesBase {
 export interface NodeExprTerm2 extends NodesBase {
     readonly nodeName: NodeName.ExprTerm
     readonly exprTerm: 2,
-    readonly preOps: ParserToken[],
+    readonly preOps: TokenObject[],
     readonly value: NodeExprValue,
     readonly postOps: NodeExprPostOp[]
 }
@@ -471,10 +471,10 @@ export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3
 export interface NodeExprPostOp1 extends NodesBase {
     readonly nodeName: NodeName.ExprPostOp;
     readonly postOp: 1;
-    readonly member: NodeFuncCall | ParserToken | undefined;
+    readonly member: NodeFuncCall | TokenObject | undefined;
 }
 
-export function isMemberMethodInPostOp(member: NodeFuncCall | ParserToken | undefined): member is NodeFuncCall {
+export function isMemberMethodInPostOp(member: NodeFuncCall | TokenObject | undefined): member is NodeFuncCall {
     return member !== undefined && 'nodeName' in member;
 }
 
@@ -486,7 +486,7 @@ export interface NodeExprPostOp2 extends NodesBase {
 }
 
 export interface ParsedPostIndexer {
-    readonly identifier: ParserToken | undefined,
+    readonly identifier: TokenObject | undefined,
     readonly assign: NodeAssign
 }
 
@@ -521,20 +521,20 @@ export interface NodeLambda extends NodesBase {
 export interface ParsedLambdaParams {
     readonly type: NodeType | undefined,
     readonly typeMod: TypeModifier | undefined,
-    readonly identifier: ParserToken | undefined
+    readonly identifier: TokenObject | undefined
 }
 
 // LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 export interface NodeLiteral extends NodesBase {
     readonly nodeName: NodeName.Literal;
-    readonly value: ParserToken;
+    readonly value: TokenObject;
 }
 
 // FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFuncCall extends NodesBase {
     readonly nodeName: NodeName.FuncCall
     readonly scope: NodeScope | undefined,
-    readonly identifier: ParserToken,
+    readonly identifier: TokenObject,
     readonly argList: NodeArgList
 }
 
@@ -542,7 +542,7 @@ export interface NodeFuncCall extends NodesBase {
 export interface NodeVarAccess extends NodesBase {
     readonly nodeName: NodeName.VarAccess;
     readonly scope: NodeScope | undefined;
-    readonly identifier: ParserToken | undefined;
+    readonly identifier: TokenObject | undefined;
 }
 
 // ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
@@ -552,7 +552,7 @@ export interface NodeArgList extends NodesBase {
 }
 
 export interface ParsedArgument {
-    readonly identifier: ParserToken | undefined,
+    readonly identifier: TokenObject | undefined,
     readonly assign: NodeAssign
 }
 
@@ -564,7 +564,7 @@ export interface NodeAssign extends NodesBase {
 }
 
 export interface ParsedAssignTail {
-    readonly operator: ParserToken,
+    readonly operator: TokenObject,
     readonly assign: NodeAssign
 }
 

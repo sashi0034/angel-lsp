@@ -8,11 +8,10 @@ import {
     NodeIntfMethod,
     NodeName
 } from "../compiler_parser/nodes";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
 import {SymbolScope} from "./symbolScope";
-import {TokenKind} from "../compiler_tokenizer/tokens";
+import {TokenKind, TokenObject} from "../compiler_tokenizer/tokens";
 import assert = require("node:assert");
 
 /**
@@ -34,32 +33,32 @@ export function getSourceNodeName(type: TypeSourceNode | undefined): NodeName | 
  * The base interface for all symbols.
  */
 export interface SymbolBase {
-    readonly declaredPlace: ParserToken;
+    readonly declaredPlace: TokenObject;
     readonly declaredScope: SymbolScope;
 }
 
 export class SymbolType implements SymbolBase {
     constructor(
-        public readonly declaredPlace: ParserToken,
+        public readonly declaredPlace: TokenObject,
         public readonly declaredScope: SymbolScope,
         public readonly sourceNode: TypeSourceNode | undefined,
         public readonly membersScope: SymbolScope | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        public readonly templateTypes?: ParserToken[],
+        public readonly templateTypes?: TokenObject[],
         public readonly baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
     ) {
     }
 
     public static create(args: {
-        declaredPlace: ParserToken
+        declaredPlace: TokenObject
         declaredScope: SymbolScope
         sourceNode: TypeSourceNode | undefined
         membersScope: SymbolScope | undefined
         isTypeParameter?: boolean
-        templateTypes?: ParserToken[]
+        templateTypes?: TokenObject[]
         baseList?: (ResolvedType | undefined)[]
         isHandler?: boolean
     }) {
@@ -90,7 +89,7 @@ export class SymbolType implements SymbolBase {
     }
 
     public isNumberType(): boolean {
-        return this.declaredPlace.kind === TokenKind.Reserved && this.declaredPlace.property.isNumber;
+        return this.declaredPlace.isReservedToken() && this.declaredPlace.property.isNumber;
     }
 }
 
@@ -98,7 +97,7 @@ export class SymbolFunction implements SymbolBase {
     private _nextOverload: SymbolFunction | undefined = undefined;
 
     constructor(
-        public readonly declaredPlace: ParserToken,
+        public readonly declaredPlace: TokenObject,
         public readonly declaredScope: SymbolScope,
         public readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
@@ -109,7 +108,7 @@ export class SymbolFunction implements SymbolBase {
     }
 
     public static create(args: {
-        declaredPlace: ParserToken
+        declaredPlace: TokenObject
         declaredScope: SymbolScope
         sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
@@ -147,7 +146,7 @@ export class SymbolFunction implements SymbolBase {
 
 export class SymbolVariable implements SymbolBase {
     constructor(
-        public readonly declaredPlace: ParserToken,
+        public readonly declaredPlace: TokenObject,
         public readonly declaredScope: SymbolScope,
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
@@ -156,7 +155,7 @@ export class SymbolVariable implements SymbolBase {
     }
 
     public static create(args: {
-        declaredPlace: ParserToken
+        declaredPlace: TokenObject
         declaredScope: SymbolScope
         type: ResolvedType | undefined
         isInstanceMember: boolean
@@ -186,7 +185,7 @@ export type SymbolObject = SymbolType | SymbolFunction | SymbolVariable;
  */
 export interface ReferencedSymbolInfo {
     readonly declaredSymbol: SymbolObject;
-    readonly referencedToken: ParserToken;
+    readonly referencedToken: TokenObject;
 }
 
 

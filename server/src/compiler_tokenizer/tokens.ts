@@ -1,6 +1,7 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {Range} from "vscode-languageserver";
 import {DeepReadonly} from "../utils/utilities";
+import {findAllReservedWordProperty, ReservedWordProperty} from "./tokenReservedWords";
 
 /**
  * Tokenizer categorizes tokens into the following kinds.
@@ -45,48 +46,122 @@ export function createVirtualHighlight(): HighlightInfo {
 }
 
 /**
- * Base interface for all tokens.
- * Every token is expected to have these properties.
+ * Base object for all tokens.
  */
-export interface TokenBase {
+export abstract class TokenBase {
+    // Syntax highlight information
+    private _highlight: HighlightInfo;
+
+    // Preprocessed token information are set by the preprocessor.
+    private _indexInPreprocessedTokenList: number = -1;
+    private _nextPreprocessedToken: TokenBase | undefined = undefined;
+
+    protected constructor(
+        // The text content of a token as it is
+        public readonly text: string,
+        // The location information of a token including the file path and the position within the file.
+        public readonly location: ReadonlyLocationInfo,
+        highlightToken: HighlightToken,
+        highlightModifier: HighlightModifier = HighlightModifier.Nothing,
+    ) {
+        this._highlight = {token: highlightToken, modifier: highlightModifier};
+    }
+
+    public abstract get kind(): TokenKind;
+
+    public setHighlight(token: HighlightToken, modifier: HighlightModifier = HighlightModifier.Nothing) {
+        this._highlight = {token: token, modifier: modifier};
+    }
+
+    public get highlight(): HighlightInfo {
+        return this._highlight;
+    }
+
     /**
-     * Token type determined by tokenizer
+     * Makes the token virtual.
+     * Virtual tokens are not part of the original code.
      */
-    readonly kind: TokenKind;
+    protected markVirtual() {
+        // We recognize the virtual token by whether the highlight is invalid.
+        this._highlight.token = HighlightToken.Invalid;
+    }
+
     /**
-     * The text content of a token as it is
+     * Returns whether the token does not exist in the original code.
      */
-    readonly text: string;
+    public isVirtual(): boolean {
+        return this._highlight.token === HighlightToken.Invalid;
+    }
+
+    public isReservedToken(): this is TokenReserved {
+        return this.kind === TokenKind.Reserved;
+    }
+
+    public isNumberToken(): this is TokenNumber {
+        return this.kind === TokenKind.Number;
+    }
+
+    public setPreprocessedTokenInfo(index: number, next: TokenBase | undefined) {
+        this._indexInPreprocessedTokenList = index;
+        this._nextPreprocessedToken = next;
+    }
+
     /**
-     * The location information of a token including the file path and the position within the file.
+     * Returns the next token in the preprocessed token list.
      */
-    readonly location: ReadonlyLocationInfo;
+    public get index() {
+        return this._indexInPreprocessedTokenList;
+    }
+
     /**
-     * Syntax highlighting information.
+     * Returns the next token in the preprocessed token list.
      */
-    highlight: HighlightInfo;
+    public get next() {
+        return this._nextPreprocessedToken;
+    }
 }
 
-export interface TokenReserved extends TokenBase {
-    readonly kind: TokenKind.Reserved;
-    readonly property: ReservedWordProperty;
+export class TokenReserved extends TokenBase {
+    public readonly property: ReservedWordProperty;
+
+    public constructor(
+        text: string,
+        location: ReadonlyLocationInfo,
+        property?: ReservedWordProperty,
+    ) {
+        super(text, location, HighlightToken.Keyword);
+
+        this.property = property ?? findAllReservedWordProperty(text);
+    }
+
+    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenReserved {
+        const token = new TokenReserved(text, location ?? createEmptyLocation());
+        token.markVirtual();
+        return token;
+    }
+
+    public get kind(): TokenKind {
+        return TokenKind.Reserved;
+    }
 }
 
-export interface ReservedWordProperty {
-    readonly isMark: boolean;
-    readonly isExprPreOp: boolean;
-    readonly isExprOp: boolean;
-    readonly isBitOp: boolean;
-    readonly isMathOp: boolean;
-    readonly isCompOp: boolean;
-    readonly isLogicOp: boolean;
-    readonly isAssignOp: boolean;
-    readonly isNumber: boolean;
-    readonly isPrimeType: boolean;
-}
+export class TokenIdentifier extends TokenBase {
+    public constructor(
+        text: string,
+        location: ReadonlyLocationInfo,
+    ) {
+        super(text, location, HighlightToken.Variable);
+    }
 
-export interface TokenIdentifier extends TokenBase {
-    readonly kind: TokenKind.Identifier;
+    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenIdentifier {
+        const token = new TokenIdentifier(text, location ?? createEmptyLocation());
+        token.markVirtual();
+        return token;
+    }
+
+    public get kind(): TokenKind {
+        return TokenKind.Identifier;
+    }
 }
 
 export enum NumberLiterals {
@@ -95,21 +170,53 @@ export enum NumberLiterals {
     Double = 'Double',
 }
 
-export interface TokenNumber extends TokenBase {
-    readonly kind: TokenKind.Number;
-    readonly numeric: NumberLiterals;
+export class TokenNumber extends TokenBase {
+    public constructor(
+        text: string,
+        location: ReadonlyLocationInfo,
+        public readonly numeric: NumberLiterals,
+    ) {
+        super(text, location, HighlightToken.Number);
+    }
+
+    public get kind(): TokenKind {
+        return TokenKind.Number;
+    }
 }
 
-export interface TokenString extends TokenBase {
-    readonly kind: TokenKind.String;
+export class TokenString extends TokenBase {
+    public constructor(
+        text: string,
+        location: ReadonlyLocationInfo,
+    ) {
+        super(text, location, HighlightToken.String);
+    }
+
+    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenString {
+        const token = new TokenString(text, location ?? createEmptyLocation());
+        token.markVirtual();
+        return token;
+    }
+
+    public get kind(): TokenKind {
+        return TokenKind.String;
+    }
 }
 
-export interface TokenComment extends TokenBase {
-    readonly kind: TokenKind.Comment;
+export class TokenComment extends TokenBase {
+    public constructor(
+        text: string,
+        location: ReadonlyLocationInfo,
+    ) {
+        super(text, location, HighlightToken.Comment);
+    }
+
+    public get kind(): TokenKind {
+        return TokenKind.Comment;
+    }
 }
 
 /**
- * TokenizerToken is a union type of all token types.
- * It is generated by the tokenizer.
+ * TokenObject is a union type of all token types.
  */
-export type TokenizerToken = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment
+export type TokenObject = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment

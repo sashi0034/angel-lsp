@@ -1,6 +1,6 @@
 import {Position} from "vscode-languageserver";
 import {FormatterState, stepCursorAlongLines} from "./formatterState";
-import {TokenizerToken, TokenKind} from "../compiler_tokenizer/tokens";
+import {TokenObject, TokenKind} from "../compiler_tokenizer/tokens";
 import {NodesBase} from "../compiler_parser/nodes";
 import {tracer} from "../code/tracer";
 import {getGlobalSettings} from "../code/settings";
@@ -22,7 +22,7 @@ function walkBackUntilWhitespace(format: FormatterState, cursor: Position): Posi
     return {line: line, character: character};
 }
 
-function formatTokenWithSpace(format: FormatterState, frontToken: TokenizerToken) {
+function formatTokenWithSpace(format: FormatterState, frontToken: TokenObject) {
     const spaceEnd: Position = {line: frontToken.location.start.line, character: frontToken.location.start.character};
 
     const spaceStart: Position = walkBackUntilWhitespace(format, spaceEnd);
@@ -38,7 +38,7 @@ function formatTokenWithSpace(format: FormatterState, frontToken: TokenizerToken
     format.setCursorToTail(frontToken);
 }
 
-function canInsertEditSpace(backToken: TokenizerToken | undefined, frontToken: TokenizerToken): boolean {
+function canInsertEditSpace(backToken: TokenObject | undefined, frontToken: TokenObject): boolean {
     const backTail = backToken?.location?.end;
     const frontHead = frontToken.location.start;
 
@@ -104,7 +104,7 @@ export function formatMoveUntil(format: FormatterState, destination: Position) {
     }
 }
 
-export function formatMoveToNonComment(format: FormatterState): TokenizerToken | undefined {
+export function formatMoveToNonComment(format: FormatterState): TokenObject | undefined {
     let cursor = format.getCursor();
     while (format.isFinished() === false) {
         const next = format.map.getTokenAt(cursor);
@@ -171,7 +171,7 @@ function executeFormatTargetWith(
     target: string,
     option: FormatTargetOption,
     cursor: Position,
-    next: TokenizerToken
+    next: TokenObject
 ) {
     const isCondenseLeft: boolean =
         format.popCondense() || option.condenseSides === true || option.condenseLeft === true;

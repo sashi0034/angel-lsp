@@ -34,7 +34,7 @@ import {
 import {FormatterState, isEditedWrapAt} from "./formatterState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
-import {TokenizerToken} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokens";
 import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -1031,7 +1031,7 @@ function formatCondition(format: FormatterState, condition: NodeCondition) {
 // COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
-export function formatDocument(content: string, tokens: TokenizerToken[], ast: NodeScript): TextEdit[] {
+export function formatDocument(content: string, tokens: TokenObject[], ast: NodeScript): TextEdit[] {
     const format = new FormatterState(content, tokens, ast);
     formatScript(format, ast);
 

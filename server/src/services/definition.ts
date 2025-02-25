@@ -1,14 +1,13 @@
 import {SymbolObject} from "../compiler_analyzer/symbolObject";
 import {Location, Position} from "vscode-languageserver";
-import {TokenizerToken} from "../compiler_tokenizer/tokens";
-import {ParserToken} from "../compiler_parser/parserToken";
+import {TokenObject} from "../compiler_tokenizer/tokens";
 import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.
  */
-export function getFileLocationOfToken(token: TokenizerToken): Location {
+export function getFileLocationOfToken(token: TokenObject): Location {
     return {
         uri: token.location.path.toString(),
         range: {
@@ -28,7 +27,7 @@ export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
-export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): ParserToken | undefined {
+export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): TokenObject | undefined {
     return serveDefinition(analyzedScope, caret)?.declaredPlace;
 }
 
