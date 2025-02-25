@@ -169,7 +169,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 
                 superSymbol.mutate().declaredPlace = TokenIdentifier.createVirtual(
                     'super',
-                    {...superSymbol.declaredPlace.location}
+                    superSymbol.declaredPlace.location
                 );
                 insertSymbolObject(scope.symbolMap, superSymbol);
             }

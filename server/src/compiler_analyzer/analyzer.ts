@@ -46,7 +46,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {LocationInfo, NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     AnalyzedScope,
     createAnonymousIdentifier,
@@ -87,6 +87,7 @@ import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 export type HoistQueue = (() => void)[];
 
@@ -347,8 +348,8 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // Append a hint for completion of the namespace to the scope.
-        const complementRange: LocationInfo = {...nextScope.location};
-        complementRange.end = getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start;
+        const complementRange: TextLocation = nextScope.location.withEnd(
+            getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start);
         parentScope.completionHints.push({
             complementKind: ComplementKind.Namespace,
             complementLocation: complementRange,

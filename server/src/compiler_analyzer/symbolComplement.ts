@@ -1,9 +1,10 @@
 import {ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
-import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 /**
  * Types of autocomplete targets
@@ -17,7 +18,7 @@ export enum ComplementKind {
 
 export interface ComplementBase {
     complementKind: ComplementKind;
-    complementLocation: LocationInfo;
+    complementLocation: TextLocation;
 }
 
 /**

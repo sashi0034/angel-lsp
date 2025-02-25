@@ -2,7 +2,6 @@ import {SymbolObject} from "../compiler_analyzer/symbolObject";
 import {Location, Position} from "vscode-languageserver";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.
@@ -35,7 +34,7 @@ function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolMap) {
         const location = symbol.declaredPlace.location;
-        if (location.path === path && isPositionInRange(caret, location)) {
+        if (location.path === path && location.positionInRange(caret)) {
             return symbol;
         }
     }
@@ -43,7 +42,7 @@ function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path
     for (const reference of targetScope.referencedList) {
         // Search a symbol in references in this scope
         const referencedLocation = reference.referencedToken.location;
-        if (isPositionInRange(caret, referencedLocation)) {
+        if (referencedLocation.positionInRange(caret)) {
             // If the reference location is on the cursor, return the declaration
             return reference.declaredSymbol;
         }

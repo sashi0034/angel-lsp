@@ -2,7 +2,6 @@ import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
     HighlightInfo,
     NumberLiterals,
-    ReadonlyLocationInfo,
     TokenComment,
     TokenIdentifier,
     TokenObject,
@@ -14,7 +13,7 @@ import {
 import {diagnostic} from "../code/diagnostic";
 import {TokenizerState, UnknownBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./reservedWord";
-import {Position} from "vscode-languageserver";
+import {TextLocation, TextPosition} from "./textLocation";
 
 function isDigit(c: string): boolean {
     return /^[0-9]$/.test(c);
@@ -36,16 +35,8 @@ function isAlphanumeric(c: string): boolean {
     return /^[A-Za-z0-9_]$/.test(c);
 }
 
-function copyLocationWithNewEnd(location: ReadonlyLocationInfo, end: Position): ReadonlyLocationInfo {
-    return {
-        path: location.path,
-        start: location.start,
-        end: end,
-    };
-}
-
 // Check if the next token is a comment and tokenize it.
-function tryComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenComment | undefined {
+function tryComment(tokenizer: TokenizerState, location: TextLocation): TokenComment | undefined {
     if (tokenizer.isNext('//')) {
         return tokenizeLineComment(tokenizer, location);
     } else if (tokenizer.isNext('/*')) {
@@ -54,7 +45,7 @@ function tryComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo): 
     return undefined;
 }
 
-function tokenizeLineComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo) {
+function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursor();
     tokenizer.stepFor(2);
     for (; ;) {
@@ -62,10 +53,10 @@ function tokenizeLineComment(tokenizer: TokenizerState, location: ReadonlyLocati
         tokenizer.stepNext();
     }
 
-    return new TokenComment(tokenizer.substrFrom(start), copyLocationWithNewEnd(location, tokenizer.copyHead()));
+    return new TokenComment(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
 }
 
-function tokenizeBlockComment(tokenizer: TokenizerState, location: ReadonlyLocationInfo) {
+function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursor();
     tokenizer.stepFor(2);
     for (; ;) {
@@ -77,11 +68,11 @@ function tokenizeBlockComment(tokenizer: TokenizerState, location: ReadonlyLocat
         tokenizer.stepNext();
     }
 
-    return new TokenComment(tokenizer.substrFrom(start), copyLocationWithNewEnd(location, tokenizer.copyHead()));
+    return new TokenComment(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
 }
 
 // Check if the next token is a number and tokenize it.
-function tryNumber(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenNumber | undefined {
+function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumber | undefined {
     const start = tokenizer.getCursor();
 
     const numeric = consumeNumber(tokenizer);
@@ -90,7 +81,7 @@ function tryNumber(tokenizer: TokenizerState, location: ReadonlyLocationInfo): T
 
     return new TokenNumber(
         tokenizer.substrFrom(start),
-        copyLocationWithNewEnd(location, tokenizer.copyHead()),
+        location.withEnd(tokenizer.copyHead()),
         numeric);
 }
 
@@ -158,7 +149,7 @@ function consumeNumber(tokenizer: TokenizerState) {
 }
 
 // Check if the next token is a string and tokenize it.
-function tryString(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenString | undefined {
+function tryString(tokenizer: TokenizerState, location: TextLocation): TokenString | undefined {
 
     const start = tokenizer.getCursor();
     if (tokenizer.next() !== '\'' && tokenizer.next() !== '"') return undefined;
@@ -192,25 +183,25 @@ function tryString(tokenizer: TokenizerState, location: ReadonlyLocationInfo): T
         }
     }
 
-    return new TokenString(tokenizer.substrFrom(start), copyLocationWithNewEnd(location, tokenizer.copyHead()));
+    return new TokenString(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
 }
 
 // Check if the next token is a mark and tokenize it.
-function tryMark(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenReserved | undefined {
+function tryMark(tokenizer: TokenizerState, location: TextLocation): TokenReserved | undefined {
     const mark = findReservedWeakMarkProperty(tokenizer.content, tokenizer.getCursor());
     if (mark === undefined) return undefined;
 
     tokenizer.stepFor(mark.key.length);
 
-    return createTokenReserved(mark.key, mark.value, copyLocationWithNewEnd(location, tokenizer.copyHead()));
+    return createTokenReserved(mark.key, mark.value, location.withEnd(tokenizer.copyHead()));
 }
 
-function createTokenReserved(text: string, property: ReservedWordProperty, location: ReadonlyLocationInfo): TokenReserved {
+function createTokenReserved(text: string, property: ReservedWordProperty, location: TextLocation): TokenReserved {
     return new TokenReserved(text, location, property);
 }
 
 // Check if the next token is an identifier and tokenize it.
-function tryIdentifier(tokenizer: TokenizerState, location: ReadonlyLocationInfo): TokenObject | TokenIdentifier | undefined {
+function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | TokenIdentifier | undefined {
     const start = tokenizer.getCursor();
     while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer.next())) {
         tokenizer.stepFor(1);
@@ -219,7 +210,7 @@ function tryIdentifier(tokenizer: TokenizerState, location: ReadonlyLocationInfo
     const identifier = tokenizer.substrFrom(start);
     if (identifier === "") return undefined;
 
-    const tokenLocation = copyLocationWithNewEnd(location, tokenizer.copyHead());
+    const tokenLocation = location.withEnd(tokenizer.copyHead());
 
     const reserved = findReservedKeywordProperty(identifier);
     if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
@@ -251,11 +242,11 @@ export function tokenize(content: string, path: string): TokenObject[] {
             continue;
         }
 
-        const location: ReadonlyLocationInfo = {
-            start: tokenizer.copyHead(),
-            end: tokenizer.copyHead(),
-            path: path
-        };
+        const location: TextLocation = new TextLocation(
+            path,
+            tokenizer.copyHead(),
+            tokenizer.copyHead(),
+        );
 
         // Tokenize Comment
         const triedComment = tryComment(tokenizer, location);

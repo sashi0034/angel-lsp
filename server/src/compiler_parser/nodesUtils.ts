@@ -1,6 +1,7 @@
-import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {EntityAttribute, FunctionAttribute, NodeType, ParsedRange, ReferenceModifier} from "./nodes";
 import {Mutable} from "../utils/utilities";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 export function getNextTokenIfExist(token: TokenObject): TokenObject {
     if (token.next !== undefined) return token.next;
@@ -11,15 +12,11 @@ export function isRangeInOneLine(range: ParsedRange): boolean {
     return range.start.location.start.line === range.end.location.end.line;
 }
 
-export function getLocationBetween(start: TokenObject, end: TokenObject): LocationInfo {
-    return {
-        path: start.location.path,
-        start: start.location.start,
-        end: end.location.end
-    };
+export function getLocationBetween(start: TokenObject, end: TokenObject): TextLocation {
+    return new TextLocation(start.location.path, start.location.start, end.location.end);
 }
 
-export function getNodeLocation(range: ParsedRange): LocationInfo {
+export function getNodeLocation(range: ParsedRange): TextLocation {
     return getLocationBetween(range.start, range.end);
 }
 

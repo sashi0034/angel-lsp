@@ -1,7 +1,6 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
-import {Range} from "vscode-languageserver";
-import {DeepReadonly} from "../utils/utilities";
 import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
+import {TextLocation} from "./textLocation";
 
 /**
  * Tokenizer categorizes tokens into the following kinds.
@@ -13,20 +12,6 @@ export enum TokenKind {
     Number = 'Number',
     String = 'String',
     Comment = 'Comment',
-}
-
-export interface LocationInfo extends Range {
-    path: string;
-}
-
-export type ReadonlyLocationInfo = DeepReadonly<LocationInfo>;
-
-export function createEmptyLocation(): LocationInfo {
-    return {
-        path: '',
-        start: {line: 0, character: 0},
-        end: {line: 0, character: 0},
-    };
 }
 
 export interface HighlightInfo {
@@ -60,7 +45,7 @@ export abstract class TokenBase {
         // The text content of a token as it is
         public readonly text: string,
         // The location information of a token including the file path and the position within the file.
-        public readonly location: ReadonlyLocationInfo,
+        public readonly location: TextLocation,
         highlightToken: HighlightToken,
         highlightModifier: HighlightModifier = HighlightModifier.Nothing,
     ) {
@@ -126,7 +111,7 @@ export class TokenReserved extends TokenBase {
 
     public constructor(
         text: string,
-        location: ReadonlyLocationInfo,
+        location: TextLocation,
         property?: ReservedWordProperty,
     ) {
         super(text, location, HighlightToken.Keyword);
@@ -134,8 +119,8 @@ export class TokenReserved extends TokenBase {
         this.property = property ?? findAllReservedWordProperty(text);
     }
 
-    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenReserved {
-        const token = new TokenReserved(text, location ?? createEmptyLocation());
+    public static createVirtual(text: string, location?: TextLocation): TokenReserved {
+        const token = new TokenReserved(text, location ?? TextLocation.createEmpty());
         token.markVirtual();
         return token;
     }
@@ -148,13 +133,13 @@ export class TokenReserved extends TokenBase {
 export class TokenIdentifier extends TokenBase {
     public constructor(
         text: string,
-        location: ReadonlyLocationInfo,
+        location: TextLocation,
     ) {
         super(text, location, HighlightToken.Variable);
     }
 
-    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenIdentifier {
-        const token = new TokenIdentifier(text, location ?? createEmptyLocation());
+    public static createVirtual(text: string, location?: TextLocation): TokenIdentifier {
+        const token = new TokenIdentifier(text, location ?? TextLocation.createEmpty());
         token.markVirtual();
         return token;
     }
@@ -173,7 +158,7 @@ export enum NumberLiterals {
 export class TokenNumber extends TokenBase {
     public constructor(
         text: string,
-        location: ReadonlyLocationInfo,
+        location: TextLocation,
         public readonly numeric: NumberLiterals,
     ) {
         super(text, location, HighlightToken.Number);
@@ -187,13 +172,13 @@ export class TokenNumber extends TokenBase {
 export class TokenString extends TokenBase {
     public constructor(
         text: string,
-        location: ReadonlyLocationInfo,
+        location: TextLocation,
     ) {
         super(text, location, HighlightToken.String);
     }
 
-    public static createVirtual(text: string, location?: ReadonlyLocationInfo): TokenString {
-        const token = new TokenString(text, location ?? createEmptyLocation());
+    public static createVirtual(text: string, location?: TextLocation): TokenString {
+        const token = new TokenString(text, location ?? TextLocation.createEmpty());
         token.markVirtual();
         return token;
     }
@@ -206,7 +191,7 @@ export class TokenString extends TokenBase {
 export class TokenComment extends TokenBase {
     public constructor(
         text: string,
-        location: ReadonlyLocationInfo,
+        location: TextLocation,
     ) {
         super(text, location, HighlightToken.Comment);
     }

@@ -1,55 +1,7 @@
-import {Position, Range} from "vscode-languageserver";
 import {
-    createEmptyLocation, LocationInfo,
     TokenBase,
-    TokenIdentifier,
-    TokenKind,
-    TokenObject,
-    TokenReserved
+    TokenObject
 } from "./tokenObject";
-
-export function isPositionInRange(position: Position, range: Range): boolean {
-    const startLine = range.start.line;
-    const endLine = range.end.line;
-    const posLine = position.line;
-
-    const startCharacter = range.start.character;
-    const endCharacter = range.end.character;
-    const posCharacter = position.character;
-
-    if (startLine === posLine && posLine < endLine)
-        return startCharacter <= posCharacter;
-    else if (startLine < posLine && posLine < endLine)
-        return true;
-    else if (startLine < posLine && posLine === endLine)
-        return posCharacter <= endCharacter;
-    else if (startLine === posLine && posLine === endLine)
-        return startCharacter <= posCharacter && posCharacter <= endCharacter;
-
-    return false;
-}
-
-export function isSameLine(l: Position, r: Position): boolean {
-    return l.line === r.line;
-}
-
-export function isSamePosition(l: Position, r: Position): boolean {
-    return l.line === r.line && l.character === r.character;
-}
-
-/**
- * Determines if the left position is ahead of the right position.
- */
-export function isAheadPosition(l: Position, r: Position): boolean {
-    return l.line < r.line || (l.line === r.line && l.character < r.character);
-}
-
-/**
- * Determines if the left position is behind the right position.
- */
-export function isBehindPosition(l: Position, r: Position): boolean {
-    return l.line > r.line || (l.line === r.line && l.character > r.character);
-}
 
 /**
  * Determines if two tokens are identical.

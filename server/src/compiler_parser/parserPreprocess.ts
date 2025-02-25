@@ -1,7 +1,7 @@
 import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
-import {isSameLine} from "../compiler_tokenizer/tokenUtils";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 /**
  * Output of the 'preprocessTokensForParser' function.
@@ -92,7 +92,7 @@ function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: Tok
 function sliceTokenListBySameLine(tokens: TokenObject[], head: number): TokenObject[] {
     let tail = head;
     for (let i = head; i < tokens.length - 1; i++) {
-        if (isSameLine(tokens[i].location.end, tokens[i + 1].location.start) === false) {
+        if (tokens[i].location.end.isSameLine(tokens[i + 1].location.start) === false) {
             break;
         }
 
@@ -105,11 +105,11 @@ function sliceTokenListBySameLine(tokens: TokenObject[], head: number): TokenObj
 function createConnectedStringTokenAt(actualTokens: TokenObject[], index: number): TokenObject {
     const tokenText = actualTokens[index].text + actualTokens[index + 1].text;
 
-    const tokenLocation = {
-        path: actualTokens[index].location.path,
-        start: actualTokens[index].location.start,
-        end: actualTokens[index + 1].location.end,
-    };
+    const tokenLocation = new TextLocation(
+        actualTokens[index].location.path,
+        actualTokens[index].location.start,
+        actualTokens[index + 1].location.end
+    );
 
     return TokenString.createVirtual(tokenText, tokenLocation);
 }

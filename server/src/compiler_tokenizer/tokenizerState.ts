@@ -1,6 +1,6 @@
-import {Position} from "vscode-languageserver";
-import {LocationInfo} from "./tokenObject";
 import {diagnostic} from "../code/diagnostic";
+import {TextLocation, TextPosition, TextRange} from "./textLocation";
+import {DeepMutable, Mutable} from "../utils/utilities";
 
 export class TokenizerState {
     // The content of the file to be tokenized
@@ -10,7 +10,7 @@ export class TokenizerState {
     private cursor: number;
 
     // Same as cursor, but expressed in terms of line and character position rather than index
-    private head: Position;
+    private readonly head: Mutable<TextPosition>;
 
     public getCursor() {
         return this.cursor;
@@ -19,7 +19,7 @@ export class TokenizerState {
     constructor(content: string) {
         this.content = content;
         this.cursor = 0;
-        this.head = {line: 0, character: 0};
+        this.head = new TextPosition(0, 0);
     }
 
     next(offset: number = 0) {
@@ -67,11 +67,8 @@ export class TokenizerState {
         return this.content.substring(start, this.cursor);
     }
 
-    copyHead() {
-        return {
-            line: this.head.line,
-            character: this.head.character
-        };
+    copyHead(): TextPosition {
+        return this.head.clone();
     }
 }
 
@@ -80,9 +77,9 @@ export class TokenizerState {
  */
 export class UnknownBuffer {
     private buffer: string = "";
-    private location: LocationInfo | null = null;
+    private location: DeepMutable<TextRange> | null = null;
 
-    public append(head: LocationInfo, next: string) {
+    public append(head: TextRange, next: string) {
         if (this.location === null) {
             this.location = head;
         } else if (head.start.line !== this.location.start.line
