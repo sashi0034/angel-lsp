@@ -9,7 +9,7 @@ import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, Tem
 import {SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;

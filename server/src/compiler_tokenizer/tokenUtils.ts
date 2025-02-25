@@ -6,7 +6,7 @@ import {
     TokenKind,
     TokenObject,
     TokenReserved
-} from "./tokens";
+} from "./tokenObject";
 
 export function isPositionInRange(position: Position, range: Range): boolean {
     const startLine = range.start.line;

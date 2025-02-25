@@ -1,6 +1,6 @@
 import {ParsedRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
-import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokens";
+import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";

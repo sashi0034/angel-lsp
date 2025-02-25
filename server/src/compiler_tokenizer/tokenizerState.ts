@@ -1,5 +1,5 @@
 import {Position} from "vscode-languageserver";
-import {LocationInfo} from "./tokens";
+import {LocationInfo} from "./tokenObject";
 import {diagnostic} from "../code/diagnostic";
 
 export class TokenizerState {

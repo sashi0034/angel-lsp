@@ -10,10 +10,10 @@ import {
     TokenNumber,
     TokenReserved,
     TokenString
-} from "./tokens";
+} from "./tokenObject";
 import {diagnostic} from "../code/diagnostic";
 import {TokenizerState, UnknownBuffer} from "./tokenizerState";
-import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./tokenReservedWords";
+import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./reservedWord";
 import {Position} from "vscode-languageserver";
 
 function isDigit(c: string): boolean {

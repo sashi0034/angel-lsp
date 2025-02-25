@@ -11,7 +11,7 @@ import {
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
 import {SymbolScope} from "./symbolScope";
-import {TokenKind, TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import assert = require("node:assert");
 
 /**

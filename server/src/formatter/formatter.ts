@@ -34,7 +34,7 @@ import {
 import {FormatterState, isEditedWrapAt} from "./formatterState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}

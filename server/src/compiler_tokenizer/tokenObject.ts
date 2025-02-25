@@ -1,7 +1,7 @@
 import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {Range} from "vscode-languageserver";
 import {DeepReadonly} from "../utils/utilities";
-import {findAllReservedWordProperty, ReservedWordProperty} from "./tokenReservedWords";
+import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
 
 /**
  * Tokenizer categorizes tokens into the following kinds.

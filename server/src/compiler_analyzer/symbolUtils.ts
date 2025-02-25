@@ -9,7 +9,7 @@ import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./s
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 /**
  * Returns the path to a file where the scope is defined.

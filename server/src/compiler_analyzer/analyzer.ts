@@ -46,7 +46,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {LocationInfo, NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokens";
+import {LocationInfo, NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     AnalyzedScope,
     createAnonymousIdentifier,

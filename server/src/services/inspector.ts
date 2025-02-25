@@ -1,4 +1,4 @@
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {Profiler} from "../code/profiler";
 import {tokenize} from "../compiler_tokenizer/tokenizer";
 import {parseAfterTokenized} from "../compiler_parser/parser";

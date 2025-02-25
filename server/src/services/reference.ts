@@ -2,7 +2,7 @@ import {Position} from "vscode-languageserver";
 import {serveDefinitionAsToken} from "./definition";
 import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {isSameToken} from "../compiler_tokenizer/tokenUtils";
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
     const targetDefinition = serveDefinitionAsToken(targetScope, caret);

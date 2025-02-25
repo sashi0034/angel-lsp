@@ -1,6 +1,6 @@
 import {createSymbolScope} from "./symbolScope";
-import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokens";
-import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
+import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
+import {numberTypeSet} from "../compiler_tokenizer/reservedWord";
 import {SymbolType} from "./symbolObject";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";

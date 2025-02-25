@@ -1,4 +1,4 @@
-import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokens";
+import {LocationInfo, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {EntityAttribute, FunctionAttribute, NodeType, ParsedRange, ReferenceModifier} from "./nodes";
 import {Mutable} from "../utils/utilities";
 

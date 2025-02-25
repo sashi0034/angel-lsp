@@ -34,7 +34,7 @@ import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../code/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./symbolBuiltin";
 import {Mutable} from "../utils/utilities";
-import {TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {getIdentifierInType} from "../compiler_parser/nodesUtils";
 import {
     analyzeFunc,

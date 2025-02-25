@@ -1,4 +1,4 @@
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export enum AccessModifier {
     Private = 'Private',

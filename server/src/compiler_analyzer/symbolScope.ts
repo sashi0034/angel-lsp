@@ -15,7 +15,7 @@ import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokens";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export type ScopeMap = Map<string, SymbolScope>;
 

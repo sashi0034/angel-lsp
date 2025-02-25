@@ -67,7 +67,7 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
-import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokens";
+import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
 import {isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";

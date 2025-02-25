@@ -1,4 +1,4 @@
-import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokens";
+import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {diagnostic} from "../code/diagnostic";
 import {HighlightToken} from "../code/highlight";
 import {isSameLine} from "../compiler_tokenizer/tokenUtils";
