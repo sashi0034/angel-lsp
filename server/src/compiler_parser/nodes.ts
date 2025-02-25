@@ -128,9 +128,9 @@ export type NodeScriptMember =
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodesBase {
-    nodeName: NodeName.Namespace
-    namespaceList: TokenObject[],
-    script: NodeScript
+    readonly nodeName: NodeName.Namespace
+    readonly namespaceList: TokenObject[],
+    readonly script: NodeScript
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -457,9 +457,9 @@ export type NodeExprValue =
 
 // CONSTRUCTCALL ::= TYPE ARGLIST
 export interface NodeConstructCall extends NodesBase {
-    nodeName: NodeName.ConstructCall;
-    type: NodeType;
-    argList: NodeArgList;
+    readonly nodeName: NodeName.ConstructCall;
+    readonly type: NodeType;
+    readonly argList: NodeArgList;
 }
 
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
