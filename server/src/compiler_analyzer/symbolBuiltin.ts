@@ -1,13 +1,11 @@
-import {ParserToken} from "../compiler_parser/parserToken";
 import {createSymbolScope} from "./symbolScope";
-import {createVirtualToken} from "../compiler_tokenizer/tokenUtils";
-import {TokenKind} from "../compiler_tokenizer/tokens";
-import {numberTypeSet} from "../compiler_tokenizer/tokenReservedWords";
+import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
+import {numberTypeSet} from "../compiler_tokenizer/reservedWord";
 import {SymbolType} from "./symbolObject";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 
-function createBuiltinType(virtualToken: ParserToken): SymbolType {
+function createBuiltinType(virtualToken: TokenObject): SymbolType {
     return SymbolType.create({
         declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: createSymbolScope(undefined, undefined, ''),
@@ -19,7 +17,7 @@ function createBuiltinType(virtualToken: ParserToken): SymbolType {
 const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
     const map = new Map<string, SymbolType>();
     for (const name of numberTypeSet) {
-        map.set(name, createBuiltinType(createVirtualToken(TokenKind.Reserved, name)));
+        map.set(name, createBuiltinType(TokenReserved.createVirtual(name)));
     }
     return map;
 })();
@@ -46,17 +44,17 @@ function assignBuiltinNumberType(key: string): SymbolType {
     assert(false);
 }
 
-export const builtinBoolType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'bool'));
+export const builtinBoolType: SymbolType = createBuiltinType(TokenReserved.createVirtual('bool'));
 
 export const resolvedBuiltinBool: ResolvedType = new ResolvedType(builtinBoolType);
 
-export const builtinVoidType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'void'));
+export const builtinVoidType: SymbolType = createBuiltinType(TokenReserved.createVirtual('void'));
 
-export const builtinAnyType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, '?'));
+export const builtinAnyType: SymbolType = createBuiltinType(TokenReserved.createVirtual('?'));
 
-export const builtinAutoType: SymbolType = createBuiltinType(createVirtualToken(TokenKind.Reserved, 'auto'));
+export const builtinAutoType: SymbolType = createBuiltinType(TokenReserved.createVirtual('auto'));
 
-export function tryGetBuiltInType(token: ParserToken): SymbolType | undefined {
+export function tryGetBuiltInType(token: TokenObject): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;
@@ -64,11 +62,11 @@ export function tryGetBuiltInType(token: ParserToken): SymbolType | undefined {
     else if ((identifier === 'void')) return builtinVoidType;
     else if (identifier === '?') return builtinAnyType;
     else if (identifier === 'auto') return builtinAutoType;
-    else if (token.kind === TokenKind.Reserved && token.property.isNumber) return assignBuiltinNumberType(identifier);
+    else if (token.isReservedToken() && token.property.isNumber) return assignBuiltinNumberType(identifier);
 
     return undefined;
 }
 
-export const builtinThisToken = createVirtualToken(TokenKind.Identifier, 'this');
+export const builtinThisToken = TokenIdentifier.createVirtual('this');
 
-export const builtinSetterValueToken = createVirtualToken(TokenKind.Identifier, 'value');
+export const builtinSetterValueToken = TokenIdentifier.createVirtual('value');

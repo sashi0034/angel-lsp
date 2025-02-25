@@ -1,7 +1,6 @@
-import {ReservedWordProperty} from "./tokens";
 import {Trie, TriePair} from "../utils/trie";
-import assert = require("assert");
 import {Mutable} from "../utils/utilities";
+import assert = require("assert");
 
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
 
@@ -43,6 +42,19 @@ const assignOpSet = new Set(['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%='
 export const numberTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double']);
 
 const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
+
+export interface ReservedWordProperty {
+    readonly isMark: boolean;
+    readonly isExprPreOp: boolean;
+    readonly isExprOp: boolean;
+    readonly isBitOp: boolean;
+    readonly isMathOp: boolean;
+    readonly isCompOp: boolean;
+    readonly isLogicOp: boolean;
+    readonly isAssignOp: boolean;
+    readonly isNumber: boolean;
+    readonly isPrimeType: boolean;
+}
 
 function makeEmptyProperty(): ReservedWordProperty {
     return {

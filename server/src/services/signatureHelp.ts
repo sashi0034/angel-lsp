@@ -2,10 +2,10 @@ import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {isAheadPosition, isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementKind, CompletionArgument} from "../compiler_analyzer/symbolComplement";
 import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
 
 export function serveSignatureHelp(
     diagnosedScope: SymbolScope, caret: Position, uri: URI
@@ -20,10 +20,10 @@ export function serveSignatureHelp(
 
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.complementLocation;
-        if (isPositionInRange(caret, location)) {
+        if (location.positionInRange(caret)) {
             let callee = hint.expectedCallee;
             for (; ;) {
-                signatures.push(getFunctionSignature(hint, callee, caret));
+                signatures.push(getFunctionSignature(hint, callee, new TextPosition(caret.line, caret.character)));
 
                 if (callee.nextOverload === undefined) break;
 
@@ -40,7 +40,7 @@ export function serveSignatureHelp(
     };
 }
 
-function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFunction, caret: Position) {
+function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFunction, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;
@@ -57,7 +57,7 @@ function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFu
         if (i > 0) signatureLabel += ', ';
         signatureLabel += label;
 
-        if (i < hint.passingRanges.length && isAheadPosition(caret, hint.passingRanges[i].start.location.start) === false) {
+        if (i < hint.passingRanges.length && caret.isAheadOf(hint.passingRanges[i].start.location.start) === false) {
             activeIndex = i;
             if (hint.passingRanges[i].end.next?.text === ',') activeIndex++;
         }

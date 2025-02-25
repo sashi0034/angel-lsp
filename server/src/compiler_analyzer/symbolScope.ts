@@ -10,12 +10,12 @@ import {
     NodeName, NodeStatBlock, NodeTry,
     NodeVirtualProp, NodeWhile
 } from "../compiler_parser/nodes";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {getPathOfScope} from "./symbolUtils";
 import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export type ScopeMap = Map<string, SymbolScope>;
 
@@ -49,7 +49,7 @@ export type ScopeLinkedNode =
  */
 export class SymbolScope {
     // A node associated with this scope
-    private scopeLinkedNode: ScopeLinkedNode | undefined;
+    private _linkedNode: ScopeLinkedNode | undefined;
     // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file.
     private readonly parentOrContext: SymbolScope | RootScopeContext;
 
@@ -63,7 +63,7 @@ export class SymbolScope {
         public readonly completionHints: ComplementHints[],
     ) {
         this.parentOrContext = parentScope ?? {builtinStringType: undefined};
-        this.scopeLinkedNode = linkedNode;
+        this._linkedNode = linkedNode;
     }
 
     public static create(args: {
@@ -87,12 +87,12 @@ export class SymbolScope {
     }
 
     public setLinkedNode(node: ScopeLinkedNode | undefined) {
-        assert(this.scopeLinkedNode === undefined);
-        this.scopeLinkedNode = node;
+        assert(this._linkedNode === undefined);
+        this._linkedNode = node;
     }
 
     public get linkedNode(): ScopeLinkedNode | undefined {
-        return this.scopeLinkedNode;
+        return this._linkedNode;
     }
 
     /**
@@ -283,7 +283,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
 export function findScopeShallowlyOrInsert(
     linkedNode: ScopeLinkedNode | undefined,
     scope: SymbolScope,
-    identifierToken: ParserToken
+    identifierToken: TokenObject
 ): SymbolScope {
     const found = findScopeShallowlyThenInsertByIdentifier(linkedNode, scope, identifierToken.text);
     if (linkedNode !== undefined && linkedNode !== found.linkedNode) {

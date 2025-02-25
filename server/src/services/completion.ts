@@ -13,7 +13,6 @@ import {
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
-import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementHints, ComplementKind} from "../compiler_analyzer/symbolComplement";
 import {findScopeContainingPosition} from "./serviceHelper";
 
@@ -88,7 +87,7 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
     for (const hint of scope.completionHints) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
         const location = hint.complementLocation;
-        if (isPositionInRange(caret, location)) {
+        if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             return searchMissingCompletion(scope, hint);
         }

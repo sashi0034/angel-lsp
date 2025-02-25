@@ -5,11 +5,11 @@ import {
     SymbolVariable
 } from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 /**
  * Returns the path to a file where the scope is defined.
@@ -59,7 +59,7 @@ export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolea
     return result === undefined;
 }
 
-export type TemplateTranslation = Map<ParserToken, ResolvedType | undefined>;
+export type TemplateTranslation = Map<TokenObject, ResolvedType | undefined>;
 
 export function resolveTemplateType(
     templateTranslate: TemplateTranslation | undefined, type: ResolvedType | undefined

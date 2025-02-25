@@ -67,11 +67,10 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightToken} from "../code/highlight";
-import {ParserToken} from "./parserToken";
-import {TokenKind} from "../compiler_tokenizer/tokens";
-import {BreakOrThrough, ParseFailure, ParserState, ParsedResult} from "./parserState";
+import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
+import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
-import {createVirtualToken, isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";
+import {isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 
@@ -170,7 +169,7 @@ function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
     const rangeStart = parser.next();
     parser.commit(HighlightToken.Builtin);
 
-    const namespaceList: ParserToken[] = [];
+    const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
         const identifier = expectIdentifier(parser, HighlightToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
@@ -196,14 +195,14 @@ function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
     };
 }
 
-function parseIdentifier(parser: ParserState, kind: HighlightToken): ParserToken | undefined {
+function parseIdentifier(parser: ParserState, kind: HighlightToken): TokenObject | undefined {
     const identifier = parser.next();
     if (identifier.kind !== TokenKind.Identifier) return undefined;
     parser.commit(kind);
     return identifier;
 }
 
-function expectIdentifier(parser: ParserState, kind: HighlightToken): ParserToken | undefined {
+function expectIdentifier(parser: ParserState, kind: HighlightToken): TokenObject | undefined {
     const identifier = parseIdentifier(parser, kind);
     if (identifier === undefined) {
         parser.error("Expected identifier.");
@@ -325,7 +324,7 @@ function parseClass(parser: ParserState): ParsedResult<NodeClass> {
 
     const typeTemplates = parseTypeTemplates(parser);
 
-    const baseList: ParserToken[] = [];
+    const baseList: TokenObject[] = [];
     if (parser.next().text === ':') {
         parser.commit(HighlightToken.Operator);
         while (parser.isEnd() === false) {
@@ -504,13 +503,13 @@ function parseRef(parser: ParserState) {
 
 // Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
 // eg. '[Hello[]]' is ok but '[Hello[]' is not.
-function parseMetadata(parser: ParserState): ParserToken[] {
+function parseMetadata(parser: ParserState): TokenObject[] {
     const rangeStart = parser.next();
     if (parser.next().text !== '[') return [];
 
     let level = 0;
 
-    let metadata: ParserToken[] = [];
+    let metadata: TokenObject[] = [];
     while (parser.isEnd() === false) {
         if (parser.next().text === '[') {
             if (level > 0) metadata.push(parser.next());
@@ -952,7 +951,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
 
         const typeMod = parseTypeMod(parser);
 
-        let identifier: ParserToken | undefined = undefined;
+        let identifier: TokenObject | undefined = undefined;
         if (parser.next().kind === TokenKind.Identifier) {
             identifier = parser.next();
             parser.commit(HighlightToken.Variable);
@@ -1171,7 +1170,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
         isGlobal = true;
     }
 
-    const scopeList: ParserToken[] = [];
+    const scopeList: TokenObject[] = [];
     let typeTemplates: NodeType[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const identifier = parser.next(0);
@@ -1249,7 +1248,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
 // PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 function parsePrimeType(parser: ParserState) {
     const next = parser.next();
-    if (next.kind !== TokenKind.Reserved || next.property.isPrimeType === false) return undefined;
+    if (next.isReservedToken() === false || next.property.isPrimeType === false) return undefined;
     parser.commit(HighlightToken.Builtin);
     return next;
 }
@@ -1709,10 +1708,10 @@ function parseExprTerm1(parser: ParserState): NodeExprTerm1 | undefined {
 function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     const rangeStart = parser.next();
 
-    const preOps: ParserToken[] = [];
+    const preOps: TokenObject[] = [];
     while (parser.isEnd() === false) {
         const next = parser.next();
-        if (next.kind !== TokenKind.Reserved || next.property.isExprPreOp === false) break;
+        if (next.isReservedToken() === false || next.property.isExprPreOp === false) break;
         preOps.push(parser.next());
         parser.commit(HighlightToken.Operator);
     }
@@ -1884,7 +1883,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 }
 
 // [IDENTIFIER ':']
-function parseIdentifierWithColon(parser: ParserState): ParserToken | undefined {
+function parseIdentifierWithColon(parser: ParserState): TokenObject | undefined {
     if (parser.next(0).kind === TokenKind.Identifier && parser.next(1).text === ':') {
         const identifier = parser.next();
         parser.commit(HighlightToken.Parameter);
@@ -1949,7 +1948,7 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
 
         const type = parseType(parser);
         const typeMod = type !== undefined ? parseTypeMod(parser) : undefined;
-        const identifier: ParserToken | undefined = parseIdentifier(parser, HighlightToken.Parameter);
+        const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightToken.Parameter);
         result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
@@ -2136,15 +2135,13 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
 // EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parser: ParserState) {
     const next = getNextLinkedGreaterThan(parser);
-    if (next.kind !== TokenKind.Reserved) return undefined;
+    if (next.isReservedToken() === false) return undefined;
     if (next.property.isExprOp === false) return parseNotIsOperator(parser);
     parser.commit(next.text === 'is' ? HighlightToken.Builtin : HighlightToken.Operator);
     return next;
 }
 
-const uniqueNotIsToken = createVirtualToken(TokenKind.Reserved, '!is');
-
-// '!is' requires special handling. | '!is' は特殊処理
+// '!is' requires special handling.
 function parseNotIsOperator(parser: ParserState) {
     if (isTokensLinkedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
@@ -2152,7 +2149,7 @@ function parseNotIsOperator(parser: ParserState) {
     parser.commit(HighlightToken.Builtin);
     parser.commit(HighlightToken.Builtin);
 
-    return {...uniqueNotIsToken, location: location} satisfies ParserToken;
+    return TokenReserved.createVirtual('!is', location);
 }
 
 // BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -2166,51 +2163,45 @@ function parseNotIsOperator(parser: ParserState) {
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parser: ParserState) {
     const next = getNextLinkedGreaterThan(parser);
-    if (next.kind !== TokenKind.Reserved || next.property.isAssignOp === false) return undefined;
+    if (next.isReservedToken() === false || next.property.isAssignOp === false) return undefined;
     parser.commit(HighlightToken.Operator);
     return next;
 }
 
-const uniqueGreaterThanTokenOrEqualToken = createVirtualToken(TokenKind.Reserved, '>=');
-const uniqueBitShiftRightToken = createVirtualToken(TokenKind.Reserved, '>>');
-const uniqueBitShiftRightAssignToken = createVirtualToken(TokenKind.Reserved, '>>=');
-const uniqueBitShiftRightArithmeticToken = createVirtualToken(TokenKind.Reserved, '>>>');
-const uniqueBitShiftRightArithmeticAssignToken = createVirtualToken(TokenKind.Reserved, '>>>=');
-
 function getNextLinkedGreaterThan(parser: ParserState) {
     if (parser.next().text !== '>') return parser.next();
 
-    const check = (targets: string[], uniqueToken: ParserToken) => {
+    const check = (targets: string[], uniqueTokenText: string) => {
         if (isTokensLinkedBy(parser.next(1), targets) === false) return undefined;
         const location = getLocationBetween(parser.next(0), parser.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parser.commit(HighlightToken.Operator);
-        return {...uniqueToken, location: location} satisfies ParserToken;
+        return TokenReserved.createVirtual(uniqueTokenText, location);
     };
 
     // '>='
-    const greaterThanTokenOrEqualToken = check(['='], uniqueGreaterThanTokenOrEqualToken);
+    const greaterThanTokenOrEqualToken = check(['='], '>=');
     if (greaterThanTokenOrEqualToken !== undefined) return greaterThanTokenOrEqualToken;
 
     // '>>>='
-    const bitShiftRightArithmeticAssignToken = check(['>', '>', '='], uniqueBitShiftRightArithmeticAssignToken);
+    const bitShiftRightArithmeticAssignToken = check(['>', '>', '='], '>>>=');
     if (bitShiftRightArithmeticAssignToken !== undefined) return bitShiftRightArithmeticAssignToken;
 
     // '>>>'
-    const bitShiftRightArithmeticToken = check(['>', '>'], uniqueBitShiftRightArithmeticToken);
+    const bitShiftRightArithmeticToken = check(['>', '>'], '>>>');
     if (bitShiftRightArithmeticToken !== undefined) return bitShiftRightArithmeticToken;
 
     // '>>='
-    const bitShiftRightAssignToken = check(['>', '='], uniqueBitShiftRightAssignToken);
+    const bitShiftRightAssignToken = check(['>', '='], '>>=');
     if (bitShiftRightAssignToken !== undefined) return bitShiftRightAssignToken;
 
     // '>>'
-    const bitShiftRightToken = check(['>'], uniqueBitShiftRightToken);
+    const bitShiftRightToken = check(['>'], '>>');
     if (bitShiftRightToken !== undefined) return bitShiftRightToken;
 
     return parser.next();
 }
 
-export function parseAfterTokenized(tokens: ParserToken[]): NodeScript {
+export function parseAfterTokenized(tokens: TokenObject[]): NodeScript {
     const parser = new ParserState(tokens);
 
     const script: NodeScript = [];

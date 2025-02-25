@@ -1,10 +1,10 @@
 import {Position} from "vscode-languageserver";
-import {ParserToken} from "../compiler_parser/parserToken";
 import {serveDefinitionAsToken} from "./definition";
 import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {isSameToken} from "../compiler_tokenizer/tokenUtils";
+import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): ParserToken[] {
+export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
     const targetDefinition = serveDefinitionAsToken(targetScope, caret);
     if (targetDefinition === undefined) return [];
 
@@ -15,7 +15,7 @@ export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: Symb
     return result;
 }
 
-function collectReferencesInScope(scope: SymbolScope, targetDefinition: ParserToken): ParserToken[] {
+function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObject): TokenObject[] {
     const references = [];
 
     for (const reference of scope.referencedList) {

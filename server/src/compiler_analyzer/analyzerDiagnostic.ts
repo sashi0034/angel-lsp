@@ -1,6 +1,6 @@
 import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
 import {getGlobalSettings} from "../code/settings";
-import {LocationInfo} from "../compiler_tokenizer/tokens";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 // TODO: Processing multiple files simultaneously?
 
@@ -10,7 +10,7 @@ function reset() {
     s_diagnostics.length = 0;
 }
 
-function add(location: LocationInfo, message: string) {
+function add(location: TextLocation, message: string) {
     const severity = getGlobalSettings().suppressAnalyzerErrors ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
 
     s_diagnostics.push({

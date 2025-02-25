@@ -1,13 +1,11 @@
 import {HighlightToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
-import {TokenKind} from "../compiler_tokenizer/tokens";
-import {ParserToken} from "./parserToken";
+import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     ParsedCachedData,
     ParsedCacheKind,
     ParsedCacheServices, ParsedCacheTargets
 } from "./parsedCache";
-import {isVirtualToken} from "../compiler_tokenizer/tokenUtils";
 
 export enum ParseFailure {
     Mismatch = 'Mismatch',
@@ -31,13 +29,13 @@ export class ParserState {
     private readonly caches: (ParsedCachedData<ParsedCacheKind> | undefined)[] = [];
 
     public constructor(
-        private readonly tokens: ParserToken[],
+        private readonly tokens: TokenObject[],
         private cursorIndex: number = 0
     ) {
         this.caches = new Array(tokens.length);
     }
 
-    public backtrack(token: ParserToken) {
+    public backtrack(token: TokenObject) {
         this.cursorIndex = token.index;
     }
 
@@ -45,12 +43,12 @@ export class ParserState {
         return this.cursorIndex >= this.tokens.length;
     }
 
-    public next(step: number = 0): ParserToken {
+    public next(step: number = 0): TokenObject {
         if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
         return this.tokens[this.cursorIndex + step];
     }
 
-    public prev(): ParserToken {
+    public prev(): TokenObject {
         if (this.cursorIndex <= 0) return this.tokens[0];
         return this.tokens[this.cursorIndex - 1];
     }
@@ -61,7 +59,7 @@ export class ParserState {
 
     public commit(analyzeToken: HighlightToken) {
         const next = this.next();
-        if (isVirtualToken(next) === false) next.highlight.token = analyzeToken;
+        if (next.isVirtual() === false) next.highlight.token = analyzeToken;
         this.step();
     }
 

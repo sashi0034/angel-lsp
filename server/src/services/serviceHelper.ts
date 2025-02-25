@@ -1,4 +1,3 @@
-import {isPositionInRange} from "../compiler_tokenizer/tokenUtils";
 import {ComplementKind} from "../compiler_analyzer/symbolComplement";
 import {Position} from "vscode-languageserver";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
@@ -13,7 +12,7 @@ export function findScopeContainingPosition(scope: SymbolScope, caret: Position,
         const location = hint.complementLocation;
         if (location.path !== path) continue;
 
-        if (isPositionInRange(caret, location)) {
+        if (location.positionInRange(caret)) {
             const found = findScopeContainingPosition(hint.targetScope, caret, path);
             if (found !== undefined) return found;
         }
