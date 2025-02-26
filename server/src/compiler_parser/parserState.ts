@@ -1,4 +1,4 @@
-import {HighlightToken} from "../code/highlight";
+import {HighlightForToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
@@ -57,13 +57,13 @@ export class ParserState {
         this.cursorIndex++;
     }
 
-    public commit(analyzeToken: HighlightToken) {
+    public commit(analyzeToken: HighlightForToken) {
         const next = this.next();
         if (next.isVirtual() === false) next.highlight.token = analyzeToken;
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightToken) {
+    public expect(word: string, analyzeToken: HighlightForToken) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file.");
             return false;

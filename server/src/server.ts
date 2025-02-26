@@ -15,7 +15,7 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {highlightModifiers, highlightTokens} from "./code/highlight";
+import {highlightForModifierList, highlightForTokenList} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
 import {
     requestCleanInspectedResults,
@@ -84,8 +84,8 @@ connection.onInitialize((params: InitializeParams) => {
             },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: highlightTokens,
-                    tokenModifiers: highlightModifiers
+                    tokenTypes: highlightForTokenList,
+                    tokenModifiers: highlightForModifierList
                 },
                 range: false, // if true, the server supports range-based requests
                 full: true

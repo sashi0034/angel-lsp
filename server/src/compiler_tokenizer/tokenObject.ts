@@ -1,4 +1,4 @@
-import {HighlightModifier, HighlightToken} from "../code/highlight";
+import {HighlightForModifier, HighlightForToken} from "../code/highlight";
 import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
 
@@ -15,8 +15,8 @@ export enum TokenKind {
 }
 
 export interface HighlightInfo {
-    token: HighlightToken;
-    modifier: HighlightModifier;
+    token: HighlightForToken;
+    modifier: HighlightForModifier;
 }
 
 /**
@@ -25,8 +25,8 @@ export interface HighlightInfo {
  */
 export function createVirtualHighlight(): HighlightInfo {
     return {
-        token: HighlightToken.Invalid,
-        modifier: HighlightModifier.Nothing,
+        token: HighlightForToken.Invalid,
+        modifier: HighlightForModifier.Nothing,
     };
 }
 
@@ -46,15 +46,15 @@ export abstract class TokenBase {
         public readonly text: string,
         // The location information of a token including the file path and the position within the file.
         public readonly location: TextLocation,
-        highlightToken: HighlightToken,
-        highlightModifier: HighlightModifier = HighlightModifier.Nothing,
+        highlightToken: HighlightForToken,
+        highlightModifier: HighlightForModifier = HighlightForModifier.Nothing,
     ) {
         this._highlight = {token: highlightToken, modifier: highlightModifier};
     }
 
     public abstract get kind(): TokenKind;
 
-    public setHighlight(token: HighlightToken, modifier: HighlightModifier = HighlightModifier.Nothing) {
+    public setHighlight(token: HighlightForToken, modifier: HighlightForModifier = HighlightForModifier.Nothing) {
         this._highlight = {token: token, modifier: modifier};
     }
 
@@ -68,14 +68,14 @@ export abstract class TokenBase {
      */
     protected markVirtual() {
         // We recognize the virtual token by whether the highlight is invalid.
-        this._highlight.token = HighlightToken.Invalid;
+        this._highlight.token = HighlightForToken.Invalid;
     }
 
     /**
      * Returns whether the token does not exist in the original code.
      */
     public isVirtual(): boolean {
-        return this._highlight.token === HighlightToken.Invalid;
+        return this._highlight.token === HighlightForToken.Invalid;
     }
 
     public isReservedToken(): this is TokenReserved {
@@ -114,7 +114,7 @@ export class TokenReserved extends TokenBase {
         location: TextLocation,
         property?: ReservedWordProperty,
     ) {
-        super(text, location, HighlightToken.Keyword);
+        super(text, location, HighlightForToken.Keyword);
 
         this.property = property ?? findAllReservedWordProperty(text);
     }
@@ -135,7 +135,7 @@ export class TokenIdentifier extends TokenBase {
         text: string,
         location: TextLocation,
     ) {
-        super(text, location, HighlightToken.Variable);
+        super(text, location, HighlightForToken.Variable);
     }
 
     public static createVirtual(text: string, location?: TextLocation): TokenIdentifier {
@@ -161,7 +161,7 @@ export class TokenNumber extends TokenBase {
         location: TextLocation,
         public readonly numberLiteral: NumberLiterals,
     ) {
-        super(text, location, HighlightToken.Number);
+        super(text, location, HighlightForToken.Number);
     }
 
     public get kind(): TokenKind {
@@ -174,7 +174,7 @@ export class TokenString extends TokenBase {
         text: string,
         location: TextLocation,
     ) {
-        super(text, location, HighlightToken.String);
+        super(text, location, HighlightForToken.String);
     }
 
     public static createVirtual(text: string, location?: TextLocation): TokenString {
@@ -193,7 +193,7 @@ export class TokenComment extends TokenBase {
         text: string,
         location: TextLocation,
     ) {
-        super(text, location, HighlightToken.Comment);
+        super(text, location, HighlightForToken.Comment);
     }
 
     public get kind(): TokenKind {

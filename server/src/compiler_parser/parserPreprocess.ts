@@ -1,6 +1,6 @@
 import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {diagnostic} from "../code/diagnostic";
-import {HighlightToken} from "../code/highlight";
+import {HighlightForToken} from "../code/highlight";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 /**
@@ -66,10 +66,10 @@ function preprocessDirectives(tokens: TokenObject[]): TokenObject[] {
 }
 
 function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: TokenObject[]) {
-    directiveTokens[0].highlight.token = HighlightToken.Directive;
+    directiveTokens[0].highlight.token = HighlightForToken.Directive;
 
     if (directiveTokens[1]?.text === 'include') {
-        directiveTokens[1].highlight.token = HighlightToken.Directive;
+        directiveTokens[1].highlight.token = HighlightForToken.Directive;
 
         // Check the include directive.
         const fileName = directiveTokens[2];
@@ -85,7 +85,7 @@ function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: Tok
 
         includeFiles.push(fileName);
     } else {
-        if (directiveTokens[1] != null) directiveTokens[1].highlight.token = HighlightToken.Label;
+        if (directiveTokens[1] != null) directiveTokens[1].highlight.token = HighlightForToken.Label;
     }
 }
 

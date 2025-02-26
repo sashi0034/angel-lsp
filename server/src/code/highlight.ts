@@ -1,6 +1,6 @@
 // https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide
 
-export enum HighlightToken {
+export enum HighlightForToken {
     Invalid,
     Namespace, // For identifiers that declare or reference a namespace, module, or package.
     Class, // For identifiers that declare or reference a class type.
@@ -25,11 +25,12 @@ export enum HighlightToken {
     Number, // For tokens that represent a number literal.
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
-    Builtin,
-    Directive,
+    // The following are specific to AngelScript Language Server:
+    Builtin, // For tokens that represent a built-in type or function.
+    Directive, // For tokens that represent a preprocessor directive.
 }
 
-export const highlightTokens = [
+export const highlightForTokenList = [
     '',
     'namespace',
     'class',
@@ -58,7 +59,7 @@ export const highlightTokens = [
     'directive',
 ];
 
-export enum HighlightModifier {
+export enum HighlightForModifier {
     Declaration, // For declarations of symbols.
     Definition, // For definitions of symbols, for example, in header files.
     Readonly, // For readonly variables and member fields (constants).
@@ -72,7 +73,7 @@ export enum HighlightModifier {
     Nothing,
 }
 
-export const highlightModifiers = [
+export const highlightForModifierList = [
     'declaration',
     'definition',
     'readonly',
