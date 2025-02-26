@@ -5,9 +5,9 @@ import {
     EntityAttribute,
     funcHeadConstructor,
     funcHeadDestructor,
-    FuncHeads,
+    FuncHead,
     FunctionAttribute,
-    isFunctionHeadReturnValue,
+    isFuncHeadReturnValue,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -60,7 +60,7 @@ import {
     ParsedArgument,
     ParsedEnumMember,
     ParsedGetterSetter,
-    ParsedPostIndexer,
+    ParsedPostIndexing,
     ParsedVariableInit,
     ReferenceModifier,
     TypeModifier
@@ -68,7 +68,7 @@ import {
 import {HighlightForToken} from "../code/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParseResult, ParseFailure, ParserState} from "./parserState";
-import {ParserCacheKind} from "./parsedCache";
+import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
@@ -174,7 +174,7 @@ function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
         const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
 
-        if (expectContinuousOrClose(parser, '::', '{', true) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, '::', '{', true) === BreakOrThrough.Break) break;
 
         if (identifier === undefined) parser.step();
     }
@@ -258,7 +258,7 @@ function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
     const members: ParsedEnumMember[] = [];
     parser.expect('{', HighlightForToken.Operator);
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) break;
 
         if (parser.next().text === '}') {
             parser.commit(HighlightForToken.Operator);
@@ -331,7 +331,7 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) baseList.push(identifier);
 
-            if (expectContinuousOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
             if (identifier === undefined) parser.step();
         }
@@ -430,7 +430,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
 
     const accessor = parseAccessModifier(parser);
 
-    let head: FuncHeads;
+    let head: FuncHead;
     if (parser.next().text === '~') {
         parser.commit(HighlightForToken.Operator);
         head = funcHeadDestructor;
@@ -448,7 +448,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         head = {returnType: returnType, isRef: isRef};
     }
     const identifier = parser.next();
-    parser.commit(isFunctionHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
+    parser.commit(isFuncHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
 
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
@@ -588,7 +588,7 @@ function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) result.baseList.push(identifier);
 
-            if (expectContinuousOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
             if (identifier === undefined) parser.step();
         }
@@ -664,7 +664,7 @@ function parseVar(parser: ParserState): NodeVar | undefined {
         }
 
         // 追加または終了判定
-        if (expectContinuousOrClose(parser, ',', ';', true) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ';', true) === BreakOrThrough.Break) break;
     }
 
     return {
@@ -978,34 +978,35 @@ function expectParamList(parser: ParserState): NodeParamList | undefined {
 }
 
 function expectCommaOrParensClose(parser: ParserState, canColon: boolean): BreakOrThrough {
-    return expectContinuousOrClose(parser, ',', ')', canColon);
+    return expectSeparatorOrClose(parser, ',', ')', canColon);
 }
 
 function isCommaOrParensClose(character: string): boolean {
     return character === ',' || character === ')';
 }
 
-function parseContinuousOrClose(
-    parser: ParserState, continuousOp: string, closeOp: string, canColon: boolean
+function parseSeparatorOrClose(
+    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
 ): BreakOrThrough | undefined {
     const next = parser.next().text;
     if (next === closeOp) {
         parser.commit(HighlightForToken.Operator);
         return BreakOrThrough.Break;
     } else if (canColon) {
-        if (next !== continuousOp) return undefined;
+        if (next !== separatorOp) return undefined;
         parser.commit(HighlightForToken.Operator);
     }
+
     return BreakOrThrough.Through;
 }
 
-function expectContinuousOrClose(
-    parser: ParserState, continuousOp: string, closeOp: string, canColon: boolean
+function expectSeparatorOrClose(
+    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
 ): BreakOrThrough {
-    const parsed = parseContinuousOrClose(parser, continuousOp, closeOp, canColon);
+    const parsed = parseSeparatorOrClose(parser, separatorOp, closeOp, canColon);
     if (parsed !== undefined) return parsed;
 
-    parser.error(`Expected '${continuousOp}' or '${closeOp}'.`);
+    parser.error(`Expected '${separatorOp}' or '${closeOp}'.`);
     return BreakOrThrough.Break;
 }
 
@@ -1113,7 +1114,7 @@ function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
 
         typeTemplates.push(type);
 
-        const continuous = parseContinuousOrClose(parser, ',', '>', typeTemplates.length > 0);
+        const continuous = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
         if (continuous === BreakOrThrough.Break) break;
         else if (continuous === undefined) {
             parser.backtrack(rangeStart);
@@ -1134,7 +1135,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
 
     const initList: (NodeAssign | NodeInitList)[] = [];
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', '}', initList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', '}', initList.length > 0) === BreakOrThrough.Break) break;
 
         const assign = parseAssign(parser);
         if (assign !== undefined) {
@@ -1401,7 +1402,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (result.condition === undefined) return appliedNodeEnd(parser, result);
 
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', ')', result.incrementList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ')', result.incrementList.length > 0) === BreakOrThrough.Break) break;
 
         const assign = expectAssign(parser);
         if (assign === undefined) break;
@@ -1860,7 +1861,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Operator);
 
-    const indexerList: ParsedPostIndexer[] = [];
+    const indexerList: ParsedPostIndexing[] = [];
     while (parser.isEnd() === false) {
         const loopStart = parser.next();
         const identifier = parseIdentifierWithColon(parser);
@@ -1868,7 +1869,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
         const assign = expectAssign(parser);
         if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
 
-        if (expectContinuousOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
 
         // Cancel infinite loop
         // FIXME: check other places too?
@@ -1879,7 +1880,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOp: 2,
-        indexerList: indexerList
+        indexingList: indexerList
     };
 }
 

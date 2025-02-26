@@ -160,7 +160,7 @@ export interface NodeFunc extends NodesBase {
     readonly nodeName: NodeName.Func;
     readonly entity: EntityAttribute | undefined;
     readonly accessor: AccessModifier | undefined;
-    readonly head: FuncHeads;
+    readonly head: FuncHead;
     readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
     readonly isConst: boolean;
@@ -179,9 +179,9 @@ export type FuncHeadDestructor = typeof funcHeadDestructor;
 export const funcHeadConstructor = Symbol();
 export type FuncHeadConstructor = typeof funcHeadConstructor;
 
-export type FuncHeads = FuncHeadReturnValue | FuncHeadDestructor | FuncHeadConstructor;
+export type FuncHead = FuncHeadReturnValue | FuncHeadDestructor | FuncHeadConstructor;
 
-export function isFunctionHeadReturnValue(head: FuncHeads): head is FuncHeadReturnValue {
+export function isFuncHeadReturnValue(head: FuncHead): head is FuncHeadReturnValue {
     return head !== funcHeadDestructor && head !== funcHeadConstructor;
 }
 
@@ -471,10 +471,10 @@ export function isMemberMethodInPostOp(member: NodeFuncCall | TokenObject | unde
 export interface NodeExprPostOp2 extends NodesBase {
     readonly nodeName: NodeName.ExprPostOp;
     readonly postOp: 2;
-    readonly indexerList: ParsedPostIndexer[];
+    readonly indexingList: ParsedPostIndexing[];
 }
 
-export interface ParsedPostIndexer {
+export interface ParsedPostIndexing {
     readonly identifier: TokenObject | undefined,
     readonly assign: NodeAssign
 }

@@ -5,7 +5,7 @@ import {
     ParserCachedData,
     ParserCacheKind,
     ParserCacheServices, ParserCacheTargets
-} from "./parsedCache";
+} from "./parserCache";
 
 export enum ParseFailure {
     /**
@@ -70,24 +70,32 @@ export class ParserState {
         this.cursorIndex++;
     }
 
+    /**
+     * Set the highlight for the current token and move the cursor to the next token.
+     */
     public commit(highlightForToken: HighlightForToken) {
         const next = this.next();
         if (next.isVirtual() === false) next.setHighlight(highlightForToken);
+
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightForToken) {
+    /**
+     * Check if the next token is a reserved word.
+     */
+    public expect(reservedWord: string, highlight: HighlightForToken) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file.");
             return false;
         }
-        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === word;
+
+        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === reservedWord;
         if (isExpectedWord === false) {
-            diagnostic.addError(this.next().location, `Expected '${word}'.`);
-            // this.step();
+            diagnostic.addError(this.next().location, `Expected '${reservedWord}'.`);
             return false;
         }
-        this.commit(analyzeToken);
+
+        this.commit(highlight);
         return true;
     }
 
@@ -102,9 +110,10 @@ export class ParserState {
      * @param key The cache key that identifies the type of parsing result to cache.
      * @returns An object that allows restoring a cached result or storing a new one.
      */
-    public cache<T extends ParserCacheKind>(key: T): ParserCacheServices<T> {
+    public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
         const rangeStart = this.cursorIndex;
         const data = this.caches[rangeStart];
+
         let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
             this.cursorIndex = data.rangeEnd;

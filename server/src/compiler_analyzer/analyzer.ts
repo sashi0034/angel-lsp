@@ -800,7 +800,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
-    const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
+    const args = exprPostOp.indexingList.map(indexer => analyzeAssign(scope, indexer.assign));
     return analyzeOperatorAlias(
         scope,
         exprPostOp.nodeRange.end,

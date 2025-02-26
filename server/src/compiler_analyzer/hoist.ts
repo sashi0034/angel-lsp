@@ -9,7 +9,7 @@ import {
 import {
     AccessModifier,
     funcHeadDestructor,
-    isFunctionHeadReturnValue,
+    isFuncHeadReturnValue,
     NodeClass,
     NodeEnum,
     NodeFunc,
@@ -274,7 +274,7 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const returnType = isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(
+    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
         parentScope,
         nodeFunc.head.returnType) : undefined;
     const symbol: SymbolFunction = SymbolFunction.create({
