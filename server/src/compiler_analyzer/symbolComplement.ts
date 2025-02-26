@@ -1,5 +1,4 @@
 import {TokenRange} from "../compiler_parser/nodes";
-import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {TemplateTranslation} from "./symbolUtils";
@@ -70,7 +69,7 @@ export function pushHintOfCompletionScopeToParent(
 ) {
     parentScope?.completionHints.push({
         complementKind: ComplementKind.Scope,
-        complementLocation: getNodeLocation(nodeRange),
+        complementLocation: nodeRange.getBoundingLocation(),
         targetScope: targetScope
     });
 }

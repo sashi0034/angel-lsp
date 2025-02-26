@@ -35,7 +35,6 @@ import {FormatterState, isEditedWrapAt} from "./formatterState";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {isRangeInOneLine} from "../compiler_parser/nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function formatScript(format: FormatterState, nodeScript: NodeScript) {
@@ -403,7 +402,7 @@ function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
 function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
     formatMoveUntilNodeStart(format, statBlock);
 
-    const isOneLine = isRangeInOneLine(statBlock.nodeRange);
+    const isOneLine = statBlock.nodeRange.isOneLine();
 
     formatBraceBlock(format, () => {
         for (const statement of statBlock.statementList) {

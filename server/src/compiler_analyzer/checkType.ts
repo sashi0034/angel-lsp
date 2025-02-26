@@ -5,7 +5,6 @@ import {
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
 import {AccessModifier, NodeName, TokenRange} from "../compiler_parser/nodes";
-import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
@@ -27,7 +26,7 @@ export function checkTypeMatch(
     if (canTypeConvert(src, dest)) return true;
 
     analyzerDiagnostic.add(
-        getNodeLocation(nodeRange),
+        nodeRange.getBoundingLocation(),
         `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
     return false;
 }

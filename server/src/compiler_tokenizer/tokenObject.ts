@@ -98,6 +98,13 @@ export abstract class TokenBase {
         return this._nextPreprocessedToken;
     }
 
+    /**
+     * Returns the next token if it exists; otherwise, returns the current token.
+     */
+    public getNextOrSelf() {
+        return this.next ?? this;
+    }
+
     public equals(other: TokenBase): boolean {
         return this === other || (this.location.equals(other.location));
     }

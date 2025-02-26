@@ -7,6 +7,7 @@ import {
     funcHeadDestructor,
     FuncHeads,
     FunctionAttribute,
+    getBoundingLocationBetween,
     isFunctionHeadReturnValue,
     NodeArgList,
     NodeAssign,
@@ -71,7 +72,7 @@ import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserS
 import {ParsedCacheKind} from "./parsedCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
-import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
+import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {
@@ -2144,7 +2145,7 @@ function parseExprOp(parser: ParserState) {
 function parseNotIsOperator(parser: ParserState) {
     if (areTokensJoinedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
-    const location = getLocationBetween(parser.next(0), parser.next(1));
+    const location = getBoundingLocationBetween(parser.next(0), parser.next(1));
     parser.commit(HighlightForToken.Builtin);
     parser.commit(HighlightForToken.Builtin);
 
@@ -2172,7 +2173,7 @@ function getNextLinkedGreaterThan(parser: ParserState) {
 
     const check = (targets: string[], uniqueTokenText: string) => {
         if (areTokensJoinedBy(parser.next(1), targets) === false) return undefined;
-        const location = getLocationBetween(parser.next(0), parser.next(targets.length));
+        const location = getBoundingLocationBetween(parser.next(0), parser.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parser.commit(HighlightForToken.Operator);
         return TokenReserved.createVirtual(uniqueTokenText, location);
     };

@@ -17,6 +17,10 @@ export enum ReferenceModifier {
     AtConst = 'AtConst',
 }
 
+export function getBoundingLocationBetween(start: TokenObject, end: TokenObject): TextLocation {
+    return start.location.withEnd(end.location.end);
+}
+
 export class TokenRange {
     public constructor(
         public readonly start: TokenObject,
@@ -28,7 +32,14 @@ export class TokenRange {
      * Get text range covering two tokens
      */
     public getBoundingLocation(): TextLocation {
-        return this.start.location.withEnd(this.end.location.end);
+        return getBoundingLocationBetween(this.start, this.end);
+    }
+
+    /**
+     *  Checks if the token spans a single line.
+     */
+    public isOneLine(): boolean {
+        return this.start.location.start.line === this.end.location.end.line;
     }
 }
 
