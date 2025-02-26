@@ -1,29 +1,29 @@
 import {EntityAttribute, NodeScope, NodeType} from "./nodes";
 
-export enum ParsedCacheKind {
+export enum ParserCacheKind {
     EntityAttribute = 'EntityAttribute',
     Scope = 'Scope',
     TypeTemplates = 'TypeTemplates',
 }
 
-export type ParsedCacheTargets<T extends ParsedCacheKind> = TargetEntityAttribute<T>;
+export type ParserCacheTargets<T extends ParserCacheKind> = TargetEntityAttribute<T>;
 
-type TargetEntityAttribute<T extends ParsedCacheKind> =
-    T extends ParsedCacheKind.EntityAttribute ? EntityAttribute : TargetScope<T>;
+type TargetEntityAttribute<T extends ParserCacheKind> =
+    T extends ParserCacheKind.EntityAttribute ? EntityAttribute : TargetScope<T>;
 
-type TargetScope<T extends ParsedCacheKind> =
-    T extends ParsedCacheKind.Scope ? NodeScope : TargetTypeTemplates<T>;
+type TargetScope<T extends ParserCacheKind> =
+    T extends ParserCacheKind.Scope ? NodeScope : TargetTypeTemplates<T>;
 
-type TargetTypeTemplates<T extends ParsedCacheKind> =
-    T extends ParsedCacheKind.TypeTemplates ? NodeType[] : never;
+type TargetTypeTemplates<T extends ParserCacheKind> =
+    T extends ParserCacheKind.TypeTemplates ? NodeType[] : never;
 
-export interface ParsedCachedData<T extends ParsedCacheKind> {
+export interface ParserCachedData<T extends ParserCacheKind> {
     kind: T;
     rangeEnd: number;
-    data: ParsedCacheTargets<T> | undefined;
+    data: ParserCacheTargets<T> | undefined;
 }
 
-export interface ParsedCacheServices<T extends ParsedCacheKind> {
-    restore: (() => ParsedCacheTargets<T> | undefined) | undefined;
-    store: (cache: ParsedCacheTargets<T> | undefined) => void;
+export interface ParserCacheServices<T extends ParserCacheKind> {
+    restore: (() => ParserCacheTargets<T> | undefined) | undefined;
+    store: (cache: ParserCacheTargets<T> | undefined) => void;
 }

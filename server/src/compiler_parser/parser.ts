@@ -67,8 +67,8 @@ import {
 } from "./nodes";
 import {HighlightForToken} from "../code/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserState";
-import {ParsedCacheKind} from "./parsedCache";
+import {BreakOrThrough, ParseResult, ParseFailure, ParserState} from "./parserState";
+import {ParserCacheKind} from "./parsedCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
@@ -164,7 +164,7 @@ function parseScript(parser: ParserState): NodeScript {
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
+function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
     if (parser.next().text !== 'namespace') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
@@ -220,7 +220,7 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'))
-function parseEnum(parser: ParserState): ParsedResult<NodeEnum> {
+function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -283,7 +283,7 @@ function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined {
-    const cache = parser.cache(ParsedCacheKind.EntityAttribute);
+    const cache = parser.cache(ParserCacheKind.EntityAttribute);
     if (cache.restore !== undefined) return cache.restore();
 
     let attribute: EntityAttribute | undefined = undefined;
@@ -306,7 +306,7 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function parseClass(parser: ParserState): ParsedResult<NodeClass> {
+function parseClass(parser: ParserState): ParseResult<NodeClass> {
     const rangeStart = parser.next();
 
     const metadata = parseMetadata(parser);
@@ -396,7 +396,7 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
-function parseTypeDef(parser: ParserState): ParsedResult<NodeTypeDef> {
+function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     if (parser.next().text !== 'typedef') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
@@ -554,7 +554,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
-function parseInterface(parser: ParserState): ParsedResult<NodeInterface> {
+function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -691,7 +691,7 @@ function expectInitListOrExpr(parser: ParserState) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-function parseImport(parser: ParserState): ParsedResult<NodeImport> {
+function parseImport(parser: ParserState): ParseResult<NodeImport> {
     const rangeStart = parser.next();
 
     if (parser.next().text !== 'import') return ParseFailure.Mismatch;
@@ -734,7 +734,7 @@ function parseImport(parser: ParserState): ParsedResult<NodeImport> {
 }
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-function parseFuncDef(parser: ParserState): ParsedResult<NodeFuncDef> {
+function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -838,7 +838,7 @@ function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
 }
 
 // MIXIN         ::= 'mixin' CLASS
-function parseMixin(parser: ParserState): ParsedResult<NodeMixin> {
+function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     if (parser.next().text !== 'mixin') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
@@ -1096,7 +1096,7 @@ function expectType(parser: ParserState): NodeType | undefined {
 
 // '<' TYPE {',' TYPE} '>'
 function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
-    const cache = parser.cache(ParsedCacheKind.TypeTemplates);
+    const cache = parser.cache(ParserCacheKind.TypeTemplates);
     if (cache.restore !== undefined) return cache.restore();
 
     const rangeStart = parser.next();
@@ -1160,7 +1160,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parser: ParserState): NodeScope | undefined {
-    const cache = parser.cache(ParsedCacheKind.Scope);
+    const cache = parser.cache(ParserCacheKind.Scope);
     if (cache.restore !== undefined) return cache.restore();
 
     const rangeStart = parser.next();
@@ -1274,7 +1274,7 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
 }
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function parseStatement(parser: ParserState): ParsedResult<NodeStatement> {
+function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     const parsedIf = parseIf(parser);
     if (parsedIf === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedIf !== ParseFailure.Mismatch) return parsedIf;
@@ -1329,7 +1329,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function parseSwitch(parser: ParserState): ParsedResult<NodeSwitch> {
+function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
     if (parser.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1375,7 +1375,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function parseFor(parser: ParserState): ParsedResult<NodeFor> {
+function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (parser.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1414,7 +1414,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
+function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
     if (parser.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1438,7 +1438,7 @@ function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
+function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
     if (parser.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1466,7 +1466,7 @@ function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function parseIf(parser: ParserState): ParsedResult<NodeIf> {
+function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (parser.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1545,7 +1545,7 @@ function expectExprStat(parser: ParserState): NodeExprStat | undefined {
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
-function parseTry(parser: ParserState): ParsedResult<NodeTry> {
+function parseTry(parser: ParserState): ParseResult<NodeTry> {
     if (parser.next().text !== 'try') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1567,7 +1567,7 @@ function parseTry(parser: ParserState): ParsedResult<NodeTry> {
 }
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
+function parseReturn(parser: ParserState): ParseResult<NodeReturn> {
     if (parser.next().text !== 'return') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1591,7 +1591,7 @@ function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function parseCase(parser: ParserState): ParsedResult<NodeCase> {
+function parseCase(parser: ParserState): ParseResult<NodeCase> {
     const rangeStart = parser.next();
 
     let expr = undefined;
@@ -1741,7 +1741,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseExprValue(parser: ParserState): ParsedResult<NodeExprValue> {
+function parseExprValue(parser: ParserState): ParseResult<NodeExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Pending) return ParseFailure.Pending;
     if (cast !== ParseFailure.Mismatch) return cast;
@@ -1895,7 +1895,7 @@ function parseIdentifierWithColon(parser: ParserState): TokenObject | undefined 
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function parseCast(parser: ParserState): ParsedResult<NodeCast> {
+function parseCast(parser: ParserState): ParseResult<NodeCast> {
     if (parser.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1922,7 +1922,7 @@ function parseCast(parser: ParserState): ParsedResult<NodeCast> {
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
+const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
     // ラムダ式の判定は、呼び出し末尾の「(」の後に「{」があるかどうかで判定する
     if (canParseLambda(parser) === false) return ParseFailure.Mismatch;
 

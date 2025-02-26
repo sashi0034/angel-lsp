@@ -2,31 +2,44 @@ import {HighlightForToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
-    ParsedCachedData,
-    ParsedCacheKind,
-    ParsedCacheServices, ParsedCacheTargets
+    ParserCachedData,
+    ParserCacheKind,
+    ParserCacheServices, ParserCacheTargets
 } from "./parsedCache";
 
 export enum ParseFailure {
+    /**
+     * The parser visited a function, but the input does not conform to the expected grammar.
+     */
     Mismatch = 'Mismatch',
+    /**
+     * The parser visited a function where the input conforms to the expected grammar,
+     * but parsing fails due to missing elements.
+     */
     Pending = 'Pending',
 }
 
 export enum BreakOrThrough {
+    /**
+     * The parser should stop parsing and return the current result.
+     */
     Break = 'Break',
+    /**
+     * The parser should continue parsing.
+     */
     Through = 'Through',
 }
 
 /**
- * When a parsing error occurs, the parser may return a `ParsedResult<T>`.
- * If the parser visits a function and the input is not in an acceptable formatter, 'Mismatch' is returned.
- * If the input is in an acceptable formatter but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
- * No diagnostic message is issued when a 'Mismatch' occurs, but when 'Pending' is returned, a diagnostic message is generated at that node.
+ * When a parsing error occurs, the parser may return a `ParseResult<T>`.
+ * If the parser encounters a function and the input does not conform to the expected format, 'Mismatch' is returned.
+ * If the input follows the expected format but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
+ * No diagnostic message is issued for 'Mismatch', but when 'Pending' is returned, a diagnostic message is generated at that node.
  */
-export type ParsedResult<T> = T | ParseFailure;
+export type ParseResult<T> = T | ParseFailure;
 
 export class ParserState {
-    private readonly caches: (ParsedCachedData<ParsedCacheKind> | undefined)[] = [];
+    private readonly caches: (ParserCachedData<ParserCacheKind> | undefined)[] = [];
 
     public constructor(
         private readonly tokens: TokenObject[],
@@ -89,16 +102,16 @@ export class ParserState {
      * @param key The cache key that identifies the type of parsing result to cache.
      * @returns An object that allows restoring a cached result or storing a new one.
      */
-    public cache<T extends ParsedCacheKind>(key: T): ParsedCacheServices<T> {
+    public cache<T extends ParserCacheKind>(key: T): ParserCacheServices<T> {
         const rangeStart = this.cursorIndex;
         const data = this.caches[rangeStart];
-        let restore: (() => ParsedCacheTargets<T> | undefined) | undefined = undefined;
+        let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
             this.cursorIndex = data.rangeEnd;
-            return data.data as ParsedCacheTargets<T> | undefined;
+            return data.data as ParserCacheTargets<T> | undefined;
         };
 
-        const store = (cache: ParsedCacheTargets<T> | undefined) => {
+        const store = (cache: ParserCacheTargets<T> | undefined) => {
             this.caches[rangeStart] = {
                 kind: key,
                 rangeEnd: this.cursorIndex,
