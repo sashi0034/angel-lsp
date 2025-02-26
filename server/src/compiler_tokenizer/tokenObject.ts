@@ -159,7 +159,7 @@ export class TokenNumber extends TokenBase {
     public constructor(
         text: string,
         location: TextLocation,
-        public readonly numeric: NumberLiterals,
+        public readonly numberLiteral: NumberLiterals,
     ) {
         super(text, location, HighlightToken.Number);
     }

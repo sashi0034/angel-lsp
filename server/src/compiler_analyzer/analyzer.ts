@@ -850,7 +850,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
-        switch (literalValue.numeric) {
+        switch (literalValue.numberLiteral) {
         case NumberLiterals.Integer:
             return resolvedBuiltinInt;
         case NumberLiterals.Float:

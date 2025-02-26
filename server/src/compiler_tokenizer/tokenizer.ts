@@ -1,11 +1,8 @@
-import {HighlightModifier, HighlightToken} from "../code/highlight";
 import {
-    HighlightInfo,
     NumberLiterals,
     TokenComment,
     TokenIdentifier,
     TokenObject,
-    TokenKind,
     TokenNumber,
     TokenReserved,
     TokenString
@@ -13,7 +10,7 @@ import {
 import {diagnostic} from "../code/diagnostic";
 import {TokenizerState, UnknownBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./reservedWord";
-import {TextLocation, TextPosition} from "./textLocation";
+import {TextLocation} from "./textLocation";
 
 function isDigit(c: string): boolean {
     return /^[0-9]$/.test(c);
@@ -42,6 +39,7 @@ function tryComment(tokenizer: TokenizerState, location: TextLocation): TokenCom
     } else if (tokenizer.isNext('/*')) {
         return tokenizeBlockComment(tokenizer, location);
     }
+
     return undefined;
 }
 
@@ -75,14 +73,14 @@ function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation)
 function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumber | undefined {
     const start = tokenizer.getCursorOffset();
 
-    const numeric = consumeNumber(tokenizer);
+    const numberLiteral = consumeNumber(tokenizer);
 
     if (start === tokenizer.getCursorOffset()) return undefined;
 
     return new TokenNumber(
         tokenizer.substrToCursor(start),
         location.withEnd(tokenizer.getCursorPosition()),
-        numeric);
+        numberLiteral);
 }
 
 function consumeNumber(tokenizer: TokenizerState) {
@@ -115,14 +113,14 @@ function consumeNumber(tokenizer: TokenizerState) {
     // Read until it is 0-9.
     while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
 
-    let numeric = NumberLiterals.Integer;
+    let numberLiteral = NumberLiterals.Integer;
 
     // Check if it is a floating point number
     let f = 0;
     if (tokenizer.next() === '.') {
         f++;
         while (isDigit(tokenizer.next(f))) f++;
-        numeric = NumberLiterals.Double;
+        numberLiteral = NumberLiterals.Double;
     }
 
     // Check if it has an exponent
@@ -130,14 +128,14 @@ function consumeNumber(tokenizer: TokenizerState) {
     if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer.next(f + 2))) {
         f += 3;
         while (isDigit(tokenizer.next(f))) f++;
-        numeric = NumberLiterals.Double;
+        numberLiteral = NumberLiterals.Double;
     }
 
     if (f >= 1) {
         tokenizer.stepFor(f);
 
         // Check half precision floating point
-        if (numeric === NumberLiterals.Double) {
+        if (numberLiteral === NumberLiterals.Double) {
             if (/^[fF]$/.test(tokenizer.next())) {
                 tokenizer.stepNext();
                 return NumberLiterals.Float;
@@ -145,7 +143,7 @@ function consumeNumber(tokenizer: TokenizerState) {
         }
     }
 
-    return numeric;
+    return numberLiteral;
 }
 
 // Check if the next token is a string and tokenize it.
@@ -217,13 +215,6 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
     return new TokenIdentifier(identifier, tokenLocation);
 }
 
-function createHighlight(token: HighlightToken, modifier: HighlightModifier): HighlightInfo {
-    return {
-        token: token,
-        modifier: modifier,
-    };
-}
-
 /**
  * The entry point for the tokenizer.
  * @param content The content of the file to tokenize.
@@ -248,41 +239,42 @@ export function tokenize(content: string, path: string): TokenObject[] {
             tokenizer.getCursorPosition(),
         );
 
-        // Tokenize Comment
+        // Tokenize a comment
         const triedComment = tryComment(tokenizer, location);
         if (triedComment !== undefined) {
             tokens.push(triedComment);
             continue;
         }
 
-        // Tokenize Number
+        // Tokenize a number
         const triedNumber = tryNumber(tokenizer, location);
         if (triedNumber !== undefined) {
             tokens.push(triedNumber);
             continue;
         }
 
-        // Tokenize String
+        // Tokenize a string
         const triedString = tryString(tokenizer, location);
         if (triedString !== undefined) {
             tokens.push(triedString);
             continue;
         }
 
-        // Tokenize Non-alphabetic Symbol
+        // Tokenize a non-alphabetic symbol
         const triedMark = tryMark(tokenizer, location);
         if (triedMark !== undefined) {
             tokens.push(triedMark);
             continue;
         }
 
-        // Tokenize Identifier or Reserved Keyword
+        // Tokenize an identifier or reserved keyword
         const triedIdentifier = tryIdentifier(tokenizer, location);
         if (triedIdentifier !== undefined) {
             tokens.push(triedIdentifier);
             continue;
         }
 
+        // If the token is unknown, buffer it.
         unknownBuffer.append(location, tokenizer.next());
         tokenizer.stepNext();
     }
