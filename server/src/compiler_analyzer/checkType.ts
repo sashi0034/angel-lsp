@@ -4,14 +4,13 @@ import {
     SymbolObject,
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
-import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
-import {getNodeLocation} from "../compiler_parser/nodesUtils";
+import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
-import {isSameToken} from "../compiler_tokenizer/tokenUtils";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 /**
  * Check if the source type can be converted to the destination type.
@@ -23,12 +22,12 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 export function checkTypeMatch(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
-    nodeRange: ParsedRange,
+    nodeRange: TokenRange,
 ): boolean {
     if (canTypeConvert(src, dest)) return true;
 
     analyzerDiagnostic.add(
-        getNodeLocation(nodeRange),
+        nodeRange.getBoundingLocation(),
         `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
     return false;
 }
@@ -151,7 +150,7 @@ function canCastFromPrimitiveType(
     const destNode = destType.sourceNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && isSameToken(srcType.declaredPlace, destType.declaredPlace);
+        return destType.isTypeParameter && srcType.declaredPlace.equals(destType.declaredPlace);
     }
 
     if (srcType.identifierText === 'void') {

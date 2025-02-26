@@ -1,7 +1,6 @@
 import {Position} from "vscode-languageserver";
 import {serveDefinitionAsToken} from "./definition";
 import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {isSameToken} from "../compiler_tokenizer/tokenUtils";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export function serveReferences(targetScope: AnalyzedScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
@@ -21,9 +20,7 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObj
     for (const reference of scope.referencedList) {
         // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
         if (reference.declaredSymbol.declaredPlace === targetDefinition
-            || isSameToken(
-                reference.declaredSymbol.declaredPlace,
-                targetDefinition)
+            || reference.declaredSymbol.declaredPlace.equals(targetDefinition)
         ) {
             references.push(reference.referencedToken);
         }

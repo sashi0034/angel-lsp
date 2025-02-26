@@ -1,107 +1,112 @@
 import {diagnostic} from "../code/diagnostic";
-import {TextLocation, TextPosition, TextRange} from "./textLocation";
-import {DeepMutable, Mutable} from "../utils/utilities";
+import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from "./textLocation";
 
 export class TokenizerState {
     // The content of the file to be tokenized
-    public readonly content: string;
+    public readonly _fileContent: string;
 
-    // Index of the current cursor position in the content string
-    private cursor: number;
+    // Current offset position of the head in the file content string
+    private _cursorOffset: number;
 
-    // Same as cursor, but expressed in terms of line and character position rather than index
-    private readonly head: Mutable<TextPosition>;
+    // Same as _cursorOffset, but expressed in terms of line and character position
+    private readonly _cursorPosition: MutableTextPosition;
 
-    public getCursor() {
-        return this.cursor;
+    public getCursorOffset() {
+        return this._cursorOffset;
     }
 
-    constructor(content: string) {
-        this.content = content;
-        this.cursor = 0;
-        this.head = new TextPosition(0, 0);
+    public getCursorPosition(): TextPosition {
+        return this._cursorPosition.freeze();
     }
 
-    next(offset: number = 0) {
-        return this.content[this.cursor + offset];
+    public constructor(content: string) {
+        this._fileContent = content;
+        this._cursorOffset = 0;
+        this._cursorPosition = new MutableTextPosition(0, 0);
     }
 
-    isEnd() {
-        return this.cursor >= this.content.length;
+    public next(offset: number = 0) {
+        return this._fileContent[this._cursorOffset + offset];
     }
 
-    isNext(expected: string) {
-        return this.content.substring(this.cursor, this.cursor + expected.length) === expected;
+    public isEnd() {
+        return this._cursorOffset >= this._fileContent.length;
     }
 
-    isNextWrap() {
+    public isNext(expected: string) {
+        return this._fileContent.substring(this._cursorOffset, this._cursorOffset + expected.length) === expected;
+    }
+
+    public isNextWrap() {
         const next = this.next();
         return next === '\r' || next === '\n';
     }
 
-    isNextWhitespace() {
-        const next = this.content[this.cursor];
+    public isNextWhitespace() {
+        const next = this._fileContent[this._cursorOffset];
         return next === ' ' || next === '\t';
     }
 
-    stepNext() {
+    public stepNext() {
         if (this.isEnd()) return;
 
         if (this.isNextWrap()) {
-            this.head.line++;
-            this.head.character = 0;
-            if (this.isNext('\r\n')) this.cursor += 2;
-            else this.cursor += 1;
+            this._cursorPosition.line_++;
+            this._cursorPosition.character_ = 0;
+            if (this.isNext('\r\n')) this._cursorOffset += 2;
+            else this._cursorOffset += 1;
         } else {
-            this.head.character++;
-            this.cursor += 1;
+            this._cursorPosition.character_++;
+            this._cursorOffset += 1;
         }
     }
 
-    stepFor(count: number) {
-        this.head.character += count;
-        this.cursor += count;
+    public stepFor(count: number) {
+        this._cursorPosition.character_ += count;
+        this._cursorOffset += count;
     }
 
-    substrFrom(start: number) {
-        return this.content.substring(start, this.cursor);
-    }
-
-    copyHead(): TextPosition {
-        return this.head.clone();
+    /**
+     * Returns the substring from the specified end position to the current cursor position
+     */
+    public substrToCursor(start: number) {
+        return this._fileContent.substring(start, this._cursorOffset);
     }
 }
 
 /**
- * Buffer for strings that are not Alphabets, numbers, or symbols
+ * Buffer for strings that are not alphabets, numbers, or symbols
  */
 export class UnknownBuffer {
-    private buffer: string = "";
-    private location: DeepMutable<TextRange> | null = null;
+    private _bufferText: string = "";
+    private _bufferLocation: MutableTextRange | null = null;
 
-    public append(head: TextRange, next: string) {
-        if (this.location === null) {
-            this.location = head;
-        } else if (head.start.line !== this.location.start.line
-            || head.start.character - this.location.end.character > 1
+    public append(cursor: TextRange, next: string) {
+        if (this._bufferLocation === null) {
+            // Initialize the location
+            this._bufferLocation = MutableTextRange.create(cursor);
+        } else if (
+            cursor.start.line !== this._bufferLocation.end.line_ // if the line is different
+            || cursor.start.character - this._bufferLocation.end.character_ > 1 // or if there is a space gap between the last token
         ) {
+            // Flushes the buffer
             this.flush();
-            this.location = head;
+            this._bufferLocation.start = MutableTextPosition.create(cursor.start);
         }
 
-        this.location.end = head.end;
-        this.buffer += next;
+        this._bufferLocation.end = MutableTextPosition.create(cursor.end);
+        this._bufferText += next;
     }
 
     /**
      * Flushes the buffer and reports an error if the buffer is not empty
      */
     public flush() {
-        if (this.buffer.length === 0) return;
-        if (this.location === null) return;
+        if (this._bufferText.length === 0) return;
+        if (this._bufferLocation === null) return;
 
-        this.location.end.character++;
-        diagnostic.addError(this.location, 'Unknown token: ' + this.buffer);
-        this.buffer = "";
+        this._bufferLocation.end.character_++;
+        diagnostic.addError(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
+        this._bufferText = "";
     }
 }

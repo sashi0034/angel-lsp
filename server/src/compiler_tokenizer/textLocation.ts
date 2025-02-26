@@ -28,6 +28,27 @@ export class TextPosition implements languageserver.Position {
     }
 }
 
+/**
+ * Represents a mutable text position.
+ * This does not satisfy `languageserver.Position`,
+ * so please make it immutable when passing it to `languageserver.Position`.
+ */
+export class MutableTextPosition {
+    public constructor(
+        public line_: number,
+        public character_: number
+    ) {
+    }
+
+    public static create(position: languageserver.Position): MutableTextPosition {
+        return new MutableTextPosition(position.line, position.character);
+    }
+
+    public freeze(): TextPosition {
+        return new TextPosition(this.line_, this.character_);
+    }
+}
+
 export class TextRange implements languageserver.Range {
     constructor(
         public readonly start: TextPosition,
@@ -45,6 +66,22 @@ export class TextRange implements languageserver.Range {
 
     public clone(): TextRange {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    }
+}
+
+export class MutableTextRange {
+    public constructor(
+        public start: MutableTextPosition,
+        public end: MutableTextPosition
+    ) {
+    }
+
+    public static create(range: languageserver.Range): MutableTextRange {
+        return new MutableTextRange(MutableTextPosition.create(range.start), MutableTextPosition.create(range.end));
+    }
+
+    public freeze(): TextRange {
+        return new TextRange(this.start.freeze(), this.end.freeze());
     }
 }
 
@@ -66,6 +103,10 @@ export class TextLocation extends TextRange {
 
     public clone(): TextLocation {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    }
+
+    public equals(other: TextLocation): boolean {
+        return this.path === other.path && this.start.equals(other.start) && this.end.equals(other.end);
     }
 
     public withEnd(newEnd: TextPosition): TextLocation {

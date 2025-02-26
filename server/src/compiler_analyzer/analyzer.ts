@@ -35,8 +35,7 @@ import {
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeWhile,
-    ParsedRange
+    NodeWhile
 } from "../compiler_parser/nodes";
 import {
     getSourceNodeName,
@@ -58,11 +57,6 @@ import {
 } from "./symbolScope";
 import {checkFunctionMatch} from "./checkFunction";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
-import {
-    getLocationBetween,
-    getNextTokenIfExist,
-    getNodeLocation
-} from "../compiler_parser/nodesUtils";
 import {
     builtinBoolType,
     resolvedBuiltinBool,
@@ -88,6 +82,7 @@ import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
 
 export type HoistQueue = (() => void)[];
 
@@ -294,7 +289,7 @@ function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], template
     for (let i = 0; i < nodeType.length; i++) {
         if (i >= templateTypes.length) {
             analyzerDiagnostic.add(
-                getNodeLocation(nodeType[nodeType.length - 1].nodeRange),
+                (nodeType[nodeType.length - 1].nodeRange.getBoundingLocation()),
                 `Too many template types.`);
             break;
         }
@@ -349,7 +344,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 
         // Append a hint for completion of the namespace to the scope.
         const complementRange: TextLocation = nextScope.location.withEnd(
-            getNextTokenIfExist(getNextTokenIfExist(nextScope)).location.start);
+            nextScope.getNextOrSelf().getNextOrSelf().location.start);
         parentScope.completionHints.push({
             complementKind: ComplementKind.Namespace,
             complementLocation: complementRange,
@@ -472,7 +467,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
     if (assign?.isHandler !== true && assign?.symbolType instanceof SymbolFunction) {
-        analyzerDiagnostic.add(getNodeLocation(exprStat.assign.nodeRange), `Function call without handler.`);
+        analyzerDiagnostic.add(exprStat.assign.nodeRange.getBoundingLocation(), `Function call without handler.`);
     }
 }
 
@@ -504,7 +499,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const expectedReturn = functionReturn.returnType?.symbolType;
         if (expectedReturn instanceof SymbolType && expectedReturn?.identifierText === 'void') {
             if (nodeReturn.assign === undefined) return;
-            analyzerDiagnostic.add(getNodeLocation(nodeReturn.nodeRange), `Function does not return a value.`);
+            analyzerDiagnostic.add(nodeReturn.nodeRange.getBoundingLocation(), `Function does not return a value.`);
         } else {
             checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
         }
@@ -513,7 +508,9 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const isGetter = key.startsWith('get_');
         if (isGetter === false) {
             if (nodeReturn.assign === undefined) return;
-            analyzerDiagnostic.add(getNodeLocation(nodeReturn.nodeRange), `Property setter does not return a value.`);
+            analyzerDiagnostic.add(
+                nodeReturn.nodeRange.getBoundingLocation(),
+                `Property setter does not return a value.`);
             return;
         }
 
@@ -538,7 +535,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     // Evaluate by Shunting Yard Algorithm
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
-    type Term = [ResolvedType | undefined, ParsedRange];
+    type Term = [ResolvedType | undefined, TokenRange];
     type Op = TokenObject;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
@@ -580,7 +577,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
             if (lhs === undefined || rhs === undefined) return undefined;
 
             outputTerm.push([analyzeExprOp(
-                scope, item, lhs[0], rhs[0], lhs[1], rhs[1]), {start: lhs[1].start, end: rhs[1].end}]);
+                scope, item, lhs[0], rhs[0], lhs[1], rhs[1]), new TokenRange(lhs[1].start, rhs[1].end)]);
         } else {
             outputTerm.push(item);
         }
@@ -742,7 +739,7 @@ function analyzeBuiltinConstructorCaller(
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: ParsedRange) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: TokenRange) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     } else if (exprPostOp.postOp === 2) {
@@ -753,14 +750,14 @@ function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprV
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: ResolvedType) {
     if (exprValue.symbolType instanceof SymbolType === false) {
-        analyzerDiagnostic.add(getNodeLocation(exprPostOp.nodeRange), `Invalid access to type.`);
+        analyzerDiagnostic.add(exprPostOp.nodeRange.getBoundingLocation(), `Invalid access to type.`);
         return undefined;
     }
 
     // Append a hint for complement of class members.
-    const complementRange = getLocationBetween(
+    const complementRange = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
-        getNextTokenIfExist(exprPostOp.nodeRange.start));
+        exprPostOp.nodeRange.start.getNextOrSelf());
     scope.completionHints.push({
         complementKind: ComplementKind.Type,
         complementLocation: complementRange,
@@ -802,7 +799,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
-function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: ParsedRange) {
+function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
     const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
     return analyzeOperatorAlias(
         scope,
@@ -850,7 +847,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
-        switch (literalValue.numeric) {
+        switch (literalValue.numberLiteral) {
         case NumberLiterals.Integer:
             return resolvedBuiltinInt;
         case NumberLiterals.Float:
@@ -955,9 +952,9 @@ function analyzeFunctionCaller(
     }
 
     // Append a hint for completion of function arguments to the scope.
-    const complementRange = getLocationBetween(
+    const complementRange = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
-        getNextTokenIfExist(callerArgList.nodeRange.end));
+        callerArgList.nodeRange.end.getNextOrSelf());
     scope.completionHints.push({
         complementKind: ComplementKind.Arguments,
         complementLocation: complementRange,
@@ -1076,7 +1073,9 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (canTypeConvert(falseAssign, trueAssign)) return trueAssign;
 
     analyzerDiagnostic.add(
-        getLocationBetween(condition.ternary.trueAssign.nodeRange.start, condition.ternary.falseAssign.nodeRange.end),
+        getBoundingLocationBetween(
+            condition.ternary.trueAssign.nodeRange.start,
+            condition.ternary.falseAssign.nodeRange.end),
         `Type mismatches between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`);
     return undefined;
 }
@@ -1085,7 +1084,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
 function analyzeExprOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (operator.isReservedToken() === false) return undefined;
     if (lhs === undefined || rhs === undefined) return undefined;
@@ -1105,7 +1104,7 @@ function analyzeExprOp(
 function analyzeOperatorAlias(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType | (ResolvedType | undefined)[],
-    leftRange: ParsedRange, rightRange: ParsedRange,
+    leftRange: TokenRange, rightRange: TokenRange,
     alias: string
 ) {
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
@@ -1140,7 +1139,7 @@ function analyzeOperatorAlias(
     return checkFunctionMatch({
         scope: scope,
         callerIdentifier: operator,
-        callerRange: {start: operator, end: operator},
+        callerRange: new TokenRange(operator, operator),
         callerArgRanges: [rightRange],
         callerArgTypes: rhsArgs,
         calleeFunc: aliasFunction,
@@ -1152,7 +1151,7 @@ function analyzeOperatorAlias(
 function analyzeBitOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
@@ -1182,7 +1181,7 @@ const bitOpAliases = new Map<string, [string, string]>([
 function analyzeMathOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
@@ -1212,7 +1211,7 @@ const mathOpAliases = new Map<string, [string, string]>([
 function analyzeCompOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, rhs) || canTypeConvert(rhs, lhs)) {
@@ -1240,7 +1239,7 @@ const compOpAliases = new Map<string, string>([
 function analyzeLogicOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     checkTypeMatch(lhs, new ResolvedType(builtinBoolType), leftRange);
     checkTypeMatch(rhs, new ResolvedType(builtinBoolType), rightRange);
@@ -1251,7 +1250,7 @@ function analyzeLogicOp(
 function analyzeAssignOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {

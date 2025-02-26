@@ -1,10 +1,9 @@
-import {ParsedRange} from "../compiler_parser/nodes";
-import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 /**
  * Types of autocomplete targets
@@ -55,7 +54,7 @@ export interface CompletionNamespace extends ComplementBase {
 export interface CompletionArgument extends ComplementBase {
     complementKind: ComplementKind.Arguments;
     expectedCallee: SymbolFunction;
-    passingRanges: ParsedRange[];
+    passingRanges: TokenRange[];
     templateTranslate: TemplateTranslation | undefined;
 }
 
@@ -66,11 +65,11 @@ export type ComplementHints =
     | CompletionArgument;
 
 export function pushHintOfCompletionScopeToParent(
-    parentScope: SymbolScope | undefined, targetScope: SymbolScope, nodeRange: ParsedRange
+    parentScope: SymbolScope | undefined, targetScope: SymbolScope, nodeRange: TokenRange
 ) {
     parentScope?.completionHints.push({
         complementKind: ComplementKind.Scope,
-        complementLocation: getNodeLocation(nodeRange),
+        complementLocation: nodeRange.getBoundingLocation(),
         targetScope: targetScope
     });
 }

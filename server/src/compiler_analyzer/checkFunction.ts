@@ -1,21 +1,20 @@
-import {diagnostic} from "../code/diagnostic";
-import {ParsedRange} from "../compiler_parser/nodes";
 import {
     SymbolFunction,
 } from "./symbolObject";
 import {canTypeConvert} from "./checkType";
-import {getNodeLocation, stringifyNodeType} from "../compiler_parser/nodesUtils";
+import {stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
     callerIdentifier: TokenObject;
-    callerRange: ParsedRange;
-    callerArgRanges: ParsedRange[];
+    callerRange: TokenRange;
+    callerArgRanges: TokenRange[];
     callerArgTypes: (ResolvedType | undefined)[];
     calleeFunc: SymbolFunction;
     templateTranslators: (TemplateTranslation | undefined)[];
@@ -70,7 +69,7 @@ function checkFunctionMatchInternal(
                 overloadedHead,
                 templateTranslators) === false) {
                 analyzerDiagnostic.add(
-                    getNodeLocation(callerRange),
+                    callerRange.getBoundingLocation(),
                     `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
             }
 
@@ -96,7 +95,7 @@ function checkFunctionMatchInternal(
             overloadedHead,
             templateTranslators) === false) {
             analyzerDiagnostic.add(
-                getNodeLocation(callerRange),
+                callerRange.getBoundingLocation(),
                 `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
                     expectedType)}'.`);
         }
@@ -120,7 +119,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
         overloadedHead,
         templateTranslators) === false) {
         analyzerDiagnostic.add(
-            getNodeLocation(callerRange),
+            callerRange.getBoundingLocation(),
             `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
@@ -128,7 +127,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
 }
 
 function handleErrorWhenOverloaded(
-    callerRange: ParsedRange,
+    callerRange: TokenRange,
     callerArgs: (ResolvedType | undefined)[],
     calleeFunc: SymbolFunction,
     overloadedHead: SymbolFunction,
@@ -147,6 +146,6 @@ function handleErrorWhenOverloaded(
         cursor = cursor.nextOverload;
     }
 
-    analyzerDiagnostic.add(getNodeLocation(callerRange), message);
+    analyzerDiagnostic.add(callerRange.getBoundingLocation(), message);
     return true;
 }

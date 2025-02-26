@@ -1,4 +1,5 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenRange} from "./tokenRange";
 
 export enum AccessModifier {
     Private = 'Private',
@@ -14,18 +15,6 @@ export enum TypeModifier {
 export enum ReferenceModifier {
     At = 'At',
     AtConst = 'AtConst',
-}
-
-export interface ParsedRange {
-    readonly start: TokenObject;
-    readonly end: TokenObject;
-}
-
-export function makeParsedRange(start: TokenObject, end: TokenObject): ParsedRange {
-    return {
-        start: start,
-        end: end
-    };
 }
 
 export interface EntityAttribute {
@@ -107,7 +96,7 @@ export enum NodeName {
 
 export interface NodesBase {
     readonly nodeName: NodeName;
-    readonly nodeRange: ParsedRange;
+    readonly nodeRange: TokenRange;
 }
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -136,7 +125,7 @@ export interface NodeNamespace extends NodesBase {
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface NodeEnum extends NodesBase {
     readonly nodeName: NodeName.Enum;
-    readonly scopeRange: ParsedRange;
+    readonly scopeRange: TokenRange;
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];
@@ -150,8 +139,8 @@ export interface ParsedEnumMember {
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeClass extends NodesBase {
     readonly nodeName: NodeName.Class;
-    readonly scopeRange: ParsedRange;
-    readonly metadata: TokenObject[];
+    readonly scopeRange: TokenRange;
+    readonly metadata: TokenObject[][];
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly typeTemplates: NodeType[] | undefined;
