@@ -70,7 +70,7 @@ import {HighlightForToken} from "../code/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserState";
 import {ParsedCacheKind} from "./parsedCache";
-import {isTokensLinkedBy} from "../compiler_tokenizer/tokenUtils";
+import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getLocationBetween, setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 
@@ -2143,7 +2143,7 @@ function parseExprOp(parser: ParserState) {
 
 // '!is' requires special handling.
 function parseNotIsOperator(parser: ParserState) {
-    if (isTokensLinkedBy(parser.next(), ['!', 'is']) === false) return undefined;
+    if (areTokensJoinedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
     const location = getLocationBetween(parser.next(0), parser.next(1));
     parser.commit(HighlightForToken.Builtin);
@@ -2172,7 +2172,7 @@ function getNextLinkedGreaterThan(parser: ParserState) {
     if (parser.next().text !== '>') return parser.next();
 
     const check = (targets: string[], uniqueTokenText: string) => {
-        if (isTokensLinkedBy(parser.next(1), targets) === false) return undefined;
+        if (areTokensJoinedBy(parser.next(1), targets) === false) return undefined;
         const location = getLocationBetween(parser.next(0), parser.next(targets.length));
         for (let i = 0; i < targets.length; ++i) parser.commit(HighlightForToken.Operator);
         return TokenReserved.createVirtual(uniqueTokenText, location);
