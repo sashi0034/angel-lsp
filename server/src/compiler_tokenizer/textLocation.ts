@@ -100,6 +100,10 @@ export class TextLocation extends TextRange {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }
 
+    public equals(other: TextLocation): boolean {
+        return this.path === other.path && this.start.equals(other.start) && this.end.equals(other.end);
+    }
+
     public withEnd(newEnd: TextPosition): TextLocation {
         return new TextLocation(this.path, this.start, newEnd);
     }

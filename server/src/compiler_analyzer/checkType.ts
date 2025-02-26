@@ -10,7 +10,6 @@ import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
-import {isSameToken} from "../compiler_tokenizer/tokenUtils";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 
 /**
@@ -151,7 +150,7 @@ function canCastFromPrimitiveType(
     const destNode = destType.sourceNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && isSameToken(srcType.declaredPlace, destType.declaredPlace);
+        return destType.isTypeParameter && srcType.declaredPlace.equals(destType.declaredPlace);
     }
 
     if (srcType.identifierText === 'void') {

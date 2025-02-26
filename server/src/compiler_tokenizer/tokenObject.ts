@@ -104,6 +104,10 @@ export abstract class TokenBase {
     public get next() {
         return this._nextPreprocessedToken;
     }
+
+    public equals(other: TokenBase): boolean {
+        return this === other || (this.location.equals(other.location));
+    }
 }
 
 export class TokenReserved extends TokenBase {

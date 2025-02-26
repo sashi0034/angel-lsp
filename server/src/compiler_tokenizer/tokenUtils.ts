@@ -1,21 +1,6 @@
 import {
-    TokenBase,
     TokenObject
 } from "./tokenObject";
-
-/**
- * Determines if two tokens are identical.
- * This function does not check if they are the same instance;
- * instead, it compares the members of each token object individually.
- */
-export function isSameToken(l: TokenBase, r: TokenBase): boolean {
-    return l.text === r.text
-        && l.location.path === r.location.path
-        && l.location.start.line === r.location.start.line
-        && l.location.start.character === r.location.start.character
-        && l.location.end.line === r.location.end.line
-        && l.location.end.character === r.location.end.character;
-}
 
 /**
  * Determines if a given sequence of tokens matches the specified string sequence.
