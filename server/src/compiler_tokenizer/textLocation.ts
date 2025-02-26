@@ -28,10 +28,15 @@ export class TextPosition implements languageserver.Position {
     }
 }
 
-export class MutableTextPosition implements languageserver.Position {
+/**
+ * Represents a mutable text position.
+ * This does not satisfy `languageserver.Position`,
+ * so please make it immutable when passing it to `languageserver.Position`.
+ */
+export class MutableTextPosition {
     public constructor(
-        public line: number,
-        public character: number
+        public line_: number,
+        public character_: number
     ) {
     }
 
@@ -40,7 +45,7 @@ export class MutableTextPosition implements languageserver.Position {
     }
 
     public freeze(): TextPosition {
-        return new TextPosition(this.line, this.character);
+        return new TextPosition(this.line_, this.character_);
     }
 }
 
@@ -64,7 +69,7 @@ export class TextRange implements languageserver.Range {
     }
 }
 
-export class MutableTextRange implements languageserver.Range {
+export class MutableTextRange {
     public constructor(
         public start: MutableTextPosition,
         public end: MutableTextPosition

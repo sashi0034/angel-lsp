@@ -51,18 +51,18 @@ export class TokenizerState {
         if (this.isEnd()) return;
 
         if (this.isNextWrap()) {
-            this._cursorPosition.line++;
-            this._cursorPosition.character = 0;
+            this._cursorPosition.line_++;
+            this._cursorPosition.character_ = 0;
             if (this.isNext('\r\n')) this._cursorOffset += 2;
             else this._cursorOffset += 1;
         } else {
-            this._cursorPosition.character++;
+            this._cursorPosition.character_++;
             this._cursorOffset += 1;
         }
     }
 
     public stepFor(count: number) {
-        this._cursorPosition.character += count;
+        this._cursorPosition.character_ += count;
         this._cursorOffset += count;
     }
 
@@ -86,8 +86,8 @@ export class UnknownBuffer {
             // Initialize the location
             this._bufferLocation = MutableTextRange.create(cursor);
         } else if (
-            cursor.start.isSameLine(this._bufferLocation.end) === false // if the line is different
-            || cursor.start.character - this._bufferLocation.end.character > 1 // or if there is a space gap between the last token
+            cursor.start.line !== this._bufferLocation.end.line_ // if the line is different
+            || cursor.start.character - this._bufferLocation.end.character_ > 1 // or if there is a space gap between the last token
         ) {
             // Flushes the buffer
             this.flush();
@@ -105,7 +105,7 @@ export class UnknownBuffer {
         if (this._bufferText.length === 0) return;
         if (this._bufferLocation === null) return;
 
-        this._bufferLocation.end.character++;
+        this._bufferLocation.end.character_++;
         diagnostic.addError(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
         this._bufferText = "";
     }

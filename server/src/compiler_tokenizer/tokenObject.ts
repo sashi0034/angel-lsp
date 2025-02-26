@@ -20,17 +20,6 @@ export interface HighlightInfo {
 }
 
 /**
- * Creates virtual highlight information.
- * Used to treat built-in keywords like 'int' as tokens, even though they don't actually exist in the code.
- */
-export function createVirtualHighlight(): HighlightInfo {
-    return {
-        token: HighlightForToken.Invalid,
-        modifier: HighlightForModifier.Nothing,
-    };
-}
-
-/**
  * Base object for all tokens.
  */
 export abstract class TokenBase {
