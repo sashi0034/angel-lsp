@@ -8,7 +8,7 @@ import {
  *
  * @param headToken The starting token to check.
  * @param expectedTexts The expected string sequence.
- * @returns `true` if the tokens match the target sequence, otherwise `false`.
+ * @returns `true` if the tokens match the expected sequence, otherwise `false`.
  */
 export function areTokensJoinedBy(headToken: TokenObject, expectedTexts: string[]): boolean {
     if (headToken.text !== expectedTexts[0]) return false;

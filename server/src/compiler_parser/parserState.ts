@@ -57,9 +57,9 @@ export class ParserState {
         this.cursorIndex++;
     }
 
-    public commit(analyzeToken: HighlightForToken) {
+    public commit(highlightForToken: HighlightForToken) {
         const next = this.next();
-        if (next.isVirtual() === false) next.highlight.token = analyzeToken;
+        if (next.isVirtual() === false) next.setHighlight(highlightForToken);
         this.step();
     }
 

@@ -43,11 +43,15 @@ export abstract class TokenBase {
 
     public abstract get kind(): TokenKind;
 
-    public setHighlight(token: HighlightForToken, modifier: HighlightForModifier = HighlightForModifier.Nothing) {
-        this._highlight = {token: token, modifier: modifier};
+    public setHighlight(token: HighlightForToken, modifier?: HighlightForModifier) {
+        if (modifier === undefined) {
+            this._highlight.token = token;
+        } else {
+            this._highlight = {token: token, modifier: modifier};
+        }
     }
 
-    public get highlight(): HighlightInfo {
+    public get highlight(): Readonly<HighlightInfo> {
         return this._highlight;
     }
 

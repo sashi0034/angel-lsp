@@ -66,10 +66,10 @@ function preprocessDirectives(tokens: TokenObject[]): TokenObject[] {
 }
 
 function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: TokenObject[]) {
-    directiveTokens[0].highlight.token = HighlightForToken.Directive;
+    directiveTokens[0].setHighlight(HighlightForToken.Directive);
 
     if (directiveTokens[1]?.text === 'include') {
-        directiveTokens[1].highlight.token = HighlightForToken.Directive;
+        directiveTokens[1].setHighlight(HighlightForToken.Directive);
 
         // Check the include directive.
         const fileName = directiveTokens[2];
@@ -85,7 +85,7 @@ function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: Tok
 
         includeFiles.push(fileName);
     } else {
-        if (directiveTokens[1] != null) directiveTokens[1].highlight.token = HighlightForToken.Label;
+        if (directiveTokens[1] != null) directiveTokens[1].setHighlight(HighlightForToken.Label);
     }
 }
 
