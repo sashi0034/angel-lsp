@@ -36,7 +36,7 @@ import {
     NodeVar,
     NodeVarAccess,
     NodeWhile,
-    ParsedRange
+    TokenRange
 } from "../compiler_parser/nodes";
 import {
     getSourceNodeName,
@@ -538,7 +538,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     // Evaluate by Shunting Yard Algorithm
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
-    type Term = [ResolvedType | undefined, ParsedRange];
+    type Term = [ResolvedType | undefined, TokenRange];
     type Op = TokenObject;
 
     function isOp(termOrOp: (Term | Op)): termOrOp is Op {
@@ -580,7 +580,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
             if (lhs === undefined || rhs === undefined) return undefined;
 
             outputTerm.push([analyzeExprOp(
-                scope, item, lhs[0], rhs[0], lhs[1], rhs[1]), {start: lhs[1].start, end: rhs[1].end}]);
+                scope, item, lhs[0], rhs[0], lhs[1], rhs[1]), new TokenRange(lhs[1].start, rhs[1].end)]);
         } else {
             outputTerm.push(item);
         }
@@ -742,7 +742,7 @@ function analyzeBuiltinConstructorCaller(
 // EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
 // EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: ParsedRange) {
+function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: TokenRange) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     } else if (exprPostOp.postOp === 2) {
@@ -802,7 +802,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
-function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: ParsedRange) {
+function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
     const args = exprPostOp.indexerList.map(indexer => analyzeAssign(scope, indexer.assign));
     return analyzeOperatorAlias(
         scope,
@@ -1085,7 +1085,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
 function analyzeExprOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (operator.isReservedToken() === false) return undefined;
     if (lhs === undefined || rhs === undefined) return undefined;
@@ -1105,7 +1105,7 @@ function analyzeExprOp(
 function analyzeOperatorAlias(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType | (ResolvedType | undefined)[],
-    leftRange: ParsedRange, rightRange: ParsedRange,
+    leftRange: TokenRange, rightRange: TokenRange,
     alias: string
 ) {
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
@@ -1140,7 +1140,7 @@ function analyzeOperatorAlias(
     return checkFunctionMatch({
         scope: scope,
         callerIdentifier: operator,
-        callerRange: {start: operator, end: operator},
+        callerRange: new TokenRange(operator, operator),
         callerArgRanges: [rightRange],
         callerArgTypes: rhsArgs,
         calleeFunc: aliasFunction,
@@ -1152,7 +1152,7 @@ function analyzeOperatorAlias(
 function analyzeBitOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
@@ -1182,7 +1182,7 @@ const bitOpAliases = new Map<string, [string, string]>([
 function analyzeMathOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, resolvedBuiltinInt) && canTypeConvert(
@@ -1212,7 +1212,7 @@ const mathOpAliases = new Map<string, [string, string]>([
 function analyzeCompOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {
         if (canTypeConvert(lhs, rhs) || canTypeConvert(rhs, lhs)) {
@@ -1240,7 +1240,7 @@ const compOpAliases = new Map<string, string>([
 function analyzeLogicOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     checkTypeMatch(lhs, new ResolvedType(builtinBoolType), leftRange);
     checkTypeMatch(rhs, new ResolvedType(builtinBoolType), rightRange);
@@ -1251,7 +1251,7 @@ function analyzeLogicOp(
 function analyzeAssignOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
-    leftRange: ParsedRange, rightRange: ParsedRange
+    leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
     if (lhs.symbolType instanceof SymbolType && rhs.symbolType instanceof SymbolType) {

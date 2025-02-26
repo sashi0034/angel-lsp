@@ -8,7 +8,6 @@ import {
     FuncHeads,
     FunctionAttribute,
     isFunctionHeadReturnValue,
-    makeParsedRange,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -63,7 +62,7 @@ import {
     ParsedGetterSetter,
     ParsedPostIndexer,
     ParsedVariableInit,
-    ReferenceModifier,
+    ReferenceModifier, TokenRange,
     TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../code/highlight";
@@ -189,7 +188,7 @@ function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
 
     return {
         nodeName: NodeName.Namespace,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         namespaceList: namespaceList,
         script: script
     };
@@ -245,8 +244,8 @@ function parseEnum(parser: ParserState): ParsedResult<NodeEnum> {
 
     return {
         nodeName: NodeName.Enum,
-        nodeRange: {start: rangeStart, end: parser.prev()},
-        scopeRange: {start: scopeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        scopeRange: new TokenRange(scopeStart, parser.prev()),
         entity: entity,
         identifier: identifier,
         memberList: memberList
@@ -345,8 +344,8 @@ function parseClass(parser: ParserState): ParsedResult<NodeClass> {
 
     return {
         nodeName: NodeName.Class,
-        nodeRange: {start: rangeStart, end: parser.prev()},
-        scopeRange: {start: scopeStart, end: scopeEnd},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        scopeRange: new TokenRange(scopeStart, scopeEnd),
         metadata: metadata,
         entity: entity,
         identifier: identifier,
@@ -414,7 +413,7 @@ function parseTypeDef(parser: ParserState): ParsedResult<NodeTypeDef> {
 
     return {
         nodeName: NodeName.TypeDef,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: primeType,
         identifier: identifier
     };
@@ -471,13 +470,13 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
 
     if (statBlock === undefined) statBlock = {
         nodeName: NodeName.StatBlock,
-        nodeRange: {start: parser.next(), end: parser.next()},
+        nodeRange: new TokenRange(parser.next(), parser.next()),
         statementList: []
     };
 
     return {
         nodeName: NodeName.Func,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         entity: entityAttribute,
         accessor: accessor,
         head: head,
@@ -569,7 +568,7 @@ function parseInterface(parser: ParserState): ParsedResult<NodeInterface> {
 
     const result: Mutable<NodeInterface> = {
         nodeName: NodeName.Interface,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         entity: entity,
         identifier: identifier,
         baseList: [],
@@ -668,7 +667,7 @@ function parseVar(parser: ParserState): NodeVar | undefined {
 
     return {
         nodeName: NodeName.Var,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         accessor: accessor,
         type: type,
         variables: variables
@@ -722,7 +721,7 @@ function parseImport(parser: ParserState): ParsedResult<NodeImport> {
 
     return {
         nodeName: NodeName.Import,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         isRef: isRef,
         identifier: identifier,
@@ -759,7 +758,7 @@ function parseFuncDef(parser: ParserState): ParsedResult<NodeFuncDef> {
 
     return {
         nodeName: NodeName.FuncDef,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         entity: entity,
         returnType: returnType,
         isRef: isRef,
@@ -811,7 +810,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
 
     return {
         nodeName: NodeName.VirtualProp,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         accessor: accessor,
         type: type,
         isRef: isRef,
@@ -851,7 +850,7 @@ function parseMixin(parser: ParserState): ParsedResult<NodeMixin> {
 
     return {
         nodeName: NodeName.Mixin,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         mixinClass: parsedClass
     };
 }
@@ -877,7 +876,7 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
 
     return {
         nodeName: NodeName.IntfMethod,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         returnType: returnType,
         isRef: isRef,
         identifier: identifier,
@@ -915,7 +914,7 @@ function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
 
     return {
         nodeName: NodeName.StatBlock,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         statementList: statementList
     };
 }
@@ -1051,7 +1050,7 @@ function parseType(parser: ParserState): NodeType | undefined {
 
     return {
         nodeName: NodeName.Type,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         isConst: isConst,
         scope: scope,
         dataType: datatype,
@@ -1152,7 +1151,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
     }
     return {
         nodeName: NodeName.InitList,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         initList: initList
     };
 }
@@ -1205,7 +1204,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
 
     const nodeScope: NodeScope = {
         nodeName: NodeName.Scope,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         isGlobal: isGlobal,
         scopeList: scopeList,
         typeTemplates: typeTemplates ?? []
@@ -1221,7 +1220,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
         parser.commit(HighlightForToken.Type);
         return {
             nodeName: NodeName.DataType,
-            nodeRange: {start: next, end: next},
+            nodeRange: new TokenRange(next, next),
             identifier: next
         };
     }
@@ -1230,7 +1229,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
         parser.commit(HighlightForToken.Builtin);
         return {
             nodeName: NodeName.DataType,
-            nodeRange: {start: next, end: next},
+            nodeRange: new TokenRange(next, next),
             identifier: next
         };
     }
@@ -1238,7 +1237,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
     const primType = parsePrimeType(parser);
     if (primType !== undefined) return {
         nodeName: NodeName.DataType,
-        nodeRange: {start: next, end: next},
+        nodeRange: new TokenRange(next, next),
         identifier: primType
     };
 
@@ -1357,7 +1356,7 @@ function parseSwitch(parser: ParserState): ParsedResult<NodeSwitch> {
 
     return {
         nodeName: NodeName.Switch,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         assign: assign,
         caseList: cases
     };
@@ -1370,7 +1369,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
     parser.commit(HighlightForToken.Keyword);
 
     parser.expect(';', HighlightForToken.Operator);
-    return {nodeName: NodeName.Break, nodeRange: {start: rangeStart, end: parser.prev()}};
+    return {nodeName: NodeName.Break, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
@@ -1389,7 +1388,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
 
     const result: Mutable<NodeFor> = {
         nodeName: NodeName.For,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         initial: initial,
         condition: undefined,
         incrementList: [],
@@ -1425,7 +1424,7 @@ function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
 
     const result: Mutable<NodeWhile> = {
         nodeName: NodeName.While,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         assign: assign,
         statement: undefined
     };
@@ -1447,7 +1446,7 @@ function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
 
     const result: Mutable<NodeDoWhile> = {
         nodeName: NodeName.DoWhile,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         statement: statement,
         assign: undefined
     };
@@ -1477,7 +1476,7 @@ function parseIf(parser: ParserState): ParsedResult<NodeIf> {
 
     const result: Mutable<NodeIf> = {
         nodeName: NodeName.If,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         condition: assign,
         thenStat: undefined,
         elseStat: undefined
@@ -1498,7 +1497,7 @@ function parseIf(parser: ParserState): ParsedResult<NodeIf> {
 }
 
 function appliedNodeEnd<T extends NodesBase>(parser: ParserState, node: Mutable<T>): T {
-    node.nodeRange = makeParsedRange(node.nodeRange.start, parser.prev());
+    node.nodeRange = new TokenRange(node.nodeRange.start, parser.prev());
     return node;
 }
 
@@ -1508,7 +1507,7 @@ function parseContinue(parser: ParserState): NodeContinue | undefined {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
     parser.expect(';', HighlightForToken.Operator);
-    return {nodeName: NodeName.Continue, nodeRange: {start: rangeStart, end: parser.prev()}};
+    return {nodeName: NodeName.Continue, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
 
 // EXPRSTAT      ::= [ASSIGN] ';'
@@ -1518,7 +1517,7 @@ function parseExprStat(parser: ParserState): NodeExprStat | undefined {
         parser.commit(HighlightForToken.Operator);
         return {
             nodeName: NodeName.ExprStat,
-            nodeRange: {start: rangeStart, end: parser.prev()},
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
             assign: undefined
         };
     }
@@ -1530,7 +1529,7 @@ function parseExprStat(parser: ParserState): NodeExprStat | undefined {
 
     return {
         nodeName: NodeName.ExprStat,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         assign: assign
     };
 }
@@ -1554,7 +1553,7 @@ function parseTry(parser: ParserState): ParsedResult<NodeTry> {
 
     const result: Mutable<NodeTry> = {
         nodeName: NodeName.Try,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         tryBlock: tryBlock,
         catchBlock: undefined
     };
@@ -1573,7 +1572,7 @@ function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
 
     const result: Mutable<NodeReturn> = {
         nodeName: NodeName.Return,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         assign: undefined
     };
 
@@ -1617,7 +1616,7 @@ function parseCase(parser: ParserState): ParsedResult<NodeCase> {
 
     return {
         nodeName: NodeName.Case,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         expr: expr,
         statementList: statements
     };
@@ -1633,7 +1632,7 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
     const exprOp = parseExprOp(parser);
     if (exprOp === undefined) return {
         nodeName: NodeName.Expr,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         head: exprTerm,
         tail: undefined
     };
@@ -1641,14 +1640,14 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
     const tail = expectExpr(parser);
     if (tail === undefined) return {
         nodeName: NodeName.Expr,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         head: exprTerm,
         tail: undefined
     };
 
     return {
         nodeName: NodeName.Expr,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         head: exprTerm,
         tail: {
             operator: exprOp,
@@ -1697,7 +1696,7 @@ function parseExprTerm1(parser: ParserState): NodeExprTerm1 | undefined {
 
     return {
         nodeName: NodeName.ExprTerm,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         exprTerm: 1,
         type: type,
         initList: initList
@@ -1731,7 +1730,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
 
     return {
         nodeName: NodeName.ExprTerm,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         exprTerm: 2,
         preOps: preOps,
         value: exprValue,
@@ -1788,7 +1787,7 @@ function parseConstructCall(parser: ParserState): NodeConstructCall | undefined 
 
     return {
         nodeName: NodeName.ConstructCall,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         argList: argList
     };
@@ -1810,7 +1809,7 @@ function parseExprPostOp(parser: ParserState): NodeExprPostOp | undefined {
     if (argList !== undefined)
         return {
             nodeName: NodeName.ExprPostOp,
-            nodeRange: {start: rangeStart, end: parser.prev()},
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
             postOp: 3,
             args: argList
         };
@@ -1820,7 +1819,7 @@ function parseExprPostOp(parser: ParserState): NodeExprPostOp | undefined {
         parser.commit(HighlightForToken.Operator);
         return {
             nodeName: NodeName.ExprPostOp,
-            nodeRange: {start: rangeStart, end: parser.prev()},
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
             postOp: 4,
             operator: maybeOperator
         };
@@ -1839,7 +1838,7 @@ function parseExprPostOp1(parser: ParserState): NodeExprPostOp1 | undefined {
     if (funcCall !== undefined)
         return {
             nodeName: NodeName.ExprPostOp,
-            nodeRange: {start: rangeStart, end: parser.prev()},
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
             postOp: 1,
             member: funcCall,
         };
@@ -1847,7 +1846,7 @@ function parseExprPostOp1(parser: ParserState): NodeExprPostOp1 | undefined {
     const identifier = expectIdentifier(parser, HighlightForToken.Variable);
     return {
         nodeName: NodeName.ExprPostOp,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOp: 1,
         member: identifier
     };
@@ -1876,7 +1875,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 
     return {
         nodeName: NodeName.ExprPostOp,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOp: 2,
         indexerList: indexerList
     };
@@ -1914,7 +1913,7 @@ function parseCast(parser: ParserState): ParsedResult<NodeCast> {
 
     return {
         nodeName: NodeName.Cast,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         assign: assign
     };
@@ -1932,7 +1931,7 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
 
     const result: Mutable<NodeLambda> = {
         nodeName: NodeName.Lambda,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         paramList: [],
         statBlock: undefined
     };
@@ -1974,15 +1973,15 @@ function parseLiteral(parser: ParserState): NodeLiteral | undefined {
     const next = parser.next();
     if (next.kind === TokenKind.Number) {
         parser.commit(HighlightForToken.Number);
-        return {nodeName: NodeName.Literal, nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
     if (next.kind === TokenKind.String) {
         parser.commit(HighlightForToken.String);
-        return {nodeName: NodeName.Literal, nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
     if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
         parser.commit(HighlightForToken.Builtin);
-        return {nodeName: NodeName.Literal, nodeRange: {start: next, end: next}, value: next};
+        return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
     return undefined;
 }
@@ -2006,7 +2005,7 @@ function parseFuncCall(parser: ParserState): NodeFuncCall | undefined {
 
     return {
         nodeName: NodeName.FuncCall,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         scope: scope,
         identifier: identifier,
         argList: argList
@@ -2024,7 +2023,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
         parser.error("Expected identifier.");
         return {
             nodeName: NodeName.VarAccess,
-            nodeRange: {start: rangeStart, end: parser.prev()},
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
             scope: scope,
             identifier: undefined
         };
@@ -2034,7 +2033,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
 
     return {
         nodeName: NodeName.VarAccess,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         scope: scope,
         identifier: next
     };
@@ -2060,7 +2059,7 @@ function parseArgList(parser: ParserState): NodeArgList | undefined {
 
     return {
         nodeName: NodeName.ArgList,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         argList: argList
     };
 }
@@ -2076,7 +2075,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
 
     const result: Mutable<NodeAssign> = {
         nodeName: NodeName.Assign,
-        nodeRange: {start: rangeStart, end: parser.prev()},
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
         condition: condition,
         tail: undefined
     };
@@ -2087,7 +2086,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
     if (assign === undefined) return result;
 
     result.tail = {operator: operator, assign: assign};
-    result.nodeRange = makeParsedRange(rangeStart, parser.prev());
+    result.nodeRange = new TokenRange(rangeStart, parser.prev());
 
     return result;
 }
@@ -2109,7 +2108,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
 
     const result: Mutable<NodeCondition> = {
         nodeName: NodeName.Condition,
-        nodeRange: {start: rangeStart, end: rangeStart},
+        nodeRange: new TokenRange(rangeStart, rangeStart),
         expr: expr,
         ternary: undefined
     };
@@ -2128,7 +2127,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
         result.ternary = {trueAssign: trueAssign, falseAssign: falseAssign};
     }
 
-    result.nodeRange = makeParsedRange(rangeStart, parser.prev());
+    result.nodeRange = new TokenRange(rangeStart, parser.prev());
     return result;
 }
 

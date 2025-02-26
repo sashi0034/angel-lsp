@@ -1,5 +1,4 @@
-import {diagnostic} from "../code/diagnostic";
-import {ParsedRange} from "../compiler_parser/nodes";
+import {TokenRange} from "../compiler_parser/nodes";
 import {
     SymbolFunction,
 } from "./symbolObject";
@@ -14,8 +13,8 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 export interface FunctionMatchingArgs {
     scope: SymbolScope;
     callerIdentifier: TokenObject;
-    callerRange: ParsedRange;
-    callerArgRanges: ParsedRange[];
+    callerRange: TokenRange;
+    callerArgRanges: TokenRange[];
     callerArgTypes: (ResolvedType | undefined)[];
     calleeFunc: SymbolFunction;
     templateTranslators: (TemplateTranslation | undefined)[];
@@ -128,7 +127,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
 }
 
 function handleErrorWhenOverloaded(
-    callerRange: ParsedRange,
+    callerRange: TokenRange,
     callerArgs: (ResolvedType | undefined)[],
     calleeFunc: SymbolFunction,
     overloadedHead: SymbolFunction,

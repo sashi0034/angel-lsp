@@ -4,7 +4,7 @@ import {
     SymbolObject,
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
-import {AccessModifier, NodeName, ParsedRange} from "../compiler_parser/nodes";
+import {AccessModifier, NodeName, TokenRange} from "../compiler_parser/nodes";
 import {getNodeLocation} from "../compiler_parser/nodesUtils";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
@@ -22,7 +22,7 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 export function checkTypeMatch(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
-    nodeRange: ParsedRange,
+    nodeRange: TokenRange,
 ): boolean {
     if (canTypeConvert(src, dest)) return true;
 
