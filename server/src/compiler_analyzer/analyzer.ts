@@ -2,7 +2,6 @@
 
 import {
     funcHeadDestructor,
-    getBoundingLocationBetween,
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
@@ -36,8 +35,7 @@ import {
     NodeType,
     NodeVar,
     NodeVarAccess,
-    NodeWhile,
-    TokenRange
+    NodeWhile
 } from "../compiler_parser/nodes";
 import {
     getSourceNodeName,
@@ -84,6 +82,7 @@ import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
 
 export type HoistQueue = (() => void)[];
 

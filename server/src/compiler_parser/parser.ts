@@ -7,7 +7,6 @@ import {
     funcHeadDestructor,
     FuncHeads,
     FunctionAttribute,
-    getBoundingLocationBetween,
     isFunctionHeadReturnValue,
     NodeArgList,
     NodeAssign,
@@ -63,7 +62,7 @@ import {
     ParsedGetterSetter,
     ParsedPostIndexer,
     ParsedVariableInit,
-    ReferenceModifier, TokenRange,
+    ReferenceModifier,
     TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../code/highlight";
@@ -73,6 +72,7 @@ import {ParsedCacheKind} from "./parsedCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
+import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {

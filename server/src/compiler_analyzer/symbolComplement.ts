@@ -1,9 +1,9 @@
-import {TokenRange} from "../compiler_parser/nodes";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 /**
  * Types of autocomplete targets

@@ -1,5 +1,5 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {EntityAttribute, FunctionAttribute, NodeType, TokenRange, ReferenceModifier} from "./nodes";
+import {EntityAttribute, FunctionAttribute, NodeType, ReferenceModifier} from "./nodes";
 import {Mutable} from "../utils/utilities";
 
 export function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {

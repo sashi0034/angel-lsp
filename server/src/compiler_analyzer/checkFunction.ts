@@ -1,4 +1,3 @@
-import {TokenRange} from "../compiler_parser/nodes";
 import {
     SymbolFunction,
 } from "./symbolObject";
@@ -9,6 +8,7 @@ import {SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 export interface FunctionMatchingArgs {
     scope: SymbolScope;

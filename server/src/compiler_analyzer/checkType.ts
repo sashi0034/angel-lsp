@@ -4,12 +4,13 @@ import {
     SymbolObject,
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
-import {AccessModifier, NodeName, TokenRange} from "../compiler_parser/nodes";
+import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {TokenRange} from "../compiler_parser/tokenRange";
 
 /**
  * Check if the source type can be converted to the destination type.
