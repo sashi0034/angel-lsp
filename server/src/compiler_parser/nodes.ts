@@ -140,7 +140,7 @@ export interface ParsedEnumMember {
 export interface NodeClass extends NodesBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: TokenRange;
-    readonly metadata: TokenObject[];
+    readonly metadata: TokenObject[][];
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly typeTemplates: NodeType[] | undefined;

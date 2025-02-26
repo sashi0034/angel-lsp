@@ -502,17 +502,17 @@ function parseRef(parser: ParserState) {
 }
 
 // Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
-// eg. '[Hello[]]' is ok but '[Hello[]' is not.
-function parseMetadata(parser: ParserState): TokenObject[] {
+// e.g., '[Hello[]]' is ok but '[Hello[]' is not.
+function parseMetadata(parser: ParserState): TokenObject[][] {
     const rangeStart = parser.next();
     if (parser.next().text !== '[') return [];
 
     let level = 0;
 
-    let metadata: TokenObject[] = [];
+    const metadata: TokenObject[][] = [[]];
     while (parser.isEnd() === false) {
         if (parser.next().text === '[') {
-            if (level > 0) metadata.push(parser.next());
+            if (level > 0) metadata.at(-1)!.push(parser.next());
 
             level++;
             parser.commit(HighlightForToken.Operator);
@@ -522,17 +522,18 @@ function parseMetadata(parser: ParserState): TokenObject[] {
 
             if (level === 0) {
                 // Since AngelScript supports multiple metadata declarations in subsequent pairs of '[' and ']', we recursively parse those declarations here.
-                // eg. '[Hello][World]' is valid, as is
+                // e.g., '[Hello][World]' is valid, as is
                 // [Hello]
                 // [World]
                 if (parser.next().text === '[') {
-                    metadata = [...metadata, ...parseMetadata(parser)];
+                    metadata.push([]);
+                    continue;
                 }
 
                 return metadata;
-            } else metadata.push(parser.next());
+            } else metadata.at(-1)!.push(parser.next());
         } else {
-            metadata.push(parser.next());
+            metadata.at(-1)!.push(parser.next());
             parser.commit(HighlightForToken.Decorator);
         }
     }

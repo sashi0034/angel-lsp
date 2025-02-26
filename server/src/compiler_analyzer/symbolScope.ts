@@ -129,7 +129,9 @@ function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
 
     // Check if the class has a metadata that indicates it is a built-in string type.
     const builtinStringMetadata = "BuiltinString";
-    if (source.metadata.length === 1 && source.metadata[0].text === builtinStringMetadata) return true;
+    if (source.metadata.some(m => m.length === 1 && m[0].text === builtinStringMetadata)) {
+        return true;
+    }
 
     // Check whether the class name is a built-in string type with global settings.
     return getGlobalSettings().builtinStringTypes.includes(source.identifier.text);
