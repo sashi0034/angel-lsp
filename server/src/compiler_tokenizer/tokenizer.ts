@@ -46,18 +46,18 @@ function tryComment(tokenizer: TokenizerState, location: TextLocation): TokenCom
 }
 
 function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) {
-    const start = tokenizer.getCursor();
+    const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
     for (; ;) {
         if (tokenizer.isEnd() || tokenizer.isNextWrap()) break;
         tokenizer.stepNext();
     }
 
-    return new TokenComment(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
+    return new TokenComment(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation) {
-    const start = tokenizer.getCursor();
+    const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
     for (; ;) {
         if (tokenizer.isEnd()) break;
@@ -68,20 +68,20 @@ function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation)
         tokenizer.stepNext();
     }
 
-    return new TokenComment(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
+    return new TokenComment(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 // Check if the next token is a number and tokenize it.
 function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumber | undefined {
-    const start = tokenizer.getCursor();
+    const start = tokenizer.getCursorOffset();
 
     const numeric = consumeNumber(tokenizer);
 
-    if (start === tokenizer.getCursor()) return undefined;
+    if (start === tokenizer.getCursorOffset()) return undefined;
 
     return new TokenNumber(
-        tokenizer.substrFrom(start),
-        location.withEnd(tokenizer.copyHead()),
+        tokenizer.substrToCursor(start),
+        location.withEnd(tokenizer.getCursorPosition()),
         numeric);
 }
 
@@ -151,7 +151,7 @@ function consumeNumber(tokenizer: TokenizerState) {
 // Check if the next token is a string and tokenize it.
 function tryString(tokenizer: TokenizerState, location: TextLocation): TokenString | undefined {
 
-    const start = tokenizer.getCursor();
+    const start = tokenizer.getCursorOffset();
     if (tokenizer.next() !== '\'' && tokenizer.next() !== '"') return undefined;
     const startQuote: '\'' | '"' | '"""' = (() => {
         if (tokenizer.isNext('"""')) return '"""';
@@ -166,8 +166,8 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
 
         if (startQuote !== '"""' && tokenizer.isNextWrap()) {
             diagnostic.addError({
-                start: tokenizer.copyHead(),
-                end: tokenizer.copyHead(),
+                start: tokenizer.getCursorPosition(),
+                end: tokenizer.getCursorPosition(),
             }, 'Missing end quote ' + startQuote);
             break;
         } else if (isEscaping === false && tokenizer.isNext(startQuote)) {
@@ -183,17 +183,17 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
         }
     }
 
-    return new TokenString(tokenizer.substrFrom(start), location.withEnd(tokenizer.copyHead()));
+    return new TokenString(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 // Check if the next token is a mark and tokenize it.
 function tryMark(tokenizer: TokenizerState, location: TextLocation): TokenReserved | undefined {
-    const mark = findReservedWeakMarkProperty(tokenizer.content, tokenizer.getCursor());
+    const mark = findReservedWeakMarkProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
     if (mark === undefined) return undefined;
 
     tokenizer.stepFor(mark.key.length);
 
-    return createTokenReserved(mark.key, mark.value, location.withEnd(tokenizer.copyHead()));
+    return createTokenReserved(mark.key, mark.value, location.withEnd(tokenizer.getCursorPosition()));
 }
 
 function createTokenReserved(text: string, property: ReservedWordProperty, location: TextLocation): TokenReserved {
@@ -202,15 +202,15 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 
 // Check if the next token is an identifier and tokenize it.
 function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | TokenIdentifier | undefined {
-    const start = tokenizer.getCursor();
+    const start = tokenizer.getCursorOffset();
     while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer.next())) {
         tokenizer.stepFor(1);
     }
 
-    const identifier = tokenizer.substrFrom(start);
+    const identifier = tokenizer.substrToCursor(start);
     if (identifier === "") return undefined;
 
-    const tokenLocation = location.withEnd(tokenizer.copyHead());
+    const tokenLocation = location.withEnd(tokenizer.getCursorPosition());
 
     const reserved = findReservedKeywordProperty(identifier);
     if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
@@ -244,8 +244,8 @@ export function tokenize(content: string, path: string): TokenObject[] {
 
         const location: TextLocation = new TextLocation(
             path,
-            tokenizer.copyHead(),
-            tokenizer.copyHead(),
+            tokenizer.getCursorPosition(),
+            tokenizer.getCursorPosition(),
         );
 
         // Tokenize Comment
