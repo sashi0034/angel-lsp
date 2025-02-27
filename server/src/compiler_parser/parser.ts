@@ -3,9 +3,9 @@
 import {
     AccessModifier,
     EntityAttribute,
+    FuncHead,
     funcHeadConstructor,
     funcHeadDestructor,
-    FuncHead,
     FunctionAttribute,
     isFuncHeadReturnValue,
     NodeArgList,
@@ -67,11 +67,10 @@ import {
 } from "./nodes";
 import {HighlightForToken} from "../code/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {BreakOrThrough, ParseResult, ParseFailure, ParserState} from "./parserState";
+import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
 import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
-import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -309,6 +308,13 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
 
     cache.store(attribute);
     return attribute;
+}
+
+function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {
+    if (token === 'shared') attribute.isShared = true;
+    else if (token === 'external') attribute.isExternal = true;
+    else if (token === 'abstract') attribute.isAbstract = true;
+    else if (token === 'final') attribute.isFinal = true;
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
@@ -1288,6 +1294,13 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
         parser.commit(HighlightForToken.Builtin);
     }
     return attribute;
+}
+
+function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property') {
+    if (token === 'override') attribute.isOverride = true;
+    else if (token === 'final') attribute.isFinal = true;
+    else if (token === 'explicit') attribute.isExplicit = true;
+    else if (token === 'property') attribute.isProperty = true;
 }
 
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
