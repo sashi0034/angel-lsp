@@ -78,10 +78,10 @@ connection.onInitialize((params: InitializeParams) => {
                 resolveProvider: true,
                 triggerCharacters: [' ', '.', ':']
             },
-            diagnosticProvider: {
-                interFileDependencies: false,
-                workspaceDiagnostics: false
-            },
+            // diagnosticProvider: {
+            //     interFileDependencies: false,
+            //     workspaceDiagnostics: false
+            // },
             semanticTokensProvider: {
                 legend: {
                     tokenTypes: highlightForTokenList,
@@ -138,15 +138,15 @@ connection.onDidChangeConfiguration(change => {
 documents.onDidClose(e => {
 });
 
-connection.languages.diagnostics.on(async (params) => {
-    return {
-        kind: DocumentDiagnosticReportKind.Full,
-        items: [
-            ...getInspectedResult(params.textDocument.uri).diagnosticsInAnalyzer,
-            ...getInspectedResult(params.textDocument.uri).diagnosticsInParser
-        ]
-    } satisfies DocumentDiagnosticReport;
-});
+// connection.languages.diagnostics.on(async (params) => {
+//     return {
+//         kind: DocumentDiagnosticReportKind.Full,
+//         items: [
+//             ...getInspectedResult(params.textDocument.uri).diagnosticsInAnalyzer,
+//             ...getInspectedResult(params.textDocument.uri).diagnosticsInParser
+//         ]
+//     } satisfies DocumentDiagnosticReport;
+// });
 
 connection.languages.semanticTokens.on((params) => {
     return serveSemanticTokens(getInspectedResult(params.textDocument.uri).tokenizedTokens);
@@ -178,7 +178,10 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
 
     const caret = params.position;
 
-    const references = serveReferences(analyzedScope, getInspectedResultList().map(result => result.analyzedScope.fullScope), caret);
+    const references = serveReferences(
+        analyzedScope,
+        getInspectedResultList().map(result => result.analyzedScope.fullScope),
+        caret);
     return references.map(ref => getFileLocationOfToken(ref));
 }
 
@@ -227,9 +230,19 @@ connection.onHover((params) => {
 documents.onDidChangeContent(change => {
     requestCleanInspectedResults(); // FIXME: Temporary solution to avoid memory leaks
 
-    inspectFile(change.document.getText(), change.document.uri);
+    const uri = change.document.uri;
+    inspectFile(change.document.getText(), uri);
 
-    connection.languages.diagnostics.refresh();
+    // FIXME
+    setTimeout(() => {
+        connection.sendDiagnostics({
+            uri: uri,
+            diagnostics: [
+                ...getInspectedResult(uri).diagnosticsInAnalyzer,
+                ...getInspectedResult(uri).diagnosticsInParser
+            ]
+        });
+    }, 500);
 });
 
 connection.onDidChangeWatchedFiles(_change => {
