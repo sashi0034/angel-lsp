@@ -39,39 +39,41 @@ export enum BreakOrThrough {
 export type ParseResult<T> = T | ParseFailure;
 
 export class ParserState {
-    private readonly caches: (ParserCachedData<ParserCacheKind> | undefined)[] = [];
+    private readonly _caches: (ParserCachedData<ParserCacheKind> | undefined)[] = [];
+
+    private _lastTokenAtError: TokenObject | undefined;
 
     public constructor(
-        private readonly tokens: TokenObject[],
-        private cursorIndex: number = 0
+        private readonly _tokens: TokenObject[],
+        private _cursorIndex: number = 0
     ) {
-        this.caches = new Array(tokens.length);
+        this._caches = new Array(_tokens.length);
     }
 
     public backtrack(token: TokenObject) {
-        this.cursorIndex = token.index;
+        this._cursorIndex = token.index;
     }
 
     public isEnd(): boolean {
-        return this.cursorIndex >= this.tokens.length;
+        return this._cursorIndex >= this._tokens.length;
     }
 
     public next(step: number = 0): TokenObject {
-        if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
-        return this.tokens[this.cursorIndex + step];
+        if (this._cursorIndex + step >= this._tokens.length) return this._tokens[this._tokens.length - 1];
+        return this._tokens[this._cursorIndex + step];
     }
 
     public hasNext(step: number = 0): boolean {
-        return this.cursorIndex + step < this.tokens.length;
+        return this._cursorIndex + step < this._tokens.length;
     }
 
     public prev(): TokenObject {
-        if (this.cursorIndex <= 0) return this.tokens[0];
-        return this.tokens[this.cursorIndex - 1];
+        if (this._cursorIndex <= 0) return this._tokens[0];
+        return this._tokens[this._cursorIndex - 1];
     }
 
     public step() {
-        this.cursorIndex++;
+        this._cursorIndex++;
     }
 
     /**
@@ -104,7 +106,10 @@ export class ParserState {
     }
 
     public error(message: string) {
+        if (this._lastTokenAtError === this.next()) return;
+
         diagnostic.addError(this.next().location, message);
+        this._lastTokenAtError = this.next();
     }
 
     /**
@@ -115,19 +120,19 @@ export class ParserState {
      * @returns An object that allows restoring a cached result or storing a new one.
      */
     public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
-        const rangeStart = this.cursorIndex;
-        const data = this.caches[rangeStart];
+        const rangeStart = this._cursorIndex;
+        const data = this._caches[rangeStart];
 
         let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
-            this.cursorIndex = data.rangeEnd;
+            this._cursorIndex = data.rangeEnd;
             return data.data as ParserCacheTargets<T> | undefined;
         };
 
         const store = (cache: ParserCacheTargets<T> | undefined) => {
-            this.caches[rangeStart] = {
+            this._caches[rangeStart] = {
                 kind: key,
-                rangeEnd: this.cursorIndex,
+                rangeEnd: this._cursorIndex,
                 data: cache,
             };
         };
