@@ -182,7 +182,7 @@ function splitUriIntoDirectories(fileUri: string): string[] {
 }
 
 function inspectInternal(content: string, targetUri: URI, predefinedUri: URI | undefined): InspectResult {
-    tracer.message(`🔬 Inspect "${targetUri}"`);
+    tracer.message(`Inspector --> "${targetUri}"`);
 
     diagnostic.beginSession();
 

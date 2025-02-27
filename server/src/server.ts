@@ -23,7 +23,7 @@ import {
     getInspectedResultList,
     inspectFile,
     reinspectAllFiles
-} from "./services/inspector";
+} from "./service_inspector/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
