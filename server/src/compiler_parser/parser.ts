@@ -160,6 +160,7 @@ function parseScript(parser: ParserState): NodeScript {
 
         break;
     }
+
     return script;
 }
 
@@ -171,12 +172,14 @@ function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
+        const loopStart = parser.next();
+
         const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
 
         if (expectSeparatorOrClose(parser, '::', '{', true) === BreakOrThrough.Break) break;
 
-        if (identifier === undefined) parser.step();
+        if (parser.next() === loopStart) parser.step();
     }
 
     if (namespaceList.length === 0) {
@@ -289,14 +292,17 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
     let attribute: EntityAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         const isEntityToken = next === 'shared' || next === 'external' || next === 'abstract' || next === 'final';
         if (isEntityToken === false) break;
-        if (attribute === undefined) attribute = {
+
+        attribute = attribute ?? {
             isShared: false,
             isExternal: false,
             isAbstract: false,
             isFinal: false
         };
+
         setEntityAttribute(attribute, next);
         parser.commit(HighlightForToken.Builtin);
     }
@@ -328,12 +334,14 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
+            const loopStart = parser.next();
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) baseList.push(identifier);
 
             if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
-            if (identifier === undefined) parser.step();
+            if (parser.next() === loopStart) parser.step();
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);
@@ -585,12 +593,14 @@ function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
+            const loopStart = parser.next();
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) result.baseList.push(identifier);
 
             if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
-            if (identifier === undefined) parser.step();
+            if (parser.next() === loopStart) parser.step();
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);
@@ -648,11 +658,9 @@ function parseVar(parser: ParserState): NodeVar | undefined {
 
     const variables: ParsedVariableInit[] = [];
     while (parser.isEnd() === false) {
-        // 識別子
         const identifier = expectIdentifier(parser, HighlightForToken.Variable);
         if (identifier === undefined) break;
 
-        // 初期化子
         if (parser.next().text === '=') {
             parser.commit(HighlightForToken.Operator);
 
@@ -663,7 +671,6 @@ function parseVar(parser: ParserState): NodeVar | undefined {
             variables.push({identifier: identifier, initializer: argList});
         }
 
-        // 追加または終了判定
         if (expectSeparatorOrClose(parser, ',', ';', true) === BreakOrThrough.Break) break;
     }
 
@@ -801,6 +808,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
     let setter: ParsedGetterSetter | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) break;
         else if (next === 'get') getter = expectGetterSetter(parser);
         else if (next === 'set') setter = expectGetterSetter(parser);
@@ -963,6 +971,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
             parser.commit(HighlightForToken.Operator);
             defaultExpr = expectExpr(parser);
         }
+
         paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
     }
 
@@ -1082,6 +1091,7 @@ function parseTypeTail(parser: ParserState) {
             }
             continue;
         }
+
         break;
     }
     return {isArray, refModifier};
@@ -1092,6 +1102,7 @@ function expectType(parser: ParserState): NodeType | undefined {
     if (type === undefined) {
         parser.error("Expected type.");
     }
+
     return type;
 }
 
@@ -1114,9 +1125,10 @@ function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
 
         typeTemplates.push(type);
 
-        const continuous = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
-        if (continuous === BreakOrThrough.Break) break;
-        else if (continuous === undefined) {
+        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
+        if (breakOrThrough === BreakOrThrough.Break) {
+            break;
+        } else if (breakOrThrough === undefined) {
             parser.backtrack(rangeStart);
             cache.store(undefined);
             return undefined;
@@ -1197,6 +1209,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
                 scopeList.push(identifier);
             }
         }
+
         break;
     }
 
@@ -1260,14 +1273,17 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     let attribute: FunctionAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property';
         if (isFuncAttrToken === false) break;
-        if (attribute === undefined) attribute = {
+
+        attribute = attribute ?? {
             isOverride: false,
             isFinal: false,
             isExplicit: false,
             isProperty: false
         };
+
         setFunctionAttribute(attribute, next);
         parser.commit(HighlightForToken.Builtin);
     }
@@ -1353,7 +1369,9 @@ function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
             parser.step();
             continue;
         }
+
         if (parsedCase === ParseFailure.Pending) continue;
+
         cases.push(parsedCase);
     }
 
@@ -1614,6 +1632,7 @@ function parseCase(parser: ParserState): ParseResult<NodeCase> {
         const statement = parseStatement(parser);
         if (statement === ParseFailure.Mismatch) break;
         if (statement === ParseFailure.Pending) continue;
+
         statements.push(statement);
     }
 
@@ -1714,6 +1733,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     while (parser.isEnd() === false) {
         const next = parser.next();
         if (next.isReservedToken() === false || next.property.isExprPreOp === false) break;
+
         preOps.push(parser.next());
         parser.commit(HighlightForToken.Operator);
     }
@@ -1728,6 +1748,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     while (parser.isEnd() === false) {
         const parsed = parseExprPostOp(parser);
         if (parsed === undefined) break;
+
         postOps.push(parsed);
     }
 
@@ -1864,6 +1885,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
     const indexerList: ParsedPostIndexing[] = [];
     while (parser.isEnd() === false) {
         const loopStart = parser.next();
+
         const identifier = parseIdentifierWithColon(parser);
 
         const assign = expectAssign(parser);
@@ -1871,9 +1893,7 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
 
         if (expectSeparatorOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
 
-        // Cancel infinite loop
-        // FIXME: check other places too?
-        if (loopStart === parser.next()) break;
+        if (parser.next() === loopStart) parser.step();
     }
 
     return {
@@ -1924,7 +1944,7 @@ function parseCast(parser: ParserState): ParseResult<NodeCast> {
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
-    // ラムダ式の判定は、呼び出し末尾の「(」の後に「{」があるかどうかで判定する
+    // A lambda expression is determined by checking whether a '{' appears after the '(' at the end of a function call.
     if (canParseLambda(parser) === false) return ParseFailure.Mismatch;
 
     const rangeStart = parser.next();
@@ -1949,8 +1969,11 @@ const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
         }
 
         const type = parseType(parser);
+
         const typeMod = type !== undefined ? parseTypeMod(parser) : undefined;
+
         const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightForToken.Parameter);
+
         result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
@@ -1959,15 +1982,19 @@ const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
 };
 
 function canParseLambda(parser: ParserState): boolean {
-    if (parser.next().text !== 'function') return false;
+    if (parser.next(0).text !== 'function') return false;
+
     if (parser.next(1).text !== '(') return false;
+
     let i = 2;
-    while (parser.isEnd() === false) {
+    while (parser.hasNext(i)) {
         if (parser.next(i).text === ')') {
             return parser.next(i + 1).text === '{';
         }
+
         i++;
     }
+
     return false;
 }
 
@@ -2099,6 +2126,7 @@ function expectAssign(parser: ParserState): NodeAssign | undefined {
     if (assign === undefined) {
         parser.error("Expected assignment.");
     }
+
     return assign;
 }
 
@@ -2209,6 +2237,7 @@ export function parseAfterTokenized(tokens: TokenObject[]): NodeScript {
     const script: NodeScript = [];
     while (parser.isEnd() === false) {
         script.push(...parseScript(parser));
+
         if (parser.isEnd() === false) {
             parser.error("Unexpected token.");
             parser.step();

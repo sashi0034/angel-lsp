@@ -61,6 +61,10 @@ export class ParserState {
         return this.tokens[this.cursorIndex + step];
     }
 
+    public hasNext(step: number = 0): boolean {
+        return this.cursorIndex + step < this.tokens.length;
+    }
+
     public prev(): TokenObject {
         if (this.cursorIndex <= 0) return this.tokens[0];
         return this.tokens[this.cursorIndex - 1];
