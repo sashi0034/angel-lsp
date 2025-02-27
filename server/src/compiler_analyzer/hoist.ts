@@ -9,7 +9,7 @@ import {
 import {
     AccessModifier,
     funcHeadDestructor,
-    isFunctionHeadReturnValue,
+    isFuncHeadReturnValue,
     NodeClass,
     NodeEnum,
     NodeFunc,
@@ -33,9 +33,8 @@ import {findSymbolWithParent, insertSymbolObject, tryInsertSymbolObject} from ".
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../code/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./symbolBuiltin";
-import {Mutable} from "../utils/utilities";
-import {TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
-import {getIdentifierInType} from "../compiler_parser/nodesUtils";
+import {TokenIdentifier, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {getIdentifierInNodeType} from "../compiler_parser/nodesUtils";
 import {
     analyzeFunc,
     AnalyzeQueue,
@@ -183,14 +182,14 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     const templateTypes: TokenObject[] = [];
     for (const type of types ?? []) {
         insertSymbolObject(scope.symbolMap, SymbolType.create({
-            declaredPlace: getIdentifierInType(type),
+            declaredPlace: getIdentifierInNodeType(type),
             declaredScope: scope,
             sourceNode: undefined,
             membersScope: undefined,
             isTypeParameter: true,
         }));
 
-        templateTypes.push(getIdentifierInType(type));
+        templateTypes.push(getIdentifierInNodeType(type));
     }
     return templateTypes;
 }
@@ -274,7 +273,7 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const returnType = isFunctionHeadReturnValue(nodeFunc.head) ? analyzeType(
+    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
         parentScope,
         nodeFunc.head.returnType) : undefined;
     const symbol: SymbolFunction = SymbolFunction.create({

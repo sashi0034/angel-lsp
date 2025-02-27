@@ -14,7 +14,7 @@ export enum TokenKind {
     Comment = 'Comment',
 }
 
-export interface HighlightInfo {
+interface HighlightInfo {
     token: HighlightForToken;
     modifier: HighlightForModifier;
 }

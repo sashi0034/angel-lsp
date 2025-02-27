@@ -1,6 +1,6 @@
 import {
     funcHeadDestructor,
-    isFunctionHeadReturnValue,
+    isFuncHeadReturnValue,
     NodeArgList,
     NodeAssign, NodeBreak, NodeCase,
     NodeCast, NodeClass,
@@ -181,7 +181,7 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
     formatEntityModifier(format);
     formatAccessModifier(format);
 
-    if (isFunctionHeadReturnValue(nodeFunc.head)) {
+    if (isFuncHeadReturnValue(nodeFunc.head)) {
         formatType(format, nodeFunc.head.returnType);
         if (nodeFunc.head.isRef) formatTargetBy(format, '&', {condenseLeft: true});
     } else if (nodeFunc.head === funcHeadDestructor) {
@@ -869,10 +869,10 @@ function formatExprPostOp(format: FormatterState, postOp: NodeExprPostOp) {
         }
     } else if (postOp.postOp === 2) {
         formatBracketsBlock(format, () => {
-            for (let i = 0; i < postOp.indexerList.length; i++) {
+            for (let i = 0; i < postOp.indexingList.length; i++) {
                 if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
 
-                const index = postOp.indexerList[i];
+                const index = postOp.indexingList[i];
                 if (index.identifier !== undefined) {
                     formatTargetBy(format, index.identifier.text, {});
                     formatTargetBy(format, ':', {condenseLeft: true, connectTail: true});

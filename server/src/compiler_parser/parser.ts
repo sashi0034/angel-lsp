@@ -3,11 +3,11 @@
 import {
     AccessModifier,
     EntityAttribute,
+    FuncHead,
     funcHeadConstructor,
     funcHeadDestructor,
-    FuncHeads,
     FunctionAttribute,
-    isFunctionHeadReturnValue,
+    isFuncHeadReturnValue,
     NodeArgList,
     NodeAssign,
     NodeBreak,
@@ -60,18 +60,17 @@ import {
     ParsedArgument,
     ParsedEnumMember,
     ParsedGetterSetter,
-    ParsedPostIndexer,
+    ParsedPostIndexing,
     ParsedVariableInit,
     ReferenceModifier,
     TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../code/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {BreakOrThrough, ParsedResult, ParseFailure, ParserState} from "./parserState";
-import {ParsedCacheKind} from "./parsedCache";
+import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
+import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
-import {setEntityAttribute, setFunctionAttribute} from "./nodesUtils";
 import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -160,23 +159,26 @@ function parseScript(parser: ParserState): NodeScript {
 
         break;
     }
+
     return script;
 }
 
 // NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function parseNamespace(parser: ParserState): ParsedResult<NodeNamespace> {
+function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
     if (parser.next().text !== 'namespace') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
+        const loopStart = parser.next();
+
         const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
         if (identifier !== undefined) namespaceList.push(identifier);
 
-        if (expectContinuousOrClose(parser, '::', '{', true) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, '::', '{', true) === BreakOrThrough.Break) break;
 
-        if (identifier === undefined) parser.step();
+        if (parser.next() === loopStart) parser.step();
     }
 
     if (namespaceList.length === 0) {
@@ -220,7 +222,7 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
 }
 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'))
-function parseEnum(parser: ParserState): ParsedResult<NodeEnum> {
+function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -258,7 +260,7 @@ function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
     const members: ParsedEnumMember[] = [];
     parser.expect('{', HighlightForToken.Operator);
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) break;
 
         if (parser.next().text === '}') {
             parser.commit(HighlightForToken.Operator);
@@ -283,20 +285,23 @@ function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined {
-    const cache = parser.cache(ParsedCacheKind.EntityAttribute);
+    const cache = parser.cache(ParserCacheKind.EntityAttribute);
     if (cache.restore !== undefined) return cache.restore();
 
     let attribute: EntityAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         const isEntityToken = next === 'shared' || next === 'external' || next === 'abstract' || next === 'final';
         if (isEntityToken === false) break;
-        if (attribute === undefined) attribute = {
+
+        attribute = attribute ?? {
             isShared: false,
             isExternal: false,
             isAbstract: false,
             isFinal: false
         };
+
         setEntityAttribute(attribute, next);
         parser.commit(HighlightForToken.Builtin);
     }
@@ -305,8 +310,15 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
     return attribute;
 }
 
+function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {
+    if (token === 'shared') attribute.isShared = true;
+    else if (token === 'external') attribute.isExternal = true;
+    else if (token === 'abstract') attribute.isAbstract = true;
+    else if (token === 'final') attribute.isFinal = true;
+}
+
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function parseClass(parser: ParserState): ParsedResult<NodeClass> {
+function parseClass(parser: ParserState): ParseResult<NodeClass> {
     const rangeStart = parser.next();
 
     const metadata = parseMetadata(parser);
@@ -328,12 +340,14 @@ function parseClass(parser: ParserState): ParsedResult<NodeClass> {
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
+            const loopStart = parser.next();
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) baseList.push(identifier);
 
-            if (expectContinuousOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
-            if (identifier === undefined) parser.step();
+            if (parser.next() === loopStart) parser.step();
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);
@@ -396,7 +410,7 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
-function parseTypeDef(parser: ParserState): ParsedResult<NodeTypeDef> {
+function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     if (parser.next().text !== 'typedef') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
@@ -430,7 +444,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
 
     const accessor = parseAccessModifier(parser);
 
-    let head: FuncHeads;
+    let head: FuncHead;
     if (parser.next().text === '~') {
         parser.commit(HighlightForToken.Operator);
         head = funcHeadDestructor;
@@ -448,7 +462,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         head = {returnType: returnType, isRef: isRef};
     }
     const identifier = parser.next();
-    parser.commit(isFunctionHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
+    parser.commit(isFuncHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
 
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
@@ -554,7 +568,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
 }
 
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
-function parseInterface(parser: ParserState): ParsedResult<NodeInterface> {
+function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -585,12 +599,14 @@ function parseInterface(parser: ParserState): ParsedResult<NodeInterface> {
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
+            const loopStart = parser.next();
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
             if (identifier !== undefined) result.baseList.push(identifier);
 
-            if (expectContinuousOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
 
-            if (identifier === undefined) parser.step();
+            if (parser.next() === loopStart) parser.step();
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);
@@ -648,11 +664,9 @@ function parseVar(parser: ParserState): NodeVar | undefined {
 
     const variables: ParsedVariableInit[] = [];
     while (parser.isEnd() === false) {
-        // 識別子
         const identifier = expectIdentifier(parser, HighlightForToken.Variable);
         if (identifier === undefined) break;
 
-        // 初期化子
         if (parser.next().text === '=') {
             parser.commit(HighlightForToken.Operator);
 
@@ -663,8 +677,7 @@ function parseVar(parser: ParserState): NodeVar | undefined {
             variables.push({identifier: identifier, initializer: argList});
         }
 
-        // 追加または終了判定
-        if (expectContinuousOrClose(parser, ',', ';', true) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ';', true) === BreakOrThrough.Break) break;
     }
 
     return {
@@ -691,7 +704,7 @@ function expectInitListOrExpr(parser: ParserState) {
 }
 
 // IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-function parseImport(parser: ParserState): ParsedResult<NodeImport> {
+function parseImport(parser: ParserState): ParseResult<NodeImport> {
     const rangeStart = parser.next();
 
     if (parser.next().text !== 'import') return ParseFailure.Mismatch;
@@ -734,7 +747,7 @@ function parseImport(parser: ParserState): ParsedResult<NodeImport> {
 }
 
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-function parseFuncDef(parser: ParserState): ParsedResult<NodeFuncDef> {
+function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
     const rangeStart = parser.next();
 
     const entity = parseEntityAttribute(parser);
@@ -801,6 +814,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
     let setter: ParsedGetterSetter | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) break;
         else if (next === 'get') getter = expectGetterSetter(parser);
         else if (next === 'set') setter = expectGetterSetter(parser);
@@ -838,7 +852,7 @@ function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
 }
 
 // MIXIN         ::= 'mixin' CLASS
-function parseMixin(parser: ParserState): ParsedResult<NodeMixin> {
+function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     if (parser.next().text !== 'mixin') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Builtin);
@@ -963,6 +977,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
             parser.commit(HighlightForToken.Operator);
             defaultExpr = expectExpr(parser);
         }
+
         paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
     }
 
@@ -978,34 +993,35 @@ function expectParamList(parser: ParserState): NodeParamList | undefined {
 }
 
 function expectCommaOrParensClose(parser: ParserState, canColon: boolean): BreakOrThrough {
-    return expectContinuousOrClose(parser, ',', ')', canColon);
+    return expectSeparatorOrClose(parser, ',', ')', canColon);
 }
 
 function isCommaOrParensClose(character: string): boolean {
     return character === ',' || character === ')';
 }
 
-function parseContinuousOrClose(
-    parser: ParserState, continuousOp: string, closeOp: string, canColon: boolean
+function parseSeparatorOrClose(
+    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
 ): BreakOrThrough | undefined {
     const next = parser.next().text;
     if (next === closeOp) {
         parser.commit(HighlightForToken.Operator);
         return BreakOrThrough.Break;
     } else if (canColon) {
-        if (next !== continuousOp) return undefined;
+        if (next !== separatorOp) return undefined;
         parser.commit(HighlightForToken.Operator);
     }
+
     return BreakOrThrough.Through;
 }
 
-function expectContinuousOrClose(
-    parser: ParserState, continuousOp: string, closeOp: string, canColon: boolean
+function expectSeparatorOrClose(
+    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
 ): BreakOrThrough {
-    const parsed = parseContinuousOrClose(parser, continuousOp, closeOp, canColon);
+    const parsed = parseSeparatorOrClose(parser, separatorOp, closeOp, canColon);
     if (parsed !== undefined) return parsed;
 
-    parser.error(`Expected '${continuousOp}' or '${closeOp}'.`);
+    parser.error(`Expected '${separatorOp}' or '${closeOp}'.`);
     return BreakOrThrough.Break;
 }
 
@@ -1081,6 +1097,7 @@ function parseTypeTail(parser: ParserState) {
             }
             continue;
         }
+
         break;
     }
     return {isArray, refModifier};
@@ -1091,12 +1108,13 @@ function expectType(parser: ParserState): NodeType | undefined {
     if (type === undefined) {
         parser.error("Expected type.");
     }
+
     return type;
 }
 
 // '<' TYPE {',' TYPE} '>'
 function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
-    const cache = parser.cache(ParsedCacheKind.TypeTemplates);
+    const cache = parser.cache(ParserCacheKind.TypeTemplates);
     if (cache.restore !== undefined) return cache.restore();
 
     const rangeStart = parser.next();
@@ -1113,9 +1131,10 @@ function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
 
         typeTemplates.push(type);
 
-        const continuous = parseContinuousOrClose(parser, ',', '>', typeTemplates.length > 0);
-        if (continuous === BreakOrThrough.Break) break;
-        else if (continuous === undefined) {
+        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
+        if (breakOrThrough === BreakOrThrough.Break) {
+            break;
+        } else if (breakOrThrough === undefined) {
             parser.backtrack(rangeStart);
             cache.store(undefined);
             return undefined;
@@ -1134,7 +1153,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
 
     const initList: (NodeAssign | NodeInitList)[] = [];
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', '}', initList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', '}', initList.length > 0) === BreakOrThrough.Break) break;
 
         const assign = parseAssign(parser);
         if (assign !== undefined) {
@@ -1160,7 +1179,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
 
 // SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parser: ParserState): NodeScope | undefined {
-    const cache = parser.cache(ParsedCacheKind.Scope);
+    const cache = parser.cache(ParserCacheKind.Scope);
     if (cache.restore !== undefined) return cache.restore();
 
     const rangeStart = parser.next();
@@ -1196,6 +1215,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
                 scopeList.push(identifier);
             }
         }
+
         break;
     }
 
@@ -1259,22 +1279,32 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     let attribute: FunctionAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
+
         const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property';
         if (isFuncAttrToken === false) break;
-        if (attribute === undefined) attribute = {
+
+        attribute = attribute ?? {
             isOverride: false,
             isFinal: false,
             isExplicit: false,
             isProperty: false
         };
+
         setFunctionAttribute(attribute, next);
         parser.commit(HighlightForToken.Builtin);
     }
     return attribute;
 }
 
+function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property') {
+    if (token === 'override') attribute.isOverride = true;
+    else if (token === 'final') attribute.isFinal = true;
+    else if (token === 'explicit') attribute.isExplicit = true;
+    else if (token === 'property') attribute.isProperty = true;
+}
+
 // STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function parseStatement(parser: ParserState): ParsedResult<NodeStatement> {
+function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     const parsedIf = parseIf(parser);
     if (parsedIf === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedIf !== ParseFailure.Mismatch) return parsedIf;
@@ -1329,7 +1359,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
 }
 
 // SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function parseSwitch(parser: ParserState): ParsedResult<NodeSwitch> {
+function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
     if (parser.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1352,7 +1382,9 @@ function parseSwitch(parser: ParserState): ParsedResult<NodeSwitch> {
             parser.step();
             continue;
         }
+
         if (parsedCase === ParseFailure.Pending) continue;
+
         cases.push(parsedCase);
     }
 
@@ -1375,7 +1407,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
 }
 
 // FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function parseFor(parser: ParserState): ParsedResult<NodeFor> {
+function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (parser.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1401,7 +1433,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
     if (result.condition === undefined) return appliedNodeEnd(parser, result);
 
     while (parser.isEnd() === false) {
-        if (expectContinuousOrClose(parser, ',', ')', result.incrementList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ')', result.incrementList.length > 0) === BreakOrThrough.Break) break;
 
         const assign = expectAssign(parser);
         if (assign === undefined) break;
@@ -1414,7 +1446,7 @@ function parseFor(parser: ParserState): ParsedResult<NodeFor> {
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
+function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
     if (parser.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1438,7 +1470,7 @@ function parseWhile(parser: ParserState): ParsedResult<NodeWhile> {
 }
 
 // DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
+function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
     if (parser.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1466,7 +1498,7 @@ function parseDoWhile(parser: ParserState): ParsedResult<NodeDoWhile> {
 }
 
 // IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function parseIf(parser: ParserState): ParsedResult<NodeIf> {
+function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (parser.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1545,7 +1577,7 @@ function expectExprStat(parser: ParserState): NodeExprStat | undefined {
 }
 
 // TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
-function parseTry(parser: ParserState): ParsedResult<NodeTry> {
+function parseTry(parser: ParserState): ParseResult<NodeTry> {
     if (parser.next().text !== 'try') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1567,7 +1599,7 @@ function parseTry(parser: ParserState): ParsedResult<NodeTry> {
 }
 
 // RETURN        ::= 'return' [ASSIGN] ';'
-function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
+function parseReturn(parser: ParserState): ParseResult<NodeReturn> {
     if (parser.next().text !== 'return') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1591,7 +1623,7 @@ function parseReturn(parser: ParserState): ParsedResult<NodeReturn> {
 }
 
 // CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function parseCase(parser: ParserState): ParsedResult<NodeCase> {
+function parseCase(parser: ParserState): ParseResult<NodeCase> {
     const rangeStart = parser.next();
 
     let expr = undefined;
@@ -1613,6 +1645,7 @@ function parseCase(parser: ParserState): ParsedResult<NodeCase> {
         const statement = parseStatement(parser);
         if (statement === ParseFailure.Mismatch) break;
         if (statement === ParseFailure.Pending) continue;
+
         statements.push(statement);
     }
 
@@ -1713,6 +1746,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     while (parser.isEnd() === false) {
         const next = parser.next();
         if (next.isReservedToken() === false || next.property.isExprPreOp === false) break;
+
         preOps.push(parser.next());
         parser.commit(HighlightForToken.Operator);
     }
@@ -1727,6 +1761,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     while (parser.isEnd() === false) {
         const parsed = parseExprPostOp(parser);
         if (parsed === undefined) break;
+
         postOps.push(parsed);
     }
 
@@ -1741,7 +1776,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
 }
 
 // EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function parseExprValue(parser: ParserState): ParsedResult<NodeExprValue> {
+function parseExprValue(parser: ParserState): ParseResult<NodeExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Pending) return ParseFailure.Pending;
     if (cast !== ParseFailure.Mismatch) return cast;
@@ -1860,26 +1895,25 @@ function parseExprPostOp2(parser: ParserState): NodeExprPostOp2 | undefined {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Operator);
 
-    const indexerList: ParsedPostIndexer[] = [];
+    const indexerList: ParsedPostIndexing[] = [];
     while (parser.isEnd() === false) {
         const loopStart = parser.next();
+
         const identifier = parseIdentifierWithColon(parser);
 
         const assign = expectAssign(parser);
         if (assign !== undefined) indexerList.push({identifier: identifier, assign: assign});
 
-        if (expectContinuousOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) break;
 
-        // Cancel infinite loop
-        // FIXME: check other places too?
-        if (loopStart === parser.next()) break;
+        if (parser.next() === loopStart) parser.step();
     }
 
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOp: 2,
-        indexerList: indexerList
+        indexingList: indexerList
     };
 }
 
@@ -1895,7 +1929,7 @@ function parseIdentifierWithColon(parser: ParserState): TokenObject | undefined 
 }
 
 // CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function parseCast(parser: ParserState): ParsedResult<NodeCast> {
+function parseCast(parser: ParserState): ParseResult<NodeCast> {
     if (parser.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
@@ -1922,8 +1956,8 @@ function parseCast(parser: ParserState): ParsedResult<NodeCast> {
 }
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
-    // ラムダ式の判定は、呼び出し末尾の「(」の後に「{」があるかどうかで判定する
+const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
+    // A lambda expression is determined by checking whether a '{' appears after the '(' at the end of a function call.
     if (canParseLambda(parser) === false) return ParseFailure.Mismatch;
 
     const rangeStart = parser.next();
@@ -1948,8 +1982,11 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
         }
 
         const type = parseType(parser);
+
         const typeMod = type !== undefined ? parseTypeMod(parser) : undefined;
+
         const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightForToken.Parameter);
+
         result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
     }
 
@@ -1958,15 +1995,19 @@ const parseLambda = (parser: ParserState): ParsedResult<NodeLambda> => {
 };
 
 function canParseLambda(parser: ParserState): boolean {
-    if (parser.next().text !== 'function') return false;
+    if (parser.next(0).text !== 'function') return false;
+
     if (parser.next(1).text !== '(') return false;
+
     let i = 2;
-    while (parser.isEnd() === false) {
+    while (parser.hasNext(i)) {
         if (parser.next(i).text === ')') {
             return parser.next(i + 1).text === '{';
         }
+
         i++;
     }
+
     return false;
 }
 
@@ -2098,6 +2139,7 @@ function expectAssign(parser: ParserState): NodeAssign | undefined {
     if (assign === undefined) {
         parser.error("Expected assignment.");
     }
+
     return assign;
 }
 
@@ -2208,6 +2250,7 @@ export function parseAfterTokenized(tokens: TokenObject[]): NodeScript {
     const script: NodeScript = [];
     while (parser.isEnd() === false) {
         script.push(...parseScript(parser));
+
         if (parser.isEnd() === false) {
             parser.error("Unexpected token.");
             parser.step();

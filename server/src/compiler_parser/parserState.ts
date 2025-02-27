@@ -2,84 +2,114 @@ import {HighlightForToken} from "../code/highlight";
 import {diagnostic} from "../code/diagnostic";
 import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
-    ParsedCachedData,
-    ParsedCacheKind,
-    ParsedCacheServices, ParsedCacheTargets
-} from "./parsedCache";
+    ParserCachedData,
+    ParserCacheKind,
+    ParserCacheServices, ParserCacheTargets
+} from "./parserCache";
 
 export enum ParseFailure {
+    /**
+     * The parser visited a function, but the input does not conform to the expected grammar.
+     */
     Mismatch = 'Mismatch',
+    /**
+     * The parser visited a function where the input conforms to the expected grammar,
+     * but parsing fails due to missing elements.
+     */
     Pending = 'Pending',
 }
 
 export enum BreakOrThrough {
+    /**
+     * The parser should stop parsing and return the current result.
+     */
     Break = 'Break',
+    /**
+     * The parser should continue parsing.
+     */
     Through = 'Through',
 }
 
 /**
- * When a parsing error occurs, the parser may return a `ParsedResult<T>`.
- * If the parser visits a function and the input is not in an acceptable formatter, 'Mismatch' is returned.
- * If the input is in an acceptable formatter but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
- * No diagnostic message is issued when a 'Mismatch' occurs, but when 'Pending' is returned, a diagnostic message is generated at that node.
+ * When a parsing error occurs, the parser may return a `ParseResult<T>`.
+ * If the parser encounters a function and the input does not conform to the expected format, 'Mismatch' is returned.
+ * If the input follows the expected format but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
+ * No diagnostic message is issued for 'Mismatch', but when 'Pending' is returned, a diagnostic message is generated at that node.
  */
-export type ParsedResult<T> = T | ParseFailure;
+export type ParseResult<T> = T | ParseFailure;
 
 export class ParserState {
-    private readonly caches: (ParsedCachedData<ParsedCacheKind> | undefined)[] = [];
+    private readonly _caches: (ParserCachedData<ParserCacheKind> | undefined)[] = [];
+
+    private _lastTokenAtError: TokenObject | undefined;
 
     public constructor(
-        private readonly tokens: TokenObject[],
-        private cursorIndex: number = 0
+        private readonly _tokens: TokenObject[],
+        private _cursorIndex: number = 0
     ) {
-        this.caches = new Array(tokens.length);
+        this._caches = new Array(_tokens.length);
     }
 
     public backtrack(token: TokenObject) {
-        this.cursorIndex = token.index;
+        this._cursorIndex = token.index;
     }
 
     public isEnd(): boolean {
-        return this.cursorIndex >= this.tokens.length;
+        return this._cursorIndex >= this._tokens.length;
     }
 
     public next(step: number = 0): TokenObject {
-        if (this.cursorIndex + step >= this.tokens.length) return this.tokens[this.tokens.length - 1];
-        return this.tokens[this.cursorIndex + step];
+        if (this._cursorIndex + step >= this._tokens.length) return this._tokens[this._tokens.length - 1];
+        return this._tokens[this._cursorIndex + step];
+    }
+
+    public hasNext(step: number = 0): boolean {
+        return this._cursorIndex + step < this._tokens.length;
     }
 
     public prev(): TokenObject {
-        if (this.cursorIndex <= 0) return this.tokens[0];
-        return this.tokens[this.cursorIndex - 1];
+        if (this._cursorIndex <= 0) return this._tokens[0];
+        return this._tokens[this._cursorIndex - 1];
     }
 
     public step() {
-        this.cursorIndex++;
+        this._cursorIndex++;
     }
 
+    /**
+     * Set the highlight for the current token and move the cursor to the next token.
+     */
     public commit(highlightForToken: HighlightForToken) {
         const next = this.next();
         if (next.isVirtual() === false) next.setHighlight(highlightForToken);
+
         this.step();
     }
 
-    public expect(word: string, analyzeToken: HighlightForToken) {
+    /**
+     * Check if the next token is a reserved word.
+     */
+    public expect(reservedWord: string, highlight: HighlightForToken) {
         if (this.isEnd()) {
             diagnostic.addError(this.next().location, "Unexpected end of file.");
             return false;
         }
-        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === word;
+
+        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === reservedWord;
         if (isExpectedWord === false) {
-            diagnostic.addError(this.next().location, `Expected '${word}'.`);
-            // this.step();
+            diagnostic.addError(this.next().location, `Expected '${reservedWord}'.`);
             return false;
         }
-        this.commit(analyzeToken);
+
+        this.commit(highlight);
         return true;
     }
 
     public error(message: string) {
+        if (this._lastTokenAtError === this.next()) return;
+
         diagnostic.addError(this.next().location, message);
+        this._lastTokenAtError = this.next();
     }
 
     /**
@@ -89,19 +119,20 @@ export class ParserState {
      * @param key The cache key that identifies the type of parsing result to cache.
      * @returns An object that allows restoring a cached result or storing a new one.
      */
-    public cache<T extends ParsedCacheKind>(key: T): ParsedCacheServices<T> {
-        const rangeStart = this.cursorIndex;
-        const data = this.caches[rangeStart];
-        let restore: (() => ParsedCacheTargets<T> | undefined) | undefined = undefined;
+    public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
+        const rangeStart = this._cursorIndex;
+        const data = this._caches[rangeStart];
+
+        let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
         if (data !== undefined && data.kind === key) restore = () => {
-            this.cursorIndex = data.rangeEnd;
-            return data.data as ParsedCacheTargets<T> | undefined;
+            this._cursorIndex = data.rangeEnd;
+            return data.data as ParserCacheTargets<T> | undefined;
         };
 
-        const store = (cache: ParsedCacheTargets<T> | undefined) => {
-            this.caches[rangeStart] = {
+        const store = (cache: ParserCacheTargets<T> | undefined) => {
+            this._caches[rangeStart] = {
                 kind: key,
-                rangeEnd: this.cursorIndex,
+                rangeEnd: this._cursorIndex,
                 data: cache,
             };
         };
