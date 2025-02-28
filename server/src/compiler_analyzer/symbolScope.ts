@@ -17,9 +17,9 @@ import assert = require("node:assert");
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-export type ScopeMap = Map<string, SymbolScope>;
+export type ScopeTable = Map<string, SymbolScope>;
 
-export type SymbolMap = Map<string, SymbolObject>;
+export type SymbolTable = Map<string, SymbolObject>;
 
 interface RootScopeContext {
     path: string;
@@ -65,8 +65,8 @@ export class SymbolScope {
         linkedNode: ScopeLinkedNode | undefined,
         parentScope: SymbolScope | undefined,
         public readonly key: string,
-        public readonly childScopes: ScopeMap,
-        public readonly symbolMap: SymbolMap,
+        public readonly childScopeTable: ScopeTable,
+        public readonly symbolTable: SymbolTable,
         public readonly referencedList: ReferencedSymbolInfo[],
         public readonly completionHints: ComplementHints[],
     ) {
@@ -124,11 +124,11 @@ export class SymbolScope {
 }
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
-    for (const [key, symbol] of scope.symbolMap) {
+    for (const [key, symbol] of scope.symbolTable) {
         if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.sourceNode)) return symbol;
     }
 
-    for (const [key, child] of scope.childScopes) {
+    for (const [key, child] of scope.childScopeTable) {
         const found = findBuiltinStringType(child);
         if (found !== undefined) return found;
     }
@@ -168,7 +168,7 @@ export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
 }
 
 export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    const child = scope.childScopes.get(identifier);
+    const child = scope.childScopeTable.get(identifier);
     if (child !== undefined) return child;
     if (scope.parentScope === undefined) return undefined;
     return findScopeWithParent(scope.parentScope, identifier);
@@ -181,7 +181,7 @@ export function findScopeWithParentByNodes(scope: SymbolScope, nodeCandidates: N
 }
 
 export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    return scope.childScopes.get(identifier);
+    return scope.childScopeTable.get(identifier);
 }
 
 export function createSymbolScope(
@@ -200,7 +200,7 @@ export function createSymbolScopeAndInsert(
     identifier: string,
 ): SymbolScope {
     const scope = createSymbolScope(linkedNode, parentScope, identifier);
-    parentScope?.childScopes.set(identifier, scope);
+    parentScope?.childScopeTable.set(identifier, scope);
     return scope;
 }
 
@@ -253,7 +253,7 @@ export interface CopySymbolOptions {
  */
 export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope, option: CopySymbolOptions) {
     // Collect symbols from the source scope
-    for (const [key, symbol] of srcScope.symbolMap) {
+    for (const [key, symbol] of srcScope.symbolTable) {
         let canCopy = true;
 
         if (option.targetSrcPath !== undefined && symbol.declaredPlace.location.path !== option.targetSrcPath) {
@@ -265,12 +265,12 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
         }
 
         if (canCopy) {
-            destScope.symbolMap.set(key, symbol);
+            destScope.symbolTable.set(key, symbol);
         }
     }
 
     // Copy child scopes recursively.
-    for (const [key, child] of srcScope.childScopes) {
+    for (const [key, child] of srcScope.childScopeTable) {
         const scopePath = getPathOfScope(child);
         if (scopePath !== undefined) {
             // If the path is specified, only the specified path is copied.
@@ -316,7 +316,7 @@ function findScopeShallowlyThenInsertByIdentifier(
     scope: SymbolScope,
     identifier: string
 ): SymbolScope {
-    const found: SymbolScope | undefined = scope.childScopes.get(identifier);
+    const found: SymbolScope | undefined = scope.childScopeTable.get(identifier);
     if (found === undefined) return createSymbolScopeAndInsert(linkedNode, scope, identifier);
     if (linkedNode === undefined) return found;
     if (found.linkedNode === undefined) found.setLinkedNode(linkedNode);

@@ -27,7 +27,7 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObj
     }
 
     // Search in child scopes | 子要素も探索
-    for (const [key, child] of scope.childScopes) {
+    for (const [key, child] of scope.childScopeTable) {
         references.push(...collectReferencesInScope(child, targetDefinition));
     }
 

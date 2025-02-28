@@ -5,7 +5,7 @@ import {
     SymbolVariable
 } from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
-import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
+import {isAnonymousIdentifier, SymbolAndScope, SymbolTable, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
@@ -27,7 +27,7 @@ export function getPathOfScope(scope: SymbolScope): string | undefined {
  * @param map The map to insert the symbol
  * @param symbol The symbol for insertion
  */
-export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): SymbolObject | undefined {
+export function tryInsertSymbolObject(map: SymbolTable, symbol: SymbolObject): SymbolObject | undefined {
     const identifier = symbol.declaredPlace.text;
     const hit = map.get(identifier);
     if (hit === undefined) {
@@ -49,7 +49,7 @@ export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): Sym
     }
 }
 
-export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolean {
+export function insertSymbolObject(map: SymbolTable, symbol: SymbolObject): boolean {
     const result = tryInsertSymbolObject(map, symbol);
     if (result !== undefined) {
         analyzerDiagnostic.add(
@@ -148,7 +148,7 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
 }
 
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObject | undefined {
-    return scope.symbolMap.get(identifier);
+    return scope.symbolTable.get(identifier);
 }
 
 export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
@@ -157,7 +157,7 @@ export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope
 }
 
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
-    const symbol = scope.symbolMap.get(identifier);
+    const symbol = scope.symbolTable.get(identifier);
     if (symbol !== undefined) return {symbol: symbol, scope: scope};
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier);

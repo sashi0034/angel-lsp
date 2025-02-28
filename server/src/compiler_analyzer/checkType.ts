@@ -92,7 +92,7 @@ function isTypeMatchInternal(
         if (canDownCast(srcType, destType)) return true;
 
         // Succeeds if the source type has an implicit conversion operator that matches the destination type.
-        let opImplConv = srcType.membersScope?.symbolMap.get('opImplConv');
+        let opImplConv = srcType.membersScope?.symbolTable.get('opImplConv');
         if (opImplConv !== undefined && opImplConv instanceof SymbolFunction) {
             for (; ;) {
                 if (canTypeConvert(opImplConv.returnType, dest)) return true;

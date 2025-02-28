@@ -32,7 +32,7 @@ export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Posi
 
 function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
-    for (const [key, symbol] of targetScope.symbolMap) {
+    for (const [key, symbol] of targetScope.symbolTable) {
         const location = symbol.declaredPlace.location;
         if (location.path === path && location.positionInRange(caret)) {
             return symbol;
@@ -49,7 +49,7 @@ function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path
     }
 
     // Now, search in child scopes because the symbol is not found in the current scope
-    for (const [key, child] of targetScope.childScopes) {
+    for (const [key, child] of targetScope.childScopeTable) {
         const jumping = serveDefinitionInternal(child, caret, path);
         if (jumping !== undefined) return jumping;
     }

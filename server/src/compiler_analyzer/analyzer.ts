@@ -142,7 +142,7 @@ export function insertVariables(scope: SymbolScope, varType: ResolvedType | unde
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
         });
-        insertSymbolObject(scope.symbolMap, variable);
+        insertSymbolObject(scope.symbolTable, variable);
     }
 }
 
@@ -487,7 +487,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     // TODO: Support for lambda
 
     if (functionScope.linkedNode.nodeName === NodeName.Func) {
-        let functionReturn = functionScope.parentScope?.symbolMap.get(functionScope.key);
+        let functionReturn = functionScope.parentScope?.symbolTable.get(functionScope.key);
         if (functionReturn === undefined || functionReturn instanceof SymbolFunction === false) return;
 
         // Select suitable overload if there are multiple overloads
@@ -515,7 +515,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         }
 
         const varName = key.substring(4, key.length);
-        const functionReturn = functionScope.parentScope?.symbolMap.get(varName);
+        const functionReturn = functionScope.parentScope?.symbolTable.get(varName);
         if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) return;
 
         checkTypeMatch(returnType, functionReturn.type, nodeReturn.nodeRange);
@@ -833,7 +833,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
             isInstanceMember: false,
             accessRestriction: undefined,
         });
-        insertSymbolObject(childScope.symbolMap, argument);
+        insertSymbolObject(childScope.symbolTable, argument);
     }
 
     if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);

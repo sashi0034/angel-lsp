@@ -44,7 +44,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
-    for (const [symbolName, symbol] of scope.symbolMap) {
+    for (const [symbolName, symbol] of scope.symbolTable) {
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -52,7 +52,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     }
 
     // Completion of namespace
-    for (const [childName, childScope] of scope.childScopes) {
+    for (const [childName, childScope] of scope.childScopeTable) {
         if (childScope.linkedNode !== undefined) continue;
         if (isAnonymousIdentifier(childName)) continue;
         items.push({
@@ -68,7 +68,7 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
-    for (const [symbolName, symbol] of symbolScope.symbolMap) {
+    for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) continue;
         if (isAllowedToAccessMember(checkingScope, symbol) === false) continue;
 
