@@ -520,6 +520,8 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): HoistResult {
     const globalScope: SymbolScope = createSymbolScope(undefined, undefined, '');
 
+    globalScope.initializeContext(path);
+
     // TODO: refer to symbols without copying
     for (const included of includedScopes) {
         // Copy the symbols in the included scope.

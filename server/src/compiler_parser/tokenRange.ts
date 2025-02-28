@@ -25,4 +25,8 @@ export class TokenRange {
     public isOneLine(): boolean {
         return this.start.location.start.line === this.end.location.end.line;
     }
+
+    public get path(): string {
+        return this.start.location.path;
+    }
 }

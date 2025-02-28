@@ -22,7 +22,15 @@ export type ScopeMap = Map<string, SymbolScope>;
 export type SymbolMap = Map<string, SymbolObject>;
 
 interface RootScopeContext {
+    path: string;
     builtinStringType: SymbolType | undefined;
+}
+
+function createRootScopeContext(): RootScopeContext {
+    return {
+        path: '',
+        builtinStringType: undefined
+    };
 }
 
 /**
@@ -51,7 +59,7 @@ export class SymbolScope {
     // A node associated with this scope
     private _linkedNode: ScopeLinkedNode | undefined;
     // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file.
-    private readonly parentOrContext: SymbolScope | RootScopeContext;
+    private readonly _parentOrContext: SymbolScope | RootScopeContext;
 
     public constructor(
         linkedNode: ScopeLinkedNode | undefined,
@@ -62,7 +70,8 @@ export class SymbolScope {
         public readonly referencedList: ReferencedSymbolInfo[],
         public readonly completionHints: ComplementHints[],
     ) {
-        this.parentOrContext = parentScope ?? {builtinStringType: undefined};
+        this._parentOrContext = parentScope ?? createRootScopeContext();
+
         this._linkedNode = linkedNode;
     }
 
@@ -82,7 +91,7 @@ export class SymbolScope {
     }
 
     public get parentScope(): SymbolScope | undefined {
-        if (this.parentOrContext instanceof SymbolScope) return this.parentOrContext;
+        if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext;
         return undefined;
     }
 
@@ -95,17 +104,22 @@ export class SymbolScope {
         return this._linkedNode;
     }
 
+    public initializeContext(path: string) {
+        assert(this._parentOrContext instanceof SymbolScope === false);
+        this._parentOrContext.path = path;
+    }
+
     /**
      * Cache information in the context of the file
      */
     public commitContext() {
-        assert(this.parentOrContext instanceof SymbolScope === false);
-        this.parentOrContext.builtinStringType = findBuiltinStringType(this);
+        assert(this._parentOrContext instanceof SymbolScope === false);
+        this._parentOrContext.builtinStringType = findBuiltinStringType(this);
     }
 
     public getBuiltinStringType(): SymbolType | undefined {
-        if (this.parentOrContext instanceof SymbolScope) return this.parentOrContext.getBuiltinStringType();
-        return this.parentOrContext.builtinStringType;
+        if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext.getBuiltinStringType();
+        return this._parentOrContext.builtinStringType;
     }
 }
 
@@ -126,6 +140,7 @@ function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
 function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
     if (source === undefined) return false;
     if (source.nodeName != NodeName.Class) return false;
+    // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;
 
     // Check if the class has a metadata that indicates it is a built-in string type.
     const builtinStringMetadata = "BuiltinString";
