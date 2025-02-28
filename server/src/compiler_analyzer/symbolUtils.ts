@@ -20,45 +20,6 @@ export function getPathOfScope(scope: SymbolScope): string | undefined {
     return scope.linkedNode.nodeRange.start.location.path;
 }
 
-/**
- * Insert a symbol into the symbol map.
- * If the insertion succeeds, return undefined.
- * If it fails, return the existing symbol corresponding to the key.
- * @param map The map to insert the symbol
- * @param symbol The symbol for insertion
- */
-export function tryInsertSymbolObject(map: SymbolTable, symbol: SymbolObject): SymbolObject | undefined {
-    const identifier = symbol.declaredPlace.text;
-    const hit = map.get(identifier);
-    if (hit === undefined) {
-        map.set(identifier, symbol);
-        return undefined;
-    }
-
-    const canOverload = symbol instanceof SymbolFunction && hit instanceof SymbolFunction;
-    if (canOverload === false) return hit;
-
-    // Functions can be added as overloads
-    let cursor: SymbolFunction = hit;
-    for (; ;) {
-        if (cursor.nextOverload === undefined) {
-            cursor.setNextOverload(symbol);
-            return undefined;
-        }
-        cursor = cursor.nextOverload;
-    }
-}
-
-export function insertSymbolObject(map: SymbolTable, symbol: SymbolObject): boolean {
-    const result = tryInsertSymbolObject(map, symbol);
-    if (result !== undefined) {
-        analyzerDiagnostic.add(
-            symbol.declaredPlace.location,
-            `Symbol '${symbol.declaredPlace.text}' is already defined.`);
-    }
-    return result === undefined;
-}
-
 export type TemplateTranslation = Map<TokenObject, ResolvedType | undefined>;
 
 export function resolveTemplateType(

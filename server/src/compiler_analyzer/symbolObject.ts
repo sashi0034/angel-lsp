@@ -134,9 +134,12 @@ export class SymbolFunction implements SymbolBase {
         return this;
     }
 
-    public setNextOverload(nextOverload: SymbolFunction) {
-        assert(this._nextOverload === undefined);
-        this._nextOverload = nextOverload;
+    public appendOverload(overload: SymbolFunction) {
+        if (this._nextOverload !== undefined) {
+            this._nextOverload.appendOverload(overload);
+        } else {
+            this._nextOverload = overload;
+        }
     }
 
     public get nextOverload(): SymbolFunction | undefined {

@@ -49,7 +49,6 @@ import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/toke
 import {
     AnalyzedScope,
     createAnonymousIdentifier,
-    createSymbolScopeAndInsert,
     findGlobalScope,
     findScopeShallowly,
     findScopeWithParentByNodes,
@@ -70,7 +69,6 @@ import {
     findSymbolShallowly,
     findSymbolWithParent,
     getSymbolAndScopeIfExist,
-    insertSymbolObject,
     isResolvedAutoType,
     stringifyResolvedType,
     stringifyResolvedTypes,
@@ -142,7 +140,7 @@ export function insertVariables(scope: SymbolScope, varType: ResolvedType | unde
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
         });
-        insertSymbolObject(scope.symbolTable, variable);
+        scope.insertSymbol(variable);
     }
 }
 
@@ -368,12 +366,12 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeIf(scope, statement);
         break;
     case NodeName.For: {
-        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
         analyzeFor(childScope, statement);
         break;
     }
     case NodeName.While: {
-        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
         analyzeWhile(childScope, statement);
         break;
     }
@@ -381,7 +379,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeReturn(scope, statement);
         break;
     case NodeName.StatBlock: {
-        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
         analyzeStatBlock(childScope, statement);
         break;
     }
@@ -390,7 +388,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     case NodeName.Continue:
         break;
     case NodeName.DoWhile: {
-        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
         analyzeDoWhile(childScope, statement);
         break;
     }
@@ -401,7 +399,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeExprStat(scope, statement);
         break;
     case NodeName.Try: {
-        const childScope = createSymbolScopeAndInsert(statement, scope, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
         analyzeTry(childScope, statement);
         break;
     }
@@ -820,7 +818,7 @@ function analyzeCast(scope: SymbolScope, cast: NodeCast): ResolvedType | undefin
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | undefined {
-    const childScope = createSymbolScopeAndInsert(lambda, scope, createAnonymousIdentifier());
+    const childScope = scope.createScopeAndInsert(lambda, createAnonymousIdentifier());
 
     // Append arguments to the scope
     for (const param of lambda.paramList) {
@@ -833,7 +831,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
             isInstanceMember: false,
             accessRestriction: undefined,
         });
-        insertSymbolObject(childScope.symbolTable, argument);
+        childScope.insertSymbol(argument);
     }
 
     if (lambda.statBlock !== undefined) analyzeStatBlock(childScope, lambda.statBlock);

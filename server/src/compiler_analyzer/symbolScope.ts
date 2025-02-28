@@ -19,7 +19,11 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 export type ScopeTable = Map<string, SymbolScope>;
 
+type ReadonlyScopeTable = ReadonlyMap<string, SymbolScope>;
+
 export type SymbolTable = Map<string, SymbolObject>;
+
+export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObject>;
 
 interface RootScopeContext {
     path: string;
@@ -58,15 +62,20 @@ export type ScopeLinkedNode =
 export class SymbolScope {
     // A node associated with this scope
     private _linkedNode: ScopeLinkedNode | undefined;
-    // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file.
+
+    // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file
     private readonly _parentOrContext: SymbolScope | RootScopeContext;
+
+    // The child scopes of this scope
+    private readonly _childScopeTable: ScopeTable = new Map();
+
+    // The symbol table that contains the symbols declared in this scope
+    private readonly _symbolTable: SymbolTable = new Map();
 
     public constructor(
         linkedNode: ScopeLinkedNode | undefined,
         parentScope: SymbolScope | undefined,
         public readonly key: string,
-        public readonly childScopeTable: ScopeTable,
-        public readonly symbolTable: SymbolTable,
         public readonly referencedList: ReferencedSymbolInfo[],
         public readonly completionHints: ComplementHints[],
     ) {
@@ -84,8 +93,6 @@ export class SymbolScope {
             args.linkedNode,
             args.parentScope,
             args.key,
-            new Map(),
-            new Map(),
             [],
             []);
     }
@@ -93,6 +100,14 @@ export class SymbolScope {
     public get parentScope(): SymbolScope | undefined {
         if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext;
         return undefined;
+    }
+
+    public get symbolTable(): ReadonlySymbolTable {
+        return this._symbolTable;
+    }
+
+    public get childScopeTable(): ReadonlyScopeTable {
+        return this._childScopeTable;
     }
 
     public setLinkedNode(node: ScopeLinkedNode | undefined) {
@@ -120,6 +135,52 @@ export class SymbolScope {
     public getBuiltinStringType(): SymbolType | undefined {
         if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext.getBuiltinStringType();
         return this._parentOrContext.builtinStringType;
+    }
+
+    /**
+     * Create a new scope and insert it into the child scope table.
+     */
+    public createScopeAndInsert(linkedNode: ScopeLinkedNode | undefined, identifier: string): SymbolScope {
+        const alreadyExists = this._childScopeTable.get(identifier);
+        if (alreadyExists !== undefined) {
+            if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);
+            return alreadyExists;
+        }
+
+        const newScope = SymbolScope.create({linkedNode: linkedNode, parentScope: this, key: identifier});
+        this._childScopeTable.set(identifier, newScope);
+        return newScope;
+    }
+
+    /**
+     * Insert a symbol into the symbol table.
+     * @param symbol
+     * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
+     */
+    public tryInsertSymbol(symbol: SymbolObject): SymbolObject | undefined {
+        const identifier = symbol.declaredPlace.text;
+        const alreadyExists = this._symbolTable.get(identifier);
+        if (alreadyExists === undefined) {
+            this._symbolTable.set(identifier, symbol);
+            return undefined;
+        }
+
+        const canOverload = symbol instanceof SymbolFunction && alreadyExists instanceof SymbolFunction;
+        if (canOverload === false) return alreadyExists;
+
+        // Functions can be added as overloads
+        alreadyExists.appendOverload(symbol);
+    }
+
+    public insertSymbol(symbol: SymbolObject): boolean {
+        const alreadyExists = this.tryInsertSymbol(symbol);
+        if (alreadyExists !== undefined) {
+            analyzerDiagnostic.add(
+                symbol.declaredPlace.location,
+                `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`);
+        }
+
+        return alreadyExists === undefined;
     }
 }
 
@@ -194,16 +255,6 @@ export function createSymbolScope(
     });
 }
 
-export function createSymbolScopeAndInsert(
-    linkedNode: ScopeLinkedNode | undefined,
-    parentScope: SymbolScope | undefined,
-    identifier: string,
-): SymbolScope {
-    const scope = createSymbolScope(linkedNode, parentScope, identifier);
-    parentScope?.childScopeTable.set(identifier, scope);
-    return scope;
-}
-
 /**
  * Represents the result of analyzing a file, such as scope information.
  */
@@ -265,7 +316,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
         }
 
         if (canCopy) {
-            destScope.symbolTable.set(key, symbol);
+            destScope.tryInsertSymbol(symbol);
         }
     }
 
@@ -317,7 +368,7 @@ function findScopeShallowlyThenInsertByIdentifier(
     identifier: string
 ): SymbolScope {
     const found: SymbolScope | undefined = scope.childScopeTable.get(identifier);
-    if (found === undefined) return createSymbolScopeAndInsert(linkedNode, scope, identifier);
+    if (found === undefined) return scope.createScopeAndInsert(linkedNode, identifier);
     if (linkedNode === undefined) return found;
     if (found.linkedNode === undefined) found.setLinkedNode(linkedNode);
     return found;
