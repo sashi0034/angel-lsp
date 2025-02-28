@@ -79,6 +79,10 @@ export abstract class TokenBase {
         return this.kind === TokenKind.Number;
     }
 
+    public isStringToken(): this is TokenString {
+        return this.kind === TokenKind.String;
+    }
+
     public setPreprocessedTokenInfo(index: number, next: TokenBase | undefined) {
         this._indexInPreprocessedTokenList = index;
         this._nextPreprocessedToken = next;
@@ -189,6 +193,10 @@ export class TokenString extends TokenBase {
 
     public get kind(): TokenKind {
         return TokenKind.String;
+    }
+
+    public getStringContent(): string {
+        return this.text.startsWith('"""') ? this.text.slice(3, -3) : this.text.slice(1, -1);
     }
 }
 

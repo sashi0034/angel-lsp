@@ -8,8 +8,6 @@ import {
     TextDocumentPositionParams,
     TextDocumentSyncKind,
     InitializeResult,
-    DocumentDiagnosticReportKind,
-    type DocumentDiagnosticReport,
 } from 'vscode-languageserver/node';
 
 import {
@@ -18,12 +16,12 @@ import {
 import {highlightForModifierList, highlightForTokenList} from "./code/highlight";
 import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
 import {
-    requestCleanInspectedResults,
-    getInspectedResult,
-    getInspectedResultList,
+    getInspectedRecord,
+    getInspectedRecordList,
     inspectFile,
-    reinspectAllFiles
-} from "./services/inspector";
+    reinspectAllFiles,
+    registerDiagnosticsCallback
+} from "./service_inspector/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
@@ -78,10 +76,10 @@ connection.onInitialize((params: InitializeParams) => {
                 resolveProvider: true,
                 triggerCharacters: [' ', '.', ':']
             },
-            diagnosticProvider: {
-                interFileDependencies: false,
-                workspaceDiagnostics: false
-            },
+            // diagnosticProvider: {
+            //     interFileDependencies: false,
+            //     workspaceDiagnostics: false
+            // },
             semanticTokensProvider: {
                 legend: {
                     tokenTypes: highlightForTokenList,
@@ -138,18 +136,18 @@ connection.onDidChangeConfiguration(change => {
 documents.onDidClose(e => {
 });
 
-connection.languages.diagnostics.on(async (params) => {
-    return {
-        kind: DocumentDiagnosticReportKind.Full,
-        items: [
-            ...getInspectedResult(params.textDocument.uri).diagnosticsInAnalyzer,
-            ...getInspectedResult(params.textDocument.uri).diagnosticsInParser
-        ]
-    } satisfies DocumentDiagnosticReport;
-});
+// connection.languages.diagnostics.on(async (params) => {
+//     return {
+//         kind: DocumentDiagnosticReportKind.Full,
+//         items: [
+//             ...getInspectedResult(params.textDocument.uri).diagnosticsInAnalyzer,
+//             ...getInspectedResult(params.textDocument.uri).diagnosticsInParser
+//         ]
+//     } satisfies DocumentDiagnosticReport;
+// });
 
 connection.languages.semanticTokens.on((params) => {
-    return serveSemanticTokens(getInspectedResult(params.textDocument.uri).tokenizedTokens);
+    return serveSemanticTokens(getInspectedRecord(params.textDocument.uri).tokenizedTokens);
 });
 
 // Definition Provider
@@ -157,7 +155,7 @@ connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
@@ -173,12 +171,15 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
 
-    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return [];
 
     const caret = params.position;
 
-    const references = serveReferences(analyzedScope, getInspectedResultList().map(result => result.analyzedScope.fullScope), caret);
+    const references = serveReferences(
+        analyzedScope,
+        getInspectedRecordList().map(result => result.analyzedScope.fullScope),
+        caret);
     return references.map(ref => getFileLocationOfToken(ref));
 }
 
@@ -208,7 +209,7 @@ connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedResult(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
@@ -225,11 +226,10 @@ connection.onHover((params) => {
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
-    requestCleanInspectedResults(); // FIXME: Temporary solution to avoid memory leaks
+    const uri = change.document.uri;
 
-    inspectFile(change.document.getText(), change.document.uri);
-
-    connection.languages.diagnostics.refresh();
+    registerDiagnosticsCallback(connection.sendDiagnostics);
+    inspectFile(uri, change.document.getText());
 });
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -246,7 +246,7 @@ connection.onCompletion(
 
         const uri = params.textDocument.uri;
 
-        const diagnosedScope = getInspectedResult(uri).analyzedScope;
+        const diagnosedScope = getInspectedRecord(uri).analyzedScope;
         if (diagnosedScope === undefined) return [];
 
         return serveCompletions(diagnosedScope.fullScope, params.position, uri);
@@ -286,7 +286,7 @@ connection.onCompletionResolve(
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
-    const diagnosedScope = getInspectedResult(uri).analyzedScope;
+    const diagnosedScope = getInspectedRecord(uri).analyzedScope;
     if (diagnosedScope === undefined) return null;
 
     return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);
@@ -294,8 +294,8 @@ connection.onSignatureHelp((params) => {
 
 // Document Formatting
 connection.onDocumentFormatting((params) => {
-    const inspected = getInspectedResult(params.textDocument.uri);
-    return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.parsedAst);
+    const inspected = getInspectedRecord(params.textDocument.uri);
+    return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
 
 // Make the text document manager listen on the connection

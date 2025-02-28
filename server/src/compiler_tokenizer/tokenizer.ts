@@ -217,10 +217,10 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
 
 /**
  * The entry point for the tokenizer.
- * @param content The content of the file to tokenize.
  * @param path The path of the file to tokenize.
+ * @param content The content of the file to tokenize.
  */
-export function tokenize(content: string, path: string): TokenObject[] {
+export function tokenize(path: string, content: string): TokenObject[] {
     const tokens: TokenObject[] = [];
     const tokenizer = new TokenizerState(content);
     const unknownBuffer = new UnknownBuffer();
