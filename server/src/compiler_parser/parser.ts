@@ -2244,7 +2244,7 @@ function getNextLinkedGreaterThan(parser: ParserState) {
     return parser.next();
 }
 
-export function parseAfterTokenized(tokens: TokenObject[]): NodeScript {
+export function parseAfterPreprocessed(tokens: TokenObject[]): NodeScript {
     const parser = new ParserState(tokens);
 
     const script: NodeScript = [];

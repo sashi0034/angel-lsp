@@ -11,5 +11,12 @@ export class DelayedTask {
 
         this._timer = setTimeout(callback, delay);
     }
+
+    public cancel() {
+        if (this._timer !== undefined) {
+            clearTimeout(this._timer);
+            this._timer = undefined;
+        }
+    }
 }
 

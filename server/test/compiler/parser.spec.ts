@@ -1,16 +1,16 @@
 import {tokenize} from "../../src/compiler_tokenizer/tokenizer";
-import {parseAfterTokenized} from "../../src/compiler_parser/parser";
+import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
 import {diagnostic} from '../../src/code/diagnostic';
-import {preprocessTokensForParser} from "../../src/compiler_parser/parserPreprocess";
+import {preprocessAfterTokenized} from "../../src/compiler_parser/parserPreprocess";
 
 function itParses(content: string) {
     it(`parses ${content}`, () => {
         diagnostic.beginSession();
 
         const targetUri = "/foo/bar.as";
-        const tokenizedTokens = tokenize(content, targetUri);
-        const preprocessedTokens = preprocessTokensForParser(tokenizedTokens);
-        parseAfterTokenized(preprocessedTokens.parsingTokens);
+        const tokenizedTokens = tokenize(targetUri, content);
+        const preprocessedTokens = preprocessAfterTokenized(tokenizedTokens);
+        parseAfterPreprocessed(preprocessedTokens.preprocessedTokens);
 
         const diagnosticsInAnalyzer = diagnostic.endSession();
         if (diagnosticsInAnalyzer.length > 0) {
