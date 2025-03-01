@@ -38,8 +38,7 @@ import {
     NodeWhile
 } from "../compiler_parser/nodes";
 import {
-    getSourceNodeName,
-    isSourceNodeClassOrInterface,
+    isDefinitionNodeClassOrInterface,
     SymbolFunction,
     SymbolObject,
     SymbolType,
@@ -232,7 +231,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     }
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
-    if (foundSymbol instanceof SymbolFunction && foundSymbol.sourceNode.nodeName === NodeName.FuncDef) {
+    if (foundSymbol instanceof SymbolFunction && foundSymbol.defNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
     } else if (foundSymbol instanceof SymbolType === false) {
         analyzerDiagnostic.add(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
@@ -488,7 +487,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 
         // Select suitable overload if there are multiple overloads
         while (functionReturn.nextOverload !== undefined) {
-            if (functionReturn.sourceNode === functionScope.linkedNode) break;
+            if (functionReturn.defNode === functionScope.linkedNode) break;
             functionReturn = functionReturn.nextOverload;
         }
 
@@ -706,7 +705,7 @@ function analyzeBuiltinConstructorCaller(
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType instanceof SymbolType
-        && getSourceNodeName(constructorType.symbolType.sourceNode) === NodeName.Enum) {
+        && constructorType.symbolType.defNode?.nodeName === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
         if (argList.length != 1 || canTypeConvert(
@@ -766,7 +765,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isSourceNodeClassOrInterface(exprValue.symbolType.sourceNode) === false) {
+    if (isDefinitionNodeClassOrInterface(exprValue.symbolType.defNode) === false) {
         analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
@@ -939,7 +938,7 @@ function analyzeFunctionCaller(
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
-    if (calleeFunc.sourceNode.nodeName === NodeName.FuncDef) {
+    if (calleeFunc.defNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
         const handlerType = new ResolvedType(calleeFunc);
         if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {

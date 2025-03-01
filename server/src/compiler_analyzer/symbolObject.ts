@@ -15,18 +15,13 @@ import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import assert = require("node:assert");
 
 /**
- * The node that serves as the origin of a type declaration.
+ * A node that represents a type definition.
  */
-export type TypeSourceNode = NodeEnum | NodeClass | NodeInterface;
+export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
 
-export function isSourceNodeClassOrInterface(type: TypeSourceNode | undefined): type is NodeClass {
+export function isDefinitionNodeClassOrInterface(type: TypeDefinitionNode | undefined): type is NodeClass {
     if (type === undefined) return false;
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
-}
-
-export function getSourceNodeName(type: TypeSourceNode | undefined): NodeName | undefined {
-    if (type === undefined) return undefined;
-    return type.nodeName;
 }
 
 /**
@@ -41,7 +36,7 @@ export class SymbolType implements SymbolBase {
     constructor(
         public readonly declaredPlace: TokenObject,
         public readonly declaredScope: SymbolScope,
-        public readonly sourceNode: TypeSourceNode | undefined,
+        public readonly defNode: TypeDefinitionNode | undefined,
         public readonly membersScope: SymbolScope | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
@@ -55,7 +50,7 @@ export class SymbolType implements SymbolBase {
     public static create(args: {
         declaredPlace: TokenObject
         declaredScope: SymbolScope
-        sourceNode: TypeSourceNode | undefined
+        defNode: TypeDefinitionNode | undefined
         membersScope: SymbolScope | undefined
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
@@ -65,7 +60,7 @@ export class SymbolType implements SymbolBase {
         return new SymbolType(
             args.declaredPlace,
             args.declaredScope,
-            args.sourceNode,
+            args.defNode,
             args.membersScope,
             args.isTypeParameter,
             args.templateTypes,
@@ -85,7 +80,7 @@ export class SymbolType implements SymbolBase {
      * Determine if the type is a system type. (e.g. int, float, void)
      */
     public isSystemType(): boolean {
-        return this.sourceNode === undefined;
+        return this.defNode === undefined;
     }
 
     public isNumberType(): boolean {
@@ -99,7 +94,7 @@ export class SymbolFunction implements SymbolBase {
     constructor(
         public readonly declaredPlace: TokenObject,
         public readonly declaredScope: SymbolScope,
-        public readonly sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
@@ -110,7 +105,7 @@ export class SymbolFunction implements SymbolBase {
     public static create(args: {
         declaredPlace: TokenObject
         declaredScope: SymbolScope
-        sourceNode: NodeFunc | NodeFuncDef | NodeIntfMethod
+        defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
         isInstanceMember: boolean
@@ -119,7 +114,7 @@ export class SymbolFunction implements SymbolBase {
         return new SymbolFunction(
             args.declaredPlace,
             args.declaredScope,
-            args.sourceNode,
+            args.defNode,
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,

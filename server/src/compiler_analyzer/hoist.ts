@@ -94,7 +94,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeEnum.identifier,
         declaredScope: parentScope,
-        sourceNode: nodeEnum,
+        defNode: nodeEnum,
         membersScope: undefined,
     });
 
@@ -127,7 +127,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeClass.identifier,
         declaredScope: parentScope,
-        sourceNode: nodeClass,
+        defNode: nodeClass,
         membersScope: undefined,
     });
     if (parentScope.insertSymbol(symbol) === false) return;
@@ -182,7 +182,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
         scope.insertSymbol(SymbolType.create({
             declaredPlace: getIdentifierInNodeType(type),
             declaredScope: scope,
-            sourceNode: undefined,
+            defNode: undefined,
             membersScope: undefined,
             isTypeParameter: true,
         }));
@@ -259,7 +259,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: typeDef.identifier,
         declaredScope: parentScope,
-        sourceNode: builtInType.sourceNode,
+        defNode: builtInType.defNode,
         membersScope: undefined,
     });
     parentScope.insertSymbol(symbol);
@@ -279,7 +279,7 @@ function hoistFunc(
         declaredScope: parentScope,
         returnType: returnType,
         parameterTypes: [],
-        sourceNode: nodeFunc,
+        defNode: nodeFunc,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     });
@@ -322,7 +322,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
     const symbol: SymbolType = SymbolType.create({
         declaredPlace: nodeInterface.identifier,
         declaredScope: parentScope,
-        sourceNode: nodeInterface,
+        defNode: nodeInterface,
         membersScope: undefined,
     });
     if (parentScope.insertSymbol(symbol) === false) return;
@@ -375,7 +375,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
         declaredScope: parentScope,
         returnType: analyzeType(parentScope, funcDef.returnType),
         parameterTypes: [],
-        sourceNode: funcDef,
+        defNode: funcDef,
         isInstanceMember: false,
         accessRestriction: undefined,
     });
@@ -446,7 +446,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         declaredScope: parentScope,
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
-        sourceNode: intfMethod,
+        defNode: intfMethod,
         isInstanceMember: true,
         accessRestriction: undefined,
     });

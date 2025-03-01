@@ -126,8 +126,8 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
 
 function symbolToCompletionKind(symbol: SymbolObject): CompletionItemKind {
     if (symbol instanceof SymbolType) {
-        if (symbol.isSystemType() || symbol.sourceNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.sourceNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
+        if (symbol.isSystemType() || symbol.defNode === undefined) return CompletionItemKind.Keyword;
+        if (symbol.defNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     } else if (symbol instanceof SymbolFunction) {
         return CompletionItemKind.Function;

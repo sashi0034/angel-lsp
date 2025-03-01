@@ -1,8 +1,9 @@
 import {
-    TypeSourceNode,
+    TypeDefinitionNode,
     SymbolFunction,
     SymbolObject,
-    SymbolType, isSourceNodeClassOrInterface,
+    SymbolType,
+    isDefinitionNodeClassOrInterface,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
@@ -74,8 +75,8 @@ function isTypeMatchInternal(
         return false;
     }
 
-    const srcNode = srcType.sourceNode;
-    const destNode = destType.sourceNode;
+    const srcNode = srcType.defNode;
+    const destNode = destType.defNode;
 
     if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
@@ -126,12 +127,12 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.sourceNode;
+    const srcNode = srcType.defNode;
     if (srcType.isSystemType()) return false;
 
-    if (srcType.sourceNode === destType.sourceNode) return true;
+    if (srcType.defNode === destType.defNode) return true;
 
-    if (isSourceNodeClassOrInterface(srcNode)) {
+    if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
             if (srcBase?.symbolType === undefined) continue;
@@ -146,8 +147,8 @@ function canDownCast(
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.sourceNode;
-    const destNode = destType.sourceNode;
+    const srcNode = srcType.defNode;
+    const destNode = destType.defNode;
 
     if (srcType.isTypeParameter) {
         return destType.isTypeParameter && srcType.declaredPlace.equals(destType.declaredPlace);
@@ -184,18 +185,18 @@ function canConstructImplicitly(
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor instanceof SymbolFunction === false) return false;
 
-    if (srcType.sourceNode === undefined) return true; // FIXME?
+    if (srcType.defNode === undefined) return true; // FIXME?
 
-    return canConstructBy(constructor, srcType.sourceNode);
+    return canConstructBy(constructor, srcType.defNode);
 }
 
-function canConstructBy(constructor: SymbolFunction, srcType: TypeSourceNode): boolean {
+function canConstructBy(constructor: SymbolFunction, srcType: TypeDefinitionNode): boolean {
     // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
             && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.sourceNode === srcType
+            && paramType.symbolType.defNode === srcType
         ) {
             return true;
         }

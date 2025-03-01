@@ -9,7 +9,7 @@ function createBuiltinType(virtualToken: TokenObject): SymbolType {
     return SymbolType.create({
         declaredPlace: virtualToken, // The built-in type uses a virtual token
         declaredScope: new SymbolScope(undefined, '', undefined),
-        sourceNode: undefined,
+        defNode: undefined,
         membersScope: undefined,
     });
 }

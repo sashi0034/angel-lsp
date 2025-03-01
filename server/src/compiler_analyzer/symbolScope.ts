@@ -1,4 +1,4 @@
-import {ReferencedSymbolInfo, SymbolFunction, SymbolObject, SymbolType, TypeSourceNode} from "./symbolObject";
+import {ReferencedSymbolInfo, SymbolFunction, SymbolObject, SymbolType, TypeDefinitionNode} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {
     NodeClass, NodeDoWhile,
@@ -214,7 +214,7 @@ function errorAlreadyDeclared(symbol: SymbolObject) {
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
     for (const [key, symbol] of scope.symbolTable) {
-        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.sourceNode)) return symbol;
+        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.defNode)) return symbol;
     }
 
     for (const [key, child] of scope.childScopeTable) {
@@ -226,7 +226,7 @@ function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
 }
 
 // Judge if the class has a metadata that indicates it is a built-in string type.
-function isSourceBuiltinString(source: TypeSourceNode | undefined): boolean {
+function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean {
     if (source === undefined) return false;
     if (source.nodeName != NodeName.Class) return false;
     // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;

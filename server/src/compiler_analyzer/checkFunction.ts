@@ -42,7 +42,7 @@ function checkFunctionMatchInternal(
     overloadedHead: SymbolFunction
 ): ResolvedType | undefined {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
-    const calleeParams = calleeFunc.sourceNode.paramList;
+    const calleeParams = calleeFunc.defNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length) {
         // Handle too many caller arguments.
@@ -120,7 +120,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
         templateTranslators) === false) {
         analyzerDiagnostic.add(
             callerRange.getBoundingLocation(),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
+            `Function has ${calleeFunc.defNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
     return calleeFunc.returnType;

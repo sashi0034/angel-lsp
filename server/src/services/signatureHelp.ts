@@ -45,9 +45,9 @@ function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFu
 
     let activeIndex = 0;
 
-    let signatureLabel = expectedCallee.sourceNode.identifier.text + '(';
-    for (let i = 0; i < expectedCallee.sourceNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.sourceNode.paramList[i];
+    let signatureLabel = expectedCallee.defNode.identifier.text + '(';
+    for (let i = 0; i < expectedCallee.defNode.paramList.length; i++) {
+        const paramIdentifier = expectedCallee.defNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));
