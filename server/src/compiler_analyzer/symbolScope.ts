@@ -160,13 +160,13 @@ export class SymbolScope {
         return newScope;
     }
 
-    public findScopeWithParent(identifier: string): SymbolScope | undefined {
+    public lookupScopeWithParent(identifier: string): SymbolScope | undefined {
         const child = this._childScopeTable.get(identifier);
         if (child !== undefined) return child;
-        return this.parentScope === undefined ? undefined : this.parentScope.findScopeWithParent(identifier);
+        return this.parentScope === undefined ? undefined : this.parentScope.lookupScopeWithParent(identifier);
     }
 
-    public getScope(identifier: string): SymbolScope | undefined {
+    public lookupScope(identifier: string): SymbolScope | undefined {
         return this._childScopeTable.get(identifier);
     }
 
@@ -254,17 +254,6 @@ export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
         current = current.parentScope;
     }
     return result;
-}
-
-export function findScopeWithParent(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    const child = scope.childScopeTable.get(identifier);
-    if (child !== undefined) return child;
-    if (scope.parentScope === undefined) return undefined;
-    return findScopeWithParent(scope.parentScope, identifier);
-}
-
-export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {
-    return scope.childScopeTable.get(identifier);
 }
 
 export function createSymbolScope(

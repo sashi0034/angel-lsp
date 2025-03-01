@@ -50,7 +50,6 @@ import {
     AnalyzedScope,
     createAnonymousIdentifier,
     findGlobalScope,
-    findScopeShallowly,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
 import {checkFunctionMatch} from "./checkFunction";
@@ -324,7 +323,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Search for the scope corresponding to the name.
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
-            found = findScopeShallowly(scopeIterator, nextScope.text);
+            found = scopeIterator.lookupScope(nextScope.text);
             if (found?.linkedNode?.nodeName === NodeName.Func) found = undefined;
             if (found !== undefined) break;
             if (i == 0 && scopeIterator.parentScope !== undefined) {
@@ -693,7 +692,7 @@ export function findConstructorForResolvedType(resolvedType: ResolvedType | unde
     if (resolvedType?.sourceScope === undefined) return undefined;
 
     const constructorIdentifier = resolvedType.symbolType.declaredPlace.text;
-    const classScope = findScopeShallowly(resolvedType.sourceScope, constructorIdentifier);
+    const classScope = resolvedType.sourceScope.lookupScope(constructorIdentifier);
     return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
 }
 
@@ -917,7 +916,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    const classScope = findScopeShallowly(varType.sourceScope, varType.symbolType.declaredPlace.text);
+    const classScope = varType.sourceScope.lookupScope(varType.symbolType.declaredPlace.text);
     if (classScope === undefined) return undefined;
 
     const opCall = findSymbolShallowly(classScope, 'opCall');

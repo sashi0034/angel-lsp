@@ -5,7 +5,7 @@ import {
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
-import {findScopeShallowly, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
+import {isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -177,7 +177,7 @@ function canConstructImplicitly(
     if (destScope === undefined) return false;
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
-    const constructorScope = findScopeShallowly(destScope, destIdentifier);
+    const constructorScope = destScope.lookupScope(destIdentifier);
     if (constructorScope === undefined || constructorScope.linkedNode?.nodeName !== NodeName.Class) return false;
 
     // Search for the constructor of the given type from the scope of the type itself.

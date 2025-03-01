@@ -8,8 +8,6 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopes,
-    findScopeShallowly,
-    findScopeWithParent,
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
@@ -101,8 +99,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = findScopeShallowly(
-            completion.targetType.declaredScope,
+        const typeScope = completion.targetType.declaredScope.lookupScope(
             completion.targetType.declaredPlace.text);
         if (typeScope === undefined) return [];
 
@@ -113,11 +110,11 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
-        let namespaceScope = findScopeWithParent(scope, namespaceList[0].text);
+        let namespaceScope = scope.lookupScopeWithParent(namespaceList[0].text);
         if (namespaceScope === undefined) return [];
 
         for (let i = 1; i < namespaceList.length; i++) {
-            namespaceScope = findScopeShallowly(namespaceScope, namespaceList[i].text);
+            namespaceScope = namespaceScope.lookupScope(namespaceList[i].text);
             if (namespaceScope === undefined) return [];
         }
 
