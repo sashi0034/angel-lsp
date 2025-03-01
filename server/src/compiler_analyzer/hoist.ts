@@ -307,7 +307,7 @@ function hoistFunc(
     }
 
     // Create a new scope for the function
-    const scope: SymbolScope = parentScope.createScopeAndInsert(nodeFunc, nodeFunc.identifier.text);
+    const scope: SymbolScope = parentScope.createScopeAndInsert(nodeFunc.identifier.text, nodeFunc);
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
@@ -405,7 +405,7 @@ function hoistVirtualProp(
 
     const getter = virtualProp.getter;
     if (getter !== undefined && getter.statBlock !== undefined) {
-        const getterScope = parentScope.createScopeAndInsert(virtualProp, `get_${identifier.text}`);
+        const getterScope = parentScope.createScopeAndInsert(`get_${identifier.text}`, virtualProp);
 
         const statBlock = getter.statBlock;
         analyzing.push(() => {
@@ -415,7 +415,7 @@ function hoistVirtualProp(
 
     const setter = virtualProp.setter;
     if (setter !== undefined && setter.statBlock !== undefined) {
-        const setterScope = parentScope.createScopeAndInsert(virtualProp, `set_${identifier.text}`);
+        const setterScope = parentScope.createScopeAndInsert(`set_${identifier.text}`, virtualProp);
 
         if (type !== undefined) {
             const valueVariable: SymbolVariable = SymbolVariable.create({

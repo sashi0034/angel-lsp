@@ -366,12 +366,12 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeIf(scope, statement);
         break;
     case NodeName.For: {
-        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), statement);
         analyzeFor(childScope, statement);
         break;
     }
     case NodeName.While: {
-        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), statement);
         analyzeWhile(childScope, statement);
         break;
     }
@@ -379,7 +379,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeReturn(scope, statement);
         break;
     case NodeName.StatBlock: {
-        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), statement);
         analyzeStatBlock(childScope, statement);
         break;
     }
@@ -388,7 +388,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     case NodeName.Continue:
         break;
     case NodeName.DoWhile: {
-        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), statement);
         analyzeDoWhile(childScope, statement);
         break;
     }
@@ -399,7 +399,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
         analyzeExprStat(scope, statement);
         break;
     case NodeName.Try: {
-        const childScope = scope.createScopeAndInsert(statement, createAnonymousIdentifier());
+        const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), statement);
         analyzeTry(childScope, statement);
         break;
     }
@@ -818,7 +818,7 @@ function analyzeCast(scope: SymbolScope, cast: NodeCast): ResolvedType | undefin
 
 // LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | undefined {
-    const childScope = scope.createScopeAndInsert(lambda, createAnonymousIdentifier());
+    const childScope = scope.createScopeAndInsert(createAnonymousIdentifier(), lambda);
 
     // Append arguments to the scope
     for (const param of lambda.paramList) {

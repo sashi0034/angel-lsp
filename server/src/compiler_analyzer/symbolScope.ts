@@ -60,9 +60,6 @@ export type ScopeLinkedNode =
  * Represents a scope that contains symbols.
  */
 export class SymbolScope {
-    // A node associated with this scope
-    private _linkedNode: ScopeLinkedNode | undefined;
-
     // The parent scope of this scope. If this is the root scope (global scope), it has the context for the file
     private readonly _parentOrContext: SymbolScope | RootScopeContext;
 
@@ -72,29 +69,27 @@ export class SymbolScope {
     // The symbol table that contains the symbols declared in this scope
     private readonly _symbolTable: SymbolTable = new Map();
 
+    public readonly referencedList: ReferencedSymbolInfo[] = [];
+
+    public readonly completionHints: ComplementHints[] = [];
+
     public constructor(
-        linkedNode: ScopeLinkedNode | undefined,
+        // The parent scope of this scope.
         parentScope: SymbolScope | undefined,
+        // The key of this scope. It is the identifier of the class, function, or block.
         public readonly key: string,
-        public readonly referencedList: ReferencedSymbolInfo[],
-        public readonly completionHints: ComplementHints[],
+        // A node associated with this scope
+        private _linkedNode: ScopeLinkedNode | undefined,
     ) {
         this._parentOrContext = parentScope ?? createRootScopeContext();
-
-        this._linkedNode = linkedNode;
     }
 
     public static create(args: {
-        linkedNode: ScopeLinkedNode | undefined
         parentScope: SymbolScope | undefined
         key: string
+        linkedNode: ScopeLinkedNode | undefined
     }) {
-        return new SymbolScope(
-            args.linkedNode,
-            args.parentScope,
-            args.key,
-            [],
-            []);
+        return new SymbolScope(args.parentScope, args.key, args.linkedNode);
     }
 
     public get parentScope(): SymbolScope | undefined {
@@ -140,14 +135,14 @@ export class SymbolScope {
     /**
      * Create a new scope and insert it into the child scope table.
      */
-    public createScopeAndInsert(linkedNode: ScopeLinkedNode | undefined, identifier: string): SymbolScope {
+    public createScopeAndInsert(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
         const alreadyExists = this._childScopeTable.get(identifier);
         if (alreadyExists !== undefined) {
             if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);
             return alreadyExists;
         }
 
-        const newScope = SymbolScope.create({linkedNode: linkedNode, parentScope: this, key: identifier});
+        const newScope = SymbolScope.create({parentScope: this, key: identifier, linkedNode: linkedNode});
         this._childScopeTable.set(identifier, newScope);
         return newScope;
     }
@@ -177,7 +172,8 @@ export class SymbolScope {
         if (alreadyExists !== undefined) {
             analyzerDiagnostic.add(
                 symbol.declaredPlace.location,
-                `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`);
+                `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`
+            );
         }
 
         return alreadyExists === undefined;
@@ -368,7 +364,7 @@ function findScopeShallowlyThenInsertByIdentifier(
     identifier: string
 ): SymbolScope {
     const found: SymbolScope | undefined = scope.childScopeTable.get(identifier);
-    if (found === undefined) return scope.createScopeAndInsert(linkedNode, identifier);
+    if (found === undefined) return scope.createScopeAndInsert(identifier, linkedNode);
     if (linkedNode === undefined) return found;
     if (found.linkedNode === undefined) found.setLinkedNode(linkedNode);
     return found;
