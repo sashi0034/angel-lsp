@@ -51,7 +51,6 @@ import {
     createAnonymousIdentifier,
     findGlobalScope,
     findScopeShallowly,
-    findScopeWithParentByNodes,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
 import {checkFunctionMatch} from "./checkFunction";
@@ -479,7 +478,7 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const returnType = nodeReturn.assign !== undefined ? analyzeAssign(scope, nodeReturn.assign) : undefined;
 
-    const functionScope = findScopeWithParentByNodes(scope, [NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
+    const functionScope = scope.takeParentByNode([NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
     if (functionScope === undefined || functionScope.linkedNode === undefined) return;
 
     // TODO: Support for lambda

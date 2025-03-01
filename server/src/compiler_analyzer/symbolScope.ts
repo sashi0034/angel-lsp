@@ -133,6 +133,19 @@ export class SymbolScope {
     }
 
     /**
+     * Find the parent scope (including itself) that satisfies the condition.
+     */
+    public takeParentBy(filter: (scope: SymbolScope) => boolean): SymbolScope | undefined {
+        if (filter(this)) return this;
+        if (this.parentScope === undefined) return undefined;
+        return this.parentScope.takeParentBy(filter);
+    }
+
+    public takeParentByNode(nodeCandidates: NodeName[]): SymbolScope | undefined {
+        return this.takeParentBy(scope => scope.linkedNode !== undefined && nodeCandidates.includes(scope.linkedNode.nodeName));
+    }
+
+    /**
      * Create a new scope and insert it into the child scope table.
      */
     public createScopeAndInsert(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
@@ -145,6 +158,16 @@ export class SymbolScope {
         const newScope = SymbolScope.create({parentScope: this, key: identifier, linkedNode: linkedNode});
         this._childScopeTable.set(identifier, newScope);
         return newScope;
+    }
+
+    public findScopeWithParent(identifier: string): SymbolScope | undefined {
+        const child = this._childScopeTable.get(identifier);
+        if (child !== undefined) return child;
+        return this.parentScope === undefined ? undefined : this.parentScope.findScopeWithParent(identifier);
+    }
+
+    public getScope(identifier: string): SymbolScope | undefined {
+        return this._childScopeTable.get(identifier);
     }
 
     /**
@@ -167,17 +190,26 @@ export class SymbolScope {
         alreadyExists.appendOverload(symbol);
     }
 
+    /**
+     * Insert a symbol into the symbol table. If the symbol already exists, the diagnostic is published.
+     * @param symbol
+     * @return true if the symbol is successfully inserted, or false if the symbol already exists.
+     */
     public insertSymbol(symbol: SymbolObject): boolean {
         const alreadyExists = this.tryInsertSymbol(symbol);
         if (alreadyExists !== undefined) {
-            analyzerDiagnostic.add(
-                symbol.declaredPlace.location,
-                `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`
-            );
+            errorAlreadyDeclared(symbol);
         }
 
         return alreadyExists === undefined;
     }
+}
+
+function errorAlreadyDeclared(symbol: SymbolObject) {
+    analyzerDiagnostic.add(
+        symbol.declaredPlace.location,
+        `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`
+    );
 }
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
@@ -229,12 +261,6 @@ export function findScopeWithParent(scope: SymbolScope, identifier: string): Sym
     if (child !== undefined) return child;
     if (scope.parentScope === undefined) return undefined;
     return findScopeWithParent(scope.parentScope, identifier);
-}
-
-export function findScopeWithParentByNodes(scope: SymbolScope, nodeCandidates: NodeName[]): SymbolScope | undefined {
-    if (scope.linkedNode !== undefined && nodeCandidates.includes(scope.linkedNode.nodeName)) return scope;
-    if (scope.parentScope === undefined) return undefined;
-    return findScopeWithParentByNodes(scope.parentScope, nodeCandidates);
 }
 
 export function findScopeShallowly(scope: SymbolScope, identifier: string): SymbolScope | undefined {

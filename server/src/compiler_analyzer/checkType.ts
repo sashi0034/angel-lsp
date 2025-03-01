@@ -5,7 +5,7 @@ import {
     SymbolType, isSourceNodeClassOrInterface,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
+import {findScopeShallowly, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -221,7 +221,7 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
         if (declaredScope.linkedNode === undefined) return false;
 
-        const checkingOuterScope = findScopeWithParentByNodes(checkingScope, [NodeName.Class, NodeName.Interface]);
+        const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
 
         // Get the symbol of the class to which the referring part belongs.
