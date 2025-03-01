@@ -148,7 +148,7 @@ export class SymbolScope {
     /**
      * Create a new scope and insert it into the child scope table.
      */
-    public createScopeAndInsert(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
+    public insertScope(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
         const alreadyExists = this._childScopeTable.get(identifier);
         if (alreadyExists !== undefined) {
             if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);
@@ -158,6 +158,16 @@ export class SymbolScope {
         const newScope = SymbolScope.create({parentScope: this, key: identifier, linkedNode: linkedNode});
         this._childScopeTable.set(identifier, newScope);
         return newScope;
+    }
+
+    public insertScopeAndCheck(identifier: TokenObject, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
+        const scope = this.insertScope(identifier.text, linkedNode);
+        if (linkedNode !== undefined && linkedNode !== scope.linkedNode) {
+            // e.g., if a scope for a class 'F' already exists, a scope for a function 'F' cannot be created.
+            errorAlreadyDeclared(identifier);
+        }
+
+        return scope;
     }
 
     public lookupScopeWithParent(identifier: string): SymbolScope | undefined {
@@ -175,7 +185,7 @@ export class SymbolScope {
      * @param symbol
      * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
      */
-    public tryInsertSymbol(symbol: SymbolObject): SymbolObject | undefined {
+    public insertSymbol(symbol: SymbolObject): SymbolObject | undefined {
         const identifier = symbol.defToken.text;
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
@@ -195,20 +205,20 @@ export class SymbolScope {
      * @param symbol
      * @return true if the symbol is successfully inserted, or false if the symbol already exists.
      */
-    public insertSymbol(symbol: SymbolObject): boolean {
-        const alreadyExists = this.tryInsertSymbol(symbol);
+    public insertSymbolAndCheck(symbol: SymbolObject): boolean {
+        const alreadyExists = this.insertSymbol(symbol);
         if (alreadyExists !== undefined) {
-            errorAlreadyDeclared(symbol);
+            errorAlreadyDeclared(symbol.defToken);
         }
 
         return alreadyExists === undefined;
     }
 }
 
-function errorAlreadyDeclared(symbol: SymbolObject) {
+function errorAlreadyDeclared(token: TokenObject) {
     analyzerDiagnostic.add(
-        symbol.defToken.location,
-        `Symbol '${symbol.defToken.text}' is already declared in the scope.`
+        token.location,
+        `Symbol '${token.text}' is already declared in the scope.`
     );
 }
 
@@ -317,7 +327,7 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
         }
 
         if (canCopy) {
-            destScope.tryInsertSymbol(symbol);
+            destScope.insertSymbol(symbol);
         }
     }
 
@@ -336,43 +346,9 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
             }
         }
 
-        const destChild = findScopeShallowlyThenInsertByIdentifier(child.linkedNode, destScope, key);
+        const destChild = destScope.insertScope(key, child.linkedNode);
         copySymbolsInScope(child, destChild, option);
     }
-}
-
-/**
- * Searches for a scope within the given scope that has an identifier matching the provided token.
- * This search is non-recursive. If no matching scope is found, a new one is created and inserted.
- * @param linkedNode The node associated with the scope.
- * @param scope The scope to search within for a matching child scope.
- * @param identifierToken The token of the identifier to search for.
- * @returns The found or newly created scope.
- */
-export function findScopeShallowlyOrInsert(
-    linkedNode: ScopeLinkedNode | undefined,
-    scope: SymbolScope,
-    identifierToken: TokenObject
-): SymbolScope {
-    const found = findScopeShallowlyThenInsertByIdentifier(linkedNode, scope, identifierToken.text);
-    if (linkedNode !== undefined && linkedNode !== found.linkedNode) {
-        // If searching for a non-namespace node, throw an error if it doesn't match the found node.
-        // For example, if a scope for a class 'f' already exists, a scope for a function 'f' cannot be created.
-        analyzerDiagnostic.add(identifierToken.location, `Symbol ${identifierToken.text}' is already defined.`);
-    }
-    return found;
-}
-
-function findScopeShallowlyThenInsertByIdentifier(
-    linkedNode: ScopeLinkedNode | undefined,
-    scope: SymbolScope,
-    identifier: string
-): SymbolScope {
-    const found: SymbolScope | undefined = scope.childScopeTable.get(identifier);
-    if (found === undefined) return scope.createScopeAndInsert(identifier, linkedNode);
-    if (linkedNode === undefined) return found;
-    if (found.linkedNode === undefined) found.setLinkedNode(linkedNode);
-    return found;
 }
 
 /**
