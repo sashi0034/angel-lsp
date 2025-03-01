@@ -108,15 +108,19 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     assert(false);
 }
 
+
+// obsolete
 export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObject | undefined {
     return scope.symbolTable.get(identifier);
 }
 
+// obsolete
 export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};
 }
 
+// obsolete
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
     const symbol = scope.symbolTable.get(identifier);
     if (symbol !== undefined) return {symbol: symbol, scope: scope};

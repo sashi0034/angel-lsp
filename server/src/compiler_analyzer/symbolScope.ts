@@ -220,6 +220,16 @@ export class SymbolScope {
 
         return alreadyExists === undefined;
     }
+
+    public lookupSymbol(identifier: string): SymbolObject | undefined {
+        return this._symbolTable.get(identifier);
+    }
+
+    public lookupSymbolWithParent(identifier: string): SymbolObject | undefined {
+        const symbol = this.lookupSymbol(identifier);
+        if (symbol !== undefined) return symbol;
+        return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
+    }
 }
 
 function errorAlreadyDeclared(token: TokenObject) {
