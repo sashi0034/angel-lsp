@@ -28,14 +28,14 @@ export function isDefinitionNodeClassOrInterface(type: TypeDefinitionNode | unde
  * The base interface for all symbols.
  */
 export interface SymbolBase {
-    readonly declaredPlace: TokenObject;
-    readonly declaredScope: SymbolScope;
+    readonly defToken: TokenObject;
+    readonly defScope: SymbolScope;
 }
 
 export class SymbolType implements SymbolBase {
     constructor(
-        public readonly declaredPlace: TokenObject,
-        public readonly declaredScope: SymbolScope,
+        public readonly defToken: TokenObject,
+        public readonly defScope: SymbolScope,
         public readonly defNode: TypeDefinitionNode | undefined,
         public readonly membersScope: SymbolScope | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
@@ -48,8 +48,8 @@ export class SymbolType implements SymbolBase {
     }
 
     public static create(args: {
-        declaredPlace: TokenObject
-        declaredScope: SymbolScope
+        defToken: TokenObject
+        defScope: SymbolScope
         defNode: TypeDefinitionNode | undefined
         membersScope: SymbolScope | undefined
         isTypeParameter?: boolean
@@ -58,8 +58,8 @@ export class SymbolType implements SymbolBase {
         isHandler?: boolean
     }) {
         return new SymbolType(
-            args.declaredPlace,
-            args.declaredScope,
+            args.defToken,
+            args.defScope,
             args.defNode,
             args.membersScope,
             args.isTypeParameter,
@@ -73,7 +73,7 @@ export class SymbolType implements SymbolBase {
     }
 
     public get identifierText(): string {
-        return this.declaredPlace.text;
+        return this.defToken.text;
     }
 
     /**
@@ -84,7 +84,7 @@ export class SymbolType implements SymbolBase {
     }
 
     public isNumberType(): boolean {
-        return this.declaredPlace.isReservedToken() && this.declaredPlace.property.isNumber;
+        return this.defToken.isReservedToken() && this.defToken.property.isNumber;
     }
 }
 
@@ -92,8 +92,8 @@ export class SymbolFunction implements SymbolBase {
     private _nextOverload: SymbolFunction | undefined = undefined;
 
     constructor(
-        public readonly declaredPlace: TokenObject,
-        public readonly declaredScope: SymbolScope,
+        public readonly defToken: TokenObject,
+        public readonly defScope: SymbolScope,
         public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
@@ -103,8 +103,8 @@ export class SymbolFunction implements SymbolBase {
     }
 
     public static create(args: {
-        declaredPlace: TokenObject
-        declaredScope: SymbolScope
+        defToken: TokenObject
+        defScope: SymbolScope
         defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
@@ -112,8 +112,8 @@ export class SymbolFunction implements SymbolBase {
         accessRestriction: AccessModifier | undefined
     }) {
         return new SymbolFunction(
-            args.declaredPlace,
-            args.declaredScope,
+            args.defToken,
+            args.defScope,
             args.defNode,
             args.returnType,
             args.parameterTypes,
@@ -144,8 +144,8 @@ export class SymbolFunction implements SymbolBase {
 
 export class SymbolVariable implements SymbolBase {
     constructor(
-        public readonly declaredPlace: TokenObject,
-        public readonly declaredScope: SymbolScope,
+        public readonly defToken: TokenObject,
+        public readonly defScope: SymbolScope,
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
@@ -153,15 +153,15 @@ export class SymbolVariable implements SymbolBase {
     }
 
     public static create(args: {
-        declaredPlace: TokenObject
-        declaredScope: SymbolScope
+        defToken: TokenObject
+        defScope: SymbolScope
         type: ResolvedType | undefined
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined
     }) {
         return new SymbolVariable(
-            args.declaredPlace,
-            args.declaredScope,
+            args.defToken,
+            args.defScope,
             args.type,
             args.isInstanceMember,
             args.accessRestriction);

@@ -131,8 +131,8 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
     for (const declaredVar of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
-            declaredPlace: declaredVar.identifier,
-            declaredScope: scope,
+            defToken: declaredVar.identifier,
+            defScope: scope,
             type: varType,
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
@@ -690,7 +690,7 @@ export function analyzeConstructorCaller(
 export function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObject | undefined {
     if (resolvedType?.sourceScope === undefined) return undefined;
 
-    const constructorIdentifier = resolvedType.symbolType.declaredPlace.text;
+    const constructorIdentifier = resolvedType.symbolType.defToken.text;
     const classScope = resolvedType.sourceScope.lookupScope(constructorIdentifier);
     return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
 }
@@ -701,7 +701,7 @@ function analyzeBuiltinConstructorCaller(
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ) {
-    const constructorIdentifier = constructorType.symbolType.declaredPlace.text;
+    const constructorIdentifier = constructorType.symbolType.defToken.text;
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType instanceof SymbolType
@@ -822,8 +822,8 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
         if (param.identifier === undefined) continue;
 
         const argument: SymbolVariable = SymbolVariable.create({
-            declaredPlace: param.identifier,
-            declaredScope: scope,
+            defToken: param.identifier,
+            defScope: scope,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
             accessRestriction: undefined,
@@ -915,14 +915,14 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    const classScope = varType.sourceScope.lookupScope(varType.symbolType.declaredPlace.text);
+    const classScope = varType.sourceScope.lookupScope(varType.symbolType.defToken.text);
     if (classScope === undefined) return undefined;
 
     const opCall = findSymbolShallowly(classScope, 'opCall');
     if (opCall === undefined || opCall instanceof SymbolFunction === false) {
         analyzerDiagnostic.add(
             funcCall.identifier.location,
-            `'opCall' is not defined in type '${varType.symbolType.declaredPlace.text}'.`);
+            `'opCall' is not defined in type '${varType.symbolType.defToken.text}'.`);
         return;
     }
 
@@ -1006,8 +1006,8 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (declared.symbol.declaredPlace.location.path !== '') {
-        // Keywords such as 'this' have an empty declaredPlace. They do not add to the reference list.
+    if (declared.symbol.defToken.location.path !== '') {
+        // Keywords such as 'this' have an empty defToken. They do not add to the reference list.
         checkingScope.referencedList.push({
             declaredSymbol: declared.symbol,
             referencedToken: varIdentifier

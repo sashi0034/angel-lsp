@@ -33,8 +33,8 @@ export function resolveTemplateType(
 
     if (type.symbolType.isTypeParameter !== true) return type;
 
-    if (templateTranslate.has(type.symbolType.declaredPlace)) {
-        return templateTranslate.get(type.symbolType.declaredPlace);
+    if (templateTranslate.has(type.symbolType.defToken)) {
+        return templateTranslate.get(type.symbolType.defToken);
     }
 
     return type;
@@ -84,7 +84,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
         suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
-    return type.symbolType.declaredPlace.text + suffix;
+    return type.symbolType.defToken.text + suffix;
 }
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
@@ -95,7 +95,7 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
+    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.defScope)}${symbol.defToken.text}`;
     if (symbol instanceof SymbolType) {
         return fullName;
     } else if (symbol instanceof SymbolFunction) {

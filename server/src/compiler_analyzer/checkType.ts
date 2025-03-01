@@ -85,7 +85,7 @@ function isTypeMatchInternal(
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
         // Succeeds if they both point to the same type.
-        if (srcType.declaredPlace === destType.declaredPlace) return true;
+        if (srcType.defToken === destType.defToken) return true;
 
         if (srcNode?.nodeName === NodeName.Enum && destType.isNumberType()) return true;
 
@@ -151,7 +151,7 @@ function canCastFromPrimitiveType(
     const destNode = destType.defNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && srcType.declaredPlace.equals(destType.declaredPlace);
+        return destType.isTypeParameter && srcType.defToken.equals(destType.defToken);
     }
 
     if (srcType.identifierText === 'void') {
@@ -215,12 +215,12 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
-    const declaredScope = declaredSymbol.declaredScope;
+    const defScope = declaredSymbol.defScope;
 
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(checkingScope, declaredScope);
+        return isScopeChildOrGrandchild(checkingScope, defScope);
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (declaredScope.linkedNode === undefined) return false;
+        if (defScope.linkedNode === undefined) return false;
 
         const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
@@ -230,8 +230,8 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
         if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
-        if (declaredScope.parentScope === undefined) return false;
-        const declaredOuterClass = findSymbolShallowly(declaredScope.parentScope, declaredScope.key);
+        if (defScope.parentScope === undefined) return false;
+        const declaredOuterClass = findSymbolShallowly(defScope.parentScope, defScope.key);
         if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));

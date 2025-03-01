@@ -23,6 +23,6 @@ export class ResolvedType {
     }
 
     public get sourceScope(): SymbolScope | undefined {
-        return this.symbolType.declaredScope;
+        return this.symbolType.defScope;
     }
 }

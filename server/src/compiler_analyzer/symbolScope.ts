@@ -176,7 +176,7 @@ export class SymbolScope {
      * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
      */
     public tryInsertSymbol(symbol: SymbolObject): SymbolObject | undefined {
-        const identifier = symbol.declaredPlace.text;
+        const identifier = symbol.defToken.text;
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
             this._symbolTable.set(identifier, symbol);
@@ -207,8 +207,8 @@ export class SymbolScope {
 
 function errorAlreadyDeclared(symbol: SymbolObject) {
     analyzerDiagnostic.add(
-        symbol.declaredPlace.location,
-        `Symbol '${symbol.declaredPlace.text}' is already declared in the scope.`
+        symbol.defToken.location,
+        `Symbol '${symbol.defToken.text}' is already declared in the scope.`
     );
 }
 
@@ -308,11 +308,11 @@ export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope
     for (const [key, symbol] of srcScope.symbolTable) {
         let canCopy = true;
 
-        if (option.targetSrcPath !== undefined && symbol.declaredPlace.location.path !== option.targetSrcPath) {
+        if (option.targetSrcPath !== undefined && symbol.defToken.location.path !== option.targetSrcPath) {
             canCopy = false;
         }
 
-        if (option.excludeSrcPath !== undefined && symbol.declaredPlace.location.path === option.excludeSrcPath) {
+        if (option.excludeSrcPath !== undefined && symbol.defToken.location.path === option.excludeSrcPath) {
             canCopy = false;
         }
 
@@ -396,7 +396,7 @@ export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
         && symbol instanceof SymbolFunction
         && scope.linkedNode !== undefined
         && scope.linkedNode.nodeName === NodeName.Class
-        && scope.linkedNode.identifier.text === symbol.declaredPlace.text;
+        && scope.linkedNode.identifier.text === symbol.defToken.text;
 }
 
 export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {

@@ -27,13 +27,13 @@ export function serveDefinition(analyzedScope: AnalyzedScope, caret: Position): 
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
 export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Position): TokenObject | undefined {
-    return serveDefinition(analyzedScope, caret)?.declaredPlace;
+    return serveDefinition(analyzedScope, caret)?.defToken;
 }
 
 function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolTable) {
-        const location = symbol.declaredPlace.location;
+        const location = symbol.defToken.location;
         if (location.path === path && location.positionInRange(caret)) {
             return symbol;
         }
