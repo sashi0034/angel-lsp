@@ -1,7 +1,6 @@
 import {
     AnalyzedScope,
     copySymbolsInScope,
-    createSymbolScope,
     findScopeShallowlyOrInsert,
     SymbolScope
 } from "./symbolScope";
@@ -517,7 +516,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): HoistResult {
-    const globalScope: SymbolScope = createSymbolScope(undefined, undefined, '');
+    const globalScope: SymbolScope = new SymbolScope(undefined, '', undefined);
 
     globalScope.initializeContext(path);
 

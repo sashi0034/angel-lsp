@@ -256,16 +256,6 @@ export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
     return result;
 }
 
-export function createSymbolScope(
-    linkedNode: ScopeLinkedNode | undefined, parentScope: SymbolScope | undefined, key: string
-): SymbolScope {
-    return SymbolScope.create({
-        linkedNode: linkedNode,
-        parentScope: parentScope,
-        key: key,
-    });
-}
-
 /**
  * Represents the result of analyzing a file, such as scope information.
  */
@@ -287,10 +277,10 @@ export class AnalyzedScope {
      */
     public get pureScope(): SymbolScope {
         if (this.pureBuffer === undefined) {
-            this.pureBuffer = createSymbolScope(
-                this.fullScope.linkedNode,
+            this.pureBuffer = new SymbolScope(
                 this.fullScope.parentScope,
-                this.fullScope.key);
+                this.fullScope.key,
+                this.fullScope.linkedNode);
             copySymbolsInScope(this.fullScope, this.pureBuffer, {targetSrcPath: this.path});
         }
         return this.pureBuffer;

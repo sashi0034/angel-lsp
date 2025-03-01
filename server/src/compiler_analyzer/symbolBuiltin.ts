@@ -1,14 +1,14 @@
-import {createSymbolScope} from "./symbolScope";
 import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {numberTypeSet} from "../compiler_tokenizer/reservedWord";
 import {SymbolType} from "./symbolObject";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
+import {SymbolScope} from "./symbolScope";
 
 function createBuiltinType(virtualToken: TokenObject): SymbolType {
     return SymbolType.create({
         declaredPlace: virtualToken, // The built-in type uses a virtual token
-        declaredScope: createSymbolScope(undefined, undefined, ''),
+        declaredScope: new SymbolScope(undefined, '', undefined),
         sourceNode: undefined,
         membersScope: undefined,
     });
