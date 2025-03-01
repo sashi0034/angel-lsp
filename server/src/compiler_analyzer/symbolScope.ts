@@ -28,12 +28,14 @@ export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObject>;
 interface RootScopeContext {
     path: string;
     builtinStringType: SymbolType | undefined;
+    externalScopeList: SymbolScope[]; // The scopes created in external files that are referenced by this file
 }
 
 function createRootScopeContext(): RootScopeContext {
     return {
         path: '',
-        builtinStringType: undefined
+        builtinStringType: undefined,
+        externalScopeList: [],
     };
 }
 
@@ -55,6 +57,8 @@ export type ScopeLinkedNode =
     | NodeDoWhile
     | NodeIf
     | NodeTry;
+
+let s_activeScopeContext: RootScopeContext | undefined;
 
 /**
  * Represents a scope that contains symbols.
@@ -117,6 +121,7 @@ export class SymbolScope {
     public initializeContext(path: string) {
         assert(this._parentOrContext instanceof SymbolScope === false);
         this._parentOrContext.path = path;
+        s_activeScopeContext = this._parentOrContext;
     }
 
     /**
@@ -149,6 +154,8 @@ export class SymbolScope {
      * Create a new scope and insert it into the child scope table.
      */
     public insertScope(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
+        // assert(linkedNode === undefined || linkedNode.nodeRange.path === s_activeScopeContext?.path);
+
         const alreadyExists = this._childScopeTable.get(identifier);
         if (alreadyExists !== undefined) {
             if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);
