@@ -1,11 +1,11 @@
 import {
     SymbolFunction,
-    SymbolObject,
+    SymbolObject, SymbolObjectHolder,
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
-import {isAnonymousIdentifier, SymbolAndScope, SymbolMap, SymbolScope} from "./symbolScope";
+import {isAnonymousIdentifier, SymbolAndScope, SymbolTable, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
@@ -20,45 +20,6 @@ export function getPathOfScope(scope: SymbolScope): string | undefined {
     return scope.linkedNode.nodeRange.start.location.path;
 }
 
-/**
- * Insert a symbol into the symbol map.
- * If the insertion succeeds, return undefined.
- * If it fails, return the existing symbol corresponding to the key.
- * @param map The map to insert the symbol
- * @param symbol The symbol for insertion
- */
-export function tryInsertSymbolObject(map: SymbolMap, symbol: SymbolObject): SymbolObject | undefined {
-    const identifier = symbol.declaredPlace.text;
-    const hit = map.get(identifier);
-    if (hit === undefined) {
-        map.set(identifier, symbol);
-        return undefined;
-    }
-
-    const canOverload = symbol instanceof SymbolFunction && hit instanceof SymbolFunction;
-    if (canOverload === false) return hit;
-
-    // Functions can be added as overloads
-    let cursor: SymbolFunction = hit;
-    for (; ;) {
-        if (cursor.nextOverload === undefined) {
-            cursor.setNextOverload(symbol);
-            return undefined;
-        }
-        cursor = cursor.nextOverload;
-    }
-}
-
-export function insertSymbolObject(map: SymbolMap, symbol: SymbolObject): boolean {
-    const result = tryInsertSymbolObject(map, symbol);
-    if (result !== undefined) {
-        analyzerDiagnostic.add(
-            symbol.declaredPlace.location,
-            `Symbol '${symbol.declaredPlace.text}' is already defined.`);
-    }
-    return result === undefined;
-}
-
 export type TemplateTranslation = Map<TokenObject, ResolvedType | undefined>;
 
 export function resolveTemplateType(
@@ -68,12 +29,12 @@ export function resolveTemplateType(
 
     if (type === undefined) return undefined;
 
-    if (type.symbolType instanceof SymbolFunction) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+    if (type.symbolType.isFunctionHolder()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
     if (type.symbolType.isTypeParameter !== true) return type;
 
-    if (templateTranslate.has(type.symbolType.declaredPlace)) {
-        return templateTranslate.get(type.symbolType.declaredPlace);
+    if (templateTranslate.has(type.symbolType.defToken)) {
+        return templateTranslate.get(type.symbolType.defToken);
     }
 
     return type;
@@ -110,8 +71,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     let suffix = '';
     if (type.isHandler === true) suffix = `${suffix}@`;
 
-    if (type.symbolType instanceof SymbolFunction) {
-        const func: SymbolFunction = type.symbolType;
+    if (type.symbolType.isFunctionHolder()) {
+        const func: SymbolFunction = type.symbolType.first;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${params})` + suffix;
@@ -123,7 +84,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
         suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
-    return type.symbolType.declaredPlace.text + suffix;
+    return type.symbolType.identifierText + suffix;
 }
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
@@ -134,7 +95,7 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.declaredPlace.text; // `${stringifyScopeSuffix(symbol.declaredScope)}${symbol.declaredPlace.text}`;
+    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.defScope)}${symbol.defToken.text}`;
     if (symbol instanceof SymbolType) {
         return fullName;
     } else if (symbol instanceof SymbolFunction) {
@@ -147,17 +108,20 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     assert(false);
 }
 
-export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObject | undefined {
-    return scope.symbolMap.get(identifier);
+// obsolete
+export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObjectHolder | undefined {
+    return scope.symbolTable.get(identifier);
 }
 
-export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
+// obsolete
+export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};
 }
 
+// obsolete
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
-    const symbol = scope.symbolMap.get(identifier);
+    const symbol = scope.symbolTable.get(identifier);
     if (symbol !== undefined) return {symbol: symbol, scope: scope};
     if (scope.parentScope === undefined) return undefined;
     return findSymbolWithParent(scope.parentScope, identifier);

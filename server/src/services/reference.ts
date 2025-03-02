@@ -19,15 +19,15 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObj
 
     for (const reference of scope.referencedList) {
         // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        if (reference.declaredSymbol.declaredPlace === targetDefinition
-            || reference.declaredSymbol.declaredPlace.equals(targetDefinition)
+        if (reference.declaredSymbol.defToken === targetDefinition
+            || reference.declaredSymbol.defToken.equals(targetDefinition)
         ) {
             references.push(reference.referencedToken);
         }
     }
 
     // Search in child scopes | 子要素も探索
-    for (const [key, child] of scope.childScopes) {
+    for (const [key, child] of scope.childScopeTable) {
         references.push(...collectReferencesInScope(child, targetDefinition));
     }
 

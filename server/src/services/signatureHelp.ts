@@ -21,13 +21,12 @@ export function serveSignatureHelp(
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
-            let callee = hint.expectedCallee;
-            for (; ;) {
+            const expectedCallee =
+                targetScope.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
+            if (expectedCallee?.isFunctionHolder() === false) continue;
+
+            for (const callee of expectedCallee.overloadList) {
                 signatures.push(getFunctionSignature(hint, callee, new TextPosition(caret.line, caret.character)));
-
-                if (callee.nextOverload === undefined) break;
-
-                callee = callee.nextOverload;
             }
 
             break;
@@ -45,9 +44,9 @@ function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFu
 
     let activeIndex = 0;
 
-    let signatureLabel = expectedCallee.sourceNode.identifier.text + '(';
-    for (let i = 0; i < expectedCallee.sourceNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.sourceNode.paramList[i];
+    let signatureLabel = expectedCallee.defNode.identifier.text + '(';
+    for (let i = 0; i < expectedCallee.defNode.paramList.length; i++) {
+        const paramIdentifier = expectedCallee.defNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));

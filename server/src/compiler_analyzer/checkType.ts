@@ -1,11 +1,12 @@
 import {
-    TypeSourceNode,
+    TypeDefinitionNode,
     SymbolFunction,
     SymbolObject,
-    SymbolType, isSourceNodeClassOrInterface,
+    SymbolType,
+    isDefinitionNodeClassOrInterface, SymbolObjectHolder, SymbolFunctionHolder,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
-import {findScopeShallowly, findScopeWithParentByNodes, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
+import {isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -62,20 +63,20 @@ function isTypeMatchInternal(
     const destType = dest.symbolType;
 
     // Check the function handler type.
-    if (srcType instanceof SymbolFunction) {
+    if (srcType.isFunctionHolder()) {
 
         // Are we trying to pass something into ?
         if (destType instanceof SymbolType)
             if (destType.identifierText === '?') return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
-        return isFunctionHandlerMatch(srcType, destType);
-    } else if (destType instanceof SymbolFunction) {
+        return isFunctionHandlerMatch(srcType.first, destType.toList()[0]);
+    } else if (destType.isFunctionHolder()) {
         return false;
     }
 
-    const srcNode = srcType.sourceNode;
-    const destNode = destType.sourceNode;
+    const srcNode = srcType.defNode;
+    const destNode = destType.defNode;
 
     if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
@@ -84,7 +85,7 @@ function isTypeMatchInternal(
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
         // Succeeds if they both point to the same type.
-        if (srcType.declaredPlace === destType.declaredPlace) return true;
+        if (srcType.defToken === destType.defToken) return true;
 
         if (srcNode?.nodeName === NodeName.Enum && destType.isNumberType()) return true;
 
@@ -92,12 +93,10 @@ function isTypeMatchInternal(
         if (canDownCast(srcType, destType)) return true;
 
         // Succeeds if the source type has an implicit conversion operator that matches the destination type.
-        let opImplConv = srcType.membersScope?.symbolMap.get('opImplConv');
-        if (opImplConv !== undefined && opImplConv instanceof SymbolFunction) {
-            for (; ;) {
+        const opImplConvHolder = srcType.membersScope?.symbolTable.get('opImplConv');
+        if (opImplConvHolder?.isFunctionHolder()) {
+            for (const opImplConv of opImplConvHolder.toList()) {
                 if (canTypeConvert(opImplConv.returnType, dest)) return true;
-                if (opImplConv.nextOverload === undefined) break;
-                opImplConv = opImplConv.nextOverload;
             }
         }
     }
@@ -126,12 +125,12 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.sourceNode;
+    const srcNode = srcType.defNode;
     if (srcType.isSystemType()) return false;
 
-    if (srcType.sourceNode === destType.sourceNode) return true;
+    if (srcType.defNode === destType.defNode) return true;
 
-    if (isSourceNodeClassOrInterface(srcNode)) {
+    if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
             if (srcBase?.symbolType === undefined) continue;
@@ -146,11 +145,11 @@ function canDownCast(
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.sourceNode;
-    const destNode = destType.sourceNode;
+    const srcNode = srcType.defNode;
+    const destNode = destType.defNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && srcType.declaredPlace.equals(destType.declaredPlace);
+        return destType.isTypeParameter && srcType.defToken.equals(destType.defToken);
     }
 
     if (srcType.identifierText === 'void') {
@@ -177,51 +176,54 @@ function canConstructImplicitly(
     if (destScope === undefined) return false;
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
-    const constructorScope = findScopeShallowly(destScope, destIdentifier);
+    const constructorScope = destScope.lookupScope(destIdentifier);
     if (constructorScope === undefined || constructorScope.linkedNode?.nodeName !== NodeName.Class) return false;
 
     // Search for the constructor of the given type from the scope of the type itself.
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
-    if (constructor === undefined || constructor instanceof SymbolFunction === false) return false;
+    if (constructor === undefined || constructor.isFunctionHolder() === false) return false;
 
-    if (srcType.sourceNode === undefined) return true; // FIXME?
+    if (srcType.defNode === undefined) return true; // FIXME?
 
-    return canConstructBy(constructor, srcType.sourceNode);
+    return canConstructBy(constructor, 0, srcType.defNode);
 }
 
-function canConstructBy(constructor: SymbolFunction, srcType: TypeSourceNode): boolean {
+function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: number, srcType: TypeDefinitionNode): boolean {
+    const constructor = constructorHolder.overloadList[overloadIndex];
+
     // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
             && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.sourceNode === srcType
+            && paramType.symbolType.defNode === srcType
         ) {
             return true;
         }
     }
 
     // If there are overloads, check those as well.
-    if (constructor.nextOverload !== undefined) {
-        return canConstructBy(constructor.nextOverload, srcType);
+    if (constructorHolder.count > overloadIndex + 1) {
+        return canConstructBy(constructorHolder, overloadIndex + 1, srcType);
     }
 
     return false;
 }
 
 // Check if the symbol can be accessed from the scope.
-export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
+export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbolHolder: SymbolObjectHolder): boolean {
+    const declaredSymbol = declaredSymbolHolder.toList()[0];
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
-    const declaredScope = declaredSymbol.declaredScope;
+    const defScope = declaredSymbol.defScope;
 
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(checkingScope, declaredScope);
+        return isScopeChildOrGrandchild(checkingScope, defScope);
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (declaredScope.linkedNode === undefined) return false;
+        if (defScope.linkedNode === undefined) return false;
 
-        const checkingOuterScope = findScopeWithParentByNodes(checkingScope, [NodeName.Class, NodeName.Interface]);
+        const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
 
         // Get the symbol of the class to which the referring part belongs.
@@ -229,8 +231,8 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
         if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
-        if (declaredScope.parentScope === undefined) return false;
-        const declaredOuterClass = findSymbolShallowly(declaredScope.parentScope, declaredScope.key);
+        if (defScope.parentScope === undefined) return false;
+        const declaredOuterClass = findSymbolShallowly(defScope.parentScope, defScope.key);
         if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));

@@ -1,9 +1,6 @@
 import {
     AnalyzedScope,
     copySymbolsInScope,
-    createSymbolScope,
-    createSymbolScopeAndInsert,
-    findScopeShallowlyOrInsert,
     SymbolScope
 } from "./symbolScope";
 import {
@@ -29,7 +26,7 @@ import {
 } from "../compiler_parser/nodes";
 import {pushHintOfCompletionScopeToParent} from "./symbolComplement";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
-import {findSymbolWithParent, insertSymbolObject, tryInsertSymbolObject} from "./symbolUtils";
+import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../code/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./symbolBuiltin";
@@ -83,7 +80,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
         const nextNamespace = nodeNamespace.namespaceList[i];
-        scopeIterator = findScopeShallowlyOrInsert(undefined, scopeIterator, nextNamespace);
+        scopeIterator = scopeIterator.insertScopeAndCheck(nextNamespace, undefined);
     }
 
     hoistScript(scopeIterator, nodeNamespace.script, queue, queue);
@@ -94,15 +91,15 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 // ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolType = SymbolType.create({
-        declaredPlace: nodeEnum.identifier,
-        declaredScope: parentScope,
-        sourceNode: nodeEnum,
+        defToken: nodeEnum.identifier,
+        defScope: parentScope,
+        defNode: nodeEnum,
         membersScope: undefined,
     });
 
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    const scope = findScopeShallowlyOrInsert(nodeEnum, parentScope, nodeEnum.identifier);
+    const scope = parentScope.insertScopeAndCheck(nodeEnum.identifier, nodeEnum);
     symbol.mutate().membersScope = scope;
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
@@ -114,37 +111,37 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
         const symbol: SymbolVariable = SymbolVariable.create({
-            declaredPlace: member.identifier,
-            declaredScope: parentScope,
+            defToken: member.identifier,
+            defScope: parentScope,
             type: type,
             isInstanceMember: false,
             accessRestriction: undefined,
         });
-        insertSymbolObject(parentScope.symbolMap, symbol);
+        parentScope.insertSymbolAndCheck(symbol);
     }
 }
 
 // CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
-        declaredPlace: nodeClass.identifier,
-        declaredScope: parentScope,
-        sourceNode: nodeClass,
+        defToken: nodeClass.identifier,
+        defScope: parentScope,
+        defNode: nodeClass,
         membersScope: undefined,
     });
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeClass, parentScope, nodeClass.identifier);
+    const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeClass.identifier, nodeClass);
     symbol.mutate().membersScope = scope;
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
-        declaredPlace: builtinThisToken,
-        declaredScope: parentScope,
+        defToken: builtinThisToken,
+        defScope: parentScope,
         type: new ResolvedType(symbol),
         isInstanceMember: false,
         accessRestriction: AccessModifier.Private,
     });
-    insertSymbolObject(scope.symbolMap, thisVariable);
+    scope.insertSymbolAndCheck(thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
     if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
@@ -163,14 +160,14 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             // Check to insert the super constructor
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const superConstructor = findConstructorForResolvedType(primeBase);
-            if (superConstructor instanceof SymbolFunction) {
-                const superSymbol: SymbolFunction = superConstructor.clone();
+            if (superConstructor?.isFunctionHolder()) {
+                const superSymbol: SymbolFunction = superConstructor.first.clone(); // TODO: Clone other constructor
 
-                superSymbol.mutate().declaredPlace = TokenIdentifier.createVirtual(
+                superSymbol.mutate().defToken = TokenIdentifier.createVirtual(
                     'super',
-                    superSymbol.declaredPlace.location
+                    superSymbol.defToken.location
                 );
-                insertSymbolObject(scope.symbolMap, superSymbol);
+                scope.insertSymbolAndCheck(superSymbol);
             }
         });
     });
@@ -181,10 +178,10 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
     const templateTypes: TokenObject[] = [];
     for (const type of types ?? []) {
-        insertSymbolObject(scope.symbolMap, SymbolType.create({
-            declaredPlace: getIdentifierInNodeType(type),
-            declaredScope: scope,
-            sourceNode: undefined,
+        scope.insertSymbolAndCheck(SymbolType.create({
+            defToken: getIdentifierInNodeType(type),
+            defScope: scope,
+            defNode: undefined,
             membersScope: undefined,
             isTypeParameter: true,
         }));
@@ -223,16 +220,20 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
-        if (baseType.symbolType instanceof SymbolFunction) continue;
+        if (baseType.symbolType.isFunctionHolder()) continue;
 
         const baseScope = baseType.symbolType.membersScope;
         if (baseScope === undefined) continue;
 
-        for (const [key, symbol] of baseScope.symbolMap) {
+        for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
-            const errored = tryInsertSymbolObject(scope.symbolMap, symbol);
-            if (errored !== undefined) {
-                analyzerDiagnostic.add(errored.declaredPlace.location, `Duplicated symbol '${key}'`);
+            for (const symbol of symbolHolder.toList()) {
+                if (symbol.isFunction()) continue;
+
+                const errored = scope.insertSymbol(symbol);
+                if (errored !== undefined) {
+                    analyzerDiagnostic.add(errored.toList()[0].defToken.location, `Duplicated symbol '${key}'`);
+                }
             }
         }
     }
@@ -259,12 +260,12 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     if (builtInType === undefined) return;
 
     const symbol: SymbolType = SymbolType.create({
-        declaredPlace: typeDef.identifier,
-        declaredScope: parentScope,
-        sourceNode: builtInType.sourceNode,
+        defToken: typeDef.identifier,
+        defScope: parentScope,
+        defNode: builtInType.defNode,
         membersScope: undefined,
     });
-    insertSymbolObject(parentScope.symbolMap, symbol);
+    parentScope.insertSymbolAndCheck(symbol);
 }
 
 // FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
@@ -277,15 +278,15 @@ function hoistFunc(
         parentScope,
         nodeFunc.head.returnType) : undefined;
     const symbol: SymbolFunction = SymbolFunction.create({
-        declaredPlace: nodeFunc.identifier,
-        declaredScope: parentScope,
+        defToken: nodeFunc.identifier,
+        defScope: parentScope,
         returnType: returnType,
         parameterTypes: [],
-        sourceNode: nodeFunc,
+        defNode: nodeFunc,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     });
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
     if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
@@ -295,20 +296,20 @@ function hoistFunc(
                 nodeFunc.identifier.location);
 
             const symbol: SymbolVariable = SymbolVariable.create({
-                declaredPlace: identifier, // FIXME?
-                declaredScope: parentScope,
+                defToken: identifier, // FIXME?
+                defScope: parentScope,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
                 accessRestriction: nodeFunc.accessor,
             });
-            tryInsertSymbolObject(parentScope.symbolMap, symbol);
+            parentScope.insertSymbol(symbol);
         }
     } else if (nodeFunc.funcAttr?.isProperty === true) {
         analyzerDiagnostic.add(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 
     // Create a new scope for the function
-    const scope: SymbolScope = createSymbolScopeAndInsert(nodeFunc, parentScope, nodeFunc.identifier.text);
+    const scope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
@@ -322,14 +323,14 @@ function hoistFunc(
 // INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
-        declaredPlace: nodeInterface.identifier,
-        declaredScope: parentScope,
-        sourceNode: nodeInterface,
+        defToken: nodeInterface.identifier,
+        defScope: parentScope,
+        defNode: nodeInterface,
         membersScope: undefined,
     });
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    const scope: SymbolScope = findScopeShallowlyOrInsert(nodeInterface, parentScope, nodeInterface.identifier);
+    const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeInterface.identifier, nodeInterface);
     symbol.mutate().membersScope = scope;
 
     const baseList = hoistBaseList(scope, nodeInterface);
@@ -373,15 +374,15 @@ function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue,
 // FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolFunction = SymbolFunction.create({
-        declaredPlace: funcDef.identifier,
-        declaredScope: parentScope,
+        defToken: funcDef.identifier,
+        defScope: parentScope,
         returnType: analyzeType(parentScope, funcDef.returnType),
         parameterTypes: [],
-        sourceNode: funcDef,
+        defNode: funcDef,
         isInstanceMember: false,
         accessRestriction: undefined,
     });
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
@@ -396,17 +397,17 @@ function hoistVirtualProp(
 
     const identifier = virtualProp.identifier;
     const symbol: SymbolVariable = SymbolVariable.create({
-        declaredPlace: identifier,
-        declaredScope: parentScope,
+        defToken: identifier,
+        defScope: parentScope,
         type: type,
         isInstanceMember: isInstanceMember,
         accessRestriction: virtualProp.accessor,
     });
-    insertSymbolObject(parentScope.symbolMap, symbol);
+    parentScope.insertSymbolAndCheck(symbol);
 
     const getter = virtualProp.getter;
     if (getter !== undefined && getter.statBlock !== undefined) {
-        const getterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `get_${identifier.text}`);
+        const getterScope = parentScope.insertScope(`get_${identifier.text}`, virtualProp);
 
         const statBlock = getter.statBlock;
         analyzing.push(() => {
@@ -416,17 +417,17 @@ function hoistVirtualProp(
 
     const setter = virtualProp.setter;
     if (setter !== undefined && setter.statBlock !== undefined) {
-        const setterScope = createSymbolScopeAndInsert(virtualProp, parentScope, `set_${identifier.text}`);
+        const setterScope = parentScope.insertScope(`set_${identifier.text}`, virtualProp);
 
         if (type !== undefined) {
             const valueVariable: SymbolVariable = SymbolVariable.create({
-                declaredPlace: builtinSetterValueToken,
-                declaredScope: parentScope,
+                defToken: builtinSetterValueToken,
+                defScope: parentScope,
                 type: new ResolvedType(type.symbolType),
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
             });
-            insertSymbolObject(setterScope.symbolMap, valueVariable);
+            setterScope.insertSymbolAndCheck(valueVariable);
         }
 
         const statBlock = setter.statBlock;
@@ -444,15 +445,15 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 // INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolFunction = SymbolFunction.create({
-        declaredPlace: intfMethod.identifier,
-        declaredScope: parentScope,
+        defToken: intfMethod.identifier,
+        defScope: parentScope,
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
-        sourceNode: intfMethod,
+        defNode: intfMethod,
         isInstanceMember: true,
         accessRestriction: undefined,
     });
-    if (insertSymbolObject(parentScope.symbolMap, symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 }
 
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
@@ -466,9 +467,9 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
         else resolvedTypes.push(type);
 
         if (param.identifier === undefined) continue;
-        insertSymbolObject(scope.symbolMap, SymbolVariable.create({
-            declaredPlace: param.identifier,
-            declaredScope: scope,
+        scope.insertSymbolAndCheck(SymbolVariable.create({
+            defToken: param.identifier,
+            defScope: scope,
             type: type,
             isInstanceMember: false,
             accessRestriction: undefined,
@@ -518,7 +519,9 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): HoistResult {
-    const globalScope: SymbolScope = createSymbolScope(undefined, undefined, '');
+    const globalScope: SymbolScope = new SymbolScope(undefined, '', undefined);
+
+    globalScope.initializeContext(path);
 
     // TODO: refer to symbols without copying
     for (const included of includedScopes) {

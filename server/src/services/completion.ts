@@ -2,14 +2,12 @@ import {Position, URI} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
     SymbolObject,
-    SymbolType, SymbolFunction, SymbolVariable
+    SymbolType, SymbolFunction, SymbolVariable, SymbolObjectHolder
 } from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopes,
-    findScopeShallowly,
-    findScopeWithParent,
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
@@ -44,7 +42,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
-    for (const [symbolName, symbol] of scope.symbolMap) {
+    for (const [symbolName, symbol] of scope.symbolTable) {
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -52,7 +50,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     }
 
     // Completion of namespace
-    for (const [childName, childScope] of scope.childScopes) {
+    for (const [childName, childScope] of scope.childScopeTable) {
         if (childScope.linkedNode !== undefined) continue;
         if (isAnonymousIdentifier(childName)) continue;
         items.push({
@@ -68,7 +66,7 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
-    for (const [symbolName, symbol] of symbolScope.symbolMap) {
+    for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) continue;
         if (isAllowedToAccessMember(checkingScope, symbol) === false) continue;
 
@@ -101,9 +99,8 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = findScopeShallowly(
-            completion.targetType.declaredScope,
-            completion.targetType.declaredPlace.text);
+        const typeScope = completion.targetType.defScope.lookupScope(
+            completion.targetType.defToken.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope.
@@ -113,11 +110,11 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
-        let namespaceScope = findScopeWithParent(scope, namespaceList[0].text);
+        let namespaceScope = scope.lookupScopeWithParent(namespaceList[0].text);
         if (namespaceScope === undefined) return [];
 
         for (let i = 1; i < namespaceList.length; i++) {
-            namespaceScope = findScopeShallowly(namespaceScope, namespaceList[i].text);
+            namespaceScope = namespaceScope.lookupScope(namespaceList[i].text);
             if (namespaceScope === undefined) return [];
         }
 
@@ -127,12 +124,12 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolObject): CompletionItemKind {
+function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
     if (symbol instanceof SymbolType) {
-        if (symbol.isSystemType() || symbol.sourceNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.sourceNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
+        if (symbol.isSystemType() || symbol.defNode === undefined) return CompletionItemKind.Keyword;
+        if (symbol.defNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
-    } else if (symbol instanceof SymbolFunction) {
+    } else if (symbol.isFunctionHolder()) {
         return CompletionItemKind.Function;
     } else { // SymbolVariable
         return CompletionItemKind.Variable;

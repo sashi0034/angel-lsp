@@ -1,5 +1,5 @@
 import {
-    SymbolFunction,
+    SymbolFunction, SymbolFunctionHolder,
 } from "./symbolObject";
 import {canTypeConvert} from "./checkType";
 import {stringifyNodeType} from "../compiler_parser/nodesUtils";
@@ -16,7 +16,7 @@ export interface FunctionMatchingArgs {
     callerRange: TokenRange;
     callerArgRanges: TokenRange[];
     callerArgTypes: (ResolvedType | undefined)[];
-    calleeFunc: SymbolFunction;
+    calleeFuncHolder: SymbolFunctionHolder;
     templateTranslators: (TemplateTranslation | undefined)[];
 }
 
@@ -27,8 +27,8 @@ export interface FunctionMatchingArgs {
 export function checkFunctionMatch(
     args: FunctionMatchingArgs
 ): ResolvedType | undefined {
-    pushReferenceOfFuncOrConstructor(args.callerIdentifier, args.scope, args.calleeFunc);
-    return checkFunctionMatchInternal(args, args.calleeFunc);
+    pushReferenceOfFuncOrConstructor(args.callerIdentifier, args.scope, args.calleeFuncHolder.first); // FIXME: Select the best overload
+    return checkFunctionMatchInternal(args, 0);
 }
 
 function pushReferenceOfFuncOrConstructor(callerIdentifier: TokenObject, scope: SymbolScope, calleeFunc: SymbolFunction) {
@@ -39,14 +39,15 @@ function pushReferenceOfFuncOrConstructor(callerIdentifier: TokenObject, scope: 
 
 function checkFunctionMatchInternal(
     args: FunctionMatchingArgs,
-    overloadedHead: SymbolFunction
+    nextOverloadIndex: number
 ): ResolvedType | undefined {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
-    const calleeParams = calleeFunc.sourceNode.paramList;
+    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, templateTranslators} = args;
+    const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
+    const calleeParams = calleeFunc.defNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length) {
         // Handle too many caller arguments.
-        return handleTooMuchCallerArgs(args, overloadedHead);
+        return handleTooMuchCallerArgs(args, nextOverloadIndex);
     }
 
     for (let i = 0; i < calleeParams.length; i++) {
@@ -58,15 +59,14 @@ function checkFunctionMatchInternal(
 
             // When there is also no default expression
 
-            if (calleeFunc.nextOverload !== undefined) {
-                return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+            if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
+                return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
             }
 
             if (handleErrorWhenOverloaded(
                 callerRange,
                 callerArgTypes,
-                calleeFunc,
-                overloadedHead,
+                calleeFuncHolder,
                 templateTranslators) === false) {
                 analyzerDiagnostic.add(
                     callerRange.getBoundingLocation(),
@@ -84,15 +84,14 @@ function checkFunctionMatchInternal(
         if (canTypeConvert(actualType, expectedType)) continue;
 
         // Use the overload if it exists
-        if (calleeFunc.nextOverload !== undefined) {
-            return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+        if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
+            return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
         }
 
         if (handleErrorWhenOverloaded(
             callerRange,
             callerArgTypes,
-            calleeFunc,
-            overloadedHead,
+            calleeFuncHolder,
             templateTranslators) === false) {
             analyzerDiagnostic.add(
                 callerRange.getBoundingLocation(),
@@ -104,23 +103,23 @@ function checkFunctionMatchInternal(
     return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
 }
 
-function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: SymbolFunction) {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFunc, templateTranslators} = args;
+function handleTooMuchCallerArgs(args: FunctionMatchingArgs, nextOverloadIndex: number) {
+    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, templateTranslators} = args;
 
     // Use the overload if it exists
-    if (calleeFunc.nextOverload !== undefined) {
-        return checkFunctionMatchInternal({...args, calleeFunc: calleeFunc.nextOverload}, overloadedHead);
+    if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
+        return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
     }
 
+    const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
     if (handleErrorWhenOverloaded(
         callerRange,
         callerArgTypes,
-        calleeFunc,
-        overloadedHead,
+        calleeFuncHolder,
         templateTranslators) === false) {
         analyzerDiagnostic.add(
             callerRange.getBoundingLocation(),
-            `Function has ${calleeFunc.sourceNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
+            `Function has ${calleeFunc.defNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
     return calleeFunc.returnType;
@@ -129,21 +128,18 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, overloadedHead: Sym
 function handleErrorWhenOverloaded(
     callerRange: TokenRange,
     callerArgs: (ResolvedType | undefined)[],
-    calleeFunc: SymbolFunction,
-    overloadedHead: SymbolFunction,
+    calleeFuncHolder: SymbolFunctionHolder,
     templateTranslators: (TemplateTranslation | undefined)[]
 ) {
-    if (calleeFunc === overloadedHead) return false; // Not overloaded
+    if (calleeFuncHolder.count === 1) return false; // No overload
 
     let message = 'No viable function.';
     message += `\nArguments types: (${stringifyResolvedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 
-    let cursor: SymbolFunction | undefined = overloadedHead;
-    while (cursor !== undefined) {
-        const resolvedTypes = cursor.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
+    for (const overload of calleeFuncHolder.overloadList) {
+        const resolvedTypes = overload.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
         message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
-        cursor = cursor.nextOverload;
     }
 
     analyzerDiagnostic.add(callerRange.getBoundingLocation(), message);
