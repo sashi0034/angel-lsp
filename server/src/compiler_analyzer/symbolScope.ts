@@ -1,4 +1,11 @@
-import {ReferencedSymbolInfo, SymbolFunction, SymbolObject, SymbolType, TypeDefinitionNode} from "./symbolObject";
+import {
+    ReferencedSymbolInfo,
+    SymbolFunction, SymbolFunctionHolder,
+    SymbolObject,
+    SymbolObjectHolder,
+    SymbolType,
+    TypeDefinitionNode
+} from "./symbolObject";
 import {diagnostic} from "../code/diagnostic";
 import {
     NodeClass, NodeDoWhile,
@@ -21,9 +28,9 @@ export type ScopeTable = Map<string, SymbolScope>;
 
 type ReadonlyScopeTable = ReadonlyMap<string, SymbolScope>;
 
-export type SymbolTable = Map<string, SymbolObject>;
+export type SymbolTable = Map<string, SymbolObjectHolder>;
 
-export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObject>;
+export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
 interface RootScopeContext {
     path: string;
@@ -192,19 +199,19 @@ export class SymbolScope {
      * @param symbol
      * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
      */
-    public insertSymbol(symbol: SymbolObject): SymbolObject | undefined {
+    public insertSymbol(symbol: SymbolObject): SymbolObjectHolder | undefined {
         const identifier = symbol.defToken.text;
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
-            this._symbolTable.set(identifier, symbol);
+            this._symbolTable.set(identifier, symbol.toHolder());
             return undefined;
         }
 
-        const canOverload = symbol instanceof SymbolFunction && alreadyExists instanceof SymbolFunction;
+        const canOverload = symbol.isFunction() && alreadyExists.isFunctionHolder();
         if (canOverload === false) return alreadyExists;
 
         // Functions can be added as overloads
-        alreadyExists.appendOverload(symbol);
+        alreadyExists.pushOverload(symbol);
     }
 
     /**
@@ -221,11 +228,11 @@ export class SymbolScope {
         return alreadyExists === undefined;
     }
 
-    public lookupSymbol(identifier: string): SymbolObject | undefined {
+    public lookupSymbol(identifier: string): SymbolObjectHolder | undefined {
         return this._symbolTable.get(identifier);
     }
 
-    public lookupSymbolWithParent(identifier: string): SymbolObject | undefined {
+    public lookupSymbolWithParent(identifier: string): SymbolObjectHolder | undefined {
         const symbol = this.lookupSymbol(identifier);
         if (symbol !== undefined) return symbol;
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
@@ -269,7 +276,7 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
 }
 
 export interface SymbolAndScope {
-    readonly symbol: SymbolObject;
+    readonly symbol: SymbolObjectHolder;
     readonly scope: SymbolScope;
 }
 
@@ -332,19 +339,21 @@ export interface CopySymbolOptions {
  */
 export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope, option: CopySymbolOptions) {
     // Collect symbols from the source scope
-    for (const [key, symbol] of srcScope.symbolTable) {
-        let canCopy = true;
+    for (const [key, symbolHolder] of srcScope.symbolTable) {
+        for (const symbol of symbolHolder.toList()) {
+            let canCopy = true;
 
-        if (option.targetSrcPath !== undefined && symbol.defToken.location.path !== option.targetSrcPath) {
-            canCopy = false;
-        }
+            if (option.targetSrcPath !== undefined && symbol.defToken.location.path !== option.targetSrcPath) {
+                canCopy = false;
+            }
 
-        if (option.excludeSrcPath !== undefined && symbol.defToken.location.path === option.excludeSrcPath) {
-            canCopy = false;
-        }
+            if (option.excludeSrcPath !== undefined && symbol.defToken.location.path === option.excludeSrcPath) {
+                canCopy = false;
+            }
 
-        if (canCopy) {
-            destScope.insertSymbol(symbol);
+            if (canCopy) {
+                destScope.insertSymbol(symbol);
+            }
         }
     }
 
@@ -386,10 +395,10 @@ export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
     const symbol = pair.symbol;
     const scope = pair.scope;
     return symbol !== undefined
-        && symbol instanceof SymbolFunction
+        && symbol.isFunctionHolder()
         && scope.linkedNode !== undefined
         && scope.linkedNode.nodeName === NodeName.Class
-        && scope.linkedNode.identifier.text === symbol.defToken.text;
+        && scope.linkedNode.identifier.text === symbol.first.defToken.text;
 }
 
 export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {

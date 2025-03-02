@@ -21,13 +21,12 @@ export function serveSignatureHelp(
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
-            let callee = hint.expectedCallee;
-            for (; ;) {
+            const expectedCallee =
+                targetScope.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
+            if (expectedCallee?.isFunctionHolder() === false) continue;
+
+            for (const callee of expectedCallee.overloadList) {
                 signatures.push(getFunctionSignature(hint, callee, new TextPosition(caret.line, caret.character)));
-
-                if (callee.nextOverload === undefined) break;
-
-                callee = callee.nextOverload;
             }
 
             break;

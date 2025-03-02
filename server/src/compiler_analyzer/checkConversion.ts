@@ -41,7 +41,7 @@ export function evaluateConversionCost(
     const srcType = src.symbolType;
     const destType = dest.symbolType;
 
-    if (srcType instanceof SymbolFunction || destType instanceof SymbolFunction) {
+    if (srcType.isFunctionHolder() || destType.isFunctionHolder()) {
         // TODO
         return ConversionConst.NoConv;
     }
@@ -54,19 +54,19 @@ export function evaluateConversionCost(
     if (srcType.identifierText === '?') return ConversionConst.VariableConv;
     if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
 
-    if (destType.isSystemType()) {
-        // Destination is a primitive type
-        if (srcType.isSystemType()) {
-            // Source is a primitive type
-            return evaluateConvPrimitiveToPrimitive(src, dest, type);
-        } else {
-            // Source is an object type
-            return evaluateConvObjectToPrimitive(src, dest, type);
-        }
-    } else {
-        // Destination is a user-defined type
-        // TODO
-    }
+    // if (destType.isSystemType()) {
+    //     // Destination is a primitive type
+    //     if (srcType.isSystemType()) {
+    //         // Source is a primitive type
+    //         return evaluateConvPrimitiveToPrimitive(src, dest, type);
+    //     } else {
+    //         // Source is an object type
+    //         return evaluateConvObjectToPrimitive(src, dest, type);
+    //     }
+    // } else {
+    //     // Destination is a user-defined type
+    //     // TODO
+    // }
 
     return ConversionConst.NoConv;
 }

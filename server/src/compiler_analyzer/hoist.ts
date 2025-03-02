@@ -160,8 +160,8 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             // Check to insert the super constructor
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const superConstructor = findConstructorForResolvedType(primeBase);
-            if (superConstructor instanceof SymbolFunction) {
-                const superSymbol: SymbolFunction = superConstructor.clone();
+            if (superConstructor?.isFunctionHolder()) {
+                const superSymbol: SymbolFunction = superConstructor.first.clone(); // TODO: Clone other constructor
 
                 superSymbol.mutate().defToken = TokenIdentifier.createVirtual(
                     'super',
@@ -220,16 +220,20 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
-        if (baseType.symbolType instanceof SymbolFunction) continue;
+        if (baseType.symbolType.isFunctionHolder()) continue;
 
         const baseScope = baseType.symbolType.membersScope;
         if (baseScope === undefined) continue;
 
-        for (const [key, symbol] of baseScope.symbolTable) {
+        for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
-            const errored = scope.insertSymbol(symbol);
-            if (errored !== undefined) {
-                analyzerDiagnostic.add(errored.defToken.location, `Duplicated symbol '${key}'`);
+            for (const symbol of symbolHolder.toList()) {
+                if (symbol.isFunction()) continue;
+
+                const errored = scope.insertSymbol(symbol);
+                if (errored !== undefined) {
+                    analyzerDiagnostic.add(errored.toList()[0].defToken.location, `Duplicated symbol '${key}'`);
+                }
             }
         }
     }

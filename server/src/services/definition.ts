@@ -33,9 +33,9 @@ export function serveDefinitionAsToken(analyzedScope: AnalyzedScope, caret: Posi
 function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolTable) {
-        const location = symbol.defToken.location;
+        const location = symbol.toList()[0].defToken.location;
         if (location.path === path && location.positionInRange(caret)) {
-            return symbol;
+            return symbol.toList()[0];
         }
     }
 

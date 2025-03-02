@@ -39,8 +39,8 @@ import {
 } from "../compiler_parser/nodes";
 import {
     isDefinitionNodeClassOrInterface,
-    SymbolFunction,
-    SymbolObject,
+    SymbolFunctionHolder,
+    SymbolObjectHolder,
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
@@ -154,7 +154,7 @@ export function analyzeVarInitializer(
         checkTypeMatch(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined || varType.symbolType instanceof SymbolFunction) return undefined;
+        if (varType === undefined || varType.symbolType.isFunctionHolder()) return undefined;
         return analyzeConstructorCaller(scope, varIdentifier, initializer, varType);
     }
 }
@@ -231,7 +231,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     }
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
-    if (foundSymbol instanceof SymbolFunction && foundSymbol.defNode.nodeName === NodeName.FuncDef) {
+    if (foundSymbol.isFunctionHolder() && foundSymbol.first.defNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
     } else if (foundSymbol instanceof SymbolType === false) {
         analyzerDiagnostic.add(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
@@ -245,13 +245,13 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
 function completeAnalyzingType(
     scope: SymbolScope,
     identifier: TokenObject,
-    foundSymbol: SymbolType | SymbolFunction,
+    foundSymbol: SymbolType | SymbolFunctionHolder,
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslation | undefined,
 ): ResolvedType | undefined {
     scope.referencedList.push({
-        declaredSymbol: foundSymbol,
+        declaredSymbol: foundSymbol.toList()[0],
         referencedToken: identifier
     });
 
@@ -461,7 +461,7 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (assign?.isHandler !== true && assign?.symbolType instanceof SymbolFunction) {
+    if (assign?.isHandler !== true && assign?.symbolType.isFunctionHolder()) {
         analyzerDiagnostic.add(exprStat.assign.nodeRange.getBoundingLocation(), `Function call without handler.`);
     }
 }
@@ -482,13 +482,16 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     // TODO: Support for lambda
 
     if (functionScope.linkedNode.nodeName === NodeName.Func) {
-        let functionReturn = functionScope.parentScope?.symbolTable.get(functionScope.key);
-        if (functionReturn === undefined || functionReturn instanceof SymbolFunction === false) return;
+        const functionReturnHolder = functionScope.parentScope?.symbolTable.get(functionScope.key);
+        if (functionReturnHolder?.isFunctionHolder() === false) return;
 
         // Select suitable overload if there are multiple overloads
-        while (functionReturn.nextOverload !== undefined) {
-            if (functionReturn.defNode === functionScope.linkedNode) break;
-            functionReturn = functionReturn.nextOverload;
+        let functionReturn = functionReturnHolder.first;
+        for (const nextOverload of functionReturnHolder.overloadList) {
+            if (nextOverload.defNode === functionScope.linkedNode) {
+                functionReturn = nextOverload;
+                break;
+            }
         }
 
         const expectedReturn = functionReturn.returnType?.symbolType;
@@ -679,7 +682,7 @@ export function analyzeConstructorCaller(
     constructorType: ResolvedType
 ): ResolvedType | undefined {
     const constructor = findConstructorForResolvedType(constructorType);
-    if (constructor === undefined || constructor instanceof SymbolFunction === false) {
+    if (constructor === undefined || constructor.isFunctionHolder() === false) {
         return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
@@ -687,10 +690,10 @@ export function analyzeConstructorCaller(
     return constructorType;
 }
 
-export function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObject | undefined {
+export function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
     if (resolvedType?.sourceScope === undefined) return undefined;
 
-    const constructorIdentifier = resolvedType.symbolType.defToken.text;
+    const constructorIdentifier = resolvedType.symbolType.identifierText;
     const classScope = resolvedType.sourceScope.lookupScope(constructorIdentifier);
     return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
 }
@@ -701,7 +704,7 @@ function analyzeBuiltinConstructorCaller(
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ) {
-    const constructorIdentifier = constructorType.symbolType.defToken.text;
+    const constructorIdentifier = constructorType.symbolType.identifierText;
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType instanceof SymbolType
@@ -723,7 +726,10 @@ function analyzeBuiltinConstructorCaller(
 
     if (callerArgList.argList.length === 0) {
         // Default constructor
-        scope.referencedList.push({declaredSymbol: constructorType.symbolType, referencedToken: callerIdentifier});
+        scope.referencedList.push({
+            declaredSymbol: constructorType.symbolType.toList()[0],
+            referencedToken: callerIdentifier
+        });
         return constructorType;
     }
 
@@ -781,7 +787,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        if (method instanceof SymbolFunction === false) {
+        if (method.isFunctionHolder() === false) {
             analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a method.`);
             return undefined;
         }
@@ -887,7 +893,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.symbolType instanceof SymbolFunction) {
+    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.symbolType.isFunctionHolder()) {
         return analyzeFunctionCaller(
             scope,
             funcCall.identifier,
@@ -900,7 +906,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return analyzeOpCallCaller(scope, funcCall, calleeSymbol);
     }
 
-    if (calleeSymbol instanceof SymbolFunction === false) {
+    if (calleeSymbol.isFunctionHolder() === false) {
         analyzerDiagnostic.add(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function.`);
         return undefined;
     }
@@ -915,14 +921,14 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    const classScope = varType.sourceScope.lookupScope(varType.symbolType.defToken.text);
+    const classScope = varType.sourceScope.lookupScope(varType.symbolType.identifierText);
     if (classScope === undefined) return undefined;
 
     const opCall = findSymbolShallowly(classScope, 'opCall');
-    if (opCall === undefined || opCall instanceof SymbolFunction === false) {
+    if (opCall === undefined || opCall.isFunctionHolder() === false) {
         analyzerDiagnostic.add(
             funcCall.identifier.location,
-            `'opCall' is not defined in type '${varType.symbolType.defToken.text}'.`);
+            `'opCall' is not defined in type '${varType.symbolType.identifierText}'.`);
         return;
     }
 
@@ -933,14 +939,14 @@ function analyzeFunctionCaller(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
-    calleeFunc: SymbolFunction,
+    calleeFuncHolder: SymbolFunctionHolder,
     templateTranslate: TemplateTranslation | undefined
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
-    if (calleeFunc.defNode.nodeName === NodeName.FuncDef) {
+    if (calleeFuncHolder.first.defNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
-        const handlerType = new ResolvedType(calleeFunc);
+        const handlerType = new ResolvedType(calleeFuncHolder);
         if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {
             return callerArgTypes[0];
         }
@@ -953,7 +959,7 @@ function analyzeFunctionCaller(
     scope.completionHints.push({
         complementKind: ComplementKind.Arguments,
         complementLocation: complementRange,
-        expectedCallee: calleeFunc,
+        expectedCallee: calleeFuncHolder.first,
         passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         templateTranslate: templateTranslate
     });
@@ -964,7 +970,7 @@ function analyzeFunctionCaller(
         callerRange: callerArgList.nodeRange,
         callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         callerArgTypes: callerArgTypes,
-        calleeFunc: calleeFunc,
+        calleeFuncHolder: calleeFuncHolder,
         templateTranslators: [templateTranslate]
     });
 }
@@ -1006,10 +1012,10 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (declared.symbol.defToken.location.path !== '') {
+    if (declared.symbol.toList()[0].defToken.location.path !== '') {
         // Keywords such as 'this' have an empty defToken. They do not add to the reference list.
         checkingScope.referencedList.push({
-            declaredSymbol: declared.symbol,
+            declaredSymbol: declared.symbol.toList()[0],
             referencedToken: varIdentifier
         });
     }
@@ -1124,7 +1130,7 @@ function analyzeOperatorAlias(
     if (classScope === undefined) return undefined;
 
     const aliasFunction = findSymbolShallowly(classScope, alias);
-    if (aliasFunction === undefined || aliasFunction instanceof SymbolFunction === false) {
+    if (aliasFunction === undefined || aliasFunction.isFunctionHolder() === false) {
         analyzerDiagnostic.add(
             operator.location,
             `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
@@ -1137,7 +1143,7 @@ function analyzeOperatorAlias(
         callerRange: new TokenRange(operator, operator),
         callerArgRanges: [rightRange],
         callerArgTypes: rhsArgs,
-        calleeFunc: aliasFunction,
+        calleeFuncHolder: aliasFunction,
         templateTranslators: [lhs.templateTranslate, ...rhsArgs.map(rhs => rhs?.templateTranslate)]
     });
 }

@@ -2,7 +2,7 @@ import {Position, URI} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
     SymbolObject,
-    SymbolType, SymbolFunction, SymbolVariable
+    SymbolType, SymbolFunction, SymbolVariable, SymbolObjectHolder
 } from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
@@ -124,12 +124,12 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolObject): CompletionItemKind {
+function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
     if (symbol instanceof SymbolType) {
         if (symbol.isSystemType() || symbol.defNode === undefined) return CompletionItemKind.Keyword;
         if (symbol.defNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
-    } else if (symbol instanceof SymbolFunction) {
+    } else if (symbol.isFunctionHolder()) {
         return CompletionItemKind.Function;
     } else { // SymbolVariable
         return CompletionItemKind.Variable;

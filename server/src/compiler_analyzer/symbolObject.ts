@@ -24,15 +24,42 @@ export function isDefinitionNodeClassOrInterface(type: TypeDefinitionNode | unde
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
+export enum SymbolKind {
+    Type = 'Type',
+    Variable = 'Variable',
+    Function = 'Function',
+}
+
 /**
  * The base interface for all symbols.
  */
-export interface SymbolBase {
-    readonly defToken: TokenObject;
-    readonly defScope: SymbolScope;
+export abstract class SymbolBase {
+    public abstract get kind(): SymbolKind;
+
+    public isFunction(): this is SymbolFunction {
+        return this.kind === SymbolKind.Function;
+    }
+
+    public toHolder(): SymbolObjectHolder {
+        if (this.isFunction()) return new SymbolFunctionHolder(this);
+        assert(this instanceof SymbolType || this instanceof SymbolVariable);
+        return this;
+    }
 }
 
-export class SymbolType implements SymbolBase {
+export interface SymbolHolder {
+    get identifierText(): string;
+
+    isFunctionHolder(): this is SymbolFunctionHolder;
+
+    toList(): ReadonlyArray<SymbolObject>;
+}
+
+export class SymbolType extends SymbolBase implements SymbolHolder {
+    public get kind(): SymbolKind {
+        return SymbolKind.Type;
+    }
+
     constructor(
         public readonly defToken: TokenObject,
         public readonly defScope: SymbolScope,
@@ -45,6 +72,7 @@ export class SymbolType implements SymbolBase {
         public readonly baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
     ) {
+        super();
     }
 
     public static create(args: {
@@ -86,10 +114,63 @@ export class SymbolType implements SymbolBase {
     public isNumberType(): boolean {
         return this.defToken.isReservedToken() && this.defToken.property.isNumber;
     }
+
+    public isFunctionHolder(): this is SymbolFunctionHolder {
+        return false;
+    }
+
+    public toList(): SymbolType[] {
+        return [this];
+    }
 }
 
-export class SymbolFunction implements SymbolBase {
-    private _nextOverload: SymbolFunction | undefined = undefined;
+export class SymbolVariable extends SymbolBase implements SymbolHolder {
+    public get kind(): SymbolKind {
+        return SymbolKind.Variable;
+    }
+
+    constructor(
+        public readonly defToken: TokenObject,
+        public readonly defScope: SymbolScope,
+        public readonly type: ResolvedType | undefined,
+        public readonly isInstanceMember: boolean,
+        public readonly accessRestriction: AccessModifier | undefined,
+    ) {
+        super();
+    }
+
+    public static create(args: {
+        defToken: TokenObject
+        defScope: SymbolScope
+        type: ResolvedType | undefined
+        isInstanceMember: boolean
+        accessRestriction: AccessModifier | undefined
+    }) {
+        return new SymbolVariable(
+            args.defToken,
+            args.defScope,
+            args.type,
+            args.isInstanceMember,
+            args.accessRestriction);
+    }
+
+    public get identifierText(): string {
+        return this.defToken.text;
+    }
+
+    public isFunctionHolder(): this is SymbolFunctionHolder {
+        return false;
+    }
+
+    public toList(): SymbolVariable[] {
+        return [this];
+    }
+}
+
+export class SymbolFunction extends SymbolBase {
+    public get kind(): SymbolKind {
+        return SymbolKind.Function;
+    }
 
     constructor(
         public readonly defToken: TokenObject,
@@ -100,6 +181,7 @@ export class SymbolFunction implements SymbolBase {
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
     ) {
+        super();
     }
 
     public static create(args: {
@@ -129,52 +211,53 @@ export class SymbolFunction implements SymbolBase {
         return this;
     }
 
-    public appendOverload(overload: SymbolFunction) {
-        if (this._nextOverload !== undefined) {
-            this._nextOverload.appendOverload(overload);
-        } else {
-            this._nextOverload = overload;
-        }
+}
+
+export class SymbolFunctionHolder implements SymbolHolder {
+    private readonly _overloadList: SymbolFunction[] = [];
+
+    public constructor(firstElement: SymbolFunction) {
+        this._overloadList.push(firstElement);
     }
 
-    public get nextOverload(): SymbolFunction | undefined {
-        return this._nextOverload;
+    public pushOverload(overload: SymbolFunction) {
+        this._overloadList.push(overload);
+    }
+
+    public get overloadList(): ReadonlyArray<SymbolFunction> {
+        return this._overloadList;
+    }
+
+    public get count(): number {
+        return this._overloadList.length;
+    }
+
+    public get first(): SymbolFunction {
+        return this._overloadList[0];
+    }
+
+    public get identifierText(): string {
+        return this.first.defToken.text;
+    }
+
+    public isFunctionHolder(): this is SymbolFunctionHolder {
+        return true;
+    }
+
+    public toList(): ReadonlyArray<SymbolFunction> {
+        return this._overloadList;
     }
 }
 
-export class SymbolVariable implements SymbolBase {
-    constructor(
-        public readonly defToken: TokenObject,
-        public readonly defScope: SymbolScope,
-        public readonly type: ResolvedType | undefined,
-        public readonly isInstanceMember: boolean,
-        public readonly accessRestriction: AccessModifier | undefined,
-    ) {
-    }
-
-    public static create(args: {
-        defToken: TokenObject
-        defScope: SymbolScope
-        type: ResolvedType | undefined
-        isInstanceMember: boolean
-        accessRestriction: AccessModifier | undefined
-    }) {
-        return new SymbolVariable(
-            args.defToken,
-            args.defScope,
-            args.type,
-            args.isInstanceMember,
-            args.accessRestriction);
-    }
-}
-
-export function isSymbolInstanceMember(symbol: SymbolObject): symbol is SymbolFunction | SymbolVariable {
-    const canBeMember = (symbol instanceof SymbolFunction) || (symbol instanceof SymbolVariable);
+export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is SymbolFunctionHolder | SymbolVariable {
+    const canBeMember = (symbol.isFunctionHolder()) || (symbol instanceof SymbolVariable);
     if (canBeMember === false) return false;
-    return symbol.isInstanceMember;
+    return symbol.toList()[0].isInstanceMember;
 }
 
-export type SymbolObject = SymbolType | SymbolFunction | SymbolVariable;
+export type SymbolObject = SymbolType | SymbolVariable | SymbolFunction;
+
+export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHolder;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 

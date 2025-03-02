@@ -1,6 +1,6 @@
 import {
     SymbolFunction,
-    SymbolObject,
+    SymbolObject, SymbolObjectHolder,
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
@@ -29,7 +29,7 @@ export function resolveTemplateType(
 
     if (type === undefined) return undefined;
 
-    if (type.symbolType instanceof SymbolFunction) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+    if (type.symbolType.isFunctionHolder()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
     if (type.symbolType.isTypeParameter !== true) return type;
 
@@ -71,8 +71,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     let suffix = '';
     if (type.isHandler === true) suffix = `${suffix}@`;
 
-    if (type.symbolType instanceof SymbolFunction) {
-        const func: SymbolFunction = type.symbolType;
+    if (type.symbolType.isFunctionHolder()) {
+        const func: SymbolFunction = type.symbolType.first;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${params})` + suffix;
@@ -84,7 +84,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
         suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
-    return type.symbolType.defToken.text + suffix;
+    return type.symbolType.identifierText + suffix;
 }
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
@@ -108,14 +108,13 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     assert(false);
 }
 
-
 // obsolete
-export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObject | undefined {
+export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObjectHolder | undefined {
     return scope.symbolTable.get(identifier);
 }
 
 // obsolete
-export function getSymbolAndScopeIfExist(symbol: SymbolObject | undefined, scope: SymbolScope): SymbolAndScope | undefined {
+export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};
 }

@@ -3,7 +3,7 @@ import {
     SymbolFunction,
     SymbolObject,
     SymbolType,
-    isDefinitionNodeClassOrInterface,
+    isDefinitionNodeClassOrInterface, SymbolObjectHolder, SymbolFunctionHolder,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
@@ -63,15 +63,15 @@ function isTypeMatchInternal(
     const destType = dest.symbolType;
 
     // Check the function handler type.
-    if (srcType instanceof SymbolFunction) {
+    if (srcType.isFunctionHolder()) {
 
         // Are we trying to pass something into ?
         if (destType instanceof SymbolType)
             if (destType.identifierText === '?') return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
-        return isFunctionHandlerMatch(srcType, destType);
-    } else if (destType instanceof SymbolFunction) {
+        return isFunctionHandlerMatch(srcType.first, destType.toList()[0]);
+    } else if (destType.isFunctionHolder()) {
         return false;
     }
 
@@ -93,12 +93,10 @@ function isTypeMatchInternal(
         if (canDownCast(srcType, destType)) return true;
 
         // Succeeds if the source type has an implicit conversion operator that matches the destination type.
-        let opImplConv = srcType.membersScope?.symbolTable.get('opImplConv');
-        if (opImplConv !== undefined && opImplConv instanceof SymbolFunction) {
-            for (; ;) {
+        const opImplConvHolder = srcType.membersScope?.symbolTable.get('opImplConv');
+        if (opImplConvHolder?.isFunctionHolder()) {
+            for (const opImplConv of opImplConvHolder.toList()) {
                 if (canTypeConvert(opImplConv.returnType, dest)) return true;
-                if (opImplConv.nextOverload === undefined) break;
-                opImplConv = opImplConv.nextOverload;
             }
         }
     }
@@ -183,14 +181,16 @@ function canConstructImplicitly(
 
     // Search for the constructor of the given type from the scope of the type itself.
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
-    if (constructor === undefined || constructor instanceof SymbolFunction === false) return false;
+    if (constructor === undefined || constructor.isFunctionHolder() === false) return false;
 
     if (srcType.defNode === undefined) return true; // FIXME?
 
-    return canConstructBy(constructor, srcType.defNode);
+    return canConstructBy(constructor, 0, srcType.defNode);
 }
 
-function canConstructBy(constructor: SymbolFunction, srcType: TypeDefinitionNode): boolean {
+function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: number, srcType: TypeDefinitionNode): boolean {
+    const constructor = constructorHolder.overloadList[overloadIndex];
+
     // Succeeds if the constructor has one argument and that argument matches the source type.
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
@@ -203,15 +203,16 @@ function canConstructBy(constructor: SymbolFunction, srcType: TypeDefinitionNode
     }
 
     // If there are overloads, check those as well.
-    if (constructor.nextOverload !== undefined) {
-        return canConstructBy(constructor.nextOverload, srcType);
+    if (constructorHolder.count > overloadIndex + 1) {
+        return canConstructBy(constructorHolder, overloadIndex + 1, srcType);
     }
 
     return false;
 }
 
 // Check if the symbol can be accessed from the scope.
-export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbol: SymbolObject): boolean {
+export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbolHolder: SymbolObjectHolder): boolean {
+    const declaredSymbol = declaredSymbolHolder.toList()[0];
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
