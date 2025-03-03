@@ -21,7 +21,7 @@ import {
     NodeVirtualProp,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {ComplementHint} from "./symbolComplement";
+import {ComplementHint} from "./complementHint";
 import {getGlobalSettings} from "../code/settings";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";

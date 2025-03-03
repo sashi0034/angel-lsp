@@ -11,7 +11,7 @@ import {
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
-import {ComplementHint, ComplementKind} from "../compiler_analyzer/symbolComplement";
+import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./serviceHelper";
 
 /**

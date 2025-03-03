@@ -61,7 +61,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltInType
 } from "./symbolBuiltin";
-import {complementHintForScope, ComplementKind} from "./symbolComplement";
+import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
     findSymbolShallowly,
     findSymbolWithParent,

@@ -22,7 +22,7 @@ import {
     NodeVirtualProp,
     ParsedEnumMember
 } from "../compiler_parser/nodes";
-import {complementHintForScope} from "./symbolComplement";
+import {complementHintForScope} from "./complementHint";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";

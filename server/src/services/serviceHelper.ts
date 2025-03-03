@@ -1,4 +1,4 @@
-import {ComplementKind, ComplementScope} from "../compiler_analyzer/symbolComplement";
+import {ComplementKind, ComplementScope} from "../compiler_analyzer/complementHint";
 import {Position} from "vscode-languageserver";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
