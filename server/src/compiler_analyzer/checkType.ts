@@ -6,7 +6,7 @@ import {
     isDefinitionNodeClassOrInterface, SymbolObjectHolder, SymbolFunctionHolder,
 } from "./symbolObject";
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
-import {isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
+import {resolveActiveScope, isScopeChildOrGrandchild, SymbolScope, tryResolveActiveScope} from "./symbolScope";
 import assert = require("assert");
 import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -93,7 +93,8 @@ function isTypeMatchInternal(
         if (canDownCast(srcType, destType)) return true;
 
         // Succeeds if the source type has an implicit conversion operator that matches the destination type.
-        const opImplConvHolder = srcType.membersScope?.symbolTable.get('opImplConv');
+        const opImplConvHolder =
+            tryResolveActiveScope(srcType.membersScope)?.symbolTable.get('opImplConv');
         if (opImplConvHolder?.isFunctionHolder()) {
             for (const opImplConv of opImplConvHolder.toList()) {
                 if (canTypeConvert(opImplConv.returnType, dest)) return true;
@@ -106,7 +107,7 @@ function isTypeMatchInternal(
 
     // Determine if it matches the constructor.
     const destIdentifier = destNode.identifier.text;
-    return canConstructImplicitly(srcType, dest.sourceScope, destIdentifier);
+    return canConstructImplicitly(srcType, tryResolveActiveScope(dest.sourceScope), destIdentifier);
 }
 
 function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | SymbolFunction) {
@@ -216,7 +217,7 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
-    const defScope = declaredSymbol.defScope;
+    const defScope = resolveActiveScope(declaredSymbol.defScope);
 
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
         return isScopeChildOrGrandchild(checkingScope, defScope);

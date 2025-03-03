@@ -48,7 +48,7 @@ import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/toke
 import {
     AnalyzedScope,
     createAnonymousIdentifier,
-    findGlobalScope,
+    findGlobalScope, resolveActiveScope,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
 import {checkFunctionMatch} from "./checkFunction";
@@ -132,7 +132,7 @@ export function insertVariables(scope: SymbolScope, varType: ResolvedType | unde
     for (const declaredVar of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
             defToken: declaredVar.identifier,
-            defScope: scope,
+            defScope: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
@@ -694,7 +694,7 @@ export function findConstructorForResolvedType(resolvedType: ResolvedType | unde
     if (resolvedType?.sourceScope === undefined) return undefined;
 
     const constructorIdentifier = resolvedType.symbolType.identifierText;
-    const classScope = resolvedType.sourceScope.lookupScope(constructorIdentifier);
+    const classScope = resolveActiveScope(resolvedType.sourceScope).lookupScope(constructorIdentifier);
     return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
 }
 
@@ -781,7 +781,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if (isMemberMethod) {
         // Analyze method call.
-        const method = findSymbolShallowly(classScope, identifier.text);
+        const method = findSymbolShallowly(resolveActiveScope(classScope), identifier.text);
         if (method === undefined) {
             analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not defined.`);
             return undefined;
@@ -795,7 +795,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslate);
     } else {
         // Analyze field access.
-        return analyzeVariableAccess(scope, classScope, identifier);
+        return analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
     }
 }
 
@@ -829,7 +829,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
 
         const argument: SymbolVariable = SymbolVariable.create({
             defToken: param.identifier,
-            defScope: scope,
+            defScope: scope.scopePath,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
             accessRestriction: undefined,
@@ -921,7 +921,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    const classScope = varType.sourceScope.lookupScope(varType.symbolType.identifierText);
+    const classScope = resolveActiveScope(varType.sourceScope).lookupScope(varType.symbolType.identifierText);
     if (classScope === undefined) return undefined;
 
     const opCall = findSymbolShallowly(classScope, 'opCall');
@@ -1129,7 +1129,7 @@ function analyzeOperatorAlias(
     const classScope = lhs.symbolType.membersScope;
     if (classScope === undefined) return undefined;
 
-    const aliasFunction = findSymbolShallowly(classScope, alias);
+    const aliasFunction = findSymbolShallowly(resolveActiveScope(classScope), alias);
     if (aliasFunction === undefined || aliasFunction.isFunctionHolder() === false) {
         analyzerDiagnostic.add(
             operator.location,

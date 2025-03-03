@@ -1,6 +1,5 @@
 import {TemplateTranslation} from "./symbolUtils";
-import {SymbolScope} from "./symbolScope";
-import {SymbolFunction, SymbolFunctionHolder, SymbolType} from "./symbolObject";
+import {ScopePath, SymbolFunctionHolder, SymbolType} from "./symbolObject";
 
 /**
  * The type of symbol that has been resolved by deduction.
@@ -8,7 +7,6 @@ import {SymbolFunction, SymbolFunctionHolder, SymbolType} from "./symbolObject";
 export class ResolvedType {
     constructor(
         public readonly symbolType: SymbolType | SymbolFunctionHolder, // TODO: rename?
-        // public readonly sourceScope: SymbolScope | undefined,
         public readonly isHandler?: boolean,
         public readonly templateTranslate?: TemplateTranslation,
     ) {
@@ -22,7 +20,7 @@ export class ResolvedType {
         return new ResolvedType(args.symbolType, args.isHandler, args.templateTranslate);
     }
 
-    public get sourceScope(): SymbolScope | undefined {
+    public get sourceScope(): ScopePath | undefined {
         // FIXME: Each overload is not necessarily in the same file?
         return this.symbolType.toList()[0].defScope;
     }
