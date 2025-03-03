@@ -128,6 +128,8 @@ export class AnalysisResolver {
             uri: record.uri,
             diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
         });
+
+        tracer.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
     }
 
     // We will reanalyze the files that include the file specified by the given URI.

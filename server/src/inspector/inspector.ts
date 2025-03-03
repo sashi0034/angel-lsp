@@ -111,6 +111,8 @@ export function inspectFile(uri: URI, content: string): void {
 
     // Request delayed execution of the analyzer
     s_analysisResolver.request(uri);
+
+    tracer.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
 }
 
 /**
