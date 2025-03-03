@@ -21,7 +21,7 @@ import {
     inspectFile,
     reinspectAllFiles,
     registerDiagnosticsCallback
-} from "./service_inspector/inspector";
+} from "./inspector/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semanticTokens";
 import {serveReferences} from "./services/reference";
