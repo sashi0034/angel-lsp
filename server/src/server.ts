@@ -178,7 +178,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
 
     const references = serveReferences(
         analyzedScope,
-        getInspectedRecordList().map(result => result.analyzerScope.fullScope),
+        getInspectedRecordList().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => getFileLocationOfToken(ref));
 }
@@ -249,7 +249,7 @@ connection.onCompletion(
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
-        return serveCompletions(diagnosedScope.fullScope, params.position, uri);
+        return serveCompletions(diagnosedScope.globalScope, params.position, uri);
 
         // return [
         //     {
@@ -289,7 +289,7 @@ connection.onSignatureHelp((params) => {
     const diagnosedScope = getInspectedRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
-    return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);
+    return serveSignatureHelp(diagnosedScope.globalScope, params.position, uri);
 });
 
 // Document Formatting

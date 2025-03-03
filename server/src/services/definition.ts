@@ -20,7 +20,7 @@ export function getFileLocationOfToken(token: TokenObject): Location {
  * Search for the definition of the symbol at the cursor position.
  */
 export function serveDefinition(analyzedScope: AnalyzerScope, caret: Position): SymbolObject | undefined {
-    return serveDefinitionInternal(analyzedScope.fullScope, caret, analyzedScope.path);
+    return serveDefinitionInternal(analyzedScope.globalScope, caret, analyzedScope.filepath);
 }
 
 /**

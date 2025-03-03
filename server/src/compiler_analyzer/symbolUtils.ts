@@ -11,15 +11,6 @@ import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-/**
- * Returns the path to a file where the scope is defined.
- * It returns undefined if the scope is namespace or etc.
- */
-export function getPathOfScope(scope: SymbolScope): string | undefined {
-    if (scope.linkedNode === undefined) return undefined;
-    return scope.linkedNode.nodeRange.start.location.path;
-}
-
 export type TemplateTranslation = Map<TokenObject, ResolvedType | undefined>;
 
 export function resolveTemplateType(

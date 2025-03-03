@@ -1,6 +1,5 @@
 import {
     AnalyzerScope,
-    copySymbolsInScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -519,14 +518,12 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
-    const globalScope: SymbolScope = new SymbolScope(undefined, '', undefined);
+    const globalScope: SymbolScope = SymbolScope.createEmpty();
 
     globalScope.initializeContext(path);
 
-    // TODO: refer to symbols without copying
     for (const included of includedScopes) {
-        // Copy the symbols in the included scope.
-        copySymbolsInScope(included.pureScope, globalScope, {excludeSrcPath: path});
+        globalScope.includeExternalScope(included.getFileGlobalScope());
     }
 
     const analyzeQueue: AnalyzeQueue = [];

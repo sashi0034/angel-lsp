@@ -17,7 +17,6 @@ import {
     NodeName, NodeStatBlock, NodeTry,
     NodeVirtualProp, NodeWhile
 } from "../compiler_parser/nodes";
-import {getPathOfScope} from "./symbolUtils";
 import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import assert = require("node:assert");
@@ -35,14 +34,12 @@ export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: SymbolType | undefined;
-    externalScopeList: SymbolScope[]; // The scopes created in external files that are referenced by this file
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
     return {
         filepath: '',
         builtinStringType: undefined,
-        externalScopeList: [],
     };
 }
 
@@ -89,23 +86,20 @@ export class SymbolScope {
 
     public constructor(
         // The parent scope of this scope.
-        parentScope: SymbolScope | undefined,
+        parentScope: SymbolScope | GlobalScopeContext | undefined,
         // The key of this scope. It is the identifier of the class, function, or block.
         public readonly key: string,
         // A node associated with this scope
         private _linkedNode: ScopeLinkedNode | undefined,
     ) {
-        this._parentOrContext = parentScope ?? createGlobalScopeContext();
+        parentScope = parentScope ?? createGlobalScopeContext();
+        this._parentOrContext = parentScope instanceof SymbolScope ? parentScope : {...parentScope};
 
-        this.scopePath = parentScope === undefined ? [] : [...parentScope.scopePath, key];
+        this.scopePath = parentScope instanceof SymbolScope ? [...parentScope.scopePath, key] : [];
     }
 
-    public static create(args: {
-        parentScope: SymbolScope | undefined
-        key: string
-        linkedNode: ScopeLinkedNode | undefined
-    }) {
-        return new SymbolScope(args.parentScope, args.key, args.linkedNode);
+    public static createEmpty(context?: GlobalScopeContext): SymbolScope {
+        return new SymbolScope(context, '', undefined);
     }
 
     public get parentScope(): SymbolScope | undefined {
@@ -128,6 +122,12 @@ export class SymbolScope {
 
     public get linkedNode(): ScopeLinkedNode | undefined {
         return this._linkedNode;
+    }
+
+    public getContext(): GlobalScopeContext {
+        const globalScope = this.getGlobalScope();
+        assert(globalScope._parentOrContext instanceof SymbolScope === false);
+        return globalScope._parentOrContext;
     }
 
     public initializeContext(filepath: string) {
@@ -179,7 +179,7 @@ export class SymbolScope {
             return alreadyExists;
         }
 
-        const newScope = SymbolScope.create({parentScope: this, key: identifier, linkedNode: linkedNode});
+        const newScope = new SymbolScope(this, identifier, linkedNode);
         this._childScopeTable.set(identifier, newScope);
         return newScope;
     }
@@ -253,6 +253,34 @@ export class SymbolScope {
         const symbol = this.lookupSymbol(identifier);
         if (symbol !== undefined) return symbol;
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
+    }
+
+    /**
+     * Includes the symbols and scopes declared in an external file into the current scope.
+     * Symbols and scopes from other files are not included.
+     */
+    public includeExternalScope(externalScope: SymbolScope) {
+        const externalFilepath = externalScope.getContext().filepath;
+        this.includeExternalScopeInternal(externalScope, externalFilepath);
+    }
+
+    private includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
+        // Copy symbols from the external scope.
+        for (const [key, symbolHolder] of externalScope.symbolTable) {
+            for (const symbol of symbolHolder.toList()) {
+                if (symbol.defToken.location.path === externalFilepath) {
+                    this.insertSymbol(symbol);
+                }
+            }
+        }
+
+        // Copy child scopes recursively.
+        for (const [key, child] of externalScope.childScopeTable) {
+            const nextChildScope = this.insertScope(key, child.linkedNode);
+            if (isAnonymousIdentifier(nextChildScope.key) === false) {
+                nextChildScope.includeExternalScopeInternal(child, externalFilepath);
+            }
+        }
     }
 }
 
@@ -338,89 +366,37 @@ export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope 
 // -----------------------------------------------
 
 /**
- * Represents the result of analyzing a file, such as scope information.
+ *  Represents the scope of the file being analyzed.
  */
 export class AnalyzerScope {
     /**
      * The path of the file being analyzed.
      */
-    public readonly path: string;
+    public readonly filepath: string;
+
     /**
      * The scope that contains all symbols in the file.
      * It includes symbols from other modules as well.
      */
-    public readonly fullScope: SymbolScope;
+    public readonly globalScope: SymbolScope;
 
-    private pureBuffer: SymbolScope | undefined;
+    private _fileGlobalScope: SymbolScope | undefined;
 
     /**
      * The scope that contains only symbols in the file.
      */
-    public get pureScope(): SymbolScope {
-        if (this.pureBuffer === undefined) {
-            this.pureBuffer = new SymbolScope(
-                this.fullScope.parentScope,
-                this.fullScope.key,
-                this.fullScope.linkedNode);
-            copySymbolsInScope(this.fullScope, this.pureBuffer, {targetSrcPath: this.path});
+    public getFileGlobalScope(): SymbolScope {
+        if (this._fileGlobalScope === undefined) {
+            this._fileGlobalScope = SymbolScope.createEmpty(this.globalScope.getContext());
+            this._fileGlobalScope.includeExternalScope(this.globalScope);
         }
-        return this.pureBuffer;
+
+        return this._fileGlobalScope;
     }
 
     public constructor(path: string, full: SymbolScope) {
-        this.path = path;
-        this.fullScope = full;
-    }
-}
-
-export interface CopySymbolOptions {
-    /** The path of the source to be copied. If undefined, all symbols are copied. */
-    targetSrcPath?: string;
-    /** The path of the source to be excluded from copying. If undefined, all symbols are copied. */
-    excludeSrcPath?: string;
-}
-
-/**
- * Copy all symbols from the source to the destination scope.
- * The symbols to be copied are added to destScope.symbolMap.
- */
-export function copySymbolsInScope(srcScope: SymbolScope, destScope: SymbolScope, option: CopySymbolOptions) {
-    // Collect symbols from the source scope
-    for (const [key, symbolHolder] of srcScope.symbolTable) {
-        for (const symbol of symbolHolder.toList()) {
-            let canCopy = true;
-
-            if (option.targetSrcPath !== undefined && symbol.defToken.location.path !== option.targetSrcPath) {
-                canCopy = false;
-            }
-
-            if (option.excludeSrcPath !== undefined && symbol.defToken.location.path === option.excludeSrcPath) {
-                canCopy = false;
-            }
-
-            if (canCopy) {
-                destScope.insertSymbol(symbol);
-            }
-        }
-    }
-
-    // Copy child scopes recursively.
-    for (const [key, child] of srcScope.childScopeTable) {
-        const scopePath = getPathOfScope(child);
-        if (scopePath !== undefined) {
-            // If the path is specified, only the specified path is copied.
-
-            if (option.targetSrcPath !== undefined && scopePath !== option.targetSrcPath) {
-                continue;
-            }
-
-            if (option.excludeSrcPath !== undefined && scopePath === option.excludeSrcPath) {
-                continue;
-            }
-        }
-
-        const destChild = destScope.insertScope(key, child.linkedNode);
-        copySymbolsInScope(child, destChild, option);
+        this.filepath = path;
+        this.globalScope = full;
     }
 }
 
