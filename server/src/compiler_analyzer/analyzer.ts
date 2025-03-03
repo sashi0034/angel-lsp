@@ -61,7 +61,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltInType
 } from "./symbolBuiltin";
-import {ComplementKind, pushHintOfCompletionScopeToParent} from "./symbolComplement";
+import {complementHintForScope, ComplementKind} from "./symbolComplement";
 import {
     findSymbolShallowly,
     findSymbolWithParent,
@@ -173,7 +173,7 @@ export function analyzeVarInitializer(
 // STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
-    pushHintOfCompletionScopeToParent(scope.parentScope, scope, statBlock.nodeRange);
+    complementHintForScope(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -341,7 +341,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Append a hint for completion of the namespace to the scope.
         const complementRange: TextLocation = nextScope.location.withEnd(
             nextScope.getNextOrSelf().getNextOrSelf().location.start);
-        parentScope.completionHints.push({
+        parentScope.pushCompletionHint({
             complementKind: ComplementKind.NamespaceSymbol,
             complementLocation: complementRange,
             namespaceList: nodeScope.scopeList.slice(0, i + 1)
@@ -760,7 +760,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const complementRange = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
-    scope.completionHints.push({
+    scope.pushCompletionHint({
         complementKind: ComplementKind.InstanceMember,
         complementLocation: complementRange,
         targetType: exprValue.symbolType
@@ -957,7 +957,7 @@ function analyzeFunctionCaller(
     const complementRange = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
         callerArgList.nodeRange.end.getNextOrSelf());
-    scope.completionHints.push({
+    scope.pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
         complementLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,

@@ -21,7 +21,7 @@ import {
     NodeVirtualProp,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {ComplementHints} from "./symbolComplement";
+import {ComplementHint} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
@@ -38,12 +38,14 @@ export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: SymbolType | undefined;
+    completionHints: ComplementHint[];
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
     return {
         filepath: '',
         builtinStringType: undefined,
+        completionHints: [],
     };
 }
 
@@ -80,8 +82,6 @@ export class SymbolScope {
     private readonly _symbolTable: SymbolTable = new Map();
 
     public readonly referencedList: ReferencedSymbolInfo[] = [];
-
-    public readonly completionHints: ComplementHints[] = [];
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
@@ -128,7 +128,7 @@ export class SymbolScope {
         return this._linkedNode;
     }
 
-    public getContext(): GlobalScopeContext {
+    public getContext(): Readonly<GlobalScopeContext> {
         const globalScope = this.getGlobalScope();
         assert(globalScope._parentOrContext instanceof SymbolScope === false);
         return globalScope._parentOrContext;
@@ -171,12 +171,21 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
+    public pushCompletionHint(hint: ComplementHint) {
+        const context = this.getContext();
+        assert(hint.complementLocation.path === context.filepath);
+        context.completionHints.push(hint);
+    }
+
+    public get completionHints(): ReadonlyArray<ComplementHint> {
+        assert(this._parentOrContext instanceof SymbolScope === false);
+        return this._parentOrContext.completionHints;
+    }
+
     /**
      * Create a new scope and insert it into the child scope table.
      */
     public insertScope(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
-        // assert(linkedNode === undefined || linkedNode.nodeRange.path === s_activeScopeContext?.path);
-
         const alreadyExists = this._childScopeTable.get(identifier);
         if (alreadyExists !== undefined) {
             if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);

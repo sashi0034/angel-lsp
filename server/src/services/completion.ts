@@ -11,26 +11,25 @@ import {
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
-import {ComplementHints, ComplementKind} from "../compiler_analyzer/symbolComplement";
+import {ComplementHint, ComplementKind} from "../compiler_analyzer/symbolComplement";
 import {findScopeContainingPosition} from "./serviceHelper";
 
 /**
  * Returns the completion candidates for the specified position.
  */
 export function serveCompletions(
-    diagnosedScope: SymbolScope, caret: Position, uri: URI
+    globalScope: SymbolScope, caret: Position, uri: URI
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
-    const targetScope = findScopeContainingPosition(diagnosedScope, caret, uri);
-
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
-    const primeCompletion = checkMissingCompletionInScope(targetScope, caret);
+    const primeCompletion = checkMissingCompletionInScope(globalScope, caret);
     if (primeCompletion !== undefined) return primeCompletion;
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
+    const targetScope = findScopeContainingPosition(globalScope, caret, uri);
     for (const scope of [...collectParentScopes(targetScope), targetScope]) {
         items.push(...getCompletionSymbolsInScope(scope));
     }
@@ -79,22 +78,23 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     return items;
 }
 
-function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
-    if (scope.completionHints.length === 0) return;
+function checkMissingCompletionInScope(globalScope: SymbolScope, caret: Position) {
+    if (globalScope.completionHints.length === 0) return;
 
-    for (const hint of scope.completionHints) {
+    for (const hint of globalScope.completionHints) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
-            return searchMissingCompletion(scope, hint);
+            const result = searchMissingCompletion(globalScope, hint);
+            if (result !== undefined && result.length > 0) return result;
         }
     }
 
     return undefined;
 }
 
-function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
+function searchMissingCompletion(scope: SymbolScope, completion: ComplementHint) {
     if (completion.complementKind === ComplementKind.InstanceMember) {
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
@@ -121,6 +121,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
         // Return the completion candidates in the scope.
         return getCompletionSymbolsInScope(namespaceScope);
     }
+
     return undefined;
 }
 

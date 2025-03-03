@@ -55,7 +55,7 @@ export interface ComplementInstanceMember extends ComplementBase {
  * Represents an autocomplete target for namespace symbols.
  * e.g,, suggesting possible completions for `Outer::Inner::...`.
  */
-export interface CompletionNamespaceSymbol extends ComplementBase {
+export interface ComplementNamespaceSymbol extends ComplementBase {
     complementKind: ComplementKind.NamespaceSymbol;
     namespaceList: TokenObject[];
 }
@@ -64,25 +64,25 @@ export interface CompletionNamespaceSymbol extends ComplementBase {
  * Represents an autocomplete target for function arguments.
  * e.g., providing argument suggestions when typing inside a function call `fn(|)`, where `|` is the caret.
  */
-export interface CompletionCallerArgument extends ComplementBase {
+export interface ComplementCallerArgument extends ComplementBase {
     complementKind: ComplementKind.CallerArguments;
     expectedCallee: SymbolFunction;
     passingRanges: TokenRange[];
     templateTranslate: TemplateTranslation | undefined;
 }
 
-export type ComplementHints =
+export type ComplementHint =
     ComplementScope
     | ComplementInstanceMember
-    | CompletionNamespaceSymbol
-    | CompletionCallerArgument;
+    | ComplementNamespaceSymbol
+    | ComplementCallerArgument;
 
-export function pushHintOfCompletionScopeToParent(
-    parentScope: SymbolScope | undefined, targetScope: SymbolScope, nodeRange: TokenRange
-) {
-    parentScope?.completionHints.push({
+// -----------------------------------------------
+
+export function complementHintForScope(targetScope: SymbolScope, tokenRange: TokenRange) {
+    targetScope.pushCompletionHint({
         complementKind: ComplementKind.Scope,
-        complementLocation: nodeRange.getBoundingLocation(),
+        complementLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
 }

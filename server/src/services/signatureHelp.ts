@@ -2,27 +2,25 @@ import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {ComplementKind, CompletionCallerArgument} from "../compiler_analyzer/symbolComplement";
+import {ComplementKind, ComplementCallerArgument} from "../compiler_analyzer/symbolComplement";
 import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 
 export function serveSignatureHelp(
-    diagnosedScope: SymbolScope, caret: Position, uri: URI
+    globalScope: SymbolScope, caret: Position, uri: URI
 ): SignatureHelp {
-    const targetScope = findScopeContainingPosition(diagnosedScope, caret, uri);
-
     const signatures: SignatureInformation[] = [];
 
-    for (let i = 0; i < targetScope.completionHints.length; i++) {
-        const hint = targetScope.completionHints[i];
+    for (let i = 0; i < globalScope.completionHints.length; i++) {
+        const hint = globalScope.completionHints[i];
         if (hint.complementKind !== ComplementKind.CallerArguments) continue;
 
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
             const expectedCallee =
-                targetScope.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
+                globalScope.resolveScope(hint.expectedCallee.defScope)?.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
             if (expectedCallee?.isFunctionHolder() === false) continue;
 
             for (const callee of expectedCallee.overloadList) {
@@ -39,7 +37,7 @@ export function serveSignatureHelp(
     };
 }
 
-function getFunctionSignature(hint: CompletionCallerArgument, expectedCallee: SymbolFunction, caret: TextPosition) {
+function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: SymbolFunction, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;

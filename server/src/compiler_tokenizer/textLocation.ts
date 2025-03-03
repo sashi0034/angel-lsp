@@ -67,6 +67,13 @@ export class TextRange implements languageserver.Range {
     public clone(): TextRange {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }
+
+    public getDifference() {
+        return {
+            line: this.end.line - this.start.line,
+            character: this.end.character - this.start.character
+        };
+    }
 }
 
 export class MutableTextRange {
