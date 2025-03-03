@@ -2,7 +2,6 @@ import {Diagnostic} from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {DelayedTask} from "../utils/delayedTask";
-import {AnalyzerScope} from "../compiler_analyzer/symbolScope";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../code/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
@@ -16,6 +15,7 @@ import {tracer} from "../code/tracer";
 import {inspectFile} from "./inspector";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
+import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
 interface PartialInspectRecord {
     uri: string;

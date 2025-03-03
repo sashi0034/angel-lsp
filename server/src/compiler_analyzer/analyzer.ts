@@ -47,7 +47,6 @@ import {
 } from "./symbolObject";
 import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
-    AnalyzerScope,
     createAnonymousIdentifier,
     findGlobalScope, resolveActiveScope,
     isSymbolConstructorInScope, SymbolScope
@@ -79,6 +78,7 @@ import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
+import {AnalyzerScope} from "./analyzerScope";
 
 export type HoistQueue = (() => void)[];
 

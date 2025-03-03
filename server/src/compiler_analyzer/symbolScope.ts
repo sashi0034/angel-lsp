@@ -1,27 +1,31 @@
 import {
-    ReferencedSymbolInfo, ScopePath,
-    SymbolFunction, SymbolFunctionHolder,
+    ReferencedSymbolInfo,
+    ScopePath,
     SymbolObject,
     SymbolObjectHolder,
     SymbolType,
     TypeDefinitionNode
 } from "./symbolObject";
-import {diagnostic} from "../code/diagnostic";
 import {
-    NodeClass, NodeDoWhile,
-    NodeEnum, NodeFor,
+    NodeClass,
+    NodeDoWhile,
+    NodeEnum,
+    NodeFor,
     NodeFunc,
     NodeIf,
     NodeInterface,
     NodeLambda,
-    NodeName, NodeStatBlock, NodeTry,
-    NodeVirtualProp, NodeWhile
+    NodeName,
+    NodeStatBlock,
+    NodeTry,
+    NodeVirtualProp,
+    NodeWhile
 } from "../compiler_parser/nodes";
 import {ComplementHints} from "./symbolComplement";
 import {getGlobalSettings} from "../code/settings";
-import assert = require("node:assert");
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import assert = require("node:assert");
 
 export type ScopeTable = Map<string, SymbolScope>;
 
@@ -364,41 +368,6 @@ export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope 
 }
 
 // -----------------------------------------------
-
-/**
- *  Represents the scope of the file being analyzed.
- */
-export class AnalyzerScope {
-    /**
-     * The path of the file being analyzed.
-     */
-    public readonly filepath: string;
-
-    /**
-     * The scope that contains all symbols in the file.
-     * It includes symbols from other modules as well.
-     */
-    public readonly globalScope: SymbolScope;
-
-    private _fileGlobalScope: SymbolScope | undefined;
-
-    /**
-     * The scope that contains only symbols in the file.
-     */
-    public getFileGlobalScope(): SymbolScope {
-        if (this._fileGlobalScope === undefined) {
-            this._fileGlobalScope = SymbolScope.createEmpty(this.globalScope.getContext());
-            this._fileGlobalScope.includeExternalScope(this.globalScope);
-        }
-
-        return this._fileGlobalScope;
-    }
-
-    public constructor(path: string, full: SymbolScope) {
-        this.filepath = path;
-        this.globalScope = full;
-    }
-}
 
 /**
  * Traverses up the parent scopes to find the global scope.

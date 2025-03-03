@@ -1,7 +1,8 @@
 import {SymbolObject} from "../compiler_analyzer/symbolObject";
 import {Location, Position} from "vscode-languageserver";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {AnalyzerScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolScope} from "../compiler_analyzer/symbolScope";
+import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
 /**
  * Convert tokenized tokens to Location used in VSCode.

@@ -1,5 +1,4 @@
 import {
-    AnalyzerScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -43,6 +42,7 @@ import {
     insertVariables
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
+import {AnalyzerScope} from "./analyzerScope";
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {

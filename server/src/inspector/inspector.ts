@@ -1,7 +1,7 @@
 import {Diagnostic} from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
-import {AnalyzerScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {URI} from "vscode-languageserver";
 import {tracer} from "../code/tracer";
 import {Profiler} from "../code/profiler";
@@ -11,6 +11,7 @@ import {parseAfterPreprocessed} from "../compiler_parser/parser";
 import {DelayedTask} from "../utils/delayedTask";
 import {diagnostic} from "../code/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
+import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
 interface InspectRecord {
     content: string;
