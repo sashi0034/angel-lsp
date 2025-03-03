@@ -29,7 +29,7 @@ export function resolveTemplateType(
 
     if (type === undefined) return undefined;
 
-    if (type.symbolType.isFunctionHolder()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+    if (type.symbolType.isFunction()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
     if (type.symbolType.isTypeParameter !== true) return type;
 
@@ -71,8 +71,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     let suffix = '';
     if (type.isHandler === true) suffix = `${suffix}@`;
 
-    if (type.symbolType.isFunctionHolder()) {
-        const func: SymbolFunction = type.symbolType.first;
+    if (type.symbolType.isFunction()) {
+        const func: SymbolFunction = type.symbolType;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${params})` + suffix;

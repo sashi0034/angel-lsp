@@ -39,6 +39,7 @@ import {
 } from "../compiler_parser/nodes";
 import {
     isDefinitionNodeClassOrInterface,
+    SymbolFunction,
     SymbolFunctionHolder,
     SymbolObjectHolder,
     SymbolType,
@@ -154,7 +155,7 @@ export function analyzeVarInitializer(
         checkTypeMatch(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined || varType.symbolType.isFunctionHolder()) return undefined;
+        if (varType === undefined || varType.symbolType.isFunction()) return undefined;
         return analyzeConstructorCaller(scope, varIdentifier, initializer, varType);
     }
 }
@@ -232,7 +233,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
     if (foundSymbol.isFunctionHolder() && foundSymbol.first.defNode.nodeName === NodeName.FuncDef) {
-        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, true);
+        return completeAnalyzingType(scope, typeIdentifier, foundSymbol.first, foundScope, true);
     } else if (foundSymbol instanceof SymbolType === false) {
         analyzerDiagnostic.add(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
@@ -245,13 +246,13 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
 function completeAnalyzingType(
     scope: SymbolScope,
     identifier: TokenObject,
-    foundSymbol: SymbolType | SymbolFunctionHolder,
+    foundSymbol: SymbolType | SymbolFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslation | undefined,
 ): ResolvedType | undefined {
     scope.referencedList.push({
-        declaredSymbol: foundSymbol.toList()[0],
+        declaredSymbol: foundSymbol,
         referencedToken: identifier
     });
 
@@ -461,7 +462,7 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (assign?.isHandler !== true && assign?.symbolType.isFunctionHolder()) {
+    if (assign?.isHandler !== true && assign?.symbolType.isFunction()) {
         analyzerDiagnostic.add(exprStat.assign.nodeRange.getBoundingLocation(), `Function call without handler.`);
     }
 }
@@ -727,7 +728,7 @@ function analyzeBuiltinConstructorCaller(
     if (callerArgList.argList.length === 0) {
         // Default constructor
         scope.referencedList.push({
-            declaredSymbol: constructorType.symbolType.toList()[0],
+            declaredSymbol: constructorType.symbolType,
             referencedToken: callerIdentifier
         });
         return constructorType;
@@ -893,12 +894,12 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.symbolType.isFunctionHolder()) {
+    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.symbolType.isFunction()) {
         return analyzeFunctionCaller(
             scope,
             funcCall.identifier,
             funcCall.argList,
-            calleeSymbol.type.symbolType,
+            new SymbolFunctionHolder(calleeSymbol.type.symbolType),
             undefined);
     }
 
@@ -946,7 +947,7 @@ function analyzeFunctionCaller(
 
     if (calleeFuncHolder.first.defNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
-        const handlerType = new ResolvedType(calleeFuncHolder);
+        const handlerType = new ResolvedType(calleeFuncHolder.first);
         if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {
             return callerArgTypes[0];
         }
@@ -1023,7 +1024,7 @@ function analyzeVariableAccess(
     if (declared.symbol instanceof SymbolVariable) {
         return declared.symbol.type;
     } else {
-        return new ResolvedType(declared.symbol);
+        return new ResolvedType(declared.symbol.first);
     }
 }
 

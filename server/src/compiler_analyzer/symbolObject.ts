@@ -212,6 +212,9 @@ export class SymbolFunction extends SymbolBase {
         return this;
     }
 
+    public get identifierText(): string {
+        return this.defToken.text;
+    }
 }
 
 export class SymbolFunctionHolder implements SymbolHolder {

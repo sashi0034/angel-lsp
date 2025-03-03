@@ -41,7 +41,7 @@ export function evaluateConversionCost(
     const srcType = src.symbolType;
     const destType = dest.symbolType;
 
-    if (srcType.isFunctionHolder() || destType.isFunctionHolder()) {
+    if (srcType.isFunction() || destType.isFunction()) {
         // TODO
         return ConversionConst.NoConv;
     }

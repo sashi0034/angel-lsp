@@ -63,15 +63,15 @@ function isTypeMatchInternal(
     const destType = dest.symbolType;
 
     // Check the function handler type.
-    if (srcType.isFunctionHolder()) {
+    if (srcType.isFunction()) {
 
         // Are we trying to pass something into ?
         if (destType instanceof SymbolType)
             if (destType.identifierText === '?') return true;
 
         // if (dest.isHandler === false) return false; // FIXME: Handler Checking?
-        return isFunctionHandlerMatch(srcType.first, destType.toList()[0]);
-    } else if (destType.isFunctionHolder()) {
+        return isFunctionHandlerMatch(srcType, destType);
+    } else if (destType.isFunction()) {
         return false;
     }
 

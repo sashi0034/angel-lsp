@@ -220,7 +220,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
-        if (baseType.symbolType.isFunctionHolder()) continue;
+        if (baseType.symbolType.isFunction()) continue;
 
         const baseScope = tryResolveActiveScope(baseType.symbolType.membersScope);
         if (baseScope === undefined) continue;
