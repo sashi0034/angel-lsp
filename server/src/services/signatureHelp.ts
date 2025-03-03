@@ -2,7 +2,7 @@ import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {ComplementKind, CompletionArgument} from "../compiler_analyzer/symbolComplement";
+import {ComplementKind, CompletionCallerArgument} from "../compiler_analyzer/symbolComplement";
 import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
@@ -16,7 +16,7 @@ export function serveSignatureHelp(
 
     for (let i = 0; i < targetScope.completionHints.length; i++) {
         const hint = targetScope.completionHints[i];
-        if (hint.complementKind !== ComplementKind.Arguments) continue;
+        if (hint.complementKind !== ComplementKind.CallerArguments) continue;
 
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.complementLocation;
@@ -39,7 +39,7 @@ export function serveSignatureHelp(
     };
 }
 
-function getFunctionSignature(hint: CompletionArgument, expectedCallee: SymbolFunction, caret: TextPosition) {
+function getFunctionSignature(hint: CompletionCallerArgument, expectedCallee: SymbolFunction, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;

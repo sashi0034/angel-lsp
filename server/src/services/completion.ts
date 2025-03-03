@@ -95,7 +95,7 @@ function checkMissingCompletionInScope(scope: SymbolScope, caret: Position) {
 }
 
 function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints) {
-    if (completion.complementKind === ComplementKind.Type) {
+    if (completion.complementKind === ComplementKind.InstanceMember) {
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
@@ -105,7 +105,7 @@ function searchMissingCompletion(scope: SymbolScope, completion: ComplementHints
 
         // Return the completion candidates in the scope.
         return getCompletionMembersInScope(scope, typeScope);
-    } else if (completion.complementKind === ComplementKind.Namespace) {
+    } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
         // Find the scope to which the namespace to be completed belongs.
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];

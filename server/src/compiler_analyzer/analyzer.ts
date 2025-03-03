@@ -342,7 +342,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         const complementRange: TextLocation = nextScope.location.withEnd(
             nextScope.getNextOrSelf().getNextOrSelf().location.start);
         parentScope.completionHints.push({
-            complementKind: ComplementKind.Namespace,
+            complementKind: ComplementKind.NamespaceSymbol,
             complementLocation: complementRange,
             namespaceList: nodeScope.scopeList.slice(0, i + 1)
         });
@@ -761,7 +761,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
     scope.completionHints.push({
-        complementKind: ComplementKind.Type,
+        complementKind: ComplementKind.InstanceMember,
         complementLocation: complementRange,
         targetType: exprValue.symbolType
     });
@@ -958,7 +958,7 @@ function analyzeFunctionCaller(
         callerArgList.nodeRange.start,
         callerArgList.nodeRange.end.getNextOrSelf());
     scope.completionHints.push({
-        complementKind: ComplementKind.Arguments,
+        complementKind: ComplementKind.CallerArguments,
         complementLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
         passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),

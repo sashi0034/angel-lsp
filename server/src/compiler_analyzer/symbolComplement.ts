@@ -10,9 +10,9 @@ import {TokenRange} from "../compiler_parser/tokenRange";
  */
 export enum ComplementKind {
     Scope = 'Scope',
-    Type = 'Type',
-    Namespace = 'Namespace',
-    Arguments = 'Arguments',
+    InstanceMember = 'InstanceMember',
+    NamespaceSymbol = 'NamespaceSymbol',
+    CallerArguments = 'CallerArguments',
 }
 
 export interface ComplementBase {
@@ -33,8 +33,8 @@ export interface ComplementScope extends ComplementBase {
  * Represents the completion target of a type.
  * e.g. Methods and properties of an instance of a class.
  */
-export interface ComplementType extends ComplementBase {
-    complementKind: ComplementKind.Type;
+export interface ComplementInstanceMember extends ComplementBase {
+    complementKind: ComplementKind.InstanceMember;
     targetType: SymbolType;
 }
 
@@ -42,8 +42,8 @@ export interface ComplementType extends ComplementBase {
  * Represents the completion target of a namespace.
  * e.g. `Outer:: ...` and `Inner:: ...` within the context of `Outer::Inner::`
  */
-export interface CompletionNamespace extends ComplementBase {
-    complementKind: ComplementKind.Namespace;
+export interface CompletionNamespaceSymbol extends ComplementBase {
+    complementKind: ComplementKind.NamespaceSymbol;
     namespaceList: TokenObject[];
 }
 
@@ -51,8 +51,8 @@ export interface CompletionNamespace extends ComplementBase {
  * Represents the completion target of a function argument.
  * e.g. `fn(|)` where `|` is the caret position.
  */
-export interface CompletionArgument extends ComplementBase {
-    complementKind: ComplementKind.Arguments;
+export interface CompletionCallerArgument extends ComplementBase {
+    complementKind: ComplementKind.CallerArguments;
     expectedCallee: SymbolFunction;
     passingRanges: TokenRange[];
     templateTranslate: TemplateTranslation | undefined;
@@ -60,9 +60,9 @@ export interface CompletionArgument extends ComplementBase {
 
 export type ComplementHints =
     ComplementScope
-    | ComplementType
-    | CompletionNamespace
-    | CompletionArgument;
+    | ComplementInstanceMember
+    | CompletionNamespaceSymbol
+    | CompletionCallerArgument;
 
 export function pushHintOfCompletionScopeToParent(
     parentScope: SymbolScope | undefined, targetScope: SymbolScope, nodeRange: TokenRange
