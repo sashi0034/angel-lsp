@@ -2,7 +2,7 @@ import {Diagnostic} from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {DelayedTask} from "../utils/delayedTask";
-import {AnalyzedScope} from "../compiler_analyzer/symbolScope";
+import {AnalyzerScope} from "../compiler_analyzer/symbolScope";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../code/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
@@ -25,7 +25,7 @@ interface PartialInspectRecord {
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
-    analyzedScope: AnalyzedScope;
+    analyzerScope: AnalyzerScope;
 }
 
 export type DiagnosticsCallback = (params: PublishDiagnosticsParams) => void;
@@ -119,7 +119,7 @@ export class AnalysisResolver {
         profiler.mark('Hoist'.padEnd(profilerDescriptionLength));
 
         // Execute the analyzer
-        record.analyzedScope = analyzeAfterHoisted(record.uri, hoistResult);
+        record.analyzerScope = analyzeAfterHoisted(record.uri, hoistResult);
         profiler.mark('Analyzer'.padEnd(profilerDescriptionLength));
 
         record.diagnosticsInAnalyzer = analyzerDiagnostic.flush();
@@ -199,7 +199,7 @@ export class AnalysisResolver {
 
     private collectIncludedScope(
         record: PartialInspectRecord, predefinedUri: string | undefined
-    ): AnalyzedScope[] {
+    ): AnalyzerScope[] {
         const preprocessOutput = record.preprocessedOutput;
         const targetUri = record.uri;
 
@@ -211,7 +211,7 @@ export class AnalysisResolver {
         // Load as.predefined
         if (targetUri !== predefinedUri && predefinedUri !== undefined) {
             const predefinedResult = this.recordList.get(predefinedUri);
-            if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzedScope);
+            if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzerScope);
         }
 
         // Get the analyzed scope of included files
@@ -220,7 +220,7 @@ export class AnalysisResolver {
 
             const includedRecord = this.recordList.get(uri);
             if (includedRecord !== undefined) {
-                includedScopes.push(includedRecord.analyzedScope);
+                includedScopes.push(includedRecord.analyzerScope);
                 continue;
             }
 

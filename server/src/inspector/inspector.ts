@@ -1,7 +1,7 @@
 import {Diagnostic} from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
-import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {AnalyzerScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {URI} from "vscode-languageserver";
 import {tracer} from "../code/tracer";
 import {Profiler} from "../code/profiler";
@@ -21,7 +21,7 @@ interface InspectRecord {
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
-    analyzedScope: AnalyzedScope;
+    analyzerScope: AnalyzerScope;
 }
 
 const s_inspectedResults: Map<string, InspectRecord> = new Map();
@@ -49,7 +49,7 @@ function createEmptyRecord(): InspectRecord {
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         analyzerTask: new DelayedTask(),
-        analyzedScope: new AnalyzedScope('', new SymbolScope(undefined, '', undefined)),
+        analyzerScope: new AnalyzerScope('', new SymbolScope(undefined, '', undefined)),
     };
 }
 

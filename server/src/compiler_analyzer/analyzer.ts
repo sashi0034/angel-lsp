@@ -47,7 +47,7 @@ import {
 } from "./symbolObject";
 import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
-    AnalyzedScope,
+    AnalyzerScope,
     createAnonymousIdentifier,
     findGlobalScope, resolveActiveScope,
     isSymbolConstructorInScope, SymbolScope
@@ -1293,7 +1293,7 @@ export interface HoistResult {
  * Entry point of the analyser.
  * Type checks and function checks are performed here.
  */
-export function analyzeAfterHoisted(path: string, hoistResult: HoistResult): AnalyzedScope {
+export function analyzeAfterHoisted(path: string, hoistResult: HoistResult): AnalyzerScope {
     const {globalScope, analyzeQueue} = hoistResult;
 
     globalScope.commitContext();
@@ -1304,5 +1304,5 @@ export function analyzeAfterHoisted(path: string, hoistResult: HoistResult): Ana
         if (next !== undefined) next();
     }
 
-    return new AnalyzedScope(path, globalScope);
+    return new AnalyzerScope(path, globalScope);
 }

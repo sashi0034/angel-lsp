@@ -155,7 +155,7 @@ connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
@@ -171,14 +171,14 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
 
     const caret = params.position;
 
     const references = serveReferences(
         analyzedScope,
-        getInspectedRecordList().map(result => result.analyzedScope.fullScope),
+        getInspectedRecordList().map(result => result.analyzerScope.fullScope),
         caret);
     return references.map(ref => getFileLocationOfToken(ref));
 }
@@ -209,7 +209,7 @@ connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
@@ -246,7 +246,7 @@ connection.onCompletion(
 
         const uri = params.textDocument.uri;
 
-        const diagnosedScope = getInspectedRecord(uri).analyzedScope;
+        const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
         return serveCompletions(diagnosedScope.fullScope, params.position, uri);
@@ -286,7 +286,7 @@ connection.onCompletionResolve(
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
-    const diagnosedScope = getInspectedRecord(uri).analyzedScope;
+    const diagnosedScope = getInspectedRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
     return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);

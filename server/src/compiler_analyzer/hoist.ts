@@ -1,5 +1,5 @@
 import {
-    AnalyzedScope,
+    AnalyzerScope,
     copySymbolsInScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
@@ -518,7 +518,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 // ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
-export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzedScope[]): HoistResult {
+export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
     const globalScope: SymbolScope = new SymbolScope(undefined, '', undefined);
 
     globalScope.initializeContext(path);

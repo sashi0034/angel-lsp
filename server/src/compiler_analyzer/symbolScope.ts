@@ -340,7 +340,7 @@ export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope 
 /**
  * Represents the result of analyzing a file, such as scope information.
  */
-export class AnalyzedScope {
+export class AnalyzerScope {
     /**
      * The path of the file being analyzed.
      */
