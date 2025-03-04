@@ -32,5 +32,5 @@ export function findScopeContainingPosition(scope: SymbolScope, caret: Position,
         }
     }
 
-    return scope;
+    return cursor?.targetScope ?? scope;
 }
