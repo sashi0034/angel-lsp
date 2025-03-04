@@ -289,7 +289,8 @@ export class SymbolScope {
 
         // Copy child scopes recursively.
         for (const [key, child] of externalScope.childScopeTable) {
-            const nextChildScope = this.insertScope(key, child.linkedNode);
+            const linkedNode = child.linkedNode?.nodeRange.path === externalFilepath ? child.linkedNode : undefined;
+            const nextChildScope = this.insertScope(key, linkedNode);
             if (isAnonymousIdentifier(nextChildScope.key) === false) {
                 nextChildScope.includeExternalScopeInternal(child, externalFilepath);
             }
