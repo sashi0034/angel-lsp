@@ -92,6 +92,10 @@ export function inspectFile(uri: URI, content: string): void {
 
     const record = s_inspectedResults.get(uri) ?? insertNewRecord(uri, content);
 
+    // Update the content
+    record.content = content;
+
+    // -----------------------------------------------
     diagnostic.beginSession();
 
     const profiler = new Profiler();
@@ -109,6 +113,7 @@ export function inspectFile(uri: URI, content: string): void {
     profiler.mark('Parser'.padEnd(profilerDescriptionLength));
 
     record.diagnosticsInParser = diagnostic.endSession();
+    // -----------------------------------------------
 
     // Send the diagnostics on the way to the client
     s_diagnosticsCallback({
