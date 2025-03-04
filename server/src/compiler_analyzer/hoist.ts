@@ -160,13 +160,14 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const superConstructor = findConstructorForResolvedType(primeBase);
             if (superConstructor?.isFunctionHolder()) {
-                const superSymbol: SymbolFunction = superConstructor.first.clone(); // TODO: Clone other constructor
+                for (const superSymbol of superConstructor?.toList()) {
+                    superSymbol.mutate().defToken = TokenIdentifier.createVirtual(
+                        'super',
+                        superSymbol.defToken.location
+                    );
 
-                superSymbol.mutate().defToken = TokenIdentifier.createVirtual(
-                    'super',
-                    superSymbol.defToken.location
-                );
-                scope.insertSymbolAndCheck(superSymbol);
+                    scope.insertSymbolAndCheck(superSymbol);
+                }
             }
         });
     });
