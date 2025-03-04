@@ -19,10 +19,11 @@ import {TextPosition} from "../compiler_tokenizer/textLocation";
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletions(
-    uri: string, globalScope: SymbolScope, caret: TextPosition
+    globalScope: SymbolScope, caret: TextPosition
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
+    const uri = globalScope.getContext().filepath;
     const caretScope = findScopeContainingPosition(globalScope, caret, uri);
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.

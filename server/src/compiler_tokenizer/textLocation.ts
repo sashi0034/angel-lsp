@@ -30,6 +30,10 @@ export class TextPosition implements languageserver.Position {
         if (this.line < other.line) return true;
         return this.isSameLine(other) && this.character < other.character;
     }
+
+    public formatWithColon(): string {
+        return `${this.line}:${this.character}`;
+    }
 }
 
 /**

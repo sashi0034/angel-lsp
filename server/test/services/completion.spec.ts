@@ -5,13 +5,13 @@ import {makeCaretAndContent} from "./utils";
 function testCompletion(rawContent: string, expected: string[]) {
     const {caret, content} = makeCaretAndContent(rawContent);
 
-    it(`completion ${content}`, () => {
+    it(`completion ${rawContent}`, () => {
         const uri = "/foo/bar.as";
         inspectFile(uri, content);
         flushInspectedRecord();
         const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
 
-        const completions = provideCompletions(uri, globalScope, caret).map(c => c.label);
+        const completions = provideCompletions(globalScope, caret).map(c => c.label);
         if (completions.length !== expected.length) {
             throw new Error(`Expected completions [${completions.join(", ")}], but got [${expected.join(", ")}]`);
         }

@@ -161,7 +161,7 @@ connection.onDefinition((params) => {
 
     const caret = params.position;
 
-    const jumping = provideDefinitionAsToken(analyzedScope, caret);
+    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, caret);
     if (jumping === undefined) return;
 
     return getFileLocationOfToken(jumping);
@@ -218,7 +218,7 @@ connection.onHover((params) => {
 
     const caret = params.position;
 
-    const definition = provideDefinition(analyzedScope, caret);
+    const definition = provideDefinition(analyzedScope.globalScope, caret);
     if (definition === undefined) return;
 
     return {
@@ -255,7 +255,7 @@ connection.onCompletion(
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
-        return provideCompletions(uri, diagnosedScope.globalScope, TextPosition.create(params.position));
+        return provideCompletions(diagnosedScope.globalScope, TextPosition.create(params.position));
 
         // return [
         //     {
