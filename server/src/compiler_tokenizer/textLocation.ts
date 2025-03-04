@@ -7,6 +7,10 @@ export class TextPosition implements languageserver.Position {
     ) {
     }
 
+    public static create(position: languageserver.Position): TextPosition {
+        return new TextPosition(position.line, position.character);
+    }
+
     public clone(): TextPosition {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }

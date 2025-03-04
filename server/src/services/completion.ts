@@ -13,12 +13,13 @@ import {
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./serviceHelper";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
 
 /**
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletions(
-    globalScope: SymbolScope, caret: Position, uri: URI
+    uri: string, globalScope: SymbolScope, caret: TextPosition
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 

@@ -31,6 +31,7 @@ import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
+import {TextPosition} from "./compiler_tokenizer/textLocation";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -254,7 +255,7 @@ connection.onCompletion(
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
-        return provideCompletions(diagnosedScope.globalScope, params.position, uri);
+        return provideCompletions(uri, diagnosedScope.globalScope, TextPosition.create(params.position));
 
         // return [
         //     {
