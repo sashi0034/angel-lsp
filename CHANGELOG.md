@@ -1,6 +1,6 @@
 # Change Log
 
-## [0.3.20] 2025/03/04
+## [0.3.21] 2025/03/04
 
 - Code cleanup.
 - Fixed memory leak issues and improved performance.
