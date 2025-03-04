@@ -31,6 +31,7 @@ import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
+import {TextPosition} from "./compiler_tokenizer/textLocation";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -160,7 +161,7 @@ connection.onDefinition((params) => {
 
     const caret = params.position;
 
-    const jumping = provideDefinitionAsToken(analyzedScope, caret);
+    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, caret);
     if (jumping === undefined) return;
 
     return getFileLocationOfToken(jumping);
@@ -178,7 +179,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const caret = params.position;
 
     const references = provideReferences(
-        analyzedScope,
+        analyzedScope.globalScope,
         getInspectedRecordList().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => getFileLocationOfToken(ref));
@@ -217,7 +218,7 @@ connection.onHover((params) => {
 
     const caret = params.position;
 
-    const definition = provideDefinition(analyzedScope, caret);
+    const definition = provideDefinition(analyzedScope.globalScope, caret);
     if (definition === undefined) return;
 
     return {
@@ -254,7 +255,7 @@ connection.onCompletion(
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
-        return provideCompletions(diagnosedScope.globalScope, params.position, uri);
+        return provideCompletions(diagnosedScope.globalScope, TextPosition.create(params.position));
 
         // return [
         //     {

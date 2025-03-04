@@ -20,15 +20,15 @@ export function getFileLocationOfToken(token: TokenObject): Location {
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function provideDefinition(analyzedScope: AnalyzerScope, caret: Position): SymbolObject | undefined {
-    return provideDefinitionInternal(analyzedScope.globalScope, caret, analyzedScope.filepath);
+export function provideDefinition(globalScope: SymbolScope, caret: Position): SymbolObject | undefined {
+    return provideDefinitionInternal(globalScope, caret, globalScope.getContext().filepath);
 }
 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
-export function provideDefinitionAsToken(analyzedScope: AnalyzerScope, caret: Position): TokenObject | undefined {
-    return provideDefinition(analyzedScope, caret)?.defToken;
+export function provideDefinitionAsToken(globalScope: SymbolScope, caret: Position): TokenObject | undefined {
+    return provideDefinition(globalScope, caret)?.defToken;
 }
 
 function provideDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {

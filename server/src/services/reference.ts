@@ -2,10 +2,9 @@ import {Position} from "vscode-languageserver";
 import {provideDefinitionAsToken} from "./definition";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
-export function provideReferences(targetScope: AnalyzerScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
-    const targetDefinition = provideDefinitionAsToken(targetScope, caret);
+export function provideReferences(globalScope: SymbolScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
+    const targetDefinition = provideDefinitionAsToken(globalScope, caret);
     if (targetDefinition === undefined) return [];
 
     // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?

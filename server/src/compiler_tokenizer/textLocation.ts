@@ -7,6 +7,10 @@ export class TextPosition implements languageserver.Position {
     ) {
     }
 
+    public static create(position: languageserver.Position): TextPosition {
+        return new TextPosition(position.line, position.character);
+    }
+
     public clone(): TextPosition {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }
@@ -25,6 +29,10 @@ export class TextPosition implements languageserver.Position {
     public isAheadOf(other: languageserver.Position): boolean {
         if (this.line < other.line) return true;
         return this.isSameLine(other) && this.character < other.character;
+    }
+
+    public formatWithColon(): string {
+        return `${this.line}:${this.character}`;
     }
 }
 

@@ -13,15 +13,17 @@ import {
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./serviceHelper";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
 
 /**
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletions(
-    globalScope: SymbolScope, caret: Position, uri: URI
+    globalScope: SymbolScope, caret: TextPosition
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
+    const uri = globalScope.getContext().filepath;
     const caretScope = findScopeContainingPosition(globalScope, caret, uri);
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
