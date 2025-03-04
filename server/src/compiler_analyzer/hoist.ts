@@ -1,4 +1,5 @@
 import {
+    createAnonymousIdentifier,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -309,7 +310,8 @@ function hoistFunc(
     }
 
     // Create a new scope for the function
-    const scope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
+    const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
+    const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
