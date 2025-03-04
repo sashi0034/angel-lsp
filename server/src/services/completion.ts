@@ -22,15 +22,16 @@ export function provideCompletions(
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
+    const caretScope = findScopeContainingPosition(globalScope, caret, uri);
+
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
-    const primeCompletion = checkMissingCompletionInScope(globalScope, caret);
+    const primeCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
     if (primeCompletion !== undefined) return primeCompletion;
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
-    const targetScope = findScopeContainingPosition(globalScope, caret, uri);
-    for (const scope of [...collectParentScopes(targetScope), targetScope]) {
+    for (const scope of [...collectParentScopes(caretScope), caretScope]) {
         items.push(...getCompletionSymbolsInScope(scope));
     }
 
@@ -61,13 +62,13 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     return items;
 }
 
-function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
+function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) continue;
-        if (isAllowedToAccessMember(checkingScope, symbol) === false) continue;
+        if (isAllowedToAccessMember(caretScope, symbol) === false) continue;
 
         items.push({
             label: symbolName,
@@ -78,7 +79,7 @@ function getCompletionMembersInScope(checkingScope: SymbolScope, symbolScope: Sy
     return items;
 }
 
-function checkMissingCompletionInScope(globalScope: SymbolScope, caret: Position) {
+function checkMissingCompletionInScope(globalScope: SymbolScope, caretScope: SymbolScope, caret: Position) {
     if (globalScope.completionHints.length === 0) return;
 
     for (const hint of globalScope.completionHints) {
@@ -86,7 +87,7 @@ function checkMissingCompletionInScope(globalScope: SymbolScope, caret: Position
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
-            const result = searchMissingCompletion(globalScope, hint);
+            const result = searchMissingCompletion(globalScope, caretScope, hint);
             if (result !== undefined && result.length > 0) return result;
         }
     }
@@ -94,23 +95,23 @@ function checkMissingCompletionInScope(globalScope: SymbolScope, caret: Position
     return undefined;
 }
 
-function searchMissingCompletion(scope: SymbolScope, completion: ComplementHint) {
+function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolScope, completion: ComplementHint) {
     if (completion.complementKind === ComplementKind.InstanceMember) {
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = scope.getGlobalScope().resolveScope(completion.targetType.defScope)?.lookupScope(
+        const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.defScope)?.lookupScope(
             completion.targetType.defToken.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope.
-        return getCompletionMembersInScope(scope, typeScope);
+        return getCompletionMembersInScope(globalScope, caretScope, typeScope);
     } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
         // Find the scope to which the namespace to be completed belongs.
         const namespaceList = completion.namespaceList;
         if (namespaceList.length === 0) return [];
 
-        let namespaceScope = scope.lookupScopeWithParent(namespaceList[0].text);
+        let namespaceScope = globalScope.lookupScopeWithParent(namespaceList[0].text);
         if (namespaceScope === undefined) return [];
 
         for (let i = 1; i < namespaceList.length; i++) {
