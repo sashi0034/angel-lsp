@@ -17,7 +17,7 @@ import {findScopeContainingPosition} from "./serviceHelper";
 /**
  * Returns the completion candidates for the specified position.
  */
-export function serveCompletions(
+export function provideCompletions(
     globalScope: SymbolScope, caret: Position, uri: URI
 ): CompletionItem[] {
     const items: CompletionItem[] = [];

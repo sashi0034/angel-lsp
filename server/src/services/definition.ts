@@ -20,18 +20,18 @@ export function getFileLocationOfToken(token: TokenObject): Location {
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function serveDefinition(analyzedScope: AnalyzerScope, caret: Position): SymbolObject | undefined {
-    return serveDefinitionInternal(analyzedScope.globalScope, caret, analyzedScope.filepath);
+export function provideDefinition(analyzedScope: AnalyzerScope, caret: Position): SymbolObject | undefined {
+    return provideDefinitionInternal(analyzedScope.globalScope, caret, analyzedScope.filepath);
 }
 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
-export function serveDefinitionAsToken(analyzedScope: AnalyzerScope, caret: Position): TokenObject | undefined {
-    return serveDefinition(analyzedScope, caret)?.defToken;
+export function provideDefinitionAsToken(analyzedScope: AnalyzerScope, caret: Position): TokenObject | undefined {
+    return provideDefinition(analyzedScope, caret)?.defToken;
 }
 
-function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
+function provideDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolTable) {
         const location = symbol.toList()[0].defToken.location;
@@ -51,7 +51,7 @@ function serveDefinitionInternal(targetScope: SymbolScope, caret: Position, path
 
     // Now, search in child scopes because the symbol is not found in the current scope
     for (const [key, child] of targetScope.childScopeTable) {
-        const jumping = serveDefinitionInternal(child, caret, path);
+        const jumping = provideDefinitionInternal(child, caret, path);
         if (jumping !== undefined) return jumping;
     }
 

@@ -7,7 +7,7 @@ import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/s
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 
-export function serveSignatureHelp(
+export function provideSignatureHelp(
     globalScope: SymbolScope, caret: Position, uri: URI
 ): SignatureHelp {
     const signatures: SignatureInformation[] = [];
