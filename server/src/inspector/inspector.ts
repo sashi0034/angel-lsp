@@ -78,6 +78,13 @@ export function getInspectedRecordList(): Readonly<InspectRecord>[] {
     return Array.from(s_inspectedResults.values());
 }
 
+/**
+ * Flush the inspected record of the specified file since the analyzer runs asynchronously.
+ */
+export function flushInspectedRecord(uri?: URI): void {
+    s_analysisResolver.flush(uri);
+}
+
 const profilerDescriptionLength = 12;
 
 export function inspectFile(uri: URI, content: string): void {

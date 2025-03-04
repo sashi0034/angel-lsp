@@ -52,11 +52,14 @@ export class AnalysisResolver {
     ) {
     }
 
+    /**
+     * Request to analyze the file specified by the URI at a later time.
+     */
     public request(uri: string) {
         this.pushAnalysisQueue(uri);
 
         this._analyzerTask.reschedule(() => {
-            this.startAnalyze();
+            this.handleAnalyze();
         }, mediumWaitTime);
     }
 
@@ -76,8 +79,8 @@ export class AnalysisResolver {
         this._reanalysisQueue.push(this.recordList.get(uri)!);
     }
 
-    private startAnalyze() {
-        // Analyze the file in the queue
+    // Pop and analyze the file in the queue
+    private popAndAnalyze() {
         let record = this._analysisQueue.shift();
         let shouldReanalyze = true;
 
@@ -94,10 +97,41 @@ export class AnalysisResolver {
         if (shouldReanalyze) {
             this.reanalyzeFilesWithDependency(record.uri);
         }
+    }
+
+    /**
+     * Processes any queued files for analysis immediately if they exist.
+     */
+    public flush(uri: string | undefined) {
+        // Analyze until the queue is empty
+        while (this._analysisQueue.length > 0) {
+            this.popAndAnalyze();
+        }
+
+        if (uri === undefined) {
+            // If the uri is not specified, reanalyze all files in the reanalysis queue
+            while (this._reanalysisQueue.length > 0) {
+                this.popAndAnalyze();
+            }
+        } else if (this._reanalysisQueue.some(record => record.uri === uri)) {
+            // If the file is in the reanalysis queue, move it to the front of the queue and reanalyze it.
+            const frontRecord = this.recordList.get(uri);
+            if (frontRecord === undefined) return;
+
+            this._reanalysisQueue =
+                [frontRecord, ...this._reanalysisQueue.filter(record => record.uri !== uri)];
+
+            this.popAndAnalyze();
+        }
+    }
+
+    private handleAnalyze() {
+        // Analyze the file in the queue
+        this.popAndAnalyze();
 
         if (this._analysisQueue.length > 0 || this._reanalysisQueue.length > 0) {
             this._analyzerTask.reschedule(() => {
-                this.startAnalyze();
+                this.handleAnalyze();
             }, shortWaitTime);
         }
     }
@@ -133,7 +167,6 @@ export class AnalysisResolver {
     }
 
     // We will reanalyze the files that include the file specified by the given URI.
-    // FIXME?
     private reanalyzeFilesWithDependency(targetUri: string) {
         const dependedFiles = Array.from(this.recordList.values()).filter(r =>
             this.resolveIncludePaths(r, this.findPredefinedUri(r.uri))

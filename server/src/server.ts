@@ -20,7 +20,7 @@ import {
     getInspectedRecordList,
     inspectFile,
     reinspectAllFiles,
-    registerDiagnosticsCallback
+    registerDiagnosticsCallback, flushInspectedRecord
 } from "./inspector/inspector";
 import {serveCompletions} from "./services/completion";
 import {serveSemanticTokens} from "./services/semanticTokens";
@@ -171,6 +171,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
 
+    flushInspectedRecord(params.textDocument.uri);
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
 
@@ -209,6 +210,8 @@ connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
+    flushInspectedRecord(params.textDocument.uri);
+
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
@@ -245,6 +248,8 @@ connection.onCompletion(
         // info and always provide the same completion items.
 
         const uri = params.textDocument.uri;
+
+        flushInspectedRecord(uri);
 
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
@@ -286,6 +291,8 @@ connection.onCompletionResolve(
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
+    flushInspectedRecord(uri);
+
     const diagnosedScope = getInspectedRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
@@ -294,6 +301,7 @@ connection.onSignatureHelp((params) => {
 
 // Document Formatting
 connection.onDocumentFormatting((params) => {
+    flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
