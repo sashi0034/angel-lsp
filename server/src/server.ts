@@ -179,7 +179,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const caret = params.position;
 
     const references = provideReferences(
-        analyzedScope,
+        analyzedScope.globalScope,
         getInspectedRecordList().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => getFileLocationOfToken(ref));
