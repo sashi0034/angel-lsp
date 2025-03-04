@@ -10,7 +10,6 @@ import {
 } from "../compiler_parser/nodes";
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
-import {SymbolScope} from "./symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import assert = require("node:assert");
 
@@ -29,6 +28,8 @@ export enum SymbolKind {
     Variable = 'Variable',
     Function = 'Function',
 }
+
+export type ScopePath = ReadonlyArray<string>;
 
 /**
  * The base interface for all symbols.
@@ -62,9 +63,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: SymbolScope,
+        public readonly defScope: ScopePath,
         public readonly defNode: TypeDefinitionNode | undefined,
-        public readonly membersScope: SymbolScope | undefined,
+        public readonly membersScope: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
@@ -77,9 +78,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: SymbolScope
+        defScope: ScopePath
         defNode: TypeDefinitionNode | undefined
-        membersScope: SymbolScope | undefined
+        membersScope: ScopePath | undefined
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
         baseList?: (ResolvedType | undefined)[]
@@ -131,7 +132,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: SymbolScope,
+        public readonly defScope: ScopePath,
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
@@ -141,7 +142,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: SymbolScope
+        defScope: ScopePath
         type: ResolvedType | undefined
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined
@@ -174,7 +175,7 @@ export class SymbolFunction extends SymbolBase {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: SymbolScope,
+        public readonly defScope: ScopePath,
         public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
@@ -186,7 +187,7 @@ export class SymbolFunction extends SymbolBase {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: SymbolScope
+        defScope: ScopePath
         defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
@@ -211,6 +212,9 @@ export class SymbolFunction extends SymbolBase {
         return this;
     }
 
+    public get identifierText(): string {
+        return this.defToken.text;
+    }
 }
 
 export class SymbolFunctionHolder implements SymbolHolder {

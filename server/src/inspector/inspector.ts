@@ -1,7 +1,7 @@
 import {Diagnostic} from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
-import {AnalyzedScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {URI} from "vscode-languageserver";
 import {tracer} from "../code/tracer";
 import {Profiler} from "../code/profiler";
@@ -11,6 +11,7 @@ import {parseAfterPreprocessed} from "../compiler_parser/parser";
 import {DelayedTask} from "../utils/delayedTask";
 import {diagnostic} from "../code/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
+import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
 interface InspectRecord {
     content: string;
@@ -21,7 +22,7 @@ interface InspectRecord {
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
-    analyzedScope: AnalyzedScope;
+    analyzerScope: AnalyzerScope;
 }
 
 const s_inspectedResults: Map<string, InspectRecord> = new Map();
@@ -49,7 +50,7 @@ function createEmptyRecord(): InspectRecord {
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         analyzerTask: new DelayedTask(),
-        analyzedScope: new AnalyzedScope('', new SymbolScope(undefined, '', undefined)),
+        analyzerScope: new AnalyzerScope('', new SymbolScope(undefined, '', undefined)),
     };
 }
 
@@ -77,6 +78,13 @@ export function getInspectedRecordList(): Readonly<InspectRecord>[] {
     return Array.from(s_inspectedResults.values());
 }
 
+/**
+ * Flush the inspected record of the specified file since the analyzer runs asynchronously.
+ */
+export function flushInspectedRecord(uri?: URI): void {
+    s_analysisResolver.flush(uri);
+}
+
 const profilerDescriptionLength = 12;
 
 export function inspectFile(uri: URI, content: string): void {
@@ -84,6 +92,10 @@ export function inspectFile(uri: URI, content: string): void {
 
     const record = s_inspectedResults.get(uri) ?? insertNewRecord(uri, content);
 
+    // Update the content
+    record.content = content;
+
+    // -----------------------------------------------
     diagnostic.beginSession();
 
     const profiler = new Profiler();
@@ -101,6 +113,7 @@ export function inspectFile(uri: URI, content: string): void {
     profiler.mark('Parser'.padEnd(profilerDescriptionLength));
 
     record.diagnosticsInParser = diagnostic.endSession();
+    // -----------------------------------------------
 
     // Send the diagnostics on the way to the client
     s_diagnosticsCallback({
@@ -110,6 +123,8 @@ export function inspectFile(uri: URI, content: string): void {
 
     // Request delayed execution of the analyzer
     s_analysisResolver.request(uri);
+
+    tracer.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
 }
 
 /**

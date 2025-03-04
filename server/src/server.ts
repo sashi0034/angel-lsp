@@ -14,23 +14,23 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightForModifierList, highlightForTokenList} from "./code/highlight";
-import {getFileLocationOfToken, serveDefinition, serveDefinitionAsToken} from "./services/definition";
+import {getFileLocationOfToken, provideDefinition, provideDefinitionAsToken} from "./services/definition";
 import {
     getInspectedRecord,
     getInspectedRecordList,
     inspectFile,
     reinspectAllFiles,
-    registerDiagnosticsCallback
-} from "./service_inspector/inspector";
-import {serveCompletions} from "./services/completion";
-import {serveSemanticTokens} from "./services/semanticTokens";
-import {serveReferences} from "./services/reference";
+    registerDiagnosticsCallback, flushInspectedRecord
+} from "./inspector/inspector";
+import {provideCompletions} from "./services/completion";
+import {provideSemanticTokens} from "./services/semanticTokens";
+import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./code/settings";
 import {formatDocument} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
-import {serveSignatureHelp} from "./services/signatureHelp";
+import {provideSignatureHelp} from "./services/signatureHelp";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -147,7 +147,7 @@ documents.onDidClose(e => {
 // });
 
 connection.languages.semanticTokens.on((params) => {
-    return serveSemanticTokens(getInspectedRecord(params.textDocument.uri).tokenizedTokens);
+    return provideSemanticTokens(getInspectedRecord(params.textDocument.uri).tokenizedTokens);
 });
 
 // Definition Provider
@@ -155,12 +155,12 @@ connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
 
-    const jumping = serveDefinitionAsToken(analyzedScope, caret);
+    const jumping = provideDefinitionAsToken(analyzedScope, caret);
     if (jumping === undefined) return;
 
     return getFileLocationOfToken(jumping);
@@ -171,14 +171,15 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return [];
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    flushInspectedRecord(params.textDocument.uri);
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
 
     const caret = params.position;
 
-    const references = serveReferences(
+    const references = provideReferences(
         analyzedScope,
-        getInspectedRecordList().map(result => result.analyzedScope.fullScope),
+        getInspectedRecordList().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => getFileLocationOfToken(ref));
 }
@@ -209,12 +210,14 @@ connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
     if (document === undefined) return;
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzedScope;
+    flushInspectedRecord(params.textDocument.uri);
+
+    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
     const caret = params.position;
 
-    const definition = serveDefinition(analyzedScope, caret);
+    const definition = provideDefinition(analyzedScope, caret);
     if (definition === undefined) return;
 
     return {
@@ -246,10 +249,12 @@ connection.onCompletion(
 
         const uri = params.textDocument.uri;
 
-        const diagnosedScope = getInspectedRecord(uri).analyzedScope;
+        flushInspectedRecord(uri);
+
+        const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
-        return serveCompletions(diagnosedScope.fullScope, params.position, uri);
+        return provideCompletions(diagnosedScope.globalScope, params.position, uri);
 
         // return [
         //     {
@@ -286,14 +291,17 @@ connection.onCompletionResolve(
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
-    const diagnosedScope = getInspectedRecord(uri).analyzedScope;
+    flushInspectedRecord(uri);
+
+    const diagnosedScope = getInspectedRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
-    return serveSignatureHelp(diagnosedScope.fullScope, params.position, uri);
+    return provideSignatureHelp(diagnosedScope.globalScope, params.position, uri);
 });
 
 // Document Formatting
 connection.onDocumentFormatting((params) => {
+    flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
     return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
