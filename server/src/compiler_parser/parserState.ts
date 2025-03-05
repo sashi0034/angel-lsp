@@ -1,5 +1,5 @@
-import {HighlightForToken} from "../code/highlight";
-import {diagnostic} from "../code/diagnostic";
+import {HighlightForToken} from "../core/highlight";
+import {diagnostic} from "../core/diagnostic";
 import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     ParserCachedData,

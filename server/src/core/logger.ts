@@ -10,7 +10,7 @@ export function verbose(info: string) {
     console.log(info);
 }
 
-export const tracer = {
+export const logger = {
     message,
     verbose,
 } as const;

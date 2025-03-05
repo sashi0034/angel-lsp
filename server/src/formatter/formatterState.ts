@@ -2,7 +2,7 @@ import {NodeScript} from "../compiler_parser/nodes";
 import {Position} from "vscode-languageserver";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {TokenBase, TokenObject} from "../compiler_tokenizer/tokenObject";
-import {getGlobalSettings} from "../code/settings";
+import {getGlobalSettings} from "../core/settings";
 
 interface IndentState {
     line: number;

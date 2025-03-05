@@ -13,7 +13,7 @@ import {
 import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
-import {highlightForModifierList, highlightForTokenList} from "./code/highlight";
+import {highlightForModifierList, highlightForTokenList} from "./core/highlight";
 import {getFileLocationOfToken, provideDefinition, provideDefinitionAsToken} from "./services/definition";
 import {
     getInspectedRecord,
@@ -27,7 +27,7 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {changeGlobalSettings} from "./code/settings";
+import {changeGlobalSettings} from "./core/settings";
 import {formatDocument} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";

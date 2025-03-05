@@ -3,13 +3,13 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {URI} from "vscode-languageserver";
-import {tracer} from "../code/tracer";
-import {Profiler} from "../code/profiler";
+import {logger} from "../core/logger";
+import {Profiler} from "../core/profiler";
 import {tokenize} from "../compiler_tokenizer/tokenizer";
 import {preprocessAfterTokenized, PreprocessedOutput} from "../compiler_parser/parserPreprocess";
 import {parseAfterPreprocessed} from "../compiler_parser/parser";
 import {DelayedTask} from "../utils/delayedTask";
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
@@ -88,7 +88,7 @@ export function flushInspectedRecord(uri?: URI): void {
 const profilerDescriptionLength = 12;
 
 export function inspectFile(uri: URI, content: string): void {
-    tracer.message(`[Tokenizer and Parser]\n${uri}`);
+    logger.message(`[Tokenizer and Parser]\n${uri}`);
 
     const record = s_inspectedResults.get(uri) ?? insertNewRecord(uri, content);
 
@@ -124,7 +124,7 @@ export function inspectFile(uri: URI, content: string): void {
     // Request delayed execution of the analyzer
     s_analysisResolver.request(uri);
 
-    tracer.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+    logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
 }
 
 /**

@@ -7,7 +7,7 @@ import {
     TokenReserved,
     TokenString
 } from "./tokenObject";
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {TokenizerState, UnknownBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";

@@ -22,7 +22,7 @@ import {
     NodeWhile
 } from "../compiler_parser/nodes";
 import {ComplementHint} from "./complementHint";
-import {getGlobalSettings} from "../code/settings";
+import {getGlobalSettings} from "../core/settings";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import assert = require("node:assert");

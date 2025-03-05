@@ -1,4 +1,4 @@
-import {HighlightForModifier, HighlightForToken} from "../code/highlight";
+import {HighlightForModifier, HighlightForToken} from "../core/highlight";
 import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
 

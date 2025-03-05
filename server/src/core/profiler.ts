@@ -1,4 +1,4 @@
-import {tracer} from "./tracer";
+import {logger} from "./logger";
 
 export class Profiler {
     private start: number;
@@ -12,7 +12,7 @@ export class Profiler {
         // const message = `${this.name} | ${description}`;
         // tracer.verbose(`${message.padEnd(buffer_28)}: ${performance.now() - this.start} ms`);
 
-        tracer.verbose(`${description} : ${performance.now() - this.start} ms`);
+        logger.verbose(`${description} : ${performance.now() - this.start} ms`);
 
         this.start = performance.now();
     }

@@ -1,4 +1,4 @@
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from "./textLocation";
 
 export class TokenizerState {

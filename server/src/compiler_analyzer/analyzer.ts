@@ -72,7 +72,7 @@ import {
     TemplateTranslation
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
-import {getGlobalSettings} from "../code/settings";
+import {getGlobalSettings} from "../core/settings";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";

@@ -3,15 +3,15 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
-import {getGlobalSettings} from "../code/settings";
+import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
 import {getParentDirectoryList, readFileContent, resolveUri} from "./fileUtils";
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
-import {Profiler} from "../code/profiler";
+import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
 import {analyzeAfterHoisted} from "../compiler_analyzer/analyzer";
-import {tracer} from "../code/tracer";
+import {logger} from "../core/logger";
 import {inspectFile} from "./inspector";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
@@ -139,7 +139,7 @@ export class AnalysisResolver {
     private analyzeFile(record: PartialInspectRecord) {
         const predefinedUri = this.findPredefinedUri(record.uri);
 
-        tracer.message(`[Analyzer]\n${record.uri}`);
+        logger.message(`[Analyzer]\n${record.uri}`);
 
         // Collect scopes in included files
         const includedScopes = this.collectIncludedScope(record, predefinedUri);
@@ -163,7 +163,7 @@ export class AnalysisResolver {
             diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
         });
 
-        tracer.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+        logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
     }
 
     // We will reanalyze the files that include the file specified by the given URI.
