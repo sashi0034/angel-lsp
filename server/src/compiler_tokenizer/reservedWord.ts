@@ -11,9 +11,9 @@ const reservedMarkArray = [
     '#', // Strictly speaking, '#' is not a Mark, but is included here for use in preprocessing.
 ];
 
-// A list of Marks with context-dependent reserved words removed. We call it Weak Marks.
+// A list of Marks with context-dependent reserved words removed. We call it Atomic Marks.
 // For example, in "array<array<int>>", '>>' should be recognized as ['>', '>'].
-const reservedWeakMarkArray = [
+const reservedAtomicMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '&&', '||', '!', '[', ']', '^^', '@', '::',
     // '>=', '>>', '>>>', '>>=', '>>>=', '!is' // These are context-dependent.
     '#', // For preprocessor
@@ -122,11 +122,11 @@ function createProperties() {
     return properties;
 }
 
-const reservedWeakMarkProperties = createWeakMarkPropertyTrie();
+const reservedAtomicMarkProperties = createAtomicMarkPropertyTrie();
 
-function createWeakMarkPropertyTrie() {
+function createAtomicMarkPropertyTrie() {
     const markMap = new Trie<ReservedWordProperty>();
-    for (const mark of reservedWeakMarkArray) {
+    for (const mark of reservedAtomicMarkArray) {
         markMap.insert(mark, reservedWordProperties.get(mark)!);
     }
     return markMap;
@@ -138,8 +138,8 @@ function createWeakMarkPropertyTrie() {
  * @param start - The starting position in the string to begin the search.
  * @returns A `TriePair<ReservedWordProperty>` if a match is found, or `undefined` if not.
  */
-export function findReservedWeakMarkProperty(str: string, start: number): TriePair<ReservedWordProperty> | undefined {
-    return reservedWeakMarkProperties.find(str, start);
+export function findReservedAtomicMarkProperty(str: string, start: number): TriePair<ReservedWordProperty> | undefined {
+    return reservedAtomicMarkProperties.find(str, start);
 }
 
 const reservedKeywordProperties = createKeywordPropertyMap();

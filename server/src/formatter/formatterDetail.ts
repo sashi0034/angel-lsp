@@ -2,8 +2,8 @@ import {Position} from "vscode-languageserver";
 import {FormatterState, stepCursorAlongLines} from "./formatterState";
 import {TokenObject, TokenKind} from "../compiler_tokenizer/tokenObject";
 import {NodesBase} from "../compiler_parser/nodes";
-import {tracer} from "../code/tracer";
-import {getGlobalSettings} from "../code/settings";
+import {logger} from "../core/logger";
+import {getGlobalSettings} from "../core/settings";
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -136,7 +136,7 @@ export function formatTargetBy(format: FormatterState, target: string, option: F
         }
 
         if (format.getTextAt(cursor, target.length) !== target) {
-            tracer.verbose(`'${target}' not found at ${cursor.line}:${cursor.character}`);
+            logger.verbose(`'${target}' not found at ${cursor.line}:${cursor.character}`);
             return false;
         }
 
@@ -154,7 +154,7 @@ function getMaxBlankLines(): number {
 function formatBlankLines(format: FormatterState, startLine: number, endLine: number) {
     for (let i = startLine; i <= endLine; i++) {
         if (/^\s*$/.test(format.textLines[i]) === false) {
-            tracer.verbose(`Not a blank line at ${i}`);
+            logger.verbose(`Not a blank line at ${i}`);
             return;
         }
     }

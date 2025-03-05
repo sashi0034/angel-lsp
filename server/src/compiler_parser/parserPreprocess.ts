@@ -1,6 +1,6 @@
 import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
-import {diagnostic} from "../code/diagnostic";
-import {HighlightForToken} from "../code/highlight";
+import {diagnostic} from "../core/diagnostic";
+import {HighlightForToken} from "../core/highlight";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 /**

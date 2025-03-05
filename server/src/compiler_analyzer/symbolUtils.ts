@@ -4,7 +4,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {isAnonymousIdentifier, SymbolAndScope, SymbolTable, SymbolScope} from "./symbolScope";
 import assert = require("node:assert");
 import {ResolvedType} from "./resolvedType";

@@ -7,9 +7,9 @@ import {
     TokenReserved,
     TokenString
 } from "./tokenObject";
-import {diagnostic} from "../code/diagnostic";
-import {TokenizerState, UnknownBuffer} from "./tokenizerState";
-import {findReservedKeywordProperty, findReservedWeakMarkProperty, ReservedWordProperty} from "./reservedWord";
+import {diagnostic} from "../core/diagnostic";
+import {TokenizerState, UnknownWordBuffer} from "./tokenizerState";
+import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
 
 function isDigit(c: string): boolean {
@@ -186,7 +186,7 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
 
 // Check if the next token is a mark and tokenize it.
 function tryMark(tokenizer: TokenizerState, location: TextLocation): TokenReserved | undefined {
-    const mark = findReservedWeakMarkProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
+    const mark = findReservedAtomicMarkProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
     if (mark === undefined) return undefined;
 
     tokenizer.stepFor(mark.key.length);
@@ -223,7 +223,7 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
 export function tokenize(path: string, content: string): TokenObject[] {
     const tokens: TokenObject[] = [];
     const tokenizer = new TokenizerState(content);
-    const unknownBuffer = new UnknownBuffer();
+    const unknownWordBuffer = new UnknownWordBuffer();
 
     for (; ;) {
         if (tokenizer.isEnd()) break;
@@ -275,10 +275,10 @@ export function tokenize(path: string, content: string): TokenObject[] {
         }
 
         // If the token is unknown, buffer it.
-        unknownBuffer.append(location, tokenizer.next());
+        unknownWordBuffer.append(location, tokenizer.next());
         tokenizer.stepNext();
     }
 
-    unknownBuffer.flush();
+    unknownWordBuffer.flush();
     return tokens;
 }

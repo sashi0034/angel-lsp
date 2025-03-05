@@ -1,4 +1,4 @@
-import {diagnostic} from "../code/diagnostic";
+import {diagnostic} from "../core/diagnostic";
 import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from "./textLocation";
 
 export class TokenizerState {
@@ -77,7 +77,7 @@ export class TokenizerState {
 /**
  * Buffer for strings that are not alphabets, numbers, or symbols
  */
-export class UnknownBuffer {
+export class UnknownWordBuffer {
     private _bufferText: string = "";
     private _bufferLocation: MutableTextRange | null = null;
 

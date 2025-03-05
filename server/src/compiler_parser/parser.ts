@@ -65,7 +65,7 @@ import {
     ReferenceModifier,
     TypeModifier
 } from "./nodes";
-import {HighlightForToken} from "../code/highlight";
+import {HighlightForToken} from "../core/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
 import {ParserCacheKind} from "./parserCache";

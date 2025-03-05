@@ -1,5 +1,5 @@
-import {HighlightForToken} from "../code/highlight";
-import {diagnostic} from "../code/diagnostic";
+import {HighlightForToken} from "../core/highlight";
+import {diagnostic} from "../core/diagnostic";
 import {TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     ParserCachedData,
@@ -119,6 +119,7 @@ export class ParserState {
      * @param key The cache key that identifies the type of parsing result to cache.
      * @returns An object that allows restoring a cached result or storing a new one.
      */
+    // TODO: remove?
     public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
         const rangeStart = this._cursorIndex;
         const data = this._caches[rangeStart];

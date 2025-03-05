@@ -1030,7 +1030,7 @@ function formatCondition(format: FormatterState, condition: NodeCondition) {
 // COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
 // WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
-export function formatDocument(content: string, tokens: TokenObject[], ast: NodeScript): TextEdit[] {
+export function formatFile(content: string, tokens: TokenObject[], ast: NodeScript): TextEdit[] {
     const format = new FormatterState(content, tokens, ast);
     formatScript(format, ast);
 

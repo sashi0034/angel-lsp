@@ -1,5 +1,5 @@
 import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
-import {getGlobalSettings} from "../code/settings";
+import {getGlobalSettings} from "../core/settings";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 // TODO: Processing multiple files simultaneously?

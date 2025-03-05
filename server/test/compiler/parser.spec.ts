@@ -1,6 +1,6 @@
 import {tokenize} from "../../src/compiler_tokenizer/tokenizer";
 import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
-import {diagnostic} from '../../src/code/diagnostic';
+import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenized} from "../../src/compiler_parser/parserPreprocess";
 
 function itParses(content: string) {
