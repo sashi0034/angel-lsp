@@ -28,7 +28,7 @@ import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings} from "./core/settings";
-import {formatDocument} from "./formatter/formatter";
+import {formatFile} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextPosition} from "./compiler_tokenizer/textLocation";
@@ -304,7 +304,7 @@ connection.onSignatureHelp((params) => {
 connection.onDocumentFormatting((params) => {
     flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
-    return formatDocument(inspected.content, inspected.tokenizedTokens, inspected.ast);
+    return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
 
 // Make the text document manager listen on the connection
