@@ -7,7 +7,7 @@ import {
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
-    collectParentScopes,
+    collectParentScopeList,
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
@@ -33,7 +33,7 @@ export function provideCompletions(
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
-    for (const scope of [...collectParentScopes(caretScope), caretScope]) {
+    for (const scope of [...collectParentScopeList(caretScope), caretScope]) {
         items.push(...getCompletionSymbolsInScope(scope));
     }
 

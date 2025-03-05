@@ -77,7 +77,7 @@ export class TokenizerState {
 /**
  * Buffer for strings that are not alphabets, numbers, or symbols
  */
-export class UnknownBuffer {
+export class UnknownWordBuffer {
     private _bufferText: string = "";
     private _bufferLocation: MutableTextRange | null = null;
 

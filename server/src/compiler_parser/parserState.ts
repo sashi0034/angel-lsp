@@ -119,6 +119,7 @@ export class ParserState {
      * @param key The cache key that identifies the type of parsing result to cache.
      * @returns An object that allows restoring a cached result or storing a new one.
      */
+    // TODO: remove?
     public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
         const rangeStart = this._cursorIndex;
         const data = this._caches[rangeStart];

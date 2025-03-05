@@ -339,13 +339,14 @@ export interface SymbolAndScope {
     readonly scope: SymbolScope;
 }
 
-export function collectParentScopes(scope: SymbolScope): SymbolScope[] {
+export function collectParentScopeList(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
     let current = scope;
     while (current.parentScope !== undefined) {
         result.push(current.parentScope);
         current = current.parentScope;
     }
+
     return result;
 }
 
