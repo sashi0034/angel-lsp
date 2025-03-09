@@ -64,7 +64,7 @@ export type ScopeLinkedNode =
     // Statement nodes
     | NodeStatBlock
     | NodeFor
-	| NodeForEach
+    | NodeForEach
     | NodeWhile
     | NodeDoWhile
     | NodeIf

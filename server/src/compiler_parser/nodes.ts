@@ -131,7 +131,7 @@ export interface NodeEnum extends NodesBase {
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];
-	readonly enumType: TokenReserved;
+    readonly enumType: TokenReserved;
 }
 
 export interface ParsedEnumMember {
@@ -321,7 +321,7 @@ export interface NodeDataType extends NodesBase {
 export type NodeStatement =
     NodeIf
     | NodeFor
-	| NodeForEach
+    | NodeForEach
     | NodeWhile
     | NodeReturn
     | NodeStatBlock

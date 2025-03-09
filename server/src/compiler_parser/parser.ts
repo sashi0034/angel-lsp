@@ -239,18 +239,18 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const identifier = expectIdentifier(parser, HighlightForToken.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
 
-	let enumType = TokenReserved.createVirtual('int32');
-	if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
+    let enumType = TokenReserved.createVirtual('int32');
+    if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
-		const typeIdentifier = parsePrimeType(parser);
+        const typeIdentifier = parsePrimeType(parser);
 
-		if (typeIdentifier === undefined) {
-			parser.backtrack(rangeStart);
-			return ParseFailure.Mismatch;
-		}
+        if (typeIdentifier === undefined) {
+            parser.backtrack(rangeStart);
+            return ParseFailure.Mismatch;
+        }
 
-		enumType = typeIdentifier;
-	}
+        enumType = typeIdentifier;
+    }
 
     let memberList: ParsedEnumMember[] = [];
     const scopeStart = parser.next();
@@ -268,7 +268,7 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
         entity: entity,
         identifier: identifier,
         memberList: memberList,
-		enumType: enumType
+        enumType: enumType
     };
 }
 
@@ -428,23 +428,23 @@ function expectClassMembers(parser: ParserState) {
 
 // TYPE IDENTIFIER
 function parseForEachVar(parser: ParserState): NodeForEachVar | undefined {
-	const rangeStart = parser.next();
+    const rangeStart = parser.next();
     const type = expectType(parser);
 
-	if (type === undefined)
-		return undefined;
+    if (type === undefined)
+        return undefined;
 
     const identifier = expectIdentifier(parser, HighlightForToken.Variable);
 
-	if (identifier === undefined)
-		return undefined;
+    if (identifier === undefined)
+        return undefined;
 
-	return {
-		nodeName: NodeName.ForEachVar,
-		nodeRange: new TokenRange(rangeStart, parser.prev()),
-		type: type,
-		identifier: identifier
-	};
+    return {
+        nodeName: NodeName.ForEachVar,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        type: type,
+        identifier: identifier
+    };
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
@@ -1351,12 +1351,12 @@ function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     if (parsedFor === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedFor !== ParseFailure.Mismatch) return parsedFor;
 
-	if (getGlobalSettings().supportsForEach)
-	{
-		const parsedForEach = parseForEach(parser);
-		if (parsedForEach === ParseFailure.Pending) return ParseFailure.Pending;
-		if (parsedForEach !== ParseFailure.Mismatch) return parsedForEach;
-	}
+    if (getGlobalSettings().supportsForEach)
+    {
+        const parsedForEach = parseForEach(parser);
+        if (parsedForEach === ParseFailure.Pending) return ParseFailure.Pending;
+        if (parsedForEach !== ParseFailure.Mismatch) return parsedForEach;
+    }
 
     const parsedWhile = parseWhile(parser);
     if (parsedWhile === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1503,28 +1503,28 @@ function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         variables: [],
         statement: undefined,
-		assign: undefined
+        assign: undefined
     };
 
     while (parser.isEnd() === false) {
         if (expectSeparatorOrClose(parser, ',', ':', result.variables.length > 0) === BreakOrThrough.Break) break;
 
-		const variable = parseForEachVar(parser);
+        const variable = parseForEachVar(parser);
 
-		if (variable === undefined) {
-			parser.error("Invalid variable declaration.");
-			return ParseFailure.Pending;
-		}
+        if (variable === undefined) {
+            parser.error("Invalid variable declaration.");
+            return ParseFailure.Pending;
+        }
 
-		result.variables.push(variable);
-	}
+        result.variables.push(variable);
+    }
 
     result.assign = expectAssign(parser);
 
     if (parser.expect(')', HighlightForToken.Operator) === false) return appliedNodeEnd(parser, result);
 
     result.statement = expectStatement(parser);
-	
+    
     return appliedNodeEnd(parser, result);
 }
 

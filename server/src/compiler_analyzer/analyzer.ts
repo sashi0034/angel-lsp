@@ -133,16 +133,16 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
 // TYPE IDENTIFIER
 export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEachVar, nodeAssign: NodeAssign) {
-	// TODO: figure out how to resolve `opForValue{N}`
-	// when `auto` is used
-	const variable: SymbolVariable = SymbolVariable.create({
-		defToken: nodeForEachVar.identifier,
-		defScope: scope.scopePath,
-		type: analyzeType(scope, nodeForEachVar.type),
-		isInstanceMember: false,
-		accessRestriction: undefined,
-	});
-	scope.insertSymbolAndCheck(variable);
+    // TODO: figure out how to resolve `opForValue{N}`
+    // when `auto` is used
+    const variable: SymbolVariable = SymbolVariable.create({
+        defToken: nodeForEachVar.identifier,
+        defScope: scope.scopePath,
+        type: analyzeType(scope, nodeForEachVar.type),
+        isInstanceMember: false,
+        accessRestriction: undefined,
+    });
+    scope.insertSymbolAndCheck(variable);
 }
 
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
@@ -453,12 +453,12 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 
 // FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
-	// analyze assign first, since vars may need it
+    // analyze assign first, since vars may need it
     analyzeAssign(scope, nodeForEach.assign as NodeAssign);
 
-	for (const v of nodeForEach.variables) {
-		analyzeForEachVar(scope, v, nodeForEach.assign as NodeAssign);
-	}
+    for (const v of nodeForEach.variables) {
+        analyzeForEachVar(scope, v, nodeForEach.assign as NodeAssign);
+    }
 
     if (nodeForEach.statement !== undefined) analyzeStatement(scope, nodeForEach.statement);
 }
