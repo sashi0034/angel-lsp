@@ -1039,24 +1039,31 @@ function isCommaOrParensClose(character: string): boolean {
 }
 
 function parseSeparatorOrClose(
-    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
+    parser: ParserState, separatorOp: string, closeOp: string, canSeparator: boolean, allowTrailing: boolean = false
 ): BreakOrThrough | undefined {
     const next = parser.next().text;
     if (next === closeOp) {
         parser.commit(HighlightForToken.Operator);
         return BreakOrThrough.Break;
-    } else if (canColon) {
+    } else if (canSeparator) {
         if (next !== separatorOp) return undefined;
         parser.commit(HighlightForToken.Operator);
+
+        if (allowTrailing) {
+            if (parser.next().text == closeOp) {
+                parser.commit(HighlightForToken.Operator);
+                return BreakOrThrough.Break;
+            }
+        }
     }
 
     return BreakOrThrough.Through;
 }
 
 function expectSeparatorOrClose(
-    parser: ParserState, separatorOp: string, closeOp: string, canColon: boolean
+    parser: ParserState, separatorOp: string, closeOp: string, canSeparator: boolean, allowTrailing: boolean = false
 ): BreakOrThrough {
-    const parsed = parseSeparatorOrClose(parser, separatorOp, closeOp, canColon);
+    const parsed = parseSeparatorOrClose(parser, separatorOp, closeOp, canSeparator, allowTrailing);
     if (parsed !== undefined) return parsed;
 
     parser.error(`Expected '${separatorOp}' or '${closeOp}'.`);
@@ -1191,7 +1198,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
 
     const initList: (NodeAssign | NodeInitList)[] = [];
     while (parser.isEnd() === false) {
-        if (expectSeparatorOrClose(parser, ',', '}', initList.length > 0) === BreakOrThrough.Break) break;
+        if (expectSeparatorOrClose(parser, ',', '}', initList.length > 0, true) === BreakOrThrough.Break) break;
 
         const assign = parseAssign(parser);
         if (assign !== undefined) {
