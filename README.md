@@ -1,6 +1,8 @@
 # AngelScript Language Server for VSCode
 
 [![Tests](https://github.com/sashi0034/angel-lsp/actions/workflows/tests.yml/badge.svg)](https://github.com/sashi0034/angel-lsp/actions/workflows/tests.yml)
+![Version (including pre-releases)](https://img.shields.io/visual-studio-marketplace/v/sashi0034.angel-lsp)
+![Installs](https://img.shields.io/visual-studio-marketplace/i/sashi0034.angel-lsp)
 
 This is a Language Server for Visual Studio Code that offers features to make AngelScript development easier and faster.
 
