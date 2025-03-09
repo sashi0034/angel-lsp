@@ -1507,15 +1507,7 @@ function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     };
 
     while (parser.isEnd() === false) {
-		if (parser.next().text === ':') {
-			if (!result.variables.length) {
-				parser.error("Expected at least one variable declaration.");
-				return ParseFailure.Pending;				
-			}
-
-			parser.expect(':', HighlightForToken.Operator);
-			break;
-		}
+        if (expectSeparatorOrClose(parser, ',', ':', result.variables.length > 0) === BreakOrThrough.Break) break;
 
 		const variable = parseForEachVar(parser);
 
