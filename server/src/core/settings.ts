@@ -7,6 +7,8 @@ export interface LanguageServerSettings {
     implicitMutualInclusion: boolean;
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
+    supportsForEach: boolean;
+    supportsTypedEnumerations: boolean;
     builtinStringTypes: string[];
     builtinArrayType: string,
     formatter: {
@@ -24,6 +26,8 @@ const defaultSettings: LanguageServerSettings = {
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
+    supportsForEach: false,
+    supportsTypedEnumerations: false,
     builtinStringTypes: ["string", "String"],
     builtinArrayType: "array",
     formatter: {

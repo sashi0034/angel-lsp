@@ -1,4 +1,4 @@
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "./tokenRange";
 
 export enum AccessModifier {
@@ -58,6 +58,8 @@ export enum NodeName {
     Switch = 'Switch',
     Break = 'Break',
     For = 'For',
+    ForEach = 'ForEach',
+    ForEachVar = 'ForEachVar',
     While = 'While',
     DoWhile = 'DoWhile',
     If = 'If',
@@ -129,6 +131,7 @@ export interface NodeEnum extends NodesBase {
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];
+    readonly enumType: TokenReserved;
 }
 
 export interface ParsedEnumMember {
@@ -314,10 +317,11 @@ export interface NodeDataType extends NodesBase {
 
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
-// STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 export type NodeStatement =
     NodeIf
     | NodeFor
+    | NodeForEach
     | NodeWhile
     | NodeReturn
     | NodeStatBlock
@@ -346,6 +350,21 @@ export interface NodeFor extends NodesBase {
     readonly initial: NodeVar | NodeExprStat,
     readonly condition: NodeExprStat | undefined
     readonly incrementList: NodeAssign[],
+    readonly statement: NodeStatement | undefined
+}
+
+// like NodeVar but no initializer or modifier
+export interface NodeForEachVar extends NodesBase {
+    readonly nodeName: NodeName.ForEachVar
+    readonly type: NodeType,
+    readonly identifier: TokenObject;
+}
+
+// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+export interface NodeForEach extends NodesBase {
+    readonly nodeName: NodeName.ForEach
+    readonly variables: NodeForEachVar[],
+    readonly assign: NodeAssign | undefined,
     readonly statement: NodeStatement | undefined
 }
 
