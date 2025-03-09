@@ -455,7 +455,7 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
     // analyze assign first, since vars may need it
     analyzeAssign(scope, nodeForEach.assign as NodeAssign);
-
+    
     for (const v of nodeForEach.variables) {
         analyzeForEachVar(scope, v, nodeForEach.assign as NodeAssign);
     }
