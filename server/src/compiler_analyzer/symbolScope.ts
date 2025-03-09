@@ -11,6 +11,7 @@ import {
     NodeDoWhile,
     NodeEnum,
     NodeFor,
+    NodeForEach,
     NodeFunc,
     NodeIf,
     NodeInterface,
@@ -63,6 +64,7 @@ export type ScopeLinkedNode =
     // Statement nodes
     | NodeStatBlock
     | NodeFor
+	| NodeForEach
     | NodeWhile
     | NodeDoWhile
     | NodeIf

@@ -29,6 +29,8 @@ import {
     NodeExprTerm2,
     NodeExprValue,
     NodeFor,
+    NodeForEach,
+    NodeForEachVar,
     NodeFunc,
     NodeFuncCall,
     NodeFuncDef,
@@ -66,12 +68,13 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../core/highlight";
-import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
+import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
 import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
+import { getGlobalSettings } from '../core/settings';
 
 // SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {
@@ -221,7 +224,7 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
     return true;
 }
 
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'))
+// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const rangeStart = parser.next();
 
@@ -235,6 +238,19 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
 
     const identifier = expectIdentifier(parser, HighlightForToken.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
+
+	let enumType = TokenReserved.createVirtual('int32');
+	if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
+        parser.commit(HighlightForToken.Operator);
+		const typeIdentifier = parsePrimeType(parser);
+
+		if (typeIdentifier === undefined) {
+			parser.backtrack(rangeStart);
+			return ParseFailure.Mismatch;
+		}
+
+		enumType = typeIdentifier;
+	}
 
     let memberList: ParsedEnumMember[] = [];
     const scopeStart = parser.next();
@@ -251,7 +267,8 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
         scopeRange: new TokenRange(scopeStart, parser.prev()),
         entity: entity,
         identifier: identifier,
-        memberList: memberList
+        memberList: memberList,
+		enumType: enumType
     };
 }
 
@@ -407,6 +424,27 @@ function expectClassMembers(parser: ParserState) {
     }
 
     return members;
+}
+
+// TYPE IDENTIFIER
+function parseForEachVar(parser: ParserState): NodeForEachVar | undefined {
+	const rangeStart = parser.next();
+    const type = expectType(parser);
+
+	if (type === undefined)
+		return undefined;
+
+    const identifier = expectIdentifier(parser, HighlightForToken.Variable);
+
+	if (identifier === undefined)
+		return undefined;
+
+	return {
+		nodeName: NodeName.ForEachVar,
+		nodeRange: new TokenRange(rangeStart, parser.prev()),
+		type: type,
+		identifier: identifier
+	};
 }
 
 // TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
@@ -1303,7 +1341,7 @@ function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'ove
     else if (token === 'property') attribute.isProperty = true;
 }
 
-// STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     const parsedIf = parseIf(parser);
     if (parsedIf === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1312,6 +1350,13 @@ function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     const parsedFor = parseFor(parser);
     if (parsedFor === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedFor !== ParseFailure.Mismatch) return parsedFor;
+
+	if (getGlobalSettings().supportsForEach)
+	{
+		const parsedForEach = parseForEach(parser);
+		if (parsedForEach === ParseFailure.Pending) return ParseFailure.Pending;
+		if (parsedForEach !== ParseFailure.Mismatch) return parsedForEach;
+	}
 
     const parsedWhile = parseWhile(parser);
     if (parsedWhile === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1442,6 +1487,52 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
     }
 
     result.statement = expectStatement(parser);
+    return appliedNodeEnd(parser, result);
+}
+
+// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
+    if (parser.next().text !== 'foreach') return ParseFailure.Mismatch;
+    const rangeStart = parser.next();
+    parser.commit(HighlightForToken.Keyword);
+
+    if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
+
+    const result: Mutable<NodeForEach> = {
+        nodeName: NodeName.ForEach,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        variables: [],
+        statement: undefined,
+		assign: undefined
+    };
+
+    while (parser.isEnd() === false) {
+		if (parser.next().text === ':') {
+			if (!result.variables.length) {
+				parser.error("Expected at least one variable declaration.");
+				return ParseFailure.Pending;				
+			}
+
+			parser.expect(':', HighlightForToken.Operator);
+			break;
+		}
+
+		const variable = parseForEachVar(parser);
+
+		if (variable === undefined) {
+			parser.error("Invalid variable declaration.");
+			return ParseFailure.Pending;
+		}
+
+		result.variables.push(variable);
+	}
+
+    result.assign = expectAssign(parser);
+
+    if (parser.expect(')', HighlightForToken.Operator) === false) return appliedNodeEnd(parser, result);
+
+    result.statement = expectStatement(parser);
+	
     return appliedNodeEnd(parser, result);
 }
 

@@ -18,6 +18,8 @@ import {
     NodeExprTerm2,
     NodeExprValue,
     NodeFor,
+    NodeForEach,
+    NodeForEachVar,
     NodeFunc,
     NodeFuncCall,
     NodeIf,
@@ -127,6 +129,20 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
     }
 
     insertVariables(scope, varType, nodeVar, isInstanceMember);
+}
+
+// TYPE IDENTIFIER
+export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEachVar, nodeAssign: NodeAssign) {
+	// TODO: figure out how to resolve `opForValue{N}`
+	// when `auto` is used
+	const variable: SymbolVariable = SymbolVariable.create({
+		defToken: nodeForEachVar.identifier,
+		defScope: scope.scopePath,
+		type: analyzeType(scope, nodeForEachVar.type),
+		isInstanceMember: false,
+		accessRestriction: undefined,
+	});
+	scope.insertSymbolAndCheck(variable);
 }
 
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
@@ -357,7 +373,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 
 // FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
-// STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     switch (statement.nodeName) {
     case NodeName.If:
@@ -366,6 +382,11 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     case NodeName.For: {
         const childScope = scope.insertScope(createAnonymousIdentifier(), statement);
         analyzeFor(childScope, statement);
+        break;
+    }
+    case NodeName.ForEach: {
+        const childScope = scope.insertScope(createAnonymousIdentifier(), statement);
+        analyzeForEach(childScope, statement);
         break;
     }
     case NodeName.While: {
@@ -428,6 +449,18 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
     }
 
     if (nodeFor.statement !== undefined) analyzeStatement(scope, nodeFor.statement);
+}
+
+// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
+	// analyze assign first, since vars may need it
+    analyzeAssign(scope, nodeForEach.assign as NodeAssign);
+
+	for (const v of nodeForEach.variables) {
+		analyzeForEachVar(scope, v, nodeForEach.assign as NodeAssign);
+	}
+
+    if (nodeForEach.statement !== undefined) analyzeStatement(scope, nodeForEach.statement);
 }
 
 // WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
