@@ -5,6 +5,8 @@ interface CaretAndContent {
     content: string;
 }
 
+// FIXME: Use $C$ instead of <c> for the caret marker because it looks like a template
+
 /**
  * Returns the caret position and the content of the specified string.
  * Caret should be represented by "<c>".
