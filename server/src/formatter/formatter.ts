@@ -435,7 +435,8 @@ function formatParamList(format: FormatterState, paramList: NodeParamList) {
             }
 
             const defaultExpr = paramList[i].defaultExpr;
-            if (defaultExpr !== undefined) {
+            // TODO format void?
+            if (defaultExpr !== undefined && defaultExpr.nodeName !== NodeName.ExprVoid) {
                 formatTargetBy(format, '=', {});
                 formatExpr(format, defaultExpr);
             }

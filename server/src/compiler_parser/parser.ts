@@ -28,6 +28,7 @@ import {
     NodeExprTerm1,
     NodeExprTerm2,
     NodeExprValue,
+    NodeExprVoid,
     NodeFor,
     NodeForEach,
     NodeForEachVar,
@@ -981,7 +982,7 @@ function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     return statBlock;
 }
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']]})] ')'
 function parseParamList(parser: ParserState): NodeParamList | undefined {
     if (parser.next().text !== '(') return undefined;
     parser.commit(HighlightForToken.Operator);
@@ -1010,10 +1011,10 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
             parser.commit(HighlightForToken.Variable);
         }
 
-        let defaultExpr: NodeExpr | undefined = undefined;
+        let defaultExpr: NodeExpr | NodeExprVoid | undefined = undefined;
         if (parser.next().text === '=') {
             parser.commit(HighlightForToken.Operator);
-            defaultExpr = expectExpr(parser);
+            defaultExpr = expectExprOrVoid(parser);
         }
 
         paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
@@ -1782,6 +1783,24 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
 }
 
 function expectExpr(parser: ParserState): NodeExpr | undefined {
+    const expr = parseExpr(parser);
+    if (expr === undefined) {
+        parser.error("Expected expression.");
+    }
+    return expr;
+}
+
+// for optional parameters
+function expectExprOrVoid(parser: ParserState): NodeExpr | NodeExprVoid | undefined {
+    if (parser.next().text === 'void') {
+        const rangeStart = parser.next();
+        parser.commit(HighlightForToken.Keyword);
+        return {
+            nodeName: NodeName.ExprVoid,
+            nodeRange: new TokenRange(rangeStart, parser.prev())
+        };
+    }
+
     const expr = parseExpr(parser);
     if (expr === undefined) {
         parser.error("Expected expression.");
