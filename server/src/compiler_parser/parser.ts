@@ -981,7 +981,7 @@ function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     return statBlock;
 }
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' EXPR]})]] ')'
 function parseParamList(parser: ParserState): NodeParamList | undefined {
     if (parser.next().text !== '(') return undefined;
     parser.commit(HighlightForToken.Operator);
@@ -993,8 +993,14 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
     }
 
     const paramList: NodeParamList = [];
+    let isVariadic = false;
+
     while (parser.isEnd() === false) {
         if (expectCommaOrParensClose(parser, paramList.length > 0) === BreakOrThrough.Break) break;
+
+        if (isVariadic) {
+            parser.error('Variadic ellipses must be the last parameter.');
+        }
 
         const type = expectType(parser);
         if (type === undefined) {
@@ -1005,18 +1011,25 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
         const typeMod = parseTypeMod(parser);
 
         let identifier: TokenObject | undefined = undefined;
-        if (parser.next().kind === TokenKind.Identifier) {
+        if (parser.next().text === '...') {
+            parser.commit(HighlightForToken.Operator);
+            isVariadic = true;
+        } else if (parser.next().kind === TokenKind.Identifier) {
             identifier = parser.next();
             parser.commit(HighlightForToken.Variable);
         }
 
         let defaultExpr: NodeExpr | undefined = undefined;
         if (parser.next().text === '=') {
+            if (isVariadic) {
+                parser.error('Variadic functions cannot have a default expression.');
+            }
+
             parser.commit(HighlightForToken.Operator);
             defaultExpr = expectExpr(parser);
         }
 
-        paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr});
+        paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr, isVariadic: isVariadic});
     }
 
     return paramList;
