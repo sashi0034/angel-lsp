@@ -54,9 +54,9 @@ export function evaluateConversionCost(
     if (srcType.identifierText === '?') return ConversionConst.VariableConv;
     if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
 
-    if (destType.isNumberOrEnum()) {
+    if (destType.isPrimitiveType() || destType.isEnumType()) {
         // Destination is a primitive type
-        if (srcType.isNumberOrEnum()) {
+        if (srcType.isPrimitiveType() || srcType.isEnumType()) {
             // Source is a primitive type
             return evaluateConvPrimitiveToPrimitive(src, dest);
         } else {
@@ -94,8 +94,10 @@ function evaluateConvPrimitiveToPrimitive(
     // FIXME: Check a primitive is const or not?
     const srcType = src.symbolType;
     const destType = dest.symbolType;
+
     assert(srcType.isType() && destType.isType());
-    assert(srcType.isNumberOrEnum() && destType.isNumberOrEnum());
+    assert((srcType.isPrimitiveType() || srcType.isEnumType()));
+    assert((destType.isPrimitiveType() || destType.isEnumType()));
 
     if (srcType.equals(destType)) {
         return ConversionConst.NoConv;
@@ -157,6 +159,8 @@ const numberConversionCostTable = new Map<string, string[]>([
 
 // See: ImplicitConvObjectToPrimitive in as_compiler.cpp
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType) {
+    // FIXME: An explicit handle cannot be converted to a primitive
+
     return ConversionConst.ObjToPrimitiveConv;
 }
 
