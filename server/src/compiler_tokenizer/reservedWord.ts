@@ -139,6 +139,10 @@ function createProperties() {
         properties.get(symbol)!.isSignedInteger = true;
     }
 
+    for (const symbol of unsignedIntegerTypeSet) {
+        properties.get(symbol)!.isUnsignedInteger = true;
+    }
+
     for (const symbol of floatTypeSet) {
         properties.get(symbol)!.isFloat = true;
     }
