@@ -37,6 +37,14 @@ export type ScopePath = ReadonlyArray<string>;
 export abstract class SymbolBase {
     public abstract get kind(): SymbolKind;
 
+    public isType(): this is SymbolType {
+        return this.kind === SymbolKind.Type;
+    }
+
+    public isVariable(): this is SymbolVariable {
+        return this.kind === SymbolKind.Variable;
+    }
+
     public isFunction(): this is SymbolFunction {
         return this.kind === SymbolKind.Function;
     }
@@ -114,6 +122,14 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     public isNumberType(): boolean {
         return this.defToken.isReservedToken() && this.defToken.property.isNumber;
+    }
+
+    public isEnumType(): boolean {
+        return this.defNode?.nodeName === NodeName.Enum;
+    }
+
+    public isNumberOrEnum(): boolean {
+        return this.isNumberType() || this.isEnumType();
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {
