@@ -45,7 +45,8 @@ function checkFunctionMatchInternal(
     const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
     const calleeParams = calleeFunc.defNode.paramList;
 
-    if (callerArgTypes.length > calleeParams.length) {
+    if (callerArgTypes.length > calleeParams.length &&
+        (!calleeParams.length || !calleeParams[calleeParams.length - 1].isVariadic)) {
         // Handle too many caller arguments.
         return handleTooMuchCallerArgs(args, nextOverloadIndex);
     }
@@ -76,27 +77,35 @@ function checkFunctionMatchInternal(
             break;
         }
 
-        let actualType = callerArgTypes[i];
         let expectedType = calleeFunc.parameterTypes[i];
-        actualType = resolveTemplateTypes(templateTranslators, actualType);
         expectedType = resolveTemplateTypes(templateTranslators, expectedType);
 
-        if (canTypeConvert(actualType, expectedType)) continue;
+        // note: variadic functions require at least one argument
+        // in the "rest" slot.
+        const numRest = (i === calleeParams.length - 1 && calleeParams[calleeParams.length - 1].isVariadic) ?
+            ((callerArgTypes.length - calleeParams.length) + 1) : 1;
 
-        // Use the overload if it exists
-        if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
-            return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
-        }
+        for (let callerArgIndex = i; callerArgIndex < i + numRest; callerArgIndex++) {
+            let actualType = callerArgTypes[callerArgIndex];
+            actualType = resolveTemplateTypes(templateTranslators, actualType);
 
-        if (handleErrorWhenOverloaded(
-            callerRange,
-            callerArgTypes,
-            calleeFuncHolder,
-            templateTranslators) === false) {
-            analyzerDiagnostic.add(
-                callerRange.getBoundingLocation(),
-                `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
-                    expectedType)}'.`);
+            if (canTypeConvert(actualType, expectedType)) continue;
+
+            // Use the overload if it exists
+            if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
+                return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
+            }
+
+            if (handleErrorWhenOverloaded(
+                callerRange,
+                callerArgTypes,
+                calleeFuncHolder,
+                templateTranslators) === false) {
+                analyzerDiagnostic.add(
+                    callerRange.getBoundingLocation(),
+                    `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
+                        expectedType)}'.`);
+            }
         }
     }
 
@@ -137,6 +146,7 @@ function handleErrorWhenOverloaded(
     message += `\nArguments types: (${stringifyResolvedTypes(callerArgs)})`;
     message += '\nCandidates considered:';
 
+    // TODO: suffix `...` for variadic functions
     for (const overload of calleeFuncHolder.overloadList) {
         const resolvedTypes = overload.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
         message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
