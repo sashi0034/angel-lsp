@@ -5,6 +5,8 @@
  */
 import {ResolvedType} from "./resolvedType";
 import assert = require("node:assert");
+import {resolveActiveScope} from "./symbolScope";
+import {SymbolFunction} from "./symbolObject";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -35,7 +37,7 @@ export function evaluateConversionCost(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     type: ConversionType = ConversionType.Implicit
-) {
+): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
     const srcType = src.symbolType;
@@ -54,9 +56,9 @@ export function evaluateConversionCost(
     if (srcType.identifierText === '?') return ConversionConst.VariableConv;
     if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
 
-    if (destType.isPrimitiveType() || destType.isEnumType()) {
+    if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
-        if (srcType.isPrimitiveType() || srcType.isEnumType()) {
+        if (srcType.isPrimitiveOrEnum()) {
             // Source is a primitive type
             return evaluateConvPrimitiveToPrimitive(src, dest);
         } else {
@@ -70,6 +72,8 @@ export function evaluateConversionCost(
 
     return ConversionConst.NoConv;
 }
+
+// -----------------------------------------------
 
 const numberSizeInBytes = new Map<string, number>([
     ['double', 8],
@@ -96,8 +100,7 @@ function evaluateConvPrimitiveToPrimitive(
     const destType = dest.symbolType;
 
     assert(srcType.isType() && destType.isType());
-    assert((srcType.isPrimitiveType() || srcType.isEnumType()));
-    assert((destType.isPrimitiveType() || destType.isEnumType()));
+    assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
 
     if (srcType.equals(destType)) {
         return ConversionConst.NoConv;
@@ -143,6 +146,8 @@ function evaluateConvPrimitiveToPrimitive(
     return cost;
 }
 
+// -----------------------------------------------
+
 // TODO: Use this for evaluating object to primitive
 const numberConversionCostTable = new Map<string, string[]>([
     ['double', ['float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
@@ -158,9 +163,61 @@ const numberConversionCostTable = new Map<string, string[]>([
 ]);
 
 // See: ImplicitConvObjectToPrimitive in as_compiler.cpp
-function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType) {
+function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType): ConversionConst | undefined {
+    const srcType = src.symbolType;
+    const destType = dest.symbolType;
+
+    assert(srcType.isType() && destType.isType());
+    assert((srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum()));
+
     // FIXME: An explicit handle cannot be converted to a primitive
 
-    return ConversionConst.ObjToPrimitiveConv;
+    // FIXME: Consider ConversionType
+
+    const convFuncList: SymbolFunction[ ] = [];
+    const srcMembers = resolveActiveScope(srcType.defScope).symbolTable.values();
+    for (const methodHolder of srcMembers) {
+        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
+        ) {
+            convFuncList.push(...methodHolder.toList());
+        }
+    }
+
+    let selectedConvFunc: SymbolFunction | undefined = undefined;
+    if (destType.isNumberType()) {
+        // Find the best matching cast operator
+        const tableRow = numberConversionCostTable.get(dest.identifierText);
+        assert(tableRow !== undefined);
+
+        for (const nextType of tableRow) {
+            for (const convFunc of convFuncList) {
+                if (convFunc.returnType?.identifierText === nextType) {
+                    selectedConvFunc = convFunc;
+                    break;
+                }
+            }
+
+            if (selectedConvFunc !== undefined) break;
+        }
+    } else {
+        // Only accept the exact conversion for non-math types
+        for (const convFunc of convFuncList) {
+            const returnType = convFunc.returnType?.symbolType;
+            if (returnType?.isVariable() === false) continue;
+            if (returnType?.defToken.equals(destType.defToken)) {
+                selectedConvFunc = convFunc;
+                break;
+            }
+        }
+    }
+
+    if (selectedConvFunc === undefined) return undefined;
+
+    const returnType = selectedConvFunc.returnType;
+    assert(returnType !== undefined);
+
+    return ConversionConst.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest, type) ?? 0);
+
+    // FIXME: Add more process?
 }
 

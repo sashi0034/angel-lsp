@@ -132,6 +132,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     /**
      * Determine if the type is a primitive type. (e.g. int, float, void)
+     * Note: enum is not a primitive type here.
      */
     public isPrimitiveType(): boolean {
         return this.defNode === undefined;
@@ -143,6 +144,10 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     public isEnumType(): boolean {
         return this.defNode?.nodeName === NodeName.Enum;
+    }
+
+    public isPrimitiveOrEnum(): boolean {
+        return this.isPrimitiveType() || this.isEnumType();
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {
