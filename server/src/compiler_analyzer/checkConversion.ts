@@ -58,7 +58,7 @@ export function evaluateConversionCost(
         // Destination is a primitive type
         if (srcType.isNumberOrEnum()) {
             // Source is a primitive type
-            return evaluateConvPrimitiveToPrimitive(src, dest, type);
+            return evaluateConvPrimitiveToPrimitive(src, dest);
         } else {
             // Source is an object type
             return evaluateConvObjectToPrimitive(src, dest, type);
@@ -90,7 +90,6 @@ const sizeof_int32 = 4;
 function evaluateConvPrimitiveToPrimitive(
     src: ResolvedType,
     dest: ResolvedType,
-    type: ConversionType,
 ) {
     // FIXME: Check a primitive is const or not?
     const srcType = src.symbolType;
@@ -98,17 +97,20 @@ function evaluateConvPrimitiveToPrimitive(
     assert(srcType.isType() && destType.isType());
     assert(srcType.isNumberOrEnum() && destType.isNumberOrEnum());
 
-    if (destType.equals(srcType)) return ConversionConst.NoConv;
+    if (srcType.equals(destType)) {
+        return ConversionConst.NoConv;
+    } else if (srcType.isEnumType() && destType.isEnumType()) {
+        // FIXME: Handle different enum types but same identifier such as 'enum A::Red' and 'enum B::Red'
+
+        // Mismatches enum types
+        return undefined;
+    }
 
     const srcText: string = src.identifierText;
     const destText: string = dest.identifierText;
 
     const srcToken = srcType.defToken;
     const destToken = destType.defToken;
-
-    // if (srcToken.isReservedToken() === false || destToken.isReservedToken() === false) return ConversionConst.NoConv;
-
-    // FIXME: Handle enum here?
 
     const srcProperty = srcToken.isReservedToken() ? srcToken.property : undefined;
     const destProperty = destToken.isReservedToken() ? destToken.property : undefined;
