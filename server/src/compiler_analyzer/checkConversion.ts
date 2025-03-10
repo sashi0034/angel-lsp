@@ -1,8 +1,3 @@
-/**
- * Check if the source type can be converted to the destination type.
- * @param src
- * @param dest
- */
 import {ResolvedType} from "./resolvedType";
 import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
