@@ -61,7 +61,7 @@ export interface ReservedWordProperty {
     readonly isLogicOp: boolean;
     readonly isAssignOp: boolean;
     readonly isNumber: boolean;
-    readonly isPrimeType: boolean; // TODO: rename to isBuiltinType
+    readonly isPrimeType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
     readonly isFloat: boolean;

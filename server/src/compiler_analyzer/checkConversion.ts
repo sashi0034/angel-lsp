@@ -98,12 +98,14 @@ function evaluateConvPrimitiveToPrimitive(
     assert(srcType.isType() && destType.isType());
     assert(srcType.isNumberOrEnum() && destType.isNumberOrEnum());
 
+    if (destType.equals(srcType)) return ConversionConst.NoConv;
+
     const srcText: string = src.identifierText;
     const destText: string = dest.identifierText;
-    if (srcText === destText) return ConversionConst.NoConv;
 
     const srcToken = srcType.defToken;
     const destToken = destType.defToken;
+
     // if (srcToken.isReservedToken() === false || destToken.isReservedToken() === false) return ConversionConst.NoConv;
 
     // FIXME: Handle enum here?
