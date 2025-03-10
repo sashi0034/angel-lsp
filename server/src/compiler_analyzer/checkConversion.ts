@@ -7,6 +7,7 @@ import {ResolvedType} from "./resolvedType";
 import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {SymbolFunction} from "./symbolObject";
+import {NodeName} from "../compiler_parser/nodes";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -66,14 +67,22 @@ export function evaluateConversionCost(
             return evaluateConvObjectToPrimitive(src, dest, type);
         }
     } else {
-        // Destination is a user-defined type
-        // TODO
+        // Destination is an object type defined by a user
+        if (srcType.isPrimitiveOrEnum()) {
+            // Source is a primitive type
+            return evaluateConvPrimitiveToObject(src, dest);
+        } else {
+            // Source is an object type
+            // TODO
+        }
     }
 
     return ConversionConst.NoConv;
 }
 
 // -----------------------------------------------
+// Primitive to Primitive
+// as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
 
 const numberSizeInBytes = new Map<string, number>([
     ['double', 8],
@@ -90,7 +99,6 @@ const numberSizeInBytes = new Map<string, number>([
 
 const sizeof_int32 = 4;
 
-// See: ImplicitConvPrimitiveToPrimitive in as_compiler.cpp
 function evaluateConvPrimitiveToPrimitive(
     src: ResolvedType,
     dest: ResolvedType,
@@ -147,6 +155,8 @@ function evaluateConvPrimitiveToPrimitive(
 }
 
 // -----------------------------------------------
+// Object to Primitive
+// as_compiler.cpp: ImplicitConvObjectToPrimitive
 
 // TODO: Use this for evaluating object to primitive
 const numberConversionCostTable = new Map<string, string[]>([
@@ -162,7 +172,6 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['uint8', ['int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
 ]);
 
-// See: ImplicitConvObjectToPrimitive in as_compiler.cpp
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, type: ConversionType): ConversionConst | undefined {
     const srcType = src.symbolType;
     const destType = dest.symbolType;
@@ -219,5 +228,42 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType, ty
     return ConversionConst.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest, type) ?? 0);
 
     // FIXME: Add more process?
+}
+
+// -----------------------------------------------
+// Primitive to Object
+// as_compiler.cpp: ImplicitConvPrimitiveToObject
+
+function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+    const srcType = src.symbolType;
+    const destType = dest.symbolType;
+
+    assert(srcType.isType() && destType.isType());
+    assert(srcType.isPrimitiveOrEnum() && destType.isPrimitiveOrEnum() === false);
+
+    const destScope = resolveActiveScope(destType.defScope);
+
+    // Search for the constructor of the given type from the scope to which the given type belongs.
+    const constructorScope = destScope.lookupScope(destType.identifierText);
+    if (constructorScope?.linkedNode?.nodeName !== NodeName.Class) return undefined;
+
+    // Search for the constructor of the given type from the scope of the type itself.
+    const constructorHolder = constructorScope.lookupSymbol(destType.identifierText);
+    if (constructorHolder === undefined || constructorHolder?.isFunctionHolder() === false) return undefined;
+
+    for (const constructor of constructorHolder.toList()) {
+        // Succeeds if the constructor has one argument and that argument matches the source type.
+        if (constructor.parameterTypes.length === 1) {
+            const paramType = constructor.parameterTypes[0];
+            if (paramType !== undefined && paramType.symbolType.isType()) {
+                const paramCost = evaluateConversionCost(src, paramType);
+                if (paramCost === undefined) continue;
+
+                return ConversionConst.ToObjectConv + paramCost;
+            }
+        }
+    }
+
+    return undefined;
 }
 
