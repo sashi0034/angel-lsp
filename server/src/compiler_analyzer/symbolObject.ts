@@ -31,11 +31,32 @@ export enum SymbolKind {
 
 export type ScopePath = ReadonlyArray<string>;
 
+export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
+    if (lhs.length !== rhs.length) return false;
+    for (let i = 0; i < lhs.length; i++) {
+        if (lhs[i] !== rhs[i]) return false;
+    }
+
+    return true;
+}
+
 /**
  * The base interface for all symbols.
  */
 export abstract class SymbolBase {
     public abstract get kind(): SymbolKind;
+
+    public abstract get defScope(): ScopePath;
+
+    public abstract get identifierText(): string;
+
+    public isType(): this is SymbolType {
+        return this.kind === SymbolKind.Type;
+    }
+
+    public isVariable(): this is SymbolVariable {
+        return this.kind === SymbolKind.Variable;
+    }
 
     public isFunction(): this is SymbolFunction {
         return this.kind === SymbolKind.Function;
@@ -45,6 +66,10 @@ export abstract class SymbolBase {
         if (this.isFunction()) return new SymbolFunctionHolder(this);
         assert(this instanceof SymbolType || this instanceof SymbolVariable);
         return this;
+    }
+
+    public equals(other: SymbolBase): boolean {
+        return this.identifierText === other.identifierText && isScopePathEquals(this.defScope, other.defScope);
     }
 }
 
@@ -106,14 +131,23 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     /**
-     * Determine if the type is a system type. (e.g. int, float, void)
+     * Determine if the type is a primitive type. (e.g. int, float, void)
+     * Note: enum is not a primitive type here.
      */
-    public isSystemType(): boolean {
+    public isPrimitiveType(): boolean {
         return this.defNode === undefined;
     }
 
     public isNumberType(): boolean {
         return this.defToken.isReservedToken() && this.defToken.property.isNumber;
+    }
+
+    public isEnumType(): boolean {
+        return this.defNode?.nodeName === NodeName.Enum;
+    }
+
+    public isPrimitiveOrEnum(): boolean {
+        return this.isPrimitiveType() || this.isEnumType();
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {

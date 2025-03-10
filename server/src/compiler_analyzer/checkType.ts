@@ -80,7 +80,7 @@ function isTypeMatchInternal(
 
     if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
-    if (srcType.isSystemType()) {
+    if (srcType.isPrimitiveType()) {
         // Succeeds if it can be cast from one primitive type to another primitive type.
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
@@ -103,7 +103,7 @@ function isTypeMatchInternal(
     }
 
     // Fails if the destination type is not a class.
-    if (destType.isSystemType() || destNode?.nodeName !== NodeName.Class) return false;
+    if (destType.isPrimitiveType() || destNode?.nodeName !== NodeName.Class) return false;
 
     // Determine if it matches the constructor.
     const destIdentifier = destNode.identifier.text;
@@ -127,7 +127,7 @@ function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
     const srcNode = srcType.defNode;
-    if (srcType.isSystemType()) return false;
+    if (srcType.isPrimitiveType()) return false;
 
     if (srcType.defNode === destType.defNode) return true;
 

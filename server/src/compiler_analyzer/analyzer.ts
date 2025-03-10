@@ -1151,7 +1151,7 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    if (lhs.symbolType.isSystemType()) {
+    if (lhs.symbolType.isPrimitiveType()) {
         analyzerDiagnostic.add(
             operator.location,
             `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
@@ -1198,7 +1198,7 @@ function analyzeBitOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isSystemType()
+    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isPrimitiveType()
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
@@ -1228,7 +1228,7 @@ function analyzeMathOp(
     assert(alias !== undefined);
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isSystemType()
+    return lhs.symbolType instanceof SymbolType && lhs.symbolType.isPrimitiveType()
         ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
         : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
 }
