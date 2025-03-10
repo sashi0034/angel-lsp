@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.22] 2025/03/10
+
+- [#105](https://github.com/sashi0034/angel-lsp/pull/105), [#106](https://github.com/sashi0034/angel-lsp/pull/106) by Paril
+
 ## [0.3.21] 2025/03/04
 
 - Code cleanup.
