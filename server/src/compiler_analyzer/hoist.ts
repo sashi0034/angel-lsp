@@ -313,6 +313,9 @@ function hoistFunc(
     const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
     const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
 
+    const templateTypes = hoistClassTemplateTypes(scope, nodeFunc.typeTemplates);
+    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+
     hoisting.push(() => {
         symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
     });

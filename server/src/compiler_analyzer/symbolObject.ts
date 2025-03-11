@@ -215,6 +215,8 @@ export class SymbolFunction extends SymbolBase {
         public readonly parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
+        // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
+        public readonly templateTypes?: TokenObject[],
     ) {
         super();
     }
