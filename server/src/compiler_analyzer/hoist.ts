@@ -221,9 +221,9 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
-        if (baseType.symbolType.isFunction()) continue;
+        if (baseType.typeOrFunc.isFunction()) continue;
 
-        const baseScope = tryResolveActiveScope(baseType.symbolType.membersScope);
+        const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScope);
         if (baseScope === undefined) continue;
 
         for (const [key, symbolHolder] of baseScope.symbolTable) {
@@ -425,7 +425,7 @@ function hoistVirtualProp(
             const valueVariable: SymbolVariable = SymbolVariable.create({
                 identifierToken: builtinSetterValueToken,
                 scopePath: parentScope.scopePath,
-                type: new ResolvedType(type.symbolType),
+                type: new ResolvedType(type.typeOrFunc),
                 isInstanceMember: false,
                 accessRestriction: virtualProp.accessor,
             });

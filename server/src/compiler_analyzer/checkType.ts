@@ -59,8 +59,8 @@ export function canTypeConvert(
 function isTypeMatchInternal(
     src: ResolvedType, dest: ResolvedType
 ): boolean {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     // Check the function handler type.
     if (srcType.isFunction()) {
@@ -134,9 +134,9 @@ function canDownCast(
     if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbolType === undefined) continue;
-            if (srcBase.symbolType instanceof SymbolType === false) continue;
-            if (canDownCast(srcBase.symbolType, destType)) return true;
+            if (srcBase?.typeOrFunc === undefined) continue;
+            if (srcBase.typeOrFunc instanceof SymbolType === false) continue;
+            if (canDownCast(srcBase.typeOrFunc, destType)) return true;
         }
     }
 
@@ -196,8 +196,8 @@ function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: 
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
-            && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.linkedNode === srcType
+            && paramType.typeOrFunc instanceof SymbolType
+            && paramType.typeOrFunc.linkedNode === srcType
         ) {
             return true;
         }

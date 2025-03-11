@@ -36,8 +36,8 @@ export function evaluateConversionCost(
 ): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     if (srcType.isFunction() || destType.isFunction()) {
         // TODO
@@ -97,8 +97,8 @@ function evaluateConvPrimitiveToPrimitive(
     dest: ResolvedType,
 ) {
     // FIXME: Check a primitive is const or not?
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
@@ -166,8 +166,8 @@ const numberConversionCostTable = new Map<string, string[]>([
 ]);
 
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert((srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum()));
@@ -204,7 +204,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     } else {
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
-            const returnType = convFunc.returnType?.symbolType;
+            const returnType = convFunc.returnType?.typeOrFunc;
             if (returnType?.isVariable() === false) continue;
             if (returnType?.identifierToken.equals(destType.identifierToken)) {
                 selectedConvFunc = convFunc;
@@ -228,8 +228,8 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 // as_compiler.cpp: ImplicitConvPrimitiveToObject
 
 function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() && destType.isPrimitiveOrEnum() === false);
@@ -242,8 +242,8 @@ function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): C
 // as_compiler.cpp: ImplicitConvObjectToObject
 
 function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
@@ -263,8 +263,8 @@ function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): Conv
 // Helper functions
 
 function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
 
@@ -282,7 +282,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
         // Succeeds if the constructor has one argument and that argument matches the source type.
         if (constructor.parameterTypes.length === 1) {
             const paramType = constructor.parameterTypes[0];
-            if (paramType !== undefined && paramType.symbolType.isType()) {
+            if (paramType !== undefined && paramType.typeOrFunc.isType()) {
                 const paramCost = evaluateConversionCost(src, paramType);
                 if (paramCost === undefined) continue;
 
@@ -304,10 +304,10 @@ function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
         if (srcType.baseList === undefined) return false;
 
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbolType === undefined) continue;
-            if (srcBase.symbolType.isType() === false) continue;
+            if (srcBase?.typeOrFunc === undefined) continue;
+            if (srcBase.typeOrFunc.isType() === false) continue;
 
-            if (canDownCast(srcBase.symbolType, destType)) return true;
+            if (canDownCast(srcBase.typeOrFunc, destType)) return true;
         }
     }
 
