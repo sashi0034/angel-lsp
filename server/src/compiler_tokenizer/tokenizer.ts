@@ -87,6 +87,9 @@ function consumeNumber(tokenizer: TokenizerState) {
     // Fails if the next token is not a number or a dot.
     if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiterals.Integer;
 
+    // Fails if the token after a dot is another dot
+    if (tokenizer.next() === '.' && tokenizer.next(1) === '.') return NumberLiterals.Integer;
+
     // Fails if the next tokens are '.f' or '.F'
     if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) return NumberLiterals.Integer;
 
