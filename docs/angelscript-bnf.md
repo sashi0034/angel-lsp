@@ -4,4 +4,4 @@ https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 The BNF is defined in `server/bnf.txt`.
 
-To update the BNF written in the comments of the source code, please run `server/update_bnf.py`.
+You can update the BNF in the comments of this project's source code by running `server/update_bnf.py`.
