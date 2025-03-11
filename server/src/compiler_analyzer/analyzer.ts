@@ -86,17 +86,17 @@ export type HoistQueue = (() => void)[];
 
 export type AnalyzeQueue = (() => void)[];
 
-// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 
-// NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
-// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 
-// TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
-// FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
     if (func.head === funcHeadDestructor) {
         analyzeStatBlock(scope, func.statBlock);
@@ -110,9 +110,9 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
     analyzeStatBlock(scope, func.statBlock);
 }
 
-// INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
-// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// BNF: VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
     let varType = analyzeType(scope, nodeVar.type);
 
@@ -176,17 +176,17 @@ export function analyzeVarInitializer(
     }
 }
 
-// IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+// BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 
-// FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+// BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 
-// VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 
-// MIXIN         ::= 'mixin' CLASS
+// BNF: MIXIN         ::= 'mixin' CLASS
 
-// INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 
-// STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
     complementHintForScope(scope, statBlock.nodeRange);
@@ -200,7 +200,7 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     }
 }
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']]})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']]})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
     for (const param of paramList) {
         if (param.defaultExpr === undefined || param.defaultExpr.nodeName === NodeName.ExprVoid) continue;
@@ -208,9 +208,9 @@ export function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
     }
 }
 
-// TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
 
-// TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+// BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedType | undefined {
     const reservedType = nodeType.isArray ? undefined : analyzeReservedType(scope, nodeType);
     if (reservedType !== undefined) return reservedType;
@@ -313,7 +313,7 @@ function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], template
     return translation;
 }
 
-// INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+// BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
     for (const init of initList.initList) {
         if (init.nodeName === NodeName.Assign) {
@@ -327,7 +327,7 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
     return undefined;
 }
 
-// SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+// BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
     let scopeIterator = parentScope;
     if (nodeScope.isGlobal) {
@@ -367,13 +367,13 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
     return scopeIterator;
 }
 
-// DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 
-// PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// BNF: PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
-// FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
 
-// STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     switch (statement.nodeName) {
     case NodeName.If:
@@ -427,7 +427,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
     }
 }
 
-// SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+// BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
     analyzeAssign(scope, ast.assign);
     for (const c of ast.caseList) {
@@ -435,9 +435,9 @@ function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
     }
 }
 
-// BREAK         ::= 'break' ';'
+// BNF: BREAK         ::= 'break' ';'
 
-// FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+// BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
     if (nodeFor.initial.nodeName === NodeName.Var) analyzeVar(scope, nodeFor.initial, false);
     else analyzeExprStat(scope, nodeFor.initial);
@@ -463,7 +463,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
     if (nodeForEach.statement !== undefined) analyzeStatement(scope, nodeForEach.statement);
 }
 
-// WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+// BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
     checkTypeMatch(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
@@ -471,7 +471,7 @@ function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
 
-// DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+// BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
     analyzeStatement(scope, doWhile.statement);
 
@@ -480,7 +480,7 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
     checkTypeMatch(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
 }
 
-// IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+// BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
     checkTypeMatch(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
@@ -489,9 +489,9 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
 }
 
-// CONTINUE      ::= 'continue' ';'
+// BNF: CONTINUE      ::= 'continue' ';'
 
-// EXPRSTAT      ::= [ASSIGN] ';'
+// BNF: EXPRSTAT      ::= [ASSIGN] ';'
 function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     if (exprStat.assign === undefined) return;
     const assign = analyzeAssign(scope, exprStat.assign);
@@ -500,13 +500,13 @@ function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
     }
 }
 
-// TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+// BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
     analyzeStatBlock(scope, nodeTry.tryBlock);
     if (nodeTry.catchBlock !== undefined) analyzeStatBlock(scope, nodeTry.catchBlock);
 }
 
-// RETURN        ::= 'return' [ASSIGN] ';'
+// BNF: RETURN        ::= 'return' [ASSIGN] ';'
 function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const returnType = nodeReturn.assign !== undefined ? analyzeAssign(scope, nodeReturn.assign) : undefined;
 
@@ -554,7 +554,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     }
 }
 
-// CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+// BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
     if (nodeCase.expr !== undefined) analyzeExpr(scope, nodeCase.expr);
     for (const statement of nodeCase.statementList) {
@@ -562,7 +562,7 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
     }
 }
 
-// EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
+// BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefined {
     // Evaluate by Shunting Yard Algorithm
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
@@ -663,7 +663,7 @@ function getOperatorPrecedence(operator: TokenObject): number {
     }
 }
 
-// EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+// BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | undefined {
     if (ast.exprTerm === 1) {
         // TODO
@@ -685,7 +685,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
     return exprValue;
 }
 
-// EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
     case NodeName.ConstructCall:
@@ -708,7 +708,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Resolve
     return undefined;
 }
 
-// CONSTRUCTCALL ::= TYPE ARGLIST
+// BNF: CONSTRUCTCALL ::= TYPE ARGLIST
 export function analyzeConstructorCaller(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
@@ -771,9 +771,9 @@ function analyzeBuiltinConstructorCaller(
     return undefined;
 }
 
-// EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: TokenRange) {
     if (exprPostOp.postOp === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
@@ -846,14 +846,14 @@ function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exp
         'opIndex');
 }
 
-// CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+// BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function analyzeCast(scope: SymbolScope, cast: NodeCast): ResolvedType | undefined {
     const castedType = analyzeType(scope, cast.type);
     analyzeAssign(scope, cast.assign);
     return castedType;
 }
 
-// LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | undefined {
     const childScope = scope.insertScope(createAnonymousIdentifier(), lambda);
 
@@ -878,7 +878,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
     return undefined;
 }
 
-// LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
@@ -905,7 +905,7 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     return undefined;
 }
 
-// FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+// BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedType | undefined {
     let searchScope = scope;
     if (funcCall.scope !== undefined) {
@@ -1009,7 +1009,7 @@ function analyzeFunctionCaller(
     });
 }
 
-// VARACCESS     ::= SCOPE IDENTIFIER
+// BNF: VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): ResolvedType | undefined {
     let accessedScope = scope;
 
@@ -1061,7 +1061,7 @@ function analyzeVariableAccess(
     }
 }
 
-// ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+// BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (ResolvedType | undefined)[] {
     const types: (ResolvedType | undefined)[] = [];
     for (const arg of argList.argList) {
@@ -1070,7 +1070,7 @@ function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (ResolvedType
     return types;
 }
 
-// ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
+// BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | undefined {
     // Perform a left-fold operation
     let cursor = assign;
@@ -1090,7 +1090,7 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | u
     return lhs;
 }
 
-// CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+// BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): ResolvedType | undefined {
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
@@ -1115,7 +1115,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     return undefined;
 }
 
-// EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
+// BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function analyzeExprOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
@@ -1182,7 +1182,7 @@ function analyzeOperatorAlias(
     });
 }
 
-// BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+// BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
@@ -1212,7 +1212,7 @@ const bitOpAliases = new Map<string, [string, string]>([
     ['>>>', ['opShrU', 'opShrU_r']]
 ]);
 
-// MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
+// BNF: MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
@@ -1242,7 +1242,7 @@ const mathOpAliases = new Map<string, [string, string]>([
     ['**', ['opPow', 'opPow_r']]
 ]);
 
-// COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+// BNF: COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
@@ -1270,7 +1270,7 @@ const compOpAliases = new Map<string, string>([
     ['!is', 'opEquals'],
 ]);
 
-// LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+// BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 function analyzeLogicOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
@@ -1281,7 +1281,7 @@ function analyzeLogicOp(
     return new ResolvedType(builtinBoolType);
 }
 
-// ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+// BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,

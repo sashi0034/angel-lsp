@@ -75,9 +75,9 @@ import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
 import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
-import { getGlobalSettings } from '../core/settings';
+import {getGlobalSettings} from '../core/settings';
 
-// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function parseScript(parser: ParserState): NodeScript {
     const script: NodeScript = [];
     while (parser.isEnd() === false) {
@@ -167,7 +167,7 @@ function parseScript(parser: ParserState): NodeScript {
     return script;
 }
 
-// NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
     if (parser.next().text !== 'namespace') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -225,7 +225,7 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
     return true;
 }
 
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const rangeStart = parser.next();
 
@@ -335,7 +335,7 @@ function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared'
     else if (token === 'final') attribute.isFinal = true;
 }
 
-// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseClass(parser: ParserState): ParseResult<NodeClass> {
     const rangeStart = parser.next();
 
@@ -448,7 +448,7 @@ function parseForEachVar(parser: ParserState): NodeForEachVar | undefined {
     };
 }
 
-// TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     if (parser.next().text !== 'typedef') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -473,7 +473,7 @@ function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     };
 }
 
-// FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): NodeFunc | undefined {
     const rangeStart = parser.next();
 
@@ -606,7 +606,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     return undefined;
 }
 
-// INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
     const rangeStart = parser.next();
 
@@ -682,7 +682,7 @@ function expectInterfaceMembers(parser: ParserState): (NodeIntfMethod | NodeVirt
     return members;
 }
 
-// VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function parseVar(parser: ParserState): NodeVar | undefined {
     const rangeStart = parser.next();
 
@@ -742,7 +742,7 @@ function expectInitListOrExpr(parser: ParserState) {
     parser.error("Expected initializer list or assignment.");
 }
 
-// IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+// BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 function parseImport(parser: ParserState): ParseResult<NodeImport> {
     const rangeStart = parser.next();
 
@@ -785,7 +785,7 @@ function parseImport(parser: ParserState): ParseResult<NodeImport> {
     };
 }
 
-// FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+// BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
     const rangeStart = parser.next();
 
@@ -821,7 +821,7 @@ function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
     };
 }
 
-// VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
     const rangeStart = parser.next();
 
@@ -890,7 +890,7 @@ function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
     };
 }
 
-// MIXIN         ::= 'mixin' CLASS
+// BNF: MIXIN         ::= 'mixin' CLASS
 function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     if (parser.next().text !== 'mixin') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -910,7 +910,7 @@ function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     };
 }
 
-// INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
     const rangeStart = parser.next();
 
@@ -940,7 +940,7 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
     };
 }
 
-// STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
     if (parser.next().text !== '{') return undefined;
     const rangeStart = parser.next();
@@ -982,7 +982,7 @@ function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     return statBlock;
 }
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']}]})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']}]})] ')'
 function parseParamList(parser: ParserState): NodeParamList | undefined {
     if (parser.next().text !== '(') return undefined;
     parser.commit(HighlightForToken.Operator);
@@ -1030,7 +1030,13 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
             defaultExpr = expectExprOrVoid(parser);
         }
 
-        paramList.push({type: type, modifier: typeMod, identifier: identifier, defaultExpr: defaultExpr, isVariadic: isVariadic});
+        paramList.push({
+            type: type,
+            modifier: typeMod,
+            identifier: identifier,
+            defaultExpr: defaultExpr,
+            isVariadic: isVariadic
+        });
     }
 
     return paramList;
@@ -1093,7 +1099,7 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     return BreakOrThrough.Through;
 }
 
-// TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
 function parseTypeMod(parser: ParserState): TypeModifier | undefined {
     let mod: TypeModifier | undefined = undefined;
 
@@ -1123,7 +1129,7 @@ function parseTypeMod(parser: ParserState): TypeModifier | undefined {
     return mod;
 }
 
-// TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+// BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseType(parser: ParserState): NodeType | undefined {
     const rangeStart = parser.next();
 
@@ -1226,7 +1232,7 @@ function parseTypeTemplates(parser: ParserState): NodeType[] | undefined {
     return typeTemplates;
 }
 
-// INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+// BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 function parseInitList(parser: ParserState): NodeInitList | undefined {
     if (parser.next().text !== '{') return undefined;
     const rangeStart = parser.next();
@@ -1258,7 +1264,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
     };
 }
 
-// SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+// BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parser: ParserState): NodeScope | undefined {
     const cache = parser.cache(ParserCacheKind.Scope);
     if (cache.restore !== undefined) return cache.restore();
@@ -1316,7 +1322,7 @@ function parseScope(parser: ParserState): NodeScope | undefined {
     return nodeScope;
 }
 
-// DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 function parseDatatype(parser: ParserState): NodeDataType | undefined {
     const next = parser.next();
     if (next.kind === TokenKind.Identifier) {
@@ -1347,7 +1353,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
     return undefined;
 }
 
-// PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// BNF: PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 function parsePrimeType(parser: ParserState) {
     const next = parser.next();
     if (next.isReservedToken() === false || next.property.isPrimeType === false) return undefined;
@@ -1355,14 +1361,14 @@ function parsePrimeType(parser: ParserState) {
     return next;
 }
 
-// FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     let attribute: FunctionAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
-        const isFuncAttrToken          = next === 'override' || next === 'final' || next === 'explicit' || next === 'property' ||
-                                         next === 'delete' || next === 'nodiscard';
+        const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property' ||
+            next === 'delete' || next === 'nodiscard';
         if (isFuncAttrToken === false) break;
 
         attribute = attribute ?? {
@@ -1391,7 +1397,7 @@ function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'ove
     else if (token === 'nodiscard') attribute.isNoDiscard = true;
 }
 
-// STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     const parsedIf = parseIf(parser);
     if (parsedIf === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1401,8 +1407,7 @@ function parseStatement(parser: ParserState): ParseResult<NodeStatement> {
     if (parsedFor === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedFor !== ParseFailure.Mismatch) return parsedFor;
 
-    if (getGlobalSettings().supportsForEach)
-    {
+    if (getGlobalSettings().supportsForEach) {
         const parsedForEach = parseForEach(parser);
         if (parsedForEach === ParseFailure.Pending) return ParseFailure.Pending;
         if (parsedForEach !== ParseFailure.Mismatch) return parsedForEach;
@@ -1453,7 +1458,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
     return statement;
 }
 
-// SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+// BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
     if (parser.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1491,7 +1496,7 @@ function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
     };
 }
 
-// BREAK         ::= 'break' ';'
+// BNF: BREAK         ::= 'break' ';'
 function parseBreak(parser: ParserState): NodeBreak | undefined {
     if (parser.next().text !== 'break') return undefined;
     const rangeStart = parser.next();
@@ -1501,7 +1506,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
     return {nodeName: NodeName.Break, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
 
-// FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+// BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (parser.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1574,11 +1579,11 @@ function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     if (parser.expect(')', HighlightForToken.Operator) === false) return appliedNodeEnd(parser, result);
 
     result.statement = expectStatement(parser);
-    
+
     return appliedNodeEnd(parser, result);
 }
 
-// WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+// BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
     if (parser.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1602,7 +1607,7 @@ function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
     return appliedNodeEnd(parser, result);
 }
 
-// DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+// BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
     if (parser.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1630,7 +1635,7 @@ function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
     return appliedNodeEnd(parser, result);
 }
 
-// IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+// BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (parser.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1668,7 +1673,7 @@ function appliedNodeEnd<T extends NodesBase>(parser: ParserState, node: Mutable<
     return node;
 }
 
-// CONTINUE      ::= 'continue' ';'
+// BNF: CONTINUE      ::= 'continue' ';'
 function parseContinue(parser: ParserState): NodeContinue | undefined {
     if (parser.next().text !== 'continue') return undefined;
     const rangeStart = parser.next();
@@ -1677,7 +1682,7 @@ function parseContinue(parser: ParserState): NodeContinue | undefined {
     return {nodeName: NodeName.Continue, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
 
-// EXPRSTAT      ::= [ASSIGN] ';'
+// BNF: EXPRSTAT      ::= [ASSIGN] ';'
 function parseExprStat(parser: ParserState): NodeExprStat | undefined {
     const rangeStart = parser.next();
     if (parser.next().text === ';') {
@@ -1709,7 +1714,7 @@ function expectExprStat(parser: ParserState): NodeExprStat | undefined {
     return exprStat;
 }
 
-// TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+// BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 function parseTry(parser: ParserState): ParseResult<NodeTry> {
     if (parser.next().text !== 'try') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1731,7 +1736,7 @@ function parseTry(parser: ParserState): ParseResult<NodeTry> {
     return appliedNodeEnd(parser, result);
 }
 
-// RETURN        ::= 'return' [ASSIGN] ';'
+// BNF: RETURN        ::= 'return' [ASSIGN] ';'
 function parseReturn(parser: ParserState): ParseResult<NodeReturn> {
     if (parser.next().text !== 'return') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -1755,7 +1760,7 @@ function parseReturn(parser: ParserState): ParseResult<NodeReturn> {
     return appliedNodeEnd(parser, result);
 }
 
-// CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+// BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function parseCase(parser: ParserState): ParseResult<NodeCase> {
     const rangeStart = parser.next();
 
@@ -1790,7 +1795,7 @@ function parseCase(parser: ParserState): ParseResult<NodeCase> {
     };
 }
 
-// EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
+// BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 function parseExpr(parser: ParserState): NodeExpr | undefined {
     const rangeStart = parser.next();
 
@@ -1850,7 +1855,7 @@ function expectExprOrVoid(parser: ParserState): NodeExpr | NodeExprVoid | undefi
     return expr;
 }
 
-// EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+// BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function parseExprTerm(parser: ParserState) {
     const exprTerm1 = parseExprTerm1(parser);
     if (exprTerm1 !== undefined) return exprTerm1;
@@ -1926,7 +1931,7 @@ function parseExprTerm2(parser: ParserState): NodeExprTerm2 | undefined {
     };
 }
 
-// EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parser: ParserState): ParseResult<NodeExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1961,7 +1966,7 @@ function parseExprValue(parser: ParserState): ParseResult<NodeExprValue> {
     return ParseFailure.Mismatch;
 }
 
-// CONSTRUCTCALL ::= TYPE ARGLIST
+// BNF: CONSTRUCTCALL ::= TYPE ARGLIST
 function parseConstructCall(parser: ParserState): NodeConstructCall | undefined {
     const rangeStart = parser.next();
     const type = parseType(parser);
@@ -1981,9 +1986,9 @@ function parseConstructCall(parser: ParserState): NodeConstructCall | undefined 
     };
 }
 
-// EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 function parseExprPostOp(parser: ParserState): NodeExprPostOp | undefined {
     const rangeStart = parser.next();
 
@@ -2079,7 +2084,7 @@ function parseIdentifierWithColon(parser: ParserState): TokenObject | undefined 
     return undefined;
 }
 
-// CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+// BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function parseCast(parser: ParserState): ParseResult<NodeCast> {
     if (parser.next().text !== 'cast') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
@@ -2106,7 +2111,7 @@ function parseCast(parser: ParserState): ParseResult<NodeCast> {
     };
 }
 
-// LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
     // A lambda expression is determined by checking whether a '{' appears after the '(' at the end of a function call.
     if (canParseLambda(parser) === false) return ParseFailure.Mismatch;
@@ -2162,7 +2167,7 @@ function canParseLambda(parser: ParserState): boolean {
     return false;
 }
 
-// LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 function parseLiteral(parser: ParserState): NodeLiteral | undefined {
     const next = parser.next();
     if (next.kind === TokenKind.Number) {
@@ -2180,7 +2185,7 @@ function parseLiteral(parser: ParserState): NodeLiteral | undefined {
     return undefined;
 }
 
-// FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+// BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function parseFuncCall(parser: ParserState): NodeFuncCall | undefined {
     const rangeStart = parser.next();
     const scope = parseScope(parser);
@@ -2206,7 +2211,7 @@ function parseFuncCall(parser: ParserState): NodeFuncCall | undefined {
     };
 }
 
-// VARACCESS     ::= SCOPE IDENTIFIER
+// BNF: VARACCESS     ::= SCOPE IDENTIFIER
 function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
     const rangeStart = parser.next();
     const scope = parseScope(parser);
@@ -2233,7 +2238,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
     };
 }
 
-// ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+// BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 function parseArgList(parser: ParserState): NodeArgList | undefined {
     if (parser.next().text !== '(') return undefined;
     const rangeStart = parser.next();
@@ -2258,7 +2263,7 @@ function parseArgList(parser: ParserState): NodeArgList | undefined {
     };
 }
 
-// ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
+// BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
 function parseAssign(parser: ParserState): NodeAssign | undefined {
     const rangeStart = parser.next();
 
@@ -2294,7 +2299,7 @@ function expectAssign(parser: ParserState): NodeAssign | undefined {
     return assign;
 }
 
-// CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+// BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 function parseCondition(parser: ParserState): NodeCondition | undefined {
     const rangeStart = parser.next();
 
@@ -2326,7 +2331,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
     return result;
 }
 
-// EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
+// BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parser: ParserState) {
     const next = getNextLinkedGreaterThan(parser);
     if (next.isReservedToken() === false) return undefined;
@@ -2346,15 +2351,15 @@ function parseNotIsOperator(parser: ParserState) {
     return TokenReserved.createVirtual('!is', location);
 }
 
-// BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+// BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 
-// MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
+// BNF: MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 
-// COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+// BNF: COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 
-// LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+// BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 
-// ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+// BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parser: ParserState) {
     const next = getNextLinkedGreaterThan(parser);
     if (next.isReservedToken() === false || next.property.isAssignOp === false) return undefined;

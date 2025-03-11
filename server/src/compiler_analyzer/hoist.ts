@@ -45,7 +45,7 @@ import {
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {AnalyzerScope} from "./analyzerScope";
 
-// SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -73,7 +73,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
     }
 }
 
-// NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, queue: AnalyzeQueue) {
     if (nodeNamespace.namespaceList.length === 0) return;
 
@@ -88,7 +88,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
     complementHintForScope(scopeIterator, nodeNamespace.nodeRange);
 }
 
-// ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolType = SymbolType.create({
         defToken: nodeEnum.identifier,
@@ -121,7 +121,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
     }
 }
 
-// CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         defToken: nodeClass.identifier,
@@ -255,7 +255,7 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
     }
 }
 
-// TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const builtInType = tryGetBuiltInType(typeDef.type);
     if (builtInType === undefined) return;
@@ -269,7 +269,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     parentScope.insertSymbolAndCheck(symbol);
 }
 
-// FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
     parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: AnalyzeQueue, hoisting: HoistQueue, isInstanceMember: boolean
 ) {
@@ -322,7 +322,7 @@ function hoistFunc(
     });
 }
 
-// INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         defToken: nodeInterface.identifier,
@@ -356,7 +356,7 @@ function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface,
     }
 }
 
-// VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// BNF: VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue, isInstanceMember: boolean) {
     const varType = analyzeType(scope, nodeVar.type);
 
@@ -371,9 +371,9 @@ function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue,
     insertVariables(scope, varType, nodeVar, isInstanceMember);
 }
 
-// IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+// BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 
-// FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+// BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolFunction = SymbolFunction.create({
         defToken: funcDef.identifier,
@@ -391,7 +391,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
     });
 }
 
-// VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function hoistVirtualProp(
     parentScope: SymbolScope, virtualProp: NodeVirtualProp, analyzing: AnalyzeQueue, hoisting: HoistQueue, isInstanceMember: boolean
 ) {
@@ -439,12 +439,12 @@ function hoistVirtualProp(
     }
 }
 
-// MIXIN         ::= 'mixin' CLASS
+// BNF: MIXIN         ::= 'mixin' CLASS
 function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     hoistClass(parentScope, mixin.mixinClass, analyzing, hoisting);
 }
 
-// INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolFunction = SymbolFunction.create({
         defToken: intfMethod.identifier,
@@ -458,9 +458,9 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 }
 
-// STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
@@ -480,45 +480,45 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     return resolvedTypes;
 }
 
-// TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
-// TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-// INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-// SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-// DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-// PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-// FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
-// STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-// SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-// BREAK         ::= 'break' ';'
-// FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-// WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-// DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-// IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-// CONTINUE      ::= 'continue' ';'
-// EXPRSTAT      ::= [ASSIGN] ';'
-// TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
-// RETURN        ::= 'return' [ASSIGN] ';'
-// CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-// EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-// EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-// EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-// CONSTRUCTCALL ::= TYPE ARGLIST
-// EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-// EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
-// CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-// LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-// LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-// FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-// VARACCESS     ::= SCOPE IDENTIFIER
-// ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-// ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-// CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-// EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
-// BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
-// MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
-// COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
-// LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
-// ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+// BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+// BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+// BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+// BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// BNF: PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+// BNF: STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+// BNF: BREAK         ::= 'break' ';'
+// BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+// BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+// BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+// BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+// BNF: CONTINUE      ::= 'continue' ';'
+// BNF: EXPRSTAT      ::= [ASSIGN] ';'
+// BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+// BNF: RETURN        ::= 'return' [ASSIGN] ';'
+// BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+// BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
+// BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+// BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// BNF: CONSTRUCTCALL ::= TYPE ARGLIST
+// BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+// BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+// BNF: VARACCESS     ::= SCOPE IDENTIFIER
+// BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+// BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
+// BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+// BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
+// BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+// BNF: MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
+// BNF: COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+// BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+// BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
     const globalScope: SymbolScope = SymbolScope.createEmpty();
