@@ -272,7 +272,7 @@ export interface NodeStatBlock extends NodesBase {
     readonly statementList: (NodeVar | NodeStatement)[];
 }
 
-// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+// PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
 export type NodeParamList = ParsedTypeIdentifier[];
 
 export interface ParsedTypeIdentifier {
@@ -280,6 +280,7 @@ export interface ParsedTypeIdentifier {
     readonly modifier: TypeModifier | undefined,
     readonly identifier: TokenObject | undefined
     readonly defaultExpr: NodeExpr | undefined
+    readonly isVariadic: boolean
 }
 
 // TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
