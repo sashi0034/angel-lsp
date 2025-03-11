@@ -20,7 +20,7 @@ export function provideSignatureHelp(
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
             const expectedCallee =
-                globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
+                globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.identifierToken.text);
             if (expectedCallee?.isFunctionHolder() === false) continue;
 
             for (const callee of expectedCallee.overloadList) {

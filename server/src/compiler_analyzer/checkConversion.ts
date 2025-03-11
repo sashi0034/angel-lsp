@@ -115,8 +115,8 @@ function evaluateConvPrimitiveToPrimitive(
     const srcText: string = src.identifierText;
     const destText: string = dest.identifierText;
 
-    const srcToken = srcType.defToken;
-    const destToken = destType.defToken;
+    const srcToken = srcType.identifierToken;
+    const destToken = destType.identifierToken;
 
     const srcProperty = srcToken.isReservedToken() ? srcToken.property : undefined;
     const destProperty = destToken.isReservedToken() ? destToken.property : undefined;
@@ -206,7 +206,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
         for (const convFunc of convFuncList) {
             const returnType = convFunc.returnType?.symbolType;
             if (returnType?.isVariable() === false) continue;
-            if (returnType?.defToken.equals(destType.defToken)) {
+            if (returnType?.identifierToken.equals(destType.identifierToken)) {
                 selectedConvFunc = convFunc;
                 break;
             }

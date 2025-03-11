@@ -103,7 +103,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         if (completion.targetType.membersScope === undefined) return [];
 
         const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
-            completion.targetType.defToken.text);
+            completion.targetType.identifierToken.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope.

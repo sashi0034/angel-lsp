@@ -232,7 +232,7 @@ export class SymbolScope {
      * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
      */
     public insertSymbol(symbol: SymbolObject): SymbolObjectHolder | undefined {
-        const identifier = symbol.defToken.text;
+        const identifier = symbol.identifierToken.text;
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
             this._symbolTable.set(identifier, symbol.toHolder());
@@ -254,7 +254,7 @@ export class SymbolScope {
     public insertSymbolAndCheck(symbol: SymbolObject): boolean {
         const alreadyExists = this.insertSymbol(symbol);
         if (alreadyExists !== undefined) {
-            errorAlreadyDeclared(symbol.defToken);
+            errorAlreadyDeclared(symbol.identifierToken);
         }
 
         return alreadyExists === undefined;
@@ -283,7 +283,7 @@ export class SymbolScope {
         // Copy symbols from the external scope.
         for (const [key, symbolHolder] of externalScope.symbolTable) {
             for (const symbol of symbolHolder.toList()) {
-                if (symbol.defToken.location.path === externalFilepath) {
+                if (symbol.identifierToken.location.path === externalFilepath) {
                     this.insertSymbol(symbol);
                 }
             }
@@ -403,7 +403,7 @@ export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
         && symbol.isFunctionHolder()
         && scope.linkedNode !== undefined
         && scope.linkedNode.nodeName === NodeName.Class
-        && scope.linkedNode.identifier.text === symbol.first.defToken.text;
+        && scope.linkedNode.identifier.text === symbol.first.identifierToken.text;
 }
 
 export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {

@@ -24,8 +24,8 @@ export function resolveTemplateType(
 
     if (type.symbolType.isTypeParameter !== true) return type;
 
-    if (templateTranslate.has(type.symbolType.defToken)) {
-        return templateTranslate.get(type.symbolType.defToken);
+    if (templateTranslate.has(type.symbolType.identifierToken)) {
+        return templateTranslate.get(type.symbolType.identifierToken);
     }
 
     return type;
@@ -86,7 +86,7 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.defToken.text}`;
+    const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
     if (symbol instanceof SymbolType) {
         return fullName;
     } else if (symbol instanceof SymbolFunction) {

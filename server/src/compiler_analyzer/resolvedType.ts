@@ -25,6 +25,6 @@ export class ResolvedType {
     }
 
     public get identifierText(): string {
-        return this.symbolType.defToken.text;
+        return this.symbolType.identifierToken.text;
     }
 }

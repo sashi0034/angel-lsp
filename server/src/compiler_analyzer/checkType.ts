@@ -85,7 +85,7 @@ function isTypeMatchInternal(
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
         // Succeeds if they both point to the same type.
-        if (srcType.defToken === destType.defToken) return true;
+        if (srcType.identifierToken === destType.identifierToken) return true;
 
         if (srcNode?.nodeName === NodeName.Enum && destType.isNumberType()) return true;
 
@@ -150,7 +150,7 @@ function canCastFromPrimitiveType(
     const destNode = destType.defNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && srcType.defToken.equals(destType.defToken);
+        return destType.isTypeParameter && srcType.identifierToken.equals(destType.identifierToken);
     }
 
     if (srcType.identifierText === 'void') {

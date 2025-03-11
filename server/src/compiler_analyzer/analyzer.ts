@@ -136,7 +136,7 @@ export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEac
     // TODO: figure out how to resolve `opForValue{N}`
     // when `auto` is used
     const variable: SymbolVariable = SymbolVariable.create({
-        defToken: nodeForEachVar.identifier,
+        identifierToken: nodeForEachVar.identifier,
         scopePath: scope.scopePath,
         type: analyzeType(scope, nodeForEachVar.type),
         isInstanceMember: false,
@@ -148,7 +148,7 @@ export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEac
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
     for (const declaredVar of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
-            defToken: declaredVar.identifier,
+            identifierToken: declaredVar.identifier,
             scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
@@ -862,7 +862,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
         if (param.identifier === undefined) continue;
 
         const argument: SymbolVariable = SymbolVariable.create({
-            defToken: param.identifier,
+            identifierToken: param.identifier,
             scopePath: scope.scopePath,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
@@ -1046,8 +1046,8 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (declared.symbol.toList()[0].defToken.location.path !== '') {
-        // Keywords such as 'this' have an empty defToken. They do not add to the reference list.
+    if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
+        // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
         checkingScope.referencedList.push({
             declaredSymbol: declared.symbol.toList()[0],
             referencedToken: varIdentifier

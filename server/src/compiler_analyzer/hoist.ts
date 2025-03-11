@@ -91,7 +91,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     const symbol: SymbolType = SymbolType.create({
-        defToken: nodeEnum.identifier,
+        identifierToken: nodeEnum.identifier,
         scopePath: parentScope.scopePath,
         defNode: nodeEnum,
         membersScope: undefined,
@@ -111,7 +111,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
         const symbol: SymbolVariable = SymbolVariable.create({
-            defToken: member.identifier,
+            identifierToken: member.identifier,
             scopePath: parentScope.scopePath,
             type: type,
             isInstanceMember: false,
@@ -124,7 +124,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
 // BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
-        defToken: nodeClass.identifier,
+        identifierToken: nodeClass.identifier,
         scopePath: parentScope.scopePath,
         defNode: nodeClass,
         membersScope: undefined,
@@ -135,7 +135,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     symbol.mutate().membersScope = scope.scopePath;
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
-        defToken: builtinThisToken,
+        identifierToken: builtinThisToken,
         scopePath: parentScope.scopePath,
         type: new ResolvedType(symbol),
         isInstanceMember: false,
@@ -162,9 +162,9 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             const superConstructor = findConstructorForResolvedType(primeBase);
             if (superConstructor?.isFunctionHolder()) {
                 for (const superSymbol of superConstructor?.toList()) {
-                    superSymbol.mutate().defToken = TokenIdentifier.createVirtual(
+                    superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
                         'super',
-                        superSymbol.defToken.location
+                        superSymbol.identifierToken.location
                     );
 
                     scope.insertSymbolAndCheck(superSymbol);
@@ -180,7 +180,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     const templateTypes: TokenObject[] = [];
     for (const type of types ?? []) {
         scope.insertSymbolAndCheck(SymbolType.create({
-            defToken: getIdentifierInNodeType(type),
+            identifierToken: getIdentifierInNodeType(type),
             scopePath: scope.scopePath,
             defNode: undefined,
             membersScope: undefined,
@@ -233,7 +233,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
 
                 const errored = scope.insertSymbol(symbol);
                 if (errored !== undefined) {
-                    analyzerDiagnostic.add(errored.toList()[0].defToken.location, `Duplicated symbol '${key}'`);
+                    analyzerDiagnostic.add(errored.toList()[0].identifierToken.location, `Duplicated symbol '${key}'`);
                 }
             }
         }
@@ -261,7 +261,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     if (builtInType === undefined) return;
 
     const symbol: SymbolType = SymbolType.create({
-        defToken: typeDef.identifier,
+        identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
         defNode: builtInType.defNode,
         membersScope: undefined,
@@ -279,7 +279,7 @@ function hoistFunc(
         parentScope,
         nodeFunc.head.returnType) : undefined;
     const symbol: SymbolFunction = SymbolFunction.create({
-        defToken: nodeFunc.identifier,
+        identifierToken: nodeFunc.identifier,
         scopePath: parentScope.scopePath,
         returnType: returnType,
         parameterTypes: [],
@@ -297,7 +297,7 @@ function hoistFunc(
                 nodeFunc.identifier.location);
 
             const symbol: SymbolVariable = SymbolVariable.create({
-                defToken: identifier, // FIXME?
+                identifierToken: identifier, // FIXME?
                 scopePath: parentScope.scopePath,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
@@ -325,7 +325,7 @@ function hoistFunc(
 // BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
-        defToken: nodeInterface.identifier,
+        identifierToken: nodeInterface.identifier,
         scopePath: parentScope.scopePath,
         defNode: nodeInterface,
         membersScope: undefined,
@@ -376,7 +376,7 @@ function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue,
 // BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
     const symbol: SymbolFunction = SymbolFunction.create({
-        defToken: funcDef.identifier,
+        identifierToken: funcDef.identifier,
         scopePath: parentScope.scopePath,
         returnType: analyzeType(parentScope, funcDef.returnType),
         parameterTypes: [],
@@ -399,7 +399,7 @@ function hoistVirtualProp(
 
     const identifier = virtualProp.identifier;
     const symbol: SymbolVariable = SymbolVariable.create({
-        defToken: identifier,
+        identifierToken: identifier,
         scopePath: parentScope.scopePath,
         type: type,
         isInstanceMember: isInstanceMember,
@@ -423,7 +423,7 @@ function hoistVirtualProp(
 
         if (type !== undefined) {
             const valueVariable: SymbolVariable = SymbolVariable.create({
-                defToken: builtinSetterValueToken,
+                identifierToken: builtinSetterValueToken,
                 scopePath: parentScope.scopePath,
                 type: new ResolvedType(type.symbolType),
                 isInstanceMember: false,
@@ -447,7 +447,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: Analy
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolFunction = SymbolFunction.create({
-        defToken: intfMethod.identifier,
+        identifierToken: intfMethod.identifier,
         scopePath: parentScope.scopePath,
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
@@ -470,7 +470,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 
         if (param.identifier === undefined) continue;
         scope.insertSymbolAndCheck(SymbolVariable.create({
-            defToken: param.identifier,
+            identifierToken: param.identifier,
             scopePath: scope.scopePath,
             type: type,
             isInstanceMember: false,
