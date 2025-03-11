@@ -46,7 +46,7 @@ export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
 export abstract class SymbolBase {
     public abstract get kind(): SymbolKind;
 
-    public abstract get defScope(): ScopePath;
+    public abstract get scopePath(): ScopePath;
 
     public abstract get identifierText(): string;
 
@@ -69,7 +69,7 @@ export abstract class SymbolBase {
     }
 
     public equals(other: SymbolBase): boolean {
-        return this.identifierText === other.identifierText && isScopePathEquals(this.defScope, other.defScope);
+        return this.identifierText === other.identifierText && isScopePathEquals(this.scopePath, other.scopePath);
     }
 }
 
@@ -88,7 +88,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
+        public readonly scopePath: ScopePath,
         public readonly defNode: TypeDefinitionNode | undefined,
         public readonly membersScope: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
@@ -103,7 +103,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: ScopePath
+        scopePath: ScopePath
         defNode: TypeDefinitionNode | undefined
         membersScope: ScopePath | undefined
         isTypeParameter?: boolean
@@ -113,7 +113,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }) {
         return new SymbolType(
             args.defToken,
-            args.defScope,
+            args.scopePath,
             args.defNode,
             args.membersScope,
             args.isTypeParameter,
@@ -166,7 +166,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
+        public readonly scopePath: ScopePath,
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
@@ -176,14 +176,14 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: ScopePath
+        scopePath: ScopePath
         type: ResolvedType | undefined
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined
     }) {
         return new SymbolVariable(
             args.defToken,
-            args.defScope,
+            args.scopePath,
             args.type,
             args.isInstanceMember,
             args.accessRestriction);
@@ -209,7 +209,7 @@ export class SymbolFunction extends SymbolBase {
 
     constructor(
         public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
+        public readonly scopePath: ScopePath,
         public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
@@ -221,7 +221,7 @@ export class SymbolFunction extends SymbolBase {
 
     public static create(args: {
         defToken: TokenObject
-        defScope: ScopePath
+        scopePath: ScopePath
         defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
@@ -230,7 +230,7 @@ export class SymbolFunction extends SymbolBase {
     }) {
         return new SymbolFunction(
             args.defToken,
-            args.defScope,
+            args.scopePath,
             args.defNode,
             args.returnType,
             args.parameterTypes,

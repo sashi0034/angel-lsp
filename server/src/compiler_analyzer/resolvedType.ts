@@ -21,7 +21,7 @@ export class ResolvedType {
     }
 
     public get sourceScope(): ScopePath | undefined {
-        return this.symbolType.defScope;
+        return this.symbolType.scopePath;
     }
 
     public get identifierText(): string {

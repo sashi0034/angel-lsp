@@ -137,7 +137,7 @@ export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEac
     // when `auto` is used
     const variable: SymbolVariable = SymbolVariable.create({
         defToken: nodeForEachVar.identifier,
-        defScope: scope.scopePath,
+        scopePath: scope.scopePath,
         type: analyzeType(scope, nodeForEachVar.type),
         isInstanceMember: false,
         accessRestriction: undefined,
@@ -149,7 +149,7 @@ export function insertVariables(scope: SymbolScope, varType: ResolvedType | unde
     for (const declaredVar of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
             defToken: declaredVar.identifier,
-            defScope: scope.scopePath,
+            scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
             accessRestriction: nodeVar.accessor,
@@ -863,7 +863,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
 
         const argument: SymbolVariable = SymbolVariable.create({
             defToken: param.identifier,
-            defScope: scope.scopePath,
+            scopePath: scope.scopePath,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
             isInstanceMember: false,
             accessRestriction: undefined,

@@ -177,7 +177,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     // FIXME: Consider ConversionType
 
     const convFuncList: SymbolFunction[ ] = [];
-    const srcMembers = resolveActiveScope(srcType.defScope).symbolTable.values();
+    const srcMembers = resolveActiveScope(srcType.scopePath).symbolTable.values();
     for (const methodHolder of srcMembers) {
         if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
         ) {
@@ -268,7 +268,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
 
     assert(srcType.isType() && destType.isType());
 
-    const destScope = resolveActiveScope(destType.defScope);
+    const destScope = resolveActiveScope(destType.scopePath);
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
     const constructorScope = destScope.lookupScope(destType.identifierText);

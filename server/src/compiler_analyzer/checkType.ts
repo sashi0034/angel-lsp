@@ -217,12 +217,12 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
-    const defScope = resolveActiveScope(declaredSymbol.defScope);
+    const scopePath = resolveActiveScope(declaredSymbol.scopePath);
 
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(checkingScope, defScope);
+        return isScopeChildOrGrandchild(checkingScope, scopePath);
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (defScope.linkedNode === undefined) return false;
+        if (scopePath.linkedNode === undefined) return false;
 
         const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
@@ -232,8 +232,8 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
         if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
-        if (defScope.parentScope === undefined) return false;
-        const declaredOuterClass = findSymbolShallowly(defScope.parentScope, defScope.key);
+        if (scopePath.parentScope === undefined) return false;
+        const declaredOuterClass = findSymbolShallowly(scopePath.parentScope, scopePath.key);
         if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));

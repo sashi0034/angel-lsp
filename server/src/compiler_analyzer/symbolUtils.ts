@@ -86,7 +86,7 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.defScope)}${symbol.defToken.text}`;
+    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.defToken.text}`;
     if (symbol instanceof SymbolType) {
         return fullName;
     } else if (symbol instanceof SymbolFunction) {
