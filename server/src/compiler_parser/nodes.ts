@@ -172,6 +172,7 @@ export interface NodeFunc extends NodesBase {
     readonly isConst: boolean;
     readonly funcAttr: FunctionAttribute | undefined;
     readonly statBlock: NodeStatBlock;
+    readonly typeTemplates: NodeType[];
 }
 
 export interface FuncHeadReturnValue {
@@ -552,7 +553,8 @@ export interface NodeFuncCall extends NodesBase {
     readonly nodeName: NodeName.FuncCall
     readonly scope: NodeScope | undefined,
     readonly identifier: TokenObject,
-    readonly argList: NodeArgList
+    readonly argList: NodeArgList,
+    readonly typeTemplates: NodeType[] | undefined;
 }
 
 // BNF: VARACCESS     ::= SCOPE IDENTIFIER
