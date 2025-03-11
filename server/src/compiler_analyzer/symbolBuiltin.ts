@@ -7,9 +7,9 @@ import {SymbolScope} from "./symbolScope";
 
 function createBuiltinType(virtualToken: TokenObject): SymbolType {
     return SymbolType.create({
-        defToken: virtualToken, // The built-in type uses a virtual token
-        defScope: [],
-        defNode: undefined,
+        identifierToken: virtualToken, // The built-in type uses a virtual token
+        scopePath: [],
+        linkedNode: undefined,
         membersScope: undefined,
     });
 }

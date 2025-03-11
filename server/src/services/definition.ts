@@ -28,13 +28,13 @@ export function provideDefinition(globalScope: SymbolScope, caret: Position): Sy
  * Search for the definition of the symbol at the cursor position and return it as a token.
  */
 export function provideDefinitionAsToken(globalScope: SymbolScope, caret: Position): TokenObject | undefined {
-    return provideDefinition(globalScope, caret)?.defToken;
+    return provideDefinition(globalScope, caret)?.identifierToken;
 }
 
 function provideDefinitionInternal(targetScope: SymbolScope, caret: Position, path: string): SymbolObject | undefined {
     // Search a symbol in the symbol map in this scope if it is on the cursor
     for (const [key, symbol] of targetScope.symbolTable) {
-        const location = symbol.toList()[0].defToken.location;
+        const location = symbol.toList()[0].identifierToken.location;
         if (location.path === path && location.positionInRange(caret)) {
             return symbol.toList()[0];
         }

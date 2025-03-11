@@ -8,7 +8,7 @@ import {
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {resolveActiveScope, isScopeChildOrGrandchild, SymbolScope, tryResolveActiveScope} from "./symbolScope";
 import assert = require("assert");
-import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
+import {resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_parser/tokenRange";
@@ -59,8 +59,8 @@ export function canTypeConvert(
 function isTypeMatchInternal(
     src: ResolvedType, dest: ResolvedType
 ): boolean {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     // Check the function handler type.
     if (srcType.isFunction()) {
@@ -75,8 +75,8 @@ function isTypeMatchInternal(
         return false;
     }
 
-    const srcNode = srcType.defNode;
-    const destNode = destType.defNode;
+    const srcNode = srcType.linkedNode;
+    const destNode = destType.linkedNode;
 
     if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
@@ -85,7 +85,7 @@ function isTypeMatchInternal(
         if (canCastFromPrimitiveType(srcType, destType)) return true;
     } else {
         // Succeeds if they both point to the same type.
-        if (srcType.defToken === destType.defToken) return true;
+        if (srcType.identifierToken === destType.identifierToken) return true;
 
         if (srcNode?.nodeName === NodeName.Enum && destType.isNumberType()) return true;
 
@@ -126,17 +126,17 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.defNode;
+    const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
-    if (srcType.defNode === destType.defNode) return true;
+    if (srcType.linkedNode === destType.linkedNode) return true;
 
     if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbolType === undefined) continue;
-            if (srcBase.symbolType instanceof SymbolType === false) continue;
-            if (canDownCast(srcBase.symbolType, destType)) return true;
+            if (srcBase?.typeOrFunc === undefined) continue;
+            if (srcBase.typeOrFunc instanceof SymbolType === false) continue;
+            if (canDownCast(srcBase.typeOrFunc, destType)) return true;
         }
     }
 
@@ -146,11 +146,11 @@ function canDownCast(
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.defNode;
-    const destNode = destType.defNode;
+    const srcNode = srcType.linkedNode;
+    const destNode = destType.linkedNode;
 
     if (srcType.isTypeParameter) {
-        return destType.isTypeParameter && srcType.defToken.equals(destType.defToken);
+        return destType.isTypeParameter && srcType.identifierToken.equals(destType.identifierToken);
     }
 
     if (srcType.identifierText === 'void') {
@@ -181,12 +181,12 @@ function canConstructImplicitly(
     if (constructorScope === undefined || constructorScope.linkedNode?.nodeName !== NodeName.Class) return false;
 
     // Search for the constructor of the given type from the scope of the type itself.
-    const constructor = findSymbolShallowly(constructorScope, destIdentifier);
+    const constructor = constructorScope.lookupSymbol(destIdentifier);
     if (constructor === undefined || constructor.isFunctionHolder() === false) return false;
 
-    if (srcType.defNode === undefined) return true; // FIXME?
+    if (srcType.linkedNode === undefined) return true; // FIXME?
 
-    return canConstructBy(constructor, 0, srcType.defNode);
+    return canConstructBy(constructor, 0, srcType.linkedNode);
 }
 
 function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: number, srcType: TypeDefinitionNode): boolean {
@@ -196,8 +196,8 @@ function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: 
     if (constructor.parameterTypes.length === 1) {
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
-            && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.defNode === srcType
+            && paramType.typeOrFunc instanceof SymbolType
+            && paramType.typeOrFunc.linkedNode === srcType
         ) {
             return true;
         }
@@ -217,23 +217,23 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
     if (declaredSymbol instanceof SymbolType) return true;
     if (declaredSymbol.accessRestriction === undefined) return true;
 
-    const defScope = resolveActiveScope(declaredSymbol.defScope);
+    const scopePath = resolveActiveScope(declaredSymbol.scopePath);
 
     if (declaredSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(checkingScope, defScope);
+        return isScopeChildOrGrandchild(checkingScope, scopePath);
     } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (defScope.linkedNode === undefined) return false;
+        if (scopePath.linkedNode === undefined) return false;
 
         const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
 
         // Get the symbol of the class to which the referring part belongs.
-        const checkingOuterClass = findSymbolShallowly(checkingOuterScope.parentScope, checkingOuterScope.key);
+        const checkingOuterClass = checkingOuterScope.parentScope.lookupSymbol(checkingOuterScope.key);
         if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
-        if (defScope.parentScope === undefined) return false;
-        const declaredOuterClass = findSymbolShallowly(defScope.parentScope, defScope.key);
+        if (scopePath.parentScope === undefined) return false;
+        const declaredOuterClass = scopePath.parentScope.lookupSymbol(scopePath.key);
         if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));

@@ -6,25 +6,25 @@ import {ScopePath, SymbolFunction, SymbolFunctionHolder, SymbolType} from "./sym
  */
 export class ResolvedType {
     constructor(
-        public readonly symbolType: SymbolType | SymbolFunction, // TODO: rename?
+        public readonly typeOrFunc: SymbolType | SymbolFunction,
         public readonly isHandler?: boolean,
         public readonly templateTranslate?: TemplateTranslation,
     ) {
     }
 
     public static create(args: {
-        symbolType: SymbolType | SymbolFunction
+        typeOrFunc: SymbolType | SymbolFunction
         isHandler?: boolean
         templateTranslate?: TemplateTranslation
     }) {
-        return new ResolvedType(args.symbolType, args.isHandler, args.templateTranslate);
+        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslate);
     }
 
     public get sourceScope(): ScopePath | undefined {
-        return this.symbolType.defScope;
+        return this.typeOrFunc.scopePath;
     }
 
     public get identifierText(): string {
-        return this.symbolType.defToken.text;
+        return this.typeOrFunc.identifierToken.text;
     }
 }

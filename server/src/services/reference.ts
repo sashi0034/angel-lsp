@@ -19,8 +19,8 @@ function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObj
 
     for (const reference of scope.referencedList) {
         // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        if (reference.declaredSymbol.defToken === targetDefinition
-            || reference.declaredSymbol.defToken.equals(targetDefinition)
+        if (reference.declaredSymbol.identifierToken === targetDefinition
+            || reference.declaredSymbol.identifierToken.equals(targetDefinition)
         ) {
             references.push(reference.referencedToken);
         }

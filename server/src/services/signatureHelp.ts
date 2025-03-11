@@ -20,7 +20,7 @@ export function provideSignatureHelp(
         const location = hint.complementLocation;
         if (location.positionInRange(caret)) {
             const expectedCallee =
-                globalScope.resolveScope(hint.expectedCallee.defScope)?.lookupSymbolWithParent(hint.expectedCallee.defToken.text);
+                globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.identifierToken.text);
             if (expectedCallee?.isFunctionHolder() === false) continue;
 
             for (const callee of expectedCallee.overloadList) {
@@ -42,9 +42,9 @@ function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: Sy
 
     let activeIndex = 0;
 
-    let signatureLabel = expectedCallee.defNode.identifier.text + '(';
-    for (let i = 0; i < expectedCallee.defNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.defNode.paramList[i];
+    let signatureLabel = expectedCallee.linkedNode.identifier.text + '(';
+    for (let i = 0; i < expectedCallee.linkedNode.paramList.length; i++) {
+        const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));

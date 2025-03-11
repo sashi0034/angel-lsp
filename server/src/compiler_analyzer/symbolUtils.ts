@@ -20,12 +20,12 @@ export function resolveTemplateType(
 
     if (type === undefined) return undefined;
 
-    if (type.symbolType.isFunction()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
+    if (type.typeOrFunc.isFunction()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
 
-    if (type.symbolType.isTypeParameter !== true) return type;
+    if (type.typeOrFunc.isTypeParameter !== true) return type;
 
-    if (templateTranslate.has(type.symbolType.defToken)) {
-        return templateTranslate.get(type.symbolType.defToken);
+    if (templateTranslate.has(type.typeOrFunc.identifierToken)) {
+        return templateTranslate.get(type.typeOrFunc.identifierToken);
     }
 
     return type;
@@ -39,7 +39,7 @@ export function resolveTemplateTypes(
 }
 
 export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
-    return type !== undefined && type.symbolType instanceof SymbolType && type.symbolType.identifierText === 'auto';
+    return type !== undefined && type.typeOrFunc instanceof SymbolType && type.typeOrFunc.identifierText === 'auto';
 }
 
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
@@ -62,8 +62,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     let suffix = '';
     if (type.isHandler === true) suffix = `${suffix}@`;
 
-    if (type.symbolType.isFunction()) {
-        const func: SymbolFunction = type.symbolType;
+    if (type.typeOrFunc.isFunction()) {
+        const func: SymbolFunction = type.typeOrFunc;
         const returnType = func.returnType;
         const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${params})` + suffix;
@@ -75,7 +75,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
         suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
-    return type.symbolType.identifierText + suffix;
+    return type.typeOrFunc.identifierText + suffix;
 }
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
@@ -86,7 +86,7 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.defToken.text; // `${stringifyScopeSuffix(symbol.defScope)}${symbol.defToken.text}`;
+    const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
     if (symbol instanceof SymbolType) {
         return fullName;
     } else if (symbol instanceof SymbolFunction) {
@@ -97,11 +97,6 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     }
 
     assert(false);
-}
-
-// obsolete
-export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObjectHolder | undefined {
-    return scope.symbolTable.get(identifier);
 }
 
 // obsolete

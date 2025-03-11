@@ -29,33 +29,33 @@ function testDefinition(rawContent: string) {
 }
 
 describe("Definition", () => {
-    // The definition location is marked by "<c0>",
-    // on the other hand, the cursor for go-to definition is marked by "<c1>", "<c2>", etc.
+    // The definition location is marked by "$C0$",
+    // on the other hand, the cursor for go-to definition is marked by "$C1$", "$C2$", etc.
 
     testDefinition(`
-        int sum<c0>(int v) {
+        int sum$C0$(int v) {
             if (v == 0) return 0;
-            return v + sum<c1>(v - 1;)
+            return v + sum$C1$(v - 1;)
         }`
     );
 
     testDefinition(`
-        int sum(int v<c0>) {
+        int sum(int v$C0$) {
             if (v == 0) return 0;
-            return v<c1> + sum(v<c2> - 1;)
+            return v$C1$ + sum(v$C2$ - 1;)
         }`
     );
 
     testDefinition(`
         class Foo {
-            int value<c0>;
+            int value$C0$;
         
             int add(int v) { return v + value; }
         }
 
         void main() {
             Foo foo;
-            foo.value<c1> = 2;
+            foo.value$C1$ = 2;
         }`
     );
 });

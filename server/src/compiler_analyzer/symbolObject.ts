@@ -46,7 +46,7 @@ export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
 export abstract class SymbolBase {
     public abstract get kind(): SymbolKind;
 
-    public abstract get defScope(): ScopePath;
+    public abstract get scopePath(): ScopePath;
 
     public abstract get identifierText(): string;
 
@@ -69,7 +69,7 @@ export abstract class SymbolBase {
     }
 
     public equals(other: SymbolBase): boolean {
-        return this.identifierText === other.identifierText && isScopePathEquals(this.defScope, other.defScope);
+        return this.identifierText === other.identifierText && isScopePathEquals(this.scopePath, other.scopePath);
     }
 }
 
@@ -87,9 +87,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     constructor(
-        public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
-        public readonly defNode: TypeDefinitionNode | undefined,
+        public readonly identifierToken: TokenObject,
+        public readonly scopePath: ScopePath,
+        public readonly linkedNode: TypeDefinitionNode | undefined,
         public readonly membersScope: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
@@ -102,9 +102,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     public static create(args: {
-        defToken: TokenObject
-        defScope: ScopePath
-        defNode: TypeDefinitionNode | undefined
+        identifierToken: TokenObject
+        scopePath: ScopePath
+        linkedNode: TypeDefinitionNode | undefined
         membersScope: ScopePath | undefined
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
@@ -112,9 +112,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         isHandler?: boolean
     }) {
         return new SymbolType(
-            args.defToken,
-            args.defScope,
-            args.defNode,
+            args.identifierToken,
+            args.scopePath,
+            args.linkedNode,
             args.membersScope,
             args.isTypeParameter,
             args.templateTypes,
@@ -127,7 +127,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     public get identifierText(): string {
-        return this.defToken.text;
+        return this.identifierToken.text;
     }
 
     /**
@@ -135,15 +135,15 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
      * Note: enum is not a primitive type here.
      */
     public isPrimitiveType(): boolean {
-        return this.defNode === undefined;
+        return this.linkedNode === undefined;
     }
 
     public isNumberType(): boolean {
-        return this.defToken.isReservedToken() && this.defToken.property.isNumber;
+        return this.identifierToken.isReservedToken() && this.identifierToken.property.isNumber;
     }
 
     public isEnumType(): boolean {
-        return this.defNode?.nodeName === NodeName.Enum;
+        return this.linkedNode?.nodeName === NodeName.Enum;
     }
 
     public isPrimitiveOrEnum(): boolean {
@@ -165,8 +165,8 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
     }
 
     constructor(
-        public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
+        public readonly identifierToken: TokenObject,
+        public readonly scopePath: ScopePath,
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
@@ -175,22 +175,22 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
     }
 
     public static create(args: {
-        defToken: TokenObject
-        defScope: ScopePath
+        identifierToken: TokenObject
+        scopePath: ScopePath
         type: ResolvedType | undefined
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined
     }) {
         return new SymbolVariable(
-            args.defToken,
-            args.defScope,
+            args.identifierToken,
+            args.scopePath,
             args.type,
             args.isInstanceMember,
             args.accessRestriction);
     }
 
     public get identifierText(): string {
-        return this.defToken.text;
+        return this.identifierToken.text;
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {
@@ -208,9 +208,9 @@ export class SymbolFunction extends SymbolBase {
     }
 
     constructor(
-        public readonly defToken: TokenObject,
-        public readonly defScope: ScopePath,
-        public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly identifierToken: TokenObject,
+        public readonly scopePath: ScopePath,
+        public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
@@ -220,18 +220,18 @@ export class SymbolFunction extends SymbolBase {
     }
 
     public static create(args: {
-        defToken: TokenObject
-        defScope: ScopePath
-        defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
+        identifierToken: TokenObject
+        scopePath: ScopePath
+        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined
     }) {
         return new SymbolFunction(
-            args.defToken,
-            args.defScope,
-            args.defNode,
+            args.identifierToken,
+            args.scopePath,
+            args.linkedNode,
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,
@@ -247,7 +247,7 @@ export class SymbolFunction extends SymbolBase {
     }
 
     public get identifierText(): string {
-        return this.defToken.text;
+        return this.identifierToken.text;
     }
 }
 
@@ -275,7 +275,7 @@ export class SymbolFunctionHolder implements SymbolHolder {
     }
 
     public get identifierText(): string {
-        return this.first.defToken.text;
+        return this.first.identifierToken.text;
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {

@@ -5,27 +5,25 @@ interface CaretAndContent {
     content: string;
 }
 
-// FIXME: Use $C$ instead of <c> for the caret marker because it looks like a template
-
 /**
  * Returns the caret position and the content of the specified string.
- * Caret should be represented by "<c>".
+ * Caret should be represented by "$C$".
  */
 export function makeCaretAndContent(rawContent: string): CaretAndContent {
     const lines = rawContent.split(/\r?\n/);
 
     for (let i = 0; i < lines.length; i++) {
-        const caretCharacter = lines[i].indexOf('<c>');
+        const caretCharacter = lines[i].indexOf('$C$');
 
         if (caretCharacter !== -1) {
             return {
                 caret: new TextPosition(i, caretCharacter),
-                content: rawContent.replace(/<c>/g, '')
+                content: rawContent.replace(/$C$/g, '')
             };
         }
     }
 
-    throw new Error("No <c> found in content");
+    throw new Error("No $C$ found in content");
 }
 
 interface CaretListAndContent {
@@ -35,13 +33,13 @@ interface CaretListAndContent {
 
 /**
  * Returns the list of caret positions and the content of the specified string.
- * Caret should be represented by "<c0>", "<c1>", "<c2>", etc.
+ * Caret should be represented by "$C0$", "$C1$", "$C2$", etc.
  */
 export function makeCaretListAndContent(rawContent: string): CaretListAndContent {
     const lines = rawContent.split(/\r?\n/);
     const caretList: TextPosition[] = [];
-    // Regex to match markers like <c0>, <c1>, <c2>, etc.
-    const markerRegex = /<c\d+>/g;
+    // Regex to match markers like $C0$, $C1$, $C2$, etc.
+    const markerRegex = /\$C\d+\$/g;
     const newLines = lines.map((line, lineNumber) => {
         // For each match in the line, record its position.
         let match: RegExpExecArray | null;

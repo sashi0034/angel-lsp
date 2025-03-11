@@ -102,8 +102,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.defScope)?.lookupScope(
-            completion.targetType.defToken.text);
+        const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
+            completion.targetType.identifierToken.text);
         if (typeScope === undefined) return [];
 
         // Return the completion candidates in the scope.
@@ -130,8 +130,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 
 function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
     if (symbol instanceof SymbolType) {
-        if (symbol.isPrimitiveType() || symbol.defNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.defNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
+        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) return CompletionItemKind.Keyword;
+        if (symbol.linkedNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     } else if (symbol.isFunctionHolder()) {
         return CompletionItemKind.Function;

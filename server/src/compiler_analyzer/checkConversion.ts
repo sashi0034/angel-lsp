@@ -36,8 +36,8 @@ export function evaluateConversionCost(
 ): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     if (srcType.isFunction() || destType.isFunction()) {
         // TODO
@@ -97,8 +97,8 @@ function evaluateConvPrimitiveToPrimitive(
     dest: ResolvedType,
 ) {
     // FIXME: Check a primitive is const or not?
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
@@ -115,8 +115,8 @@ function evaluateConvPrimitiveToPrimitive(
     const srcText: string = src.identifierText;
     const destText: string = dest.identifierText;
 
-    const srcToken = srcType.defToken;
-    const destToken = destType.defToken;
+    const srcToken = srcType.identifierToken;
+    const destToken = destType.identifierToken;
 
     const srcProperty = srcToken.isReservedToken() ? srcToken.property : undefined;
     const destProperty = destToken.isReservedToken() ? destToken.property : undefined;
@@ -166,8 +166,8 @@ const numberConversionCostTable = new Map<string, string[]>([
 ]);
 
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert((srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum()));
@@ -177,7 +177,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     // FIXME: Consider ConversionType
 
     const convFuncList: SymbolFunction[ ] = [];
-    const srcMembers = resolveActiveScope(srcType.defScope).symbolTable.values();
+    const srcMembers = resolveActiveScope(srcType.scopePath).symbolTable.values();
     for (const methodHolder of srcMembers) {
         if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
         ) {
@@ -204,9 +204,9 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     } else {
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
-            const returnType = convFunc.returnType?.symbolType;
+            const returnType = convFunc.returnType?.typeOrFunc;
             if (returnType?.isVariable() === false) continue;
-            if (returnType?.defToken.equals(destType.defToken)) {
+            if (returnType?.identifierToken.equals(destType.identifierToken)) {
                 selectedConvFunc = convFunc;
                 break;
             }
@@ -228,8 +228,8 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 // as_compiler.cpp: ImplicitConvPrimitiveToObject
 
 function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() && destType.isPrimitiveOrEnum() === false);
@@ -242,13 +242,13 @@ function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): C
 // as_compiler.cpp: ImplicitConvObjectToObject
 
 function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
-    if (srcType.defNode === destType.defNode) return ConversionConst.NoConv;
+    if (srcType.linkedNode === destType.linkedNode) return ConversionConst.NoConv;
 
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
@@ -263,12 +263,12 @@ function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): Conv
 // Helper functions
 
 function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
-    const srcType = src.symbolType;
-    const destType = dest.symbolType;
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
 
-    const destScope = resolveActiveScope(destType.defScope);
+    const destScope = resolveActiveScope(destType.scopePath);
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
     const constructorScope = destScope.lookupScope(destType.identifierText);
@@ -282,7 +282,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
         // Succeeds if the constructor has one argument and that argument matches the source type.
         if (constructor.parameterTypes.length === 1) {
             const paramType = constructor.parameterTypes[0];
-            if (paramType !== undefined && paramType.symbolType.isType()) {
+            if (paramType !== undefined && paramType.typeOrFunc.isType()) {
                 const paramCost = evaluateConversionCost(src, paramType);
                 if (paramCost === undefined) continue;
 
@@ -295,19 +295,19 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
 }
 
 function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
-    const srcNode = srcType.defNode;
+    const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
-    if (srcType.defNode === destType.defNode) return true;
+    if (srcType.linkedNode === destType.linkedNode) return true;
 
     if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
 
         for (const srcBase of srcType.baseList) {
-            if (srcBase?.symbolType === undefined) continue;
-            if (srcBase.symbolType.isType() === false) continue;
+            if (srcBase?.typeOrFunc === undefined) continue;
+            if (srcBase.typeOrFunc.isType() === false) continue;
 
-            if (canDownCast(srcBase.symbolType, destType)) return true;
+            if (canDownCast(srcBase.typeOrFunc, destType)) return true;
         }
     }
 
