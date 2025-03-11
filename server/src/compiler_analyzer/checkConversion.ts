@@ -36,13 +36,16 @@ export function evaluateConversionCost(
 ): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const srcTypeOrFunc = src.typeOrFunc;
+    const destTypeOrFunc = dest.typeOrFunc;
 
-    if (srcType.isFunction() || destType.isFunction()) {
+    if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
         // TODO
         return ConversionConst.NoConv;
     }
+
+    const srcType: SymbolType = srcTypeOrFunc;
+    const destType: SymbolType = destTypeOrFunc;
 
     // FIXME: Handle init list?
 
@@ -279,22 +282,27 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
     if (constructorHolder === undefined || constructorHolder?.isFunctionHolder() === false) return undefined;
 
     for (const constructor of constructorHolder.toList()) {
-        // Succeeds if the constructor has one argument and that argument matches the source type.
-        if (constructor.parameterTypes.length === 1) {
-            const paramType = constructor.parameterTypes[0];
-            if (paramType !== undefined && paramType.typeOrFunc.isType()) {
-                const paramCost = evaluateConversionCost(src, paramType);
-                if (paramCost === undefined) continue;
+        // The constructor should be one argument.
+        if (constructor.parameterTypes.length !== 1) continue;
 
-                return ConversionConst.ToObjectConv + paramCost;
-            }
-        }
+        // The parameter of the constructor must be not a function but a type.
+        const paramType = constructor.parameterTypes[0];
+        if (paramType === undefined || paramType.typeOrFunc.isType() === false) continue;
+
+        // Prevent infinite recursion.
+        if (paramType === dest) continue;
+
+        // Source type must be convertible to the parameter type of the constructor.
+        const cost = evaluateConversionCost(src, paramType);
+        if (cost === undefined) continue;
+
+        return ConversionConst.ToObjectConv; // FIXME?
     }
 
     return undefined;
 }
 
-function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
+export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
     const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
