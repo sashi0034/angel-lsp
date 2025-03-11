@@ -161,7 +161,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const superConstructor = findConstructorForResolvedType(primeBase);
             if (superConstructor?.isFunctionHolder()) {
-                for (const superSymbol of superConstructor?.toList()) {
+                for (const superSymbol of superConstructor.toList()) {
                     superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
                         'super',
                         superSymbol.identifierToken.location
@@ -275,18 +275,27 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
-    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
-        parentScope,
-        nodeFunc.head.returnType) : undefined;
+    // Create a new scope for the function
+    const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
+    const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
+
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: nodeFunc.identifier,
         scopePath: parentScope.scopePath,
-        returnType: returnType,
+        returnType: undefined, // set below
         parameterTypes: [],
         linkedNode: nodeFunc,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     });
+
+    const templateTypes = hoistClassTemplateTypes(scope, nodeFunc.typeTemplates);
+    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+
+    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
+        scope,
+        nodeFunc.head.returnType) : undefined;
+    symbol.mutate().returnType = returnType;
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
@@ -308,13 +317,6 @@ function hoistFunc(
     } else if (nodeFunc.funcAttr?.isProperty === true) {
         analyzerDiagnostic.add(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
-
-    // Create a new scope for the function
-    const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
-    const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
-
-    const templateTypes = hoistClassTemplateTypes(scope, nodeFunc.typeTemplates);
-    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
