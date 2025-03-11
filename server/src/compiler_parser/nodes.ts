@@ -28,7 +28,9 @@ export interface FunctionAttribute {
     readonly isOverride: boolean,
     readonly isFinal: boolean,
     readonly isExplicit: boolean,
-    readonly isProperty: boolean
+    readonly isProperty: boolean,
+    readonly isDeleted: boolean,
+    readonly isNoDiscard: boolean
 }
 
 export enum NodeName {

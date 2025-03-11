@@ -1079,18 +1079,34 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     return BreakOrThrough.Through;
 }
 
-// TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+// TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
 function parseTypeMod(parser: ParserState): TypeModifier | undefined {
-    if (parser.next().text !== '&') return undefined;
-    parser.commit(HighlightForToken.Builtin);
+    let mod: TypeModifier | undefined = undefined;
 
-    const next = parser.next().text;
-    if (next === 'in' || next === 'out' || next === 'inout') {
+    if (parser.next().text === '&') {
         parser.commit(HighlightForToken.Builtin);
-        if (next === 'in') return TypeModifier.In;
-        if (next === 'out') return TypeModifier.Out;
+
+        const next = parser.next().text;
+        if (next === 'in' || next === 'out' || next === 'inout') {
+            parser.commit(HighlightForToken.Builtin);
+            if (next === 'in') mod = TypeModifier.In;
+            else if (next === 'out') mod = TypeModifier.Out;
+            else mod = TypeModifier.InOut;
+        }
     }
-    return TypeModifier.InOut;
+
+    // TODO: this should only be allowed on non-nocount handles
+    if (parser.next().text === '+') {
+        parser.commit(HighlightForToken.Builtin);
+    }
+
+    // TODO: this should only be allowed on handles of
+    // template parameter types
+    if (parser.next().text === 'if_handle_then_const') {
+        parser.commit(HighlightForToken.Builtin);
+    }
+
+    return mod;
 }
 
 // TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
@@ -1134,6 +1150,12 @@ function parseTypeTail(parser: ParserState) {
             continue;
         } else if (parser.next().text === '@') {
             parser.commit(HighlightForToken.Builtin);
+
+            // auto-handle
+            if (parser.next().text === '+') {
+                parser.commit(HighlightForToken.Builtin);
+            }
+
             if (parser.next().text === 'const') {
                 parser.commit(HighlightForToken.Builtin);
                 refModifier = ReferenceModifier.AtConst;
@@ -1319,20 +1341,23 @@ function parsePrimeType(parser: ParserState) {
     return next;
 }
 
-// FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+// FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     let attribute: FunctionAttribute | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
-        const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property';
+        const isFuncAttrToken          = next === 'override' || next === 'final' || next === 'explicit' || next === 'property' ||
+                                         next === 'delete' || next === 'nodiscard';
         if (isFuncAttrToken === false) break;
 
         attribute = attribute ?? {
             isOverride: false,
             isFinal: false,
             isExplicit: false,
-            isProperty: false
+            isProperty: false,
+            isDeleted: false,
+            isNoDiscard: false
         };
 
         setFunctionAttribute(attribute, next);
@@ -1341,11 +1366,15 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     return attribute;
 }
 
-function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property') {
+function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard') {
     if (token === 'override') attribute.isOverride = true;
     else if (token === 'final') attribute.isFinal = true;
     else if (token === 'explicit') attribute.isExplicit = true;
     else if (token === 'property') attribute.isProperty = true;
+    // TODO: implement in analyzer
+    else if (token === 'delete') attribute.isDeleted = true;
+    // TODO: implement in analyzer
+    else if (token === 'nodiscard') attribute.isNoDiscard = true;
 }
 
 // STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
