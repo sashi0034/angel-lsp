@@ -73,6 +73,7 @@ export enum NodeName {
     Expr = 'Expr',
     ExprTerm = 'ExprTerm',
     ExprValue = 'ExprValue',
+    ExprVoid = 'ExprVoid',
     ConstructCall = 'ConstructCall',
     ExprPreOp = 'ExprPreOp',
     ExprPostOp = 'ExprPostOp',
@@ -279,7 +280,7 @@ export interface ParsedTypeIdentifier {
     readonly type: NodeType,
     readonly modifier: TypeModifier | undefined,
     readonly identifier: TokenObject | undefined
-    readonly defaultExpr: NodeExpr | undefined
+    readonly defaultExpr: NodeExpr | NodeExprVoid | undefined
     readonly isVariadic: boolean
 }
 
@@ -429,6 +430,11 @@ export interface NodeExpr extends NodesBase {
     readonly nodeName: NodeName.Expr
     readonly head: NodeExprTerm,
     readonly tail: ParsedOpExpr | undefined
+}
+
+// EXPRVOID      ::= 'void'
+export interface NodeExprVoid extends NodesBase {
+    readonly nodeName: NodeName.ExprVoid
 }
 
 export interface ParsedOpExpr {
