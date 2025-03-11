@@ -43,7 +43,7 @@ function checkFunctionMatchInternal(
 ): ResolvedType | undefined {
     const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, templateTranslators} = args;
     const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
-    const calleeParams = calleeFunc.defNode.paramList;
+    const calleeParams = calleeFunc.linkedNode.paramList;
 
     if (callerArgTypes.length > calleeParams.length &&
         (!calleeParams.length || !calleeParams[calleeParams.length - 1].isVariadic)) {
@@ -128,7 +128,7 @@ function handleTooMuchCallerArgs(args: FunctionMatchingArgs, nextOverloadIndex: 
         templateTranslators) === false) {
         analyzerDiagnostic.add(
             callerRange.getBoundingLocation(),
-            `Function has ${calleeFunc.defNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
+            `Function has ${calleeFunc.linkedNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
     }
 
     return calleeFunc.returnType;

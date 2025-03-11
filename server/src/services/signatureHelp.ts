@@ -42,9 +42,9 @@ function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: Sy
 
     let activeIndex = 0;
 
-    let signatureLabel = expectedCallee.defNode.identifier.text + '(';
-    for (let i = 0; i < expectedCallee.defNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.defNode.paramList[i];
+    let signatureLabel = expectedCallee.linkedNode.identifier.text + '(';
+    for (let i = 0; i < expectedCallee.linkedNode.paramList.length; i++) {
+        const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));

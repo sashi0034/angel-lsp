@@ -75,8 +75,8 @@ function isTypeMatchInternal(
         return false;
     }
 
-    const srcNode = srcType.defNode;
-    const destNode = destType.defNode;
+    const srcNode = srcType.linkedNode;
+    const destNode = destType.linkedNode;
 
     if (destType.identifierText === '?' || destType.identifierText === 'auto') return true;
 
@@ -126,10 +126,10 @@ function isFunctionHandlerMatch(srcType: SymbolFunction, destType: SymbolType | 
 function canDownCast(
     srcType: SymbolType, destType: SymbolType
 ): boolean {
-    const srcNode = srcType.defNode;
+    const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
-    if (srcType.defNode === destType.defNode) return true;
+    if (srcType.linkedNode === destType.linkedNode) return true;
 
     if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
@@ -146,8 +146,8 @@ function canDownCast(
 function canCastFromPrimitiveType(
     srcType: SymbolType, destType: SymbolType
 ) {
-    const srcNode = srcType.defNode;
-    const destNode = destType.defNode;
+    const srcNode = srcType.linkedNode;
+    const destNode = destType.linkedNode;
 
     if (srcType.isTypeParameter) {
         return destType.isTypeParameter && srcType.identifierToken.equals(destType.identifierToken);
@@ -184,9 +184,9 @@ function canConstructImplicitly(
     const constructor = findSymbolShallowly(constructorScope, destIdentifier);
     if (constructor === undefined || constructor.isFunctionHolder() === false) return false;
 
-    if (srcType.defNode === undefined) return true; // FIXME?
+    if (srcType.linkedNode === undefined) return true; // FIXME?
 
-    return canConstructBy(constructor, 0, srcType.defNode);
+    return canConstructBy(constructor, 0, srcType.linkedNode);
 }
 
 function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: number, srcType: TypeDefinitionNode): boolean {
@@ -197,7 +197,7 @@ function canConstructBy(constructorHolder: SymbolFunctionHolder, overloadIndex: 
         const paramType = constructor.parameterTypes[0];
         if (paramType !== undefined
             && paramType.symbolType instanceof SymbolType
-            && paramType.symbolType.defNode === srcType
+            && paramType.symbolType.linkedNode === srcType
         ) {
             return true;
         }

@@ -130,8 +130,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 
 function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
     if (symbol instanceof SymbolType) {
-        if (symbol.isPrimitiveType() || symbol.defNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.defNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
+        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) return CompletionItemKind.Keyword;
+        if (symbol.linkedNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;
     } else if (symbol.isFunctionHolder()) {
         return CompletionItemKind.Function;

@@ -248,7 +248,7 @@ function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): Conv
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
-    if (srcType.defNode === destType.defNode) return ConversionConst.NoConv;
+    if (srcType.linkedNode === destType.linkedNode) return ConversionConst.NoConv;
 
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
@@ -295,10 +295,10 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
 }
 
 function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
-    const srcNode = srcType.defNode;
+    const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
-    if (srcType.defNode === destType.defNode) return true;
+    if (srcType.linkedNode === destType.linkedNode) return true;
 
     if (isDefinitionNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;

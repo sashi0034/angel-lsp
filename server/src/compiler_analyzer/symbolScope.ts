@@ -309,7 +309,7 @@ function errorAlreadyDeclared(token: TokenObject) {
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
     for (const [key, symbol] of scope.symbolTable) {
-        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.defNode)) return symbol;
+        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.linkedNode)) return symbol;
     }
 
     for (const [key, child] of scope.childScopeTable) {

@@ -248,7 +248,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     }
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
-    if (foundSymbol.isFunctionHolder() && foundSymbol.first.defNode.nodeName === NodeName.FuncDef) {
+    if (foundSymbol.isFunctionHolder() && foundSymbol.first.linkedNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol.first, foundScope, true);
     } else if (foundSymbol instanceof SymbolType === false) {
         analyzerDiagnostic.add(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
@@ -522,7 +522,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         // Select suitable overload if there are multiple overloads
         let functionReturn = functionReturnHolder.first;
         for (const nextOverload of functionReturnHolder.overloadList) {
-            if (nextOverload.defNode === functionScope.linkedNode) {
+            if (nextOverload.linkedNode === functionScope.linkedNode) {
                 functionReturn = nextOverload;
                 break;
             }
@@ -742,7 +742,7 @@ function analyzeBuiltinConstructorCaller(
     if (constructorType.sourceScope === undefined) return undefined;
 
     if (constructorType.symbolType instanceof SymbolType
-        && constructorType.symbolType.defNode?.nodeName === NodeName.Enum) {
+        && constructorType.symbolType.linkedNode?.nodeName === NodeName.Enum) {
         // Constructor for enum
         const argList = callerArgList.argList;
         if (argList.length != 1 || canTypeConvert(
@@ -805,7 +805,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isDefinitionNodeClassOrInterface(exprValue.symbolType.defNode) === false) {
+    if (isDefinitionNodeClassOrInterface(exprValue.symbolType.linkedNode) === false) {
         analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
@@ -978,7 +978,7 @@ function analyzeFunctionCaller(
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
-    if (calleeFuncHolder.first.defNode.nodeName === NodeName.FuncDef) {
+    if (calleeFuncHolder.first.linkedNode.nodeName === NodeName.FuncDef) {
         // If the callee is a delegate, return it as a function handler.
         const handlerType = new ResolvedType(calleeFuncHolder.first);
         if (callerArgTypes.length === 1 && canTypeConvert(callerArgTypes[0], handlerType)) {

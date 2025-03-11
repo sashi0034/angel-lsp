@@ -89,7 +89,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly defNode: TypeDefinitionNode | undefined,
+        public readonly linkedNode: TypeDefinitionNode | undefined,
         public readonly membersScope: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
@@ -104,7 +104,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     public static create(args: {
         identifierToken: TokenObject
         scopePath: ScopePath
-        defNode: TypeDefinitionNode | undefined
+        linkedNode: TypeDefinitionNode | undefined
         membersScope: ScopePath | undefined
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
@@ -114,7 +114,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         return new SymbolType(
             args.identifierToken,
             args.scopePath,
-            args.defNode,
+            args.linkedNode,
             args.membersScope,
             args.isTypeParameter,
             args.templateTypes,
@@ -135,7 +135,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
      * Note: enum is not a primitive type here.
      */
     public isPrimitiveType(): boolean {
-        return this.defNode === undefined;
+        return this.linkedNode === undefined;
     }
 
     public isNumberType(): boolean {
@@ -143,7 +143,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     public isEnumType(): boolean {
-        return this.defNode?.nodeName === NodeName.Enum;
+        return this.linkedNode?.nodeName === NodeName.Enum;
     }
 
     public isPrimitiveOrEnum(): boolean {
@@ -210,7 +210,7 @@ export class SymbolFunction extends SymbolBase {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly defNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
@@ -222,7 +222,7 @@ export class SymbolFunction extends SymbolBase {
     public static create(args: {
         identifierToken: TokenObject
         scopePath: ScopePath
-        defNode: NodeFunc | NodeFuncDef | NodeIntfMethod
+        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
         isInstanceMember: boolean
@@ -231,7 +231,7 @@ export class SymbolFunction extends SymbolBase {
         return new SymbolFunction(
             args.identifierToken,
             args.scopePath,
-            args.defNode,
+            args.linkedNode,
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,
