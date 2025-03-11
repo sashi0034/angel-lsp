@@ -103,7 +103,7 @@ function formatBraceBlock(format: FormatterState, action: () => void, isIndent: 
     formatTargetBy(format, '}', {forceWrap: endWrap});
 }
 
-// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function formatEnum(format: FormatterState, nodeEnum: NodeEnum) {
     formatMoveUntilNodeStart(format, nodeEnum);
     format.pushWrap();
@@ -249,7 +249,7 @@ function formatInterface(format: FormatterState, nodeInterface: NodeInterface) {
     }
 }
 
-// BNF: VAR           ::= ['private'|'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function formatVar(format: FormatterState, nodeVar: NodeVar) {
     formatMoveUntilNodeStart(format, nodeVar);
 
@@ -417,7 +417,7 @@ function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
     });
 }
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' EXPR] {',' TYPE TYPEMOD [IDENTIFIER] ['=' EXPR]})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
 function formatParamList(format: FormatterState, paramList: NodeParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -454,7 +454,7 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     formatTargetBy(format, ')', {condenseLeft: true});
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
 function formatTypeMod(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
@@ -556,7 +556,7 @@ function formatDataType(format: FormatterState, dataType: NodeDataType) {
 
 // BNF: PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
-// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property'}
+// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function formatFuncAttr(format: FormatterState) {
     for (; ;) {
         const next = formatMoveToNonComment(format);
@@ -567,7 +567,7 @@ function formatFuncAttr(format: FormatterState) {
     }
 }
 
-// BNF: STATEMENT     ::= (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function formatStatement(format: FormatterState, statement: NodeStatement, canIndent: boolean = false) {
     const isIndented = canIndent && statement.nodeName !== NodeName.StatBlock;
     if (isIndented) format.pushIndent();
