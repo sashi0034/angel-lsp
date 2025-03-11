@@ -28,7 +28,7 @@ function testCompletion(rawContent: string, expected: string[]) {
 }
 
 describe("Completion", () => {
-    // Caret is marked by "<c>"
+    // Caret is marked by "$C$"
 
     testCompletion(`
         void foo() { 
@@ -38,7 +38,7 @@ describe("Completion", () => {
         void bar() {
             int y = 1;
             while (y < 10) {
-                <c>
+                $C$
             }
         }    
         `, ["foo", "bar", "y"]
@@ -56,7 +56,7 @@ describe("Completion", () => {
         void bar() {
             int y = 1;
             Player player;
-            player.<c>
+            player.$C$
         }    
         `, ["x", "y", "attack"]
     );
@@ -65,7 +65,7 @@ describe("Completion", () => {
         class Player {
             int x, y;
             
-            void attack() { <c> }
+            void attack() { $C$ }
             
             private void move() { }
         }
@@ -84,7 +84,7 @@ describe("Completion", () => {
         }
         
         void main() {
-            foo::<c>
+            foo::$C$
         }
     `, ["bar", "call_foo"]
     );
@@ -99,7 +99,7 @@ describe("Completion", () => {
         }
         
         void main() {
-            foo::bar::<c>
+            foo::bar::$C$
         }
     `, ["call_baz"]
     );
