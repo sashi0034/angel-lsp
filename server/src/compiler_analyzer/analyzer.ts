@@ -65,7 +65,6 @@ import {
 } from "./symbolBuiltin";
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
-    findSymbolShallowly,
     findSymbolWithParent,
     getSymbolAndScopeIfExist,
     isResolvedAutoType,
@@ -240,7 +239,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
         // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
         // in which case search further up the hierarchy.
         symbolAndScope = getSymbolAndScopeIfExist(
-            findSymbolShallowly(symbolAndScope.scope.parentScope, givenIdentifier), symbolAndScope.scope.parentScope);
+            symbolAndScope.scope.parentScope.lookupSymbol(givenIdentifier), symbolAndScope.scope.parentScope);
     }
     if (symbolAndScope === undefined) {
         analyzerDiagnostic.add(typeIdentifier.location, `'${givenIdentifier}' is not defined.`);
@@ -729,7 +728,7 @@ export function findConstructorForResolvedType(resolvedType: ResolvedType | unde
 
     const constructorIdentifier = resolvedType.typeOrFunc.identifierText;
     const classScope = resolveActiveScope(resolvedType.sourceScope).lookupScope(constructorIdentifier);
-    return classScope !== undefined ? findSymbolShallowly(classScope, constructorIdentifier) : undefined;
+    return classScope !== undefined ? classScope.lookupSymbol(constructorIdentifier) : undefined;
 }
 
 function analyzeBuiltinConstructorCaller(
@@ -815,7 +814,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if (isMemberMethod) {
         // Analyze method call.
-        const method = findSymbolShallowly(resolveActiveScope(classScope), identifier.text);
+        const method = resolveActiveScope(classScope).lookupSymbol(identifier.text);
         if (method === undefined) {
             analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not defined.`);
             return undefined;
@@ -958,7 +957,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
     const classScope = resolveActiveScope(varType.sourceScope).lookupScope(varType.typeOrFunc.identifierText);
     if (classScope === undefined) return undefined;
 
-    const opCall = findSymbolShallowly(classScope, 'opCall');
+    const opCall = classScope.lookupSymbol('opCall');
     if (opCall === undefined || opCall.isFunctionHolder() === false) {
         analyzerDiagnostic.add(
             funcCall.identifier.location,
@@ -1163,7 +1162,7 @@ function analyzeOperatorAlias(
     const classScope = lhs.typeOrFunc.membersScope;
     if (classScope === undefined) return undefined;
 
-    const aliasFunction = findSymbolShallowly(resolveActiveScope(classScope), alias);
+    const aliasFunction = resolveActiveScope(classScope).lookupSymbol(alias);
     if (aliasFunction === undefined || aliasFunction.isFunctionHolder() === false) {
         analyzerDiagnostic.add(
             operator.location,

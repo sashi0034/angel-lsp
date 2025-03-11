@@ -100,11 +100,6 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
 }
 
 // obsolete
-export function findSymbolShallowly(scope: SymbolScope, identifier: string): SymbolObjectHolder | undefined {
-    return scope.symbolTable.get(identifier);
-}
-
-// obsolete
 export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};

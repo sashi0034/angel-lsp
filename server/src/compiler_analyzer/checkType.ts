@@ -8,7 +8,7 @@ import {
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {resolveActiveScope, isScopeChildOrGrandchild, SymbolScope, tryResolveActiveScope} from "./symbolScope";
 import assert = require("assert");
-import {findSymbolShallowly, resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
+import {resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_parser/tokenRange";
@@ -181,7 +181,7 @@ function canConstructImplicitly(
     if (constructorScope === undefined || constructorScope.linkedNode?.nodeName !== NodeName.Class) return false;
 
     // Search for the constructor of the given type from the scope of the type itself.
-    const constructor = findSymbolShallowly(constructorScope, destIdentifier);
+    const constructor = constructorScope.lookupSymbol(destIdentifier);
     if (constructor === undefined || constructor.isFunctionHolder() === false) return false;
 
     if (srcType.linkedNode === undefined) return true; // FIXME?
@@ -228,12 +228,12 @@ export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymb
         if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
 
         // Get the symbol of the class to which the referring part belongs.
-        const checkingOuterClass = findSymbolShallowly(checkingOuterScope.parentScope, checkingOuterScope.key);
+        const checkingOuterClass = checkingOuterScope.parentScope.lookupSymbol(checkingOuterScope.key);
         if (checkingOuterClass instanceof SymbolType === false) return false;
 
         // Get the symbol of the class to which the declared part belongs.
         if (scopePath.parentScope === undefined) return false;
-        const declaredOuterClass = findSymbolShallowly(scopePath.parentScope, scopePath.key);
+        const declaredOuterClass = scopePath.parentScope.lookupSymbol(scopePath.key);
         if (declaredOuterClass instanceof SymbolType === false) return false;
 
         return (canDownCast(checkingOuterClass, declaredOuterClass));
