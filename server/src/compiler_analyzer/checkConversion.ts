@@ -23,8 +23,11 @@ enum ConversionConst {
     IntToFloatConv = 8,
     FloatToIntConv = 9,
     RefConv = 10,
+    // RefConv + ConstConv = 11
     ObjToPrimitiveConv = 12,
+    // ObjToPrimitiveConv + ConstConv = 13
     ToObjectConv = 14,
+    // ToObjectConv + ConstConv = 15
     VariableConv = 16,
 
     Unknown = 255,
@@ -327,7 +330,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
         const cost = evaluateConversionCost(src, paramType);
         if (cost === undefined) continue;
 
-        return ConversionConst.ToObjectConv; // FIXME?
+        return ConversionConst.ToObjectConv + cost; // FIXME?
     }
 
     return undefined;
