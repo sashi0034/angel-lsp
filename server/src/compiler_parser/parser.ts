@@ -1010,7 +1010,14 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
         // calling a constructor.
         const type = parseType(parser);
         if (type === undefined) {
-            return undefined;
+            // if it's not a valid identifier, it's not
+            // ever going to be a valid constructor
+            if (parser.next().kind !== TokenKind.Identifier) {
+                return undefined;
+            }
+
+            parser.step();
+            continue;
         }
 
         const typeMod = parseTypeMod(parser);
