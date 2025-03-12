@@ -1,4 +1,4 @@
-import {ResolvedType} from "./resolvedType";
+import {ResolvedType, resolveTemplateType} from "./resolvedType";
 import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
@@ -43,6 +43,9 @@ export function evaluateConversionCost(
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
 
+    // Template types must be the same
+    if (areTemplateTypesEqual(src, dest) === false) return undefined;
+
     // Source or destination is a function type
     if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
         if (!srcTypeOrFunc.isFunction() || !destTypeOrFunc.isFunction()) return undefined;
@@ -85,6 +88,12 @@ export function evaluateConversionCost(
 function normalizeType(type: ResolvedType | undefined) {
     if (type === undefined) return undefined;
 
+    if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
+        // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
+        return resolveTemplateType(type.templateTranslator, type);
+    }
+
+    // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') return resolvedBuiltinInt;
 
     if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
@@ -344,15 +353,6 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     return false;
 }
 
-// function areTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
-//     if (src.typeOrFunc.isFunction()) {
-//         return dest.typeOrFunc.isFunction() && areFunctionsEqual(src.typeOrFunc, dest.typeOrFunc);
-//     } else {
-//         // TODO: Check template types
-//         return src.typeOrFunc.equals(dest.typeOrFunc);
-//     }
-// }
-
 function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
     if (src.parameterTypes.length !== dest.parameterTypes.length) return false;
 
@@ -364,6 +364,43 @@ function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
 
         if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
         // if (areTypesEqual(srcParam, destParam) === false) return false;
+    }
+
+    return true;
+}
+
+function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
+    if (src.typeOrFunc.isFunction() || dest.typeOrFunc.isFunction()) {
+        // TODO: Function template types
+        return true;
+    }
+
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
+
+    if (srcType.templateTypes?.length !== destType.templateTypes?.length) {
+        // The number of template types is different.
+        return false;
+    } else if (srcType.templateTypes === undefined || destType.templateTypes === undefined
+        || srcType.templateTypes.length == 0
+    ) {
+        // Both types do not have template types.
+        return true;
+    }
+
+    const srcTemplateTypes = srcType.templateTypes?.map(token => src.templateTranslator?.get(token));
+    const destTemplates = destType.templateTypes?.map(token => dest.templateTranslator?.get(token));
+
+    // Check if the template types are the same respectively.
+    for (let i = 0; i < srcTemplateTypes.length; i++) {
+        const srcParam = normalizeType(srcTemplateTypes[i]);
+        const destParam = normalizeType(destTemplates[i]);
+
+        if (srcParam === undefined || destParam === undefined) continue; // FIXME?
+
+        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
+
+        if (areTemplateTypesEqual(srcParam, destParam) === false) return false;
     }
 
     return true;
