@@ -1006,10 +1006,11 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
             parser.error('Variadic ellipses must be the last parameter.');
         }
 
-        const type = expectType(parser);
+        // if it's not a type, it's probably a variable
+        // calling a constructor.
+        const type = parseType(parser);
         if (type === undefined) {
-            parser.step();
-            continue;
+            return undefined;
         }
 
         const typeMod = parseTypeMod(parser);
