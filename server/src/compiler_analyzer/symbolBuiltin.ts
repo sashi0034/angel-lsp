@@ -27,15 +27,15 @@ const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
 // export const resolvedBuiltinString: ResolvedType = new ResolvedType(builtinStringType);
 
 export const builtinIntType = builtinNumberTypeMap.get('int')!;
-
 export const resolvedBuiltinInt: ResolvedType = new ResolvedType(builtinIntType);
 
-export const builtinFloatType = builtinNumberTypeMap.get('float')!;
+export const builtinUIntType = builtinNumberTypeMap.get('uint')!;
+export const resolvedBuiltinUInt: ResolvedType = new ResolvedType(builtinUIntType);
 
+export const builtinFloatType = builtinNumberTypeMap.get('float')!;
 export const resolvedBuiltinFloat: ResolvedType = new ResolvedType(builtinFloatType);
 
 export const builtinDoubleType = builtinNumberTypeMap.get('double')!;
-
 export const resolvedBuiltinDouble: ResolvedType = new ResolvedType(builtinDoubleType);
 
 function assignBuiltinNumberType(key: string): SymbolType {
