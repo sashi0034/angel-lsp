@@ -32,17 +32,22 @@ enum ConversionConst {
 export function evaluateConversionCost(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
-    type: ConversionType = ConversionType.Implicit
+    // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const srcTypeOrFunc = src.typeOrFunc;
+    const destTypeOrFunc = dest.typeOrFunc;
 
-    if (srcType.isFunction() || destType.isFunction()) {
-        // TODO
-        return ConversionConst.NoConv;
+    // Source or destination is a function type
+    if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
+        if (!srcTypeOrFunc.isFunction() || !destTypeOrFunc.isFunction()) return undefined;
+
+        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionConst.RefConv : undefined;
     }
+
+    const srcType: SymbolType = srcTypeOrFunc;
+    const destType: SymbolType = destTypeOrFunc;
 
     // FIXME: Handle init list?
 
@@ -109,6 +114,11 @@ function evaluateConvPrimitiveToPrimitive(
         // FIXME: Handle different enum types but same identifier such as 'enum A::Red' and 'enum B::Red'
 
         // Mismatches enum types
+        return undefined;
+    }
+
+    if (src.identifierText === 'bool' || dest.identifierText === 'bool') {
+        // Cannot convert bool to any other type (If both are bool, it is already handled by the above condition)
         return undefined;
     }
 
@@ -279,22 +289,27 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
     if (constructorHolder === undefined || constructorHolder?.isFunctionHolder() === false) return undefined;
 
     for (const constructor of constructorHolder.toList()) {
-        // Succeeds if the constructor has one argument and that argument matches the source type.
-        if (constructor.parameterTypes.length === 1) {
-            const paramType = constructor.parameterTypes[0];
-            if (paramType !== undefined && paramType.typeOrFunc.isType()) {
-                const paramCost = evaluateConversionCost(src, paramType);
-                if (paramCost === undefined) continue;
+        // The constructor should be one argument.
+        if (constructor.parameterTypes.length !== 1) continue;
 
-                return ConversionConst.ToObjectConv + paramCost;
-            }
-        }
+        // The parameter of the constructor must be not a function but a type.
+        const paramType = constructor.parameterTypes[0];
+        if (paramType === undefined || paramType.typeOrFunc.isType() === false) continue;
+
+        // Prevent infinite recursion.
+        if (paramType === dest) continue;
+
+        // Source type must be convertible to the parameter type of the constructor.
+        const cost = evaluateConversionCost(src, paramType);
+        if (cost === undefined) continue;
+
+        return ConversionConst.ToObjectConv; // FIXME?
     }
 
     return undefined;
 }
 
-function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
+export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
     const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
@@ -312,4 +327,29 @@ function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
     }
 
     return false;
+}
+
+// function areTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
+//     if (src.typeOrFunc.isFunction()) {
+//         return dest.typeOrFunc.isFunction() && areFunctionsEqual(src.typeOrFunc, dest.typeOrFunc);
+//     } else {
+//         // TODO: Check template types
+//         return src.typeOrFunc.equals(dest.typeOrFunc);
+//     }
+// }
+
+function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
+    if (src.parameterTypes.length !== dest.parameterTypes.length) return false;
+
+    for (let i = 0; i < src.parameterTypes.length; i++) {
+        const srcParam = src.parameterTypes[i];
+        const destParam = dest.parameterTypes[i];
+
+        if (srcParam === undefined || destParam === undefined) continue; // FIXME?
+
+        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
+        // if (areTypesEqual(srcParam, destParam) === false) return false;
+    }
+
+    return true;
 }

@@ -1,42 +1,7 @@
-import {
-    SymbolFunction,
-    SymbolObject, SymbolObjectHolder,
-    SymbolType,
-    SymbolVariable
-} from "./symbolObject";
-import {diagnostic} from "../core/diagnostic";
-import {isAnonymousIdentifier, SymbolAndScope, SymbolTable, SymbolScope} from "./symbolScope";
-import assert = require("node:assert");
+import {SymbolFunction, SymbolObject, SymbolObjectHolder, SymbolType, SymbolVariable} from "./symbolObject";
+import {isAnonymousIdentifier, SymbolAndScope, SymbolScope} from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-
-export type TemplateTranslation = Map<TokenObject, ResolvedType | undefined>;
-
-export function resolveTemplateType(
-    templateTranslate: TemplateTranslation | undefined, type: ResolvedType | undefined
-): ResolvedType | undefined {
-    if (templateTranslate === undefined) return type;
-
-    if (type === undefined) return undefined;
-
-    if (type.typeOrFunc.isFunction()) return undefined; // FIXME: 関数ハンドラのテンプレート解決も必要?
-
-    if (type.typeOrFunc.isTypeParameter !== true) return type;
-
-    if (templateTranslate.has(type.typeOrFunc.identifierToken)) {
-        return templateTranslate.get(type.typeOrFunc.identifierToken);
-    }
-
-    return type;
-}
-
-export function resolveTemplateTypes(
-    templateTranslate: (TemplateTranslation | undefined)[], type: ResolvedType | undefined
-): ResolvedType | undefined {
-    return templateTranslate
-        .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
-}
+import assert = require("node:assert");
 
 export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
     return type !== undefined && type.typeOrFunc instanceof SymbolType && type.typeOrFunc.identifierText === 'auto';
@@ -71,8 +36,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
 
     // if (hasScopeSuffix) suffix = stringifyScopeSuffix(type.sourceScope) + suffix;
 
-    if (type.templateTranslate !== undefined) {
-        suffix = `<${Array.from(type.templateTranslate.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
+    if (type.templateTranslator !== undefined) {
+        suffix = `<${Array.from(type.templateTranslator.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 
     return type.typeOrFunc.identifierText + suffix;

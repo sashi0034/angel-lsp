@@ -229,8 +229,6 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
         for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
             for (const symbol of symbolHolder.toList()) {
-                if (symbol.isFunction()) continue;
-
                 const errored = scope.insertSymbol(symbol);
                 if (errored !== undefined) {
                     analyzerDiagnostic.add(errored.toList()[0].identifierToken.location, `Duplicated symbol '${key}'`);

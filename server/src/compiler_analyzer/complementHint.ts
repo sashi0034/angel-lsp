@@ -1,9 +1,9 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
-import {TemplateTranslation} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_parser/tokenRange";
+import {TemplateTranslator} from "./resolvedType";
 
 /**
  * Enumeration defining the different kinds of autocomplete targets.
@@ -68,7 +68,7 @@ export interface ComplementCallerArgument extends ComplementBase {
     complementKind: ComplementKind.CallerArguments;
     expectedCallee: SymbolFunction;
     passingRanges: TokenRange[];
-    templateTranslate: TemplateTranslation | undefined;
+    templateTranslate: TemplateTranslator | undefined;
 }
 
 export type ComplementHint =

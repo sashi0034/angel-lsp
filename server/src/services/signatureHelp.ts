@@ -3,9 +3,10 @@ import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
 import {ComplementKind, ComplementCallerArgument} from "../compiler_analyzer/complementHint";
-import {resolveTemplateType, stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
+import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {resolveTemplateType} from "../compiler_analyzer/resolvedType";
 
 export function provideSignatureHelp(
     globalScope: SymbolScope, caret: Position, uri: URI
