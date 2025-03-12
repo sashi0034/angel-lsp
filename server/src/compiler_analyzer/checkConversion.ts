@@ -117,6 +117,11 @@ function evaluateConvPrimitiveToPrimitive(
         return undefined;
     }
 
+    if (src.identifierText === 'bool' || dest.identifierText === 'bool') {
+        // Cannot convert bool to any other type (If both are bool, it is already handled by the above condition)
+        return undefined;
+    }
+
     const srcText: string = src.identifierText;
     const destText: string = dest.identifierText;
 
