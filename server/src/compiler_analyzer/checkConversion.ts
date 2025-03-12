@@ -32,16 +32,18 @@ enum ConversionConst {
 export function evaluateConversionCost(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
-    type: ConversionType = ConversionType.Implicit
+    // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionConst | undefined {
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
 
+    // Source or destination is a function type
     if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
-        // TODO
-        return ConversionConst.NoConv;
+        if (!srcTypeOrFunc.isFunction() || !destTypeOrFunc.isFunction()) return undefined;
+
+        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionConst.RefConv : undefined;
     }
 
     const srcType: SymbolType = srcTypeOrFunc;
@@ -320,4 +322,29 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     }
 
     return false;
+}
+
+// function areTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
+//     if (src.typeOrFunc.isFunction()) {
+//         return dest.typeOrFunc.isFunction() && areFunctionsEqual(src.typeOrFunc, dest.typeOrFunc);
+//     } else {
+//         // TODO: Check template types
+//         return src.typeOrFunc.equals(dest.typeOrFunc);
+//     }
+// }
+
+function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
+    if (src.parameterTypes.length !== dest.parameterTypes.length) return false;
+
+    for (let i = 0; i < src.parameterTypes.length; i++) {
+        const srcParam = src.parameterTypes[i];
+        const destParam = dest.parameterTypes[i];
+
+        if (srcParam === undefined || destParam === undefined) continue; // FIXME?
+
+        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
+        // if (areTypesEqual(srcParam, destParam) === false) return false;
+    }
+
+    return true;
 }
