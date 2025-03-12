@@ -6,8 +6,8 @@ import {
 import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {resolveActiveScope, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
-import {resolveTemplateType, stringifyResolvedType} from "./symbolUtils";
-import {ResolvedType} from "./resolvedType";
+import {stringifyResolvedType} from "./symbolUtils";
+import {ResolvedType, resolveTemplateType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_parser/tokenRange";
 import {canDownCast, evaluateConversionCost} from "./checkConversion";
@@ -43,12 +43,12 @@ export function canTypeConvert(
     if (src === undefined || dest === undefined) return true;
 
     let resolvedSrc: ResolvedType | undefined = src;
-    if (src.templateTranslate !== undefined)
-        resolvedSrc = resolveTemplateType(src.templateTranslate, src);
+    if (src.templateTranslator !== undefined)
+        resolvedSrc = resolveTemplateType(src.templateTranslator, src);
 
     let resolvedDest: ResolvedType | undefined = dest;
-    if (dest.templateTranslate !== undefined)
-        resolvedDest = resolveTemplateType(dest.templateTranslate, dest);
+    if (dest.templateTranslator !== undefined)
+        resolvedDest = resolveTemplateType(dest.templateTranslator, dest);
 
     if (resolvedSrc === undefined || resolvedDest === undefined) return true;
 

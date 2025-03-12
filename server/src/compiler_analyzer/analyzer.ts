@@ -69,13 +69,12 @@ import {
     getSymbolAndScopeIfExist,
     isResolvedAutoType,
     stringifyResolvedType,
-    stringifyResolvedTypes,
-    TemplateTranslation
+    stringifyResolvedTypes
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../core/settings";
 import assert = require("node:assert");
-import {ResolvedType} from "./resolvedType";
+import {ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
@@ -274,7 +273,7 @@ function completeAnalyzingType(
     foundSymbol: SymbolType | SymbolFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
-    typeTemplates?: TemplateTranslation | undefined,
+    typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
     scope.referencedList.push({
         declaredSymbol: foundSymbol,
@@ -284,7 +283,7 @@ function completeAnalyzingType(
     return ResolvedType.create({
         typeOrFunc: foundSymbol,
         isHandler: isHandler,
-        templateTranslate: typeTemplates
+        templateTranslator: typeTemplates
     });
 }
 
@@ -306,7 +305,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
 function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: TokenObject[] | undefined) {
     if (templateTypes === undefined) return undefined;
 
-    const translation: TemplateTranslation = new Map();
+    const translation: TemplateTranslator = new Map();
     for (let i = 0; i < nodeType.length; i++) {
         if (i >= templateTypes.length) {
             analyzerDiagnostic.add(
@@ -729,7 +728,7 @@ export function analyzeConstructorCaller(
         return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
-    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslate);
+    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
     return constructorType;
 }
 
@@ -835,7 +834,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslate);
+        return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslator);
     } else {
         // Analyze field access.
         return analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
@@ -975,7 +974,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslate);
+    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslator);
 }
 
 function analyzeFunctionCaller(
@@ -983,7 +982,7 @@ function analyzeFunctionCaller(
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
     calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslate: TemplateTranslation | undefined
+    templateTranslate: TemplateTranslator | undefined
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
@@ -1187,7 +1186,7 @@ function analyzeOperatorAlias(
         callerArgRanges: [rightRange],
         callerArgTypes: rhsArgs,
         calleeFuncHolder: aliasFunction,
-        templateTranslators: [lhs.templateTranslate, ...rhsArgs.map(rhs => rhs?.templateTranslate)]
+        templateTranslators: [lhs.templateTranslator, ...rhsArgs.map(rhs => rhs?.templateTranslator)]
     });
 }
 

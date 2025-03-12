@@ -3,9 +3,9 @@ import {
 } from "./symbolObject";
 import {canTypeConvert} from "./checkType";
 import {stringifyNodeType} from "../compiler_parser/nodesUtils";
-import {resolveTemplateTypes, stringifyResolvedType, stringifyResolvedTypes, TemplateTranslation} from "./symbolUtils";
+import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
-import {ResolvedType} from "./resolvedType";
+import {ResolvedType, resolveTemplateTypes, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_parser/tokenRange";
@@ -17,7 +17,7 @@ export interface FunctionMatchingArgs {
     callerArgRanges: TokenRange[];
     callerArgTypes: (ResolvedType | undefined)[];
     calleeFuncHolder: SymbolFunctionHolder;
-    templateTranslators: (TemplateTranslation | undefined)[];
+    templateTranslators: (TemplateTranslator | undefined)[];
 }
 
 /**
@@ -138,7 +138,7 @@ function handleErrorWhenOverloaded(
     callerRange: TokenRange,
     callerArgs: (ResolvedType | undefined)[],
     calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslators: (TemplateTranslation | undefined)[]
+    templateTranslators: (TemplateTranslator | undefined)[]
 ) {
     if (calleeFuncHolder.count === 1) return false; // No overload
 
