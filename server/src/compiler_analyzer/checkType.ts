@@ -42,22 +42,6 @@ export function canTypeConvert(
 ): boolean {
     if (src === undefined || dest === undefined) return true;
 
-    let resolvedSrc: ResolvedType | undefined = src;
-    if (src.templateTranslator !== undefined)
-        resolvedSrc = resolveTemplateType(src.templateTranslator, src);
-
-    let resolvedDest: ResolvedType | undefined = dest;
-    if (dest.templateTranslator !== undefined)
-        resolvedDest = resolveTemplateType(dest.templateTranslator, dest);
-
-    if (resolvedSrc === undefined || resolvedDest === undefined) return true;
-
-    return isTypeMatchInternal(resolvedSrc, resolvedDest);
-}
-
-function isTypeMatchInternal(
-    src: ResolvedType, dest: ResolvedType
-): boolean {
     const cost = evaluateConversionCost(src, dest);
     return cost !== undefined;
 }

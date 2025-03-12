@@ -1,8 +1,9 @@
-import {ResolvedType} from "./resolvedType";
+import {ResolvedType, resolveTemplateType} from "./resolvedType";
 import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
+import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./symbolBuiltin";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -34,10 +35,16 @@ export function evaluateConversionCost(
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionConst | undefined {
+    src = normalizeType(src);
+    dest = normalizeType(dest);
+
     if (src === undefined || dest === undefined) return ConversionConst.Unknown;
 
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
+
+    // Template types must be the same
+    if (areTemplateTypesEqual(src, dest) === false) return undefined;
 
     // Source or destination is a function type
     if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
@@ -78,6 +85,22 @@ export function evaluateConversionCost(
     }
 }
 
+function normalizeType(type: ResolvedType | undefined) {
+    if (type === undefined) return undefined;
+
+    if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
+        // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
+        return resolveTemplateType(type.templateTranslator, type);
+    }
+
+    // We use int and uint instead of int32 and uint32 respectively here.
+    if (type.identifierText === 'int32') return resolvedBuiltinInt;
+
+    if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
+
+    return type;
+}
+
 // -----------------------------------------------
 // Primitive to Primitive
 // as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
@@ -93,6 +116,8 @@ const numberSizeInBytes = new Map<string, number>([
     ['uint16', 2],
     ['int8', 1],
     ['uint8', 1],
+
+    // Note: int32 and uint32 are normalized to int and uint respectively at the beginning of the evaluation.
 ]);
 
 const sizeof_int32 = 4;
@@ -161,7 +186,6 @@ function evaluateConvPrimitiveToPrimitive(
 // Object to Primitive
 // as_compiler.cpp: ImplicitConvObjectToPrimitive
 
-// TODO: Use this for evaluating object to primitive
 const numberConversionCostTable = new Map<string, string[]>([
     ['double', ['float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
     ['float', ['double', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
@@ -329,26 +353,54 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     return false;
 }
 
-// function areTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
-//     if (src.typeOrFunc.isFunction()) {
-//         return dest.typeOrFunc.isFunction() && areFunctionsEqual(src.typeOrFunc, dest.typeOrFunc);
-//     } else {
-//         // TODO: Check template types
-//         return src.typeOrFunc.equals(dest.typeOrFunc);
-//     }
-// }
-
 function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
     if (src.parameterTypes.length !== dest.parameterTypes.length) return false;
 
     for (let i = 0; i < src.parameterTypes.length; i++) {
-        const srcParam = src.parameterTypes[i];
-        const destParam = dest.parameterTypes[i];
+        const srcParam = normalizeType(src.parameterTypes[i]);
+        const destParam = normalizeType(dest.parameterTypes[i]);
 
         if (srcParam === undefined || destParam === undefined) continue; // FIXME?
 
         if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
         // if (areTypesEqual(srcParam, destParam) === false) return false;
+    }
+
+    return true;
+}
+
+function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
+    if (src.typeOrFunc.isFunction() || dest.typeOrFunc.isFunction()) {
+        // TODO: Function template types
+        return true;
+    }
+
+    const srcType = src.typeOrFunc;
+    const destType = dest.typeOrFunc;
+
+    if (srcType.templateTypes?.length !== destType.templateTypes?.length) {
+        // The number of template types is different.
+        return false;
+    } else if (srcType.templateTypes === undefined || destType.templateTypes === undefined
+        || srcType.templateTypes.length == 0
+    ) {
+        // Both types do not have template types.
+        return true;
+    }
+
+    const srcTemplateTypes = srcType.templateTypes?.map(token => src.templateTranslator?.get(token));
+    const destTemplates = destType.templateTypes?.map(token => dest.templateTranslator?.get(token));
+
+    // Check if the template types are the same respectively.
+    for (let i = 0; i < srcTemplateTypes.length; i++) {
+        const srcParam = normalizeType(srcTemplateTypes[i]);
+        const destParam = normalizeType(destTemplates[i]);
+
+        if (srcParam === undefined || destParam === undefined) continue; // FIXME?
+
+        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
+
+        if (areTemplateTypesEqual(srcParam, destParam) === false) return false;
     }
 
     return true;
