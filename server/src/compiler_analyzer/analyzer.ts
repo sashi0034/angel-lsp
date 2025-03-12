@@ -102,6 +102,16 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
         return;
     }
 
+    const declared = findSymbolWithParent(scope, func.identifier.text);
+
+    if (declared === undefined) {
+        // TODO: required?
+        analyzerDiagnostic.add(func.identifier.location, `'${func.identifier}' is not defined.`);
+        return;
+    }
+
+    const typeTemplates = analyzeTemplateTypes(scope, func.typeTemplates, (declared.symbol as SymbolFunctionHolder).first.templateTypes);
+
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
 

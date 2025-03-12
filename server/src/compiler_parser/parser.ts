@@ -503,6 +503,8 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
     const identifier = parser.next();
     parser.commit(isFuncHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
 
+    const typeTemplates = parseTypeTemplates(parser) ?? [];
+
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
         parser.backtrack(rangeStart);
@@ -538,7 +540,8 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         paramList: paramList,
         isConst: isConst,
         funcAttr: funcAttr,
-        statBlock: statBlock
+        statBlock: statBlock,
+        typeTemplates: typeTemplates
     };
 }
 
@@ -2196,6 +2199,8 @@ function parseFuncCall(parser: ParserState): NodeFuncCall | undefined {
         return undefined;
     }
 
+    const typeTemplates = parseTypeTemplates(parser) ?? [];
+
     const argList = parseArgList(parser);
     if (argList === undefined) {
         parser.backtrack(rangeStart);
@@ -2207,7 +2212,8 @@ function parseFuncCall(parser: ParserState): NodeFuncCall | undefined {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         scope: scope,
         identifier: identifier,
-        argList: argList
+        argList: argList,
+        typeTemplates: typeTemplates
     };
 }
 
