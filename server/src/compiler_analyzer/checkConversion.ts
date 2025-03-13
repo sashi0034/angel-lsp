@@ -23,8 +23,11 @@ enum ConversionConst {
     IntToFloatConv = 8,
     FloatToIntConv = 9,
     RefConv = 10,
+    // RefConv + ConstConv = 11
     ObjToPrimitiveConv = 12,
+    // ObjToPrimitiveConv + ConstConv = 13
     ToObjectConv = 14,
+    // ToObjectConv + ConstConv = 15
     VariableConv = 16,
 
     Unknown = 255,
@@ -90,7 +93,7 @@ function normalizeType(type: ResolvedType | undefined) {
 
     if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
         // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
-        return resolveTemplateType(type.templateTranslator, type);
+        return resolveTemplateType(type.templateTranslator, type); // FIXME: redundant? should be removed?
     }
 
     // We use int and uint instead of int32 and uint32 respectively here.
@@ -327,7 +330,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
         const cost = evaluateConversionCost(src, paramType);
         if (cost === undefined) continue;
 
-        return ConversionConst.ToObjectConv; // FIXME?
+        return ConversionConst.ToObjectConv + cost; // FIXME?
     }
 
     return undefined;

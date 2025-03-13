@@ -1,157 +1,202 @@
 import {
     SymbolFunction, SymbolFunctionHolder,
 } from "./symbolObject";
-import {canTypeConvert} from "./checkType";
-import {stringifyNodeType} from "../compiler_parser/nodesUtils";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
 import {ResolvedType, resolveTemplateTypes, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_parser/tokenRange";
+import {evaluateConversionCost} from "./checkConversion";
 
-export interface FunctionMatchingArgs {
-    scope: SymbolScope;
+interface FunctionCallArgs {
+    // caller arguments
+    callerScope: SymbolScope;
     callerIdentifier: TokenObject;
     callerRange: TokenRange;
     callerArgRanges: TokenRange[];
     callerArgTypes: (ResolvedType | undefined)[];
+
+    // callee arguments
     calleeFuncHolder: SymbolFunctionHolder;
-    templateTranslators: (TemplateTranslator | undefined)[];
+    calleeTemplateTranslator: (TemplateTranslator | undefined);
 }
 
 /**
- * Checks whether the arguments provided by the caller match the parameters of the function definition.
+ * Checks whether the arguments provided by the caller match the parameters of the callee function.
  * @param args
  */
-export function checkFunctionMatch(
-    args: FunctionMatchingArgs
-): ResolvedType | undefined {
-    pushReferenceOfFuncOrConstructor(args.callerIdentifier, args.scope, args.calleeFuncHolder.first); // FIXME: Select the best overload
-    return checkFunctionMatchInternal(args, 0);
+export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefined {
+    return checkFunctionCallInternal(args);
 }
 
-function pushReferenceOfFuncOrConstructor(callerIdentifier: TokenObject, scope: SymbolScope, calleeFunc: SymbolFunction) {
-    scope.referencedList.push({declaredSymbol: calleeFunc, referencedToken: callerIdentifier});
+interface FunctionAndCost {
+    function: SymbolFunction;
+    cost: number;
 }
 
-// FIXME: Calculate cost of conversion and consider it in the overload selection.
+type MismatchReason = {
+    tooManyArguments: true,
+    fewerArguments?: false
+} | {
+    tooManyArguments?: false,
+    fewerArguments: true
+} | {
+    tooManyArguments: false,
+    fewerArguments: false,
+    mismatchIndex: number,
+    expectedType: ResolvedType | undefined,
+    actualType: ResolvedType | undefined,
+}
 
-function checkFunctionMatchInternal(
-    args: FunctionMatchingArgs,
-    nextOverloadIndex: number
-): ResolvedType | undefined {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, templateTranslators} = args;
-    const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
-    const calleeParams = calleeFunc.linkedNode.paramList;
+function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undefined {
+    const {callerScope, callerIdentifier, calleeFuncHolder} = args;
 
-    if (callerArgTypes.length > calleeParams.length &&
-        (!calleeParams.length || !calleeParams[calleeParams.length - 1].isVariadic)) {
-        // Handle too many caller arguments.
-        return handleTooMuchCallerArgs(args, nextOverloadIndex);
-    }
+    let matching: FunctionAndCost | undefined = undefined;
+    let lastMismatchReason: MismatchReason = {tooManyArguments: true};
 
-    for (let i = 0; i < calleeParams.length; i++) {
-        if (i >= callerArgTypes.length) {
-            // When the caller arguments are insufficient
-            const param = calleeParams[i];
-
-            if (param.defaultExpr !== undefined) continue;
-
-            // When there is also no default expression
-
-            if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
-                return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
-            }
-
-            if (handleErrorWhenOverloaded(
-                callerRange,
-                callerArgTypes,
-                calleeFuncHolder,
-                templateTranslators) === false) {
-                analyzerDiagnostic.add(
-                    callerRange.getBoundingLocation(),
-                    `Missing argument for parameter '${stringifyNodeType(param.type)}'.`);
-            }
-
-            break;
+    // Find the best matching function.
+    for (const callee of calleeFuncHolder.toList()) {
+        const evaluated = evaluateFunctionMatch(args, callee);
+        if (typeof evaluated !== "number") {
+            // Handle mismatch errors.
+            lastMismatchReason = evaluated;
+            continue;
         }
 
-        let expectedType = calleeFunc.parameterTypes[i];
-        expectedType = resolveTemplateTypes(templateTranslators, expectedType);
-
-        // note: variadic functions require at least one argument
-        // in the "rest" slot.
-        const numRest = (i === calleeParams.length - 1 && calleeParams[calleeParams.length - 1].isVariadic) ?
-            ((callerArgTypes.length - calleeParams.length) + 1) : 1;
-
-        for (let callerArgIndex = i; callerArgIndex < i + numRest; callerArgIndex++) {
-            let actualType = callerArgTypes[callerArgIndex];
-            actualType = resolveTemplateTypes(templateTranslators, actualType);
-
-            if (canTypeConvert(actualType, expectedType)) continue;
-
-            // Use the overload if it exists
-            if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
-                return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
-            }
-
-            if (handleErrorWhenOverloaded(
-                callerRange,
-                callerArgTypes,
-                calleeFuncHolder,
-                templateTranslators) === false) {
-                analyzerDiagnostic.add(
-                    callerRange.getBoundingLocation(),
-                    `Cannot convert '${stringifyResolvedType(actualType)}' to parameter type '${stringifyResolvedType(
-                        expectedType)}'.`);
-            }
+        if (matching === undefined || evaluated < matching.cost) {
+            // Update the best matching function.
+            matching = {function: callee, cost: evaluated};
         }
     }
 
-    return resolveTemplateTypes(templateTranslators, calleeFunc.returnType);
+    if (matching !== undefined) {
+        // Add the reference to the function that was called.
+        callerScope.referencedList.push({
+            declaredSymbol: matching.function, referencedToken: callerIdentifier
+        });
+
+        // Return the return type of the best matching function
+        return applyTemplateTranslator(matching.function.returnType, args.calleeTemplateTranslator);
+    } else {
+        // Handle mismatch errors.
+        handleMismatchError(args, lastMismatchReason);
+
+        return undefined;
+    }
 }
 
-function handleTooMuchCallerArgs(args: FunctionMatchingArgs, nextOverloadIndex: number) {
-    const {scope, callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, templateTranslators} = args;
+// e.g.1:
+// target: array<T> with {T: T}
+// translator: {T: int}
+// -> array<T> with {T: int}
+// i.e., T at the end of the target is replaced with int
 
-    // Use the overload if it exists
-    if (nextOverloadIndex + 1 < calleeFuncHolder.count) {
-        return checkFunctionMatchInternal(args, nextOverloadIndex + 1);
+// e.g.2:
+// target: array<T> with {T: array<T> with {T: T}}
+// translator: {T: bool}
+// -> array<T> with {T: array<T> with {T: bool}}
+// i.e., T at the end of the target is replaced with bool
+function applyTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
+    if (target === undefined || translator === undefined) return target;
+
+    if (target.typeOrFunc.templateTypes?.length === 0 || target.templateTranslator === undefined) {
+        // The target has no templates.
+        if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
+            // If the target is a type parameter such as `T`, translate it.
+            return translator.get(target.typeOrFunc.identifierToken) ?? target;
+        }
+
+        return target;
     }
 
-    const calleeFunc = calleeFuncHolder.overloadList[nextOverloadIndex];
-    if (handleErrorWhenOverloaded(
-        callerRange,
-        callerArgTypes,
-        calleeFuncHolder,
-        templateTranslators) === false) {
-        analyzerDiagnostic.add(
-            callerRange.getBoundingLocation(),
-            `Function has ${calleeFunc.linkedNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`);
+    // -----------------------------------------------
+    // At this point, the target has template parameters.
+
+    // Create a new template translator by replacing the template type with the translated type.
+    const newTranslator = new Map<TokenObject, ResolvedType | undefined>();
+    for (const [token, translatedType] of target.templateTranslator) {
+        if (translatedType?.identifierToken !== undefined && translator.has(translatedType?.identifierToken)) {
+            // Replace `T` at the end of the target with the translated type.
+            newTranslator.set(token, translator.get(translatedType?.identifierToken));
+        } else {
+            // Templates may be nested, so visit recursively.
+            newTranslator.set(token, applyTemplateTranslator(translatedType, translator));
+        }
     }
 
-    return calleeFunc.returnType;
+    return target.cloneWithTemplateTranslator(translator);
 }
 
-function handleErrorWhenOverloaded(
-    callerRange: TokenRange,
-    callerArgs: (ResolvedType | undefined)[],
-    calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslators: (TemplateTranslator | undefined)[]
-) {
-    if (calleeFuncHolder.count === 1) return false; // No overload
+function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+    const {callerArgTypes, calleeTemplateTranslator} = args;
 
-    let message = 'No viable function.';
-    message += `\nArguments types: (${stringifyResolvedTypes(callerArgs)})`;
-    message += '\nCandidates considered:';
+    let totalCost = 0;
 
-    // TODO: suffix `...` for variadic functions
-    for (const overload of calleeFuncHolder.overloadList) {
-        const resolvedTypes = overload.parameterTypes.map(t => resolveTemplateTypes(templateTranslators, t));
-        message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
+    // Caller arguments must be at least as many as the callee parameters.
+    if (callee.parameterTypes.length < callerArgTypes.length) return {tooManyArguments: true};
+
+    for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
+        if (paramId >= callerArgTypes.length) {
+            // Handle when the caller arguments are insufficient.
+            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined) {
+                // When there is default expressions
+                break;
+            } else {
+                return {fewerArguments: true};
+            }
+        }
+
+        const expectedType =
+            applyTemplateTranslator(callee.parameterTypes[paramId], calleeTemplateTranslator);
+        const actualType = callerArgTypes[paramId];
+
+        const cost = evaluateConversionCost(actualType, expectedType);
+        if (cost === undefined) {
+            return {
+                tooManyArguments: false,
+                fewerArguments: false,
+                mismatchIndex: paramId,
+                expectedType: expectedType,
+                actualType: actualType
+            };
+        }
+
+        totalCost += cost;
     }
 
-    analyzerDiagnostic.add(callerRange.getBoundingLocation(), message);
-    return true;
+    return totalCost;
+}
+
+function handleMismatchError(args: FunctionCallArgs, lastMismatchReason: MismatchReason) {
+    const {callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, calleeTemplateTranslator} = args;
+    if (calleeFuncHolder.count === 1) {
+        const calleeFunction = calleeFuncHolder.first;
+        if (lastMismatchReason.tooManyArguments || lastMismatchReason.fewerArguments) {
+            analyzerDiagnostic.add(
+                callerRange.getBoundingLocation(),
+                `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`
+            );
+        } else {
+            const actualTypeMessage = stringifyResolvedType(lastMismatchReason.actualType);
+            const expectedTypeMessage = stringifyResolvedType(lastMismatchReason.expectedType);
+            analyzerDiagnostic.add(
+                callerArgRanges[lastMismatchReason.mismatchIndex].getBoundingLocation(),
+                `Cannot convert '${actualTypeMessage}' to parameter type '${expectedTypeMessage}'.`
+            );
+        }
+    } else {
+        let message = 'No viable function.\n';
+        message += `Arguments types: (${stringifyResolvedTypes(callerArgTypes)})\n`;
+        message += 'Candidates considered:';
+
+        // TODO: suffix `...` for variadic functions
+        for (const overload of calleeFuncHolder.overloadList) {
+            const resolvedTypes =
+                overload.parameterTypes.map(t => applyTemplateTranslator(t, calleeTemplateTranslator));
+            message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
+        }
+
+        analyzerDiagnostic.add(callerRange.getBoundingLocation(), message);
+    }
 }
