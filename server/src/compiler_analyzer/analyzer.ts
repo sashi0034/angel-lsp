@@ -109,7 +109,10 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
         return;
     }
 
-    const typeTemplates = analyzeTemplateTypes(scope, func.typeTemplates, (declared.symbol as SymbolFunctionHolder).first.templateTypes);
+    const typeTemplates = analyzeTemplateTypes(
+        scope,
+        func.typeTemplates,
+        (declared.symbol as SymbolFunctionHolder).first.templateTypes);
 
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
@@ -1227,9 +1230,9 @@ function analyzeMathOp(
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs.typeOrFunc instanceof SymbolType && rhs.typeOrFunc instanceof SymbolType) {
-        if (canTypeCast(lhs, resolvedBuiltinInt) && canTypeCast(
-            rhs,
-            resolvedBuiltinInt)) return resolvedBuiltinInt;
+        if (canTypeCast(lhs, resolvedBuiltinInt) && canTypeCast(rhs, resolvedBuiltinInt)) {
+            return resolvedBuiltinInt;
+        }
     }
 
     const alias = mathOpAliases.get(operator.text);
