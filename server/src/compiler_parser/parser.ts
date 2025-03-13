@@ -1011,8 +1011,12 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
         const type = parseType(parser);
         if (type === undefined) {
             // if it's not a valid identifier, it's not
-            // ever going to be a valid constructor
-            if (parser.next().kind !== TokenKind.Identifier) {
+            // ever going to be a valid constructor.
+            // FIXME: this doesn't solve all of the
+            // conflicts between func defs and constructor
+            // calls; need to revisit this later
+            if (parser.next().kind === TokenKind.String ||
+                parser.next().kind === TokenKind.Number) {
                 return undefined;
             }
 
