@@ -58,4 +58,25 @@ describe("Definition", () => {
             foo.value$C1$ = 2;
         }`
     );
+
+    testDefinition(`
+        void ovl_value$C0$(int a, int b) { }
+        void ovl_value(float a, float b) { }
+        void ovl_value(double a, double b) { }
+        void main() { ovl_value$C1$(1, 2); }`
+    );
+
+    testDefinition(`
+        void ovl_value(int a, int b) { }
+        void ovl_value$C0$(float a, float b) { }
+        void ovl_value(double a, double b) { }
+        void main() { ovl_value$C1$(1.1f, 2.1f); }`
+    );
+
+    testDefinition(`
+        void ovl_value(int a, int b) { }
+        void ovl_value(float a, float b) { }
+        void ovl_value$C0$(double a, double b) { }
+        void main() { ovl_value$C1$(1.2, 2.2); }`
+    );
 });
