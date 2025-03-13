@@ -551,7 +551,7 @@ function parseListPattern(parser: ParserState): NodeListPattern | undefined {
         }
     }
 
-    if (parser.next().text !== '}') {
+    if (parser.next().text !== '}' || listOperations.length === 0) {
         parser.backtrack(rangeStart);
         return undefined;
     }
