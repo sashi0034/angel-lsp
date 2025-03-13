@@ -47,7 +47,7 @@ function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: Sy
         const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
-        let label = stringifyResolvedType(applyTemplateTranslator(paramType, hint.templateTranslate));
+        let label = stringifyResolvedType(applyTemplateTranslator(paramType, hint.templateTranslator));
         if (paramIdentifier.identifier !== undefined) label += ' ' + paramIdentifier.identifier?.text;
         const parameter: ParameterInformation = {label: label};
 

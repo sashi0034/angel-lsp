@@ -982,7 +982,7 @@ function analyzeFunctionCaller(
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
     calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslate: TemplateTranslator | undefined
+    templateTranslator: TemplateTranslator | undefined
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
@@ -1003,7 +1003,7 @@ function analyzeFunctionCaller(
         complementLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
         passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
-        templateTranslate: templateTranslate
+        templateTranslator: templateTranslator
     });
 
     return checkFunctionCall({
@@ -1013,7 +1013,7 @@ function analyzeFunctionCaller(
         callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         callerArgTypes: callerArgTypes,
         calleeFuncHolder: calleeFuncHolder,
-        calleeTemplateTranslator: templateTranslate
+        calleeTemplateTranslator: templateTranslator
     });
 }
 

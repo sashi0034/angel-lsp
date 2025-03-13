@@ -68,7 +68,7 @@ export interface ComplementCallerArgument extends ComplementBase {
     complementKind: ComplementKind.CallerArguments;
     expectedCallee: SymbolFunction;
     passingRanges: TokenRange[];
-    templateTranslate: TemplateTranslator | undefined;
+    templateTranslator: TemplateTranslator | undefined;
 }
 
 export type ComplementHint =
