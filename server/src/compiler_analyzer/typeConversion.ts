@@ -142,7 +142,7 @@ function normalizeType(type: ResolvedType | undefined) {
 }
 
 // -----------------------------------------------
-// Primitive to Primitive
+// A primitive to a primitive
 // as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
 
 const numberSizeInBytes = new Map<string, number>([
@@ -223,7 +223,7 @@ function evaluateConvPrimitiveToPrimitive(
 }
 
 // -----------------------------------------------
-// Object to Primitive
+// An object to a primitive
 // as_compiler.cpp: ImplicitConvObjectToPrimitive
 
 const numberConversionCostTable = new Map<string, string[]>([
@@ -298,7 +298,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 }
 
 // -----------------------------------------------
-// Primitive to Object
+// A primitive to an object
 // as_compiler.cpp: ImplicitConvPrimitiveToObject
 
 function evaluateConvPrimitiveToObject(
