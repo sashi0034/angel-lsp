@@ -1,9 +1,9 @@
-import {ResolvedType, resolveTemplateType} from "./resolvedType";
+import {ResolvedType} from "./resolvedType";
 import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
-import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./symbolBuiltin";
+import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -91,10 +91,10 @@ export function evaluateConversionCost(
 function normalizeType(type: ResolvedType | undefined) {
     if (type === undefined) return undefined;
 
-    if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
-        // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
-        return resolveTemplateType(type.templateTranslator, type); // FIXME: redundant? should be removed?
-    }
+    // if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
+    //     // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
+    //     return resolveTemplateType(type.templateTranslator, type); // FIXME: redundant? should be removed?
+    // }
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') return resolvedBuiltinInt;

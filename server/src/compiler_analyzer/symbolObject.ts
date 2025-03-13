@@ -76,6 +76,10 @@ export abstract class SymbolBase {
 export interface SymbolHolder {
     get identifierText(): string;
 
+    isType(): this is SymbolType;
+
+    isVariable(): this is SymbolVariable;
+
     isFunctionHolder(): this is SymbolFunctionHolder;
 
     toList(): ReadonlyArray<SymbolObject>;
@@ -278,6 +282,14 @@ export class SymbolFunctionHolder implements SymbolHolder {
 
     public get identifierText(): string {
         return this.first.identifierToken.text;
+    }
+
+    public isVariable(): this is SymbolVariable {
+        return false;
+    }
+
+    public isType(): this is SymbolType {
+        return false;
     }
 
     public isFunctionHolder(): this is SymbolFunctionHolder {

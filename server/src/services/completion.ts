@@ -10,10 +10,10 @@ import {
     collectParentScopeList,
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
-import {isAllowedToAccessMember} from "../compiler_analyzer/checkType";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {isAllowedToAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 
 /**
  * Returns the completion candidates for the specified position.
@@ -70,7 +70,7 @@ function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: Symbo
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) continue;
-        if (isAllowedToAccessMember(caretScope, symbol) === false) continue;
+        if (isAllowedToAccessInstanceMember(caretScope, symbol) === false) continue;
 
         items.push({
             label: symbolName,

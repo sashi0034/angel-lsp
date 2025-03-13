@@ -28,7 +28,7 @@ import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../core/settings";
-import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./symbolBuiltin";
+import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./builtinType";
 import {TokenIdentifier, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {getIdentifierInNodeType} from "../compiler_parser/nodesUtils";
 import {
