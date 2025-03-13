@@ -33,7 +33,46 @@ enum ConversionConst {
     Unknown = 255,
 }
 
+/**
+ * Evaluate the cost of converting the source type to the destination type.
+ */
 export function evaluateConversionCost(
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
+    // type: ConversionType = ConversionType.Implicit // TODO?
+): ConversionConst | undefined {
+    return evaluateConversionCostInternal({stack: []}, src, dest);
+}
+
+interface SrcAndDest {
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
+}
+
+interface EvaluationState {
+    stack: SrcAndDest[];
+}
+
+function evaluateConversionCostInternal(
+    state: EvaluationState,
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
+    // type: ConversionType = ConversionType.Implicit // TODO?
+): ConversionConst | undefined {
+    // Prevent infinite recursion
+    if (state.stack.some((x) => x.src === src && x.dest === dest)) return undefined;
+
+    state.stack.push({src, dest});
+
+    const result = evaluateConversionCostHandler(state, src, dest);
+
+    state.stack.pop();
+
+    return result;
+}
+
+function evaluateConversionCostHandler(
+    state: EvaluationState,
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
@@ -61,11 +100,14 @@ export function evaluateConversionCost(
 
     // FIXME: Handle init list?
 
+    // No conversion from void to any other type
     if (srcType.identifierText === 'void') return ConversionConst.NoConv;
 
     // FIXME?
-    if (srcType.identifierText === '?') return ConversionConst.VariableConv;
-    if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
+    // Any type can be converted to a var type
+    if (destType.identifierText === '?') return ConversionConst.VariableConv;
+
+    if (destType.identifierText === 'auto') return ConversionConst.VariableConv;
 
     if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
@@ -80,21 +122,16 @@ export function evaluateConversionCost(
         // Destination is an object type defined by a user
         if (srcType.isPrimitiveOrEnum()) {
             // Source is a primitive type
-            return evaluateConvPrimitiveToObject(src, dest);
+            return evaluateConvPrimitiveToObject(state, src, dest);
         } else {
             // Source is an object type
-            return evaluateConvObjectToObject(src, dest);
+            return evaluateConvObjectToObject(state, src, dest);
         }
     }
 }
 
 function normalizeType(type: ResolvedType | undefined) {
     if (type === undefined) return undefined;
-
-    // if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
-    //     // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
-    //     return resolveTemplateType(type.templateTranslator, type); // FIXME: redundant? should be removed?
-    // }
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') return resolvedBuiltinInt;
@@ -105,7 +142,7 @@ function normalizeType(type: ResolvedType | undefined) {
 }
 
 // -----------------------------------------------
-// Primitive to Primitive
+// A primitive to a primitive
 // as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
 
 const numberSizeInBytes = new Map<string, number>([
@@ -186,7 +223,7 @@ function evaluateConvPrimitiveToPrimitive(
 }
 
 // -----------------------------------------------
-// Object to Primitive
+// An object to a primitive
 // as_compiler.cpp: ImplicitConvObjectToPrimitive
 
 const numberConversionCostTable = new Map<string, string[]>([
@@ -261,24 +298,32 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 }
 
 // -----------------------------------------------
-// Primitive to Object
+// A primitive to an object
 // as_compiler.cpp: ImplicitConvPrimitiveToObject
 
-function evaluateConvPrimitiveToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+function evaluateConvPrimitiveToObject(
+    state: EvaluationState,
+    src: ResolvedType,
+    dest: ResolvedType
+): ConversionConst | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() && destType.isPrimitiveOrEnum() === false);
 
-    return evaluateConversionByConstructor(src, dest);
+    return evaluateConversionByConstructor(state, src, dest);
 }
 
 // -----------------------------------------------
 // Object to Object
 // as_compiler.cpp: ImplicitConvObjectToObject
 
-function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+function evaluateConvObjectToObject(
+    state: EvaluationState,
+    src: ResolvedType,
+    dest: ResolvedType
+): ConversionConst | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -290,7 +335,7 @@ function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): Conv
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
 
-    const constByConstructor = evaluateConversionByConstructor(src, dest);
+    const constByConstructor = evaluateConversionByConstructor(state, src, dest);
     if (constByConstructor !== undefined) return constByConstructor;
 
     return undefined;
@@ -299,7 +344,11 @@ function evaluateConvObjectToObject(src: ResolvedType, dest: ResolvedType): Conv
 // -----------------------------------------------
 // Helper functions
 
-function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+function evaluateConversionByConstructor(
+    state: EvaluationState,
+    src: ResolvedType,
+    dest: ResolvedType
+): ConversionConst | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -327,7 +376,7 @@ function evaluateConversionByConstructor(src: ResolvedType, dest: ResolvedType):
         if (paramType === dest) continue;
 
         // Source type must be convertible to the parameter type of the constructor.
-        const cost = evaluateConversionCost(src, paramType);
+        const cost = evaluateConversionCostInternal(state, src, paramType);
         if (cost === undefined) continue;
 
         return ConversionConst.ToObjectConv + cost; // FIXME?

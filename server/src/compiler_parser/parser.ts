@@ -798,6 +798,7 @@ function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
         parser.backtrack(rangeStart);
         return ParseFailure.Mismatch;
     }
+
     parser.commit(HighlightForToken.Builtin);
 
     const returnType = expectType(parser);
