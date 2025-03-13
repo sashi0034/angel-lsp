@@ -41,6 +41,9 @@ import {
     NodeInterface,
     NodeIntfMethod,
     NodeLambda,
+    NodeListOp,
+    NodeListPattern,
+    NodeListValidOperators,
     NodeLiteral,
     NodeMixin,
     NodeName,
@@ -473,7 +476,90 @@ function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     };
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: LISTENTRY     ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]): boolean {
+    let listDepth = 0;
+
+    while (!parser.isEnd()) {
+        if (parser.next().text === '{') {
+            parser.commit(HighlightForToken.Operator);
+
+            operators.push({
+                operator: NodeListOp.StartList
+            });
+            listDepth++;
+        } else if (parser.next().text === '}') {
+
+            if (!listDepth) {
+                break;
+            } else {
+                parser.commit(HighlightForToken.Operator);
+                listDepth--;
+    
+                operators.push({
+                    operator: NodeListOp.EndList
+                });
+            }
+        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_once') {
+            parser.commit(HighlightForToken.Keyword);
+
+            operators.push({
+                operator: parser.next().text === 'repeat' ? NodeListOp.Repeat : NodeListOp.RepeatSame
+            });
+        } else if (parser.next().text === ',') {
+            parser.commit(HighlightForToken.Operator);
+        } else {
+            const type = parseType(parser);
+
+            if (type === undefined) {
+                return false;                
+            }
+
+            operators.push({
+                operator: NodeListOp.Type,
+                type: type
+            });
+        }
+    }
+
+    return listDepth === 0;
+}
+
+// BNF: LISTPATTERN   ::= '{' LISTENTRY {',' LISTENTRY} '}'
+function parseListPattern(parser: ParserState): NodeListPattern | undefined {
+    const rangeStart = parser.next();
+
+    if (parser.next().text !== '{') {
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Operator);
+
+    const listOperations: NodeListValidOperators[] = [];
+
+    // parse list entries
+    while (!parser.isEnd()) {
+        if (parser.next().text === '}') {
+            break;
+        }
+
+        const entry = parseListEntry(parser, listOperations);
+
+        if (entry === false) {
+            parser.backtrack(rangeStart);
+            return undefined;
+        }
+    }
+
+    if (parser.next().text !== '}') {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Operator);
+}
+
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER [PARAMLIST | LISTEXPR] ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): NodeFunc | undefined {
     const rangeStart = parser.next();
 
@@ -511,17 +597,29 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         return undefined;
     }
 
-    const isConst = parseConst(parser);
-
-    const funcAttr = parseFuncAttr(parser);
-
-    const statStart = parser.next().text;
+    const listPattern: NodeListPattern | undefined = parseListPattern(parser);
 
     let statBlock: NodeStatBlock | undefined = undefined;
-    if (statStart === ';') {
-        parser.commit(HighlightForToken.Operator);
+    let funcAttr: FunctionAttribute | undefined = undefined;
+    let isConst = false;
+
+    if (listPattern === undefined) {
+        isConst = parseConst(parser);
+
+        funcAttr = parseFuncAttr(parser);
+
+        if (parser.next().text === ';') {
+            parser.commit(HighlightForToken.Operator);
+        } else {
+            statBlock = expectStatBlock(parser);
+        }
     } else {
-        statBlock = expectStatBlock(parser);
+        if (parser.next().text !== ';') {
+            parser.backtrack(rangeStart);
+            return undefined;
+        }
+
+        parser.commit(HighlightForToken.Operator);
     }
 
     if (statBlock === undefined) statBlock = {
@@ -541,7 +639,8 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         isConst: isConst,
         funcAttr: funcAttr,
         statBlock: statBlock,
-        typeTemplates: typeTemplates
+        typeTemplates: typeTemplates,
+        listPattern: listPattern
     };
 }
 
@@ -1115,7 +1214,7 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     return BreakOrThrough.Through;
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 function parseTypeMod(parser: ParserState): TypeModifier | undefined {
     let mod: TypeModifier | undefined = undefined;
 
