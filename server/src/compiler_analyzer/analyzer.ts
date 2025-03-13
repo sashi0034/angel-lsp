@@ -733,10 +733,10 @@ export function analyzeConstructorCaller(
 }
 
 export function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
-    if (resolvedType?.sourceScope === undefined) return undefined;
+    if (resolvedType?.scopePath === undefined) return undefined;
 
     const constructorIdentifier = resolvedType.typeOrFunc.identifierText;
-    const classScope = resolveActiveScope(resolvedType.sourceScope).lookupScope(constructorIdentifier);
+    const classScope = resolveActiveScope(resolvedType.scopePath).lookupScope(constructorIdentifier);
     return classScope !== undefined ? classScope.lookupSymbol(constructorIdentifier) : undefined;
 }
 
@@ -747,7 +747,7 @@ function analyzeBuiltinConstructorCaller(
     constructorType: ResolvedType
 ) {
     const constructorIdentifier = constructorType.typeOrFunc.identifierText;
-    if (constructorType.sourceScope === undefined) return undefined;
+    if (constructorType.scopePath === undefined) return undefined;
 
     if (constructorType.typeOrFunc instanceof SymbolType
         && constructorType.typeOrFunc.linkedNode?.nodeName === NodeName.Enum) {
@@ -958,12 +958,12 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
 function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {
     const varType = calleeVariable.type;
-    if (varType === undefined || varType.sourceScope === undefined) {
+    if (varType === undefined || varType.scopePath === undefined) {
         analyzerDiagnostic.add(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable.`);
         return;
     }
 
-    const classScope = resolveActiveScope(varType.sourceScope).lookupScope(varType.typeOrFunc.identifierText);
+    const classScope = resolveActiveScope(varType.scopePath).lookupScope(varType.typeOrFunc.identifierText);
     if (classScope === undefined) return undefined;
 
     const opCall = classScope.lookupSymbol('opCall');
@@ -1166,7 +1166,7 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    if (lhs.sourceScope === undefined) return undefined;
+    if (lhs.scopePath === undefined) return undefined;
 
     const classScope = lhs.typeOrFunc.membersScope;
     if (classScope === undefined) return undefined;

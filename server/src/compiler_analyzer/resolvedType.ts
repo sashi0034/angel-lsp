@@ -80,7 +80,7 @@ export class ResolvedType {
         return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator);
     }
 
-    public get sourceScope(): ScopePath | undefined {
+    public get scopePath(): ScopePath | undefined {
         return this.typeOrFunc.scopePath;
     }
 
