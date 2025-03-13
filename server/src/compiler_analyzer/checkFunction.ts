@@ -77,7 +77,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undef
         });
 
         // Return the return type of the best matching function
-        return matching.function.returnType;
+        return applyTemplateTranslator(matching.function.returnType, args.calleeTemplateTranslator);
     } else {
         // Handle mismatch errors.
         handleMismatchError(args, lastMismatchReason);
@@ -97,12 +97,21 @@ function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undef
 // translator: {T: bool}
 // -> array<T> with {T: array<T> with {T: bool}}
 // i.e., T at the end of the target is replaced with bool
-function attachTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
+function applyTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
     if (target === undefined || translator === undefined) return target;
 
-    if (target.typeOrFunc.templateTypes?.length === 0) return target;
+    if (target.typeOrFunc.templateTypes?.length === 0 || target.templateTranslator === undefined) {
+        // The target has no templates.
+        if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
+            // If the target is a type parameter such as `T`, translate it.
+            return translator.get(target.typeOrFunc.identifierToken) ?? target;
+        }
 
-    if (target.templateTranslator === undefined) return target;
+        return target;
+    }
+
+    // -----------------------------------------------
+    // At this point, the target has template parameters.
 
     // Create a new template translator by replacing the template type with the translated type.
     const newTranslator = new Map<TokenObject, ResolvedType | undefined>();
@@ -112,7 +121,7 @@ function attachTemplateTranslator(target: ResolvedType | undefined, translator: 
             newTranslator.set(token, translator.get(translatedType?.identifierToken));
         } else {
             // Templates may be nested, so visit recursively.
-            newTranslator.set(token, attachTemplateTranslator(translatedType, translator));
+            newTranslator.set(token, applyTemplateTranslator(translatedType, translator));
         }
     }
 
@@ -139,7 +148,7 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
         }
 
         const expectedType =
-            attachTemplateTranslator(callee.parameterTypes[paramId], calleeTemplateTranslator);
+            applyTemplateTranslator(callee.parameterTypes[paramId], calleeTemplateTranslator);
         const actualType = callerArgTypes[paramId];
 
         const cost = evaluateConversionCost(actualType, expectedType);
@@ -184,7 +193,7 @@ function handleMismatchError(args: FunctionCallArgs, lastMismatchReason: Mismatc
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {
             const resolvedTypes =
-                overload.parameterTypes.map(t => attachTemplateTranslator(t, calleeTemplateTranslator));
+                overload.parameterTypes.map(t => applyTemplateTranslator(t, calleeTemplateTranslator));
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
 
