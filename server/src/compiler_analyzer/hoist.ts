@@ -381,13 +381,17 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: funcDef.identifier,
         scopePath: parentScope.scopePath,
-        returnType: analyzeType(parentScope, funcDef.returnType),
+        returnType: undefined,
         parameterTypes: [],
         linkedNode: funcDef,
         isInstanceMember: false,
         accessRestriction: undefined,
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+
+    hoisting.push(() => {
+        symbol.mutate().returnType = analyzeType(parentScope, funcDef.returnType);
+    });
 
     hoisting.push(() => {
         symbol.mutate().parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
