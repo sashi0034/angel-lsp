@@ -10,7 +10,7 @@ import {
     collectParentScopeList,
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
-import {isAllowedToAccessInstanceMember} from "../compiler_analyzer/checkType";
+import {isAllowedToAccessInstanceMember} from "../compiler_analyzer/typeCast";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./serviceHelper";
 import {TextPosition} from "../compiler_tokenizer/textLocation";

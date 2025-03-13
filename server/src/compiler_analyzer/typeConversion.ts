@@ -3,7 +3,7 @@ import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
-import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./symbolBuiltin";
+import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV

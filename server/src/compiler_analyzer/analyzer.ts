@@ -53,8 +53,8 @@ import {
     findGlobalScope, resolveActiveScope,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
-import {checkFunctionCall} from "./checkFunction";
-import {canTypeCast, checkTypeMatch, isAllowedToAccessInstanceMember} from "./checkType";
+import {checkFunctionCall} from "./functionCall";
+import {canTypeCast, checkTypeCast, isAllowedToAccessInstanceMember} from "./typeCast";
 import {
     builtinBoolType,
     resolvedBuiltinBool,
@@ -62,7 +62,7 @@ import {
     resolvedBuiltinFloat,
     resolvedBuiltinInt,
     tryGetBuiltInType
-} from "./symbolBuiltin";
+} from "./builtinType";
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
     findSymbolWithParent,
@@ -176,7 +176,7 @@ export function analyzeVarInitializer(
         return analyzeInitList(scope, initializer);
     } else if (initializer.nodeName === NodeName.Assign) {
         const exprType = analyzeAssign(scope, initializer);
-        checkTypeMatch(exprType, varType, initializer.nodeRange);
+        checkTypeCast(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined || varType.typeOrFunc.isFunction()) return undefined;
@@ -474,7 +474,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
-    checkTypeMatch(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
+    checkTypeCast(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
 
     if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
@@ -485,13 +485,13 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
 
     if (doWhile.assign === undefined) return;
     const assignType = analyzeAssign(scope, doWhile.assign);
-    checkTypeMatch(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
+    checkTypeCast(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
 }
 
 // BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
-    checkTypeMatch(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
+    checkTypeCast(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
 
     if (nodeIf.thenStat !== undefined) analyzeStatement(scope, nodeIf.thenStat);
     if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
@@ -541,7 +541,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
             if (nodeReturn.assign === undefined) return;
             analyzerDiagnostic.add(nodeReturn.nodeRange.getBoundingLocation(), `Function does not return a value.`);
         } else {
-            checkTypeMatch(returnType, functionReturn.returnType, nodeReturn.nodeRange);
+            checkTypeCast(returnType, functionReturn.returnType, nodeReturn.nodeRange);
         }
     } else if (functionScope.linkedNode.nodeName === NodeName.VirtualProp) {
         const key = functionScope.key;
@@ -558,7 +558,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const functionReturn = functionScope.parentScope?.symbolTable.get(varName);
         if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) return;
 
-        checkTypeMatch(returnType, functionReturn.type, nodeReturn.nodeRange);
+        checkTypeCast(returnType, functionReturn.type, nodeReturn.nodeRange);
     }
 }
 
@@ -1103,7 +1103,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
 
-    checkTypeMatch(exprType, new ResolvedType(builtinBoolType), condition.expr.nodeRange);
+    checkTypeCast(exprType, new ResolvedType(builtinBoolType), condition.expr.nodeRange);
 
     const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
     const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
@@ -1284,8 +1284,8 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
-    checkTypeMatch(lhs, new ResolvedType(builtinBoolType), leftRange);
-    checkTypeMatch(rhs, new ResolvedType(builtinBoolType), rightRange);
+    checkTypeCast(lhs, new ResolvedType(builtinBoolType), leftRange);
+    checkTypeCast(rhs, new ResolvedType(builtinBoolType), rightRange);
     return new ResolvedType(builtinBoolType);
 }
 

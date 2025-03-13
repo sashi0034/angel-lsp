@@ -7,7 +7,7 @@ import {ResolvedType, resolveTemplateTypes, TemplateTranslator} from "./resolved
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_parser/tokenRange";
-import {evaluateConversionCost} from "./checkConversion";
+import {evaluateConversionCost} from "./typeConversion";
 
 interface FunctionCallArgs {
     // caller arguments

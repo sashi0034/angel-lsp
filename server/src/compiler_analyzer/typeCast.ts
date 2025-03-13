@@ -9,7 +9,7 @@ import {stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_parser/tokenRange";
-import {canDownCast, evaluateConversionCost} from "./checkConversion";
+import {canDownCast, evaluateConversionCost} from "./typeConversion";
 
 /**
  * Check if the source type can be converted to the destination type.
@@ -18,7 +18,7 @@ import {canDownCast, evaluateConversionCost} from "./checkConversion";
  * @param dest
  * @param nodeRange
  */
-export function checkTypeMatch(
+export function checkTypeCast(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     nodeRange: TokenRange,
@@ -27,7 +27,9 @@ export function checkTypeMatch(
 
     analyzerDiagnostic.add(
         nodeRange.getBoundingLocation(),
-        `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`);
+        `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`
+    );
+
     return false;
 }
 
