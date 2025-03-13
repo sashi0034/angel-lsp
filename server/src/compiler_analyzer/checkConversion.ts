@@ -93,7 +93,7 @@ function normalizeType(type: ResolvedType | undefined) {
 
     if (type.typeOrFunc.isType() && type.typeOrFunc.isTypeParameter) {
         // e.g., when the type is 'T' in 'array<T>', 'T' should be replaced with 'int' in the context of 'array<int>'
-        return resolveTemplateType(type.templateTranslator, type);
+        return resolveTemplateType(type.templateTranslator, type); // FIXME: redundant? should be removed?
     }
 
     // We use int and uint instead of int32 and uint32 respectively here.

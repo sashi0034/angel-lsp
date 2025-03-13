@@ -53,7 +53,7 @@ import {
     findGlobalScope, resolveActiveScope,
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
-import {checkFunctionMatch} from "./checkFunction";
+import {checkFunctionCall} from "./checkFunction";
 import {canTypeConvert, checkTypeMatch, isAllowedToAccessMember} from "./checkType";
 import {
     builtinBoolType,
@@ -1006,14 +1006,14 @@ function analyzeFunctionCaller(
         templateTranslate: templateTranslate
     });
 
-    return checkFunctionMatch({
-        scope: scope,
+    return checkFunctionCall({
+        callerScope: scope,
         callerIdentifier: callerIdentifier,
         callerRange: callerArgList.nodeRange,
         callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         callerArgTypes: callerArgTypes,
         calleeFuncHolder: calleeFuncHolder,
-        templateTranslators: [templateTranslate]
+        calleeTemplateTranslator: templateTranslate
     });
 }
 
@@ -1179,14 +1179,14 @@ function analyzeOperatorAlias(
         return undefined;
     }
 
-    return checkFunctionMatch({
-        scope: scope,
+    return checkFunctionCall({
+        callerScope: scope,
         callerIdentifier: operator,
         callerRange: new TokenRange(operator, operator),
         callerArgRanges: [rightRange],
         callerArgTypes: rhsArgs,
         calleeFuncHolder: aliasFunction,
-        templateTranslators: [lhs.templateTranslator, ...rhsArgs.map(rhs => rhs?.templateTranslator)]
+        calleeTemplateTranslator: lhs.templateTranslator // FIXME? ...rhsArgs.map(rhs => rhs?.templateTranslator)
     });
 }
 

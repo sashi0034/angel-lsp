@@ -53,12 +53,23 @@ export class ResolvedType {
         return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator);
     }
 
+    // public clone(): ResolvedType {
+    //     return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator);
+    // }
+
+    public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
+        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator);
+    }
+
     public get sourceScope(): ScopePath | undefined {
         return this.typeOrFunc.scopePath;
+    }
+
+    public get identifierToken(): TokenObject | undefined {
+        return this.typeOrFunc.identifierToken;
     }
 
     public get identifierText(): string {
         return this.typeOrFunc.identifierToken.text;
     }
-
 }
