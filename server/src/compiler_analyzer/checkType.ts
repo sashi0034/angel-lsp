@@ -1,5 +1,4 @@
 import {
-    SymbolFunction,
     SymbolType,
     SymbolObjectHolder,
 } from "./symbolObject";
@@ -7,7 +6,7 @@ import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {resolveActiveScope, isScopeChildOrGrandchild, SymbolScope} from "./symbolScope";
 import assert = require("assert");
 import {stringifyResolvedType} from "./symbolUtils";
-import {ResolvedType, resolveTemplateType} from "./resolvedType";
+import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_parser/tokenRange";
 import {canDownCast, evaluateConversionCost} from "./checkConversion";
@@ -24,7 +23,7 @@ export function checkTypeMatch(
     dest: ResolvedType | undefined,
     nodeRange: TokenRange,
 ): boolean {
-    if (canTypeConvert(src, dest)) return true;
+    if (canTypeCast(src, dest)) return true;
 
     analyzerDiagnostic.add(
         nodeRange.getBoundingLocation(),
@@ -37,7 +36,7 @@ export function checkTypeMatch(
  * @param src
  * @param dest
  */
-export function canTypeConvert(
+export function canTypeCast(
     src: ResolvedType | undefined, dest: ResolvedType | undefined
 ): boolean {
     if (src === undefined || dest === undefined) return true;
@@ -46,32 +45,38 @@ export function canTypeConvert(
     return cost !== undefined;
 }
 
-// Check if the symbol can be accessed from the scope.
-export function isAllowedToAccessMember(checkingScope: SymbolScope, declaredSymbolHolder: SymbolObjectHolder): boolean {
-    const declaredSymbol = declaredSymbolHolder.toList()[0];
-    if (declaredSymbol instanceof SymbolType) return true;
-    if (declaredSymbol.accessRestriction === undefined) return true;
+/**
+ * Check if the accessing scope is allowed to access the instance member.
+ * @param accessingScope
+ * @param instanceMember
+ */
+export function isAllowedToAccessInstanceMember(accessingScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
+    const instanceMemberSymbol = instanceMember.toList()[0]; // FIXME: What if there are multiple functions?
 
-    const scopePath = resolveActiveScope(declaredSymbol.scopePath);
+    if (instanceMemberSymbol instanceof SymbolType) return true;
 
-    if (declaredSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(checkingScope, scopePath);
-    } else if (declaredSymbol.accessRestriction === AccessModifier.Protected) {
-        if (scopePath.linkedNode === undefined) return false;
+    if (instanceMemberSymbol.accessRestriction === undefined) return true;
 
-        const checkingOuterScope = checkingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
-        if (checkingOuterScope === undefined || checkingOuterScope.parentScope === undefined) return false;
+    const instanceMemberScope = resolveActiveScope(instanceMemberSymbol.scopePath);
 
-        // Get the symbol of the class to which the referring part belongs.
-        const checkingOuterClass = checkingOuterScope.parentScope.lookupSymbol(checkingOuterScope.key);
-        if (checkingOuterClass instanceof SymbolType === false) return false;
+    if (instanceMemberSymbol.accessRestriction === AccessModifier.Private) {
+        return isScopeChildOrGrandchild(accessingScope, instanceMemberScope);
+    } else if (instanceMemberSymbol.accessRestriction === AccessModifier.Protected) {
+        if (instanceMemberScope.linkedNode === undefined) return false;
 
-        // Get the symbol of the class to which the declared part belongs.
-        if (scopePath.parentScope === undefined) return false;
-        const declaredOuterClass = scopePath.parentScope.lookupSymbol(scopePath.key);
-        if (declaredOuterClass instanceof SymbolType === false) return false;
+        const nearestClassScope = accessingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
+        if (nearestClassScope === undefined || nearestClassScope.parentScope === undefined) return false;
 
-        return (canDownCast(checkingOuterClass, declaredOuterClass));
+        // Get the symbol of the class to which the accessing scope belongs.
+        const nearestClassSymbol = nearestClassScope.parentScope.lookupSymbol(nearestClassScope.key);
+        if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) return false;
+
+        // Get the symbol of the class to which the instance member belongs.
+        if (instanceMemberScope.parentScope === undefined) return false;
+        const instanceClassSymbol = instanceMemberScope.parentScope.lookupSymbol(instanceMemberScope.key);
+        if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) return false;
+
+        return (canDownCast(nearestClassSymbol, instanceClassSymbol));
     } else {
         assert(false);
     }
