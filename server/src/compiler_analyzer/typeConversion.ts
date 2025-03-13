@@ -100,11 +100,14 @@ function evaluateConversionCostHandler(
 
     // FIXME: Handle init list?
 
+    // No conversion from void to any other type
     if (srcType.identifierText === 'void') return ConversionConst.NoConv;
 
     // FIXME?
-    if (srcType.identifierText === '?') return ConversionConst.VariableConv;
-    if (srcType.identifierText === 'auto') return ConversionConst.VariableConv;
+    // Any type can be converted to a var type
+    if (destType.identifierText === '?') return ConversionConst.VariableConv;
+
+    if (destType.identifierText === 'auto') return ConversionConst.VariableConv;
 
     if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
