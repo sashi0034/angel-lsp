@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.25] 2025/03/13
+
+- Fixed bugs.
+
 ## [0.3.23] 2025/03/11
 
 - Add some missing features in AngelScript [#108](https://github.com/sashi0034/angel-lsp/pull/108), [#109](https://github.com/sashi0034/angel-lsp/pull/109), [#110](https://github.com/sashi0034/angel-lsp/pull/110) by Paril
