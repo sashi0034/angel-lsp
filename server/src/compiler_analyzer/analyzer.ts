@@ -54,7 +54,7 @@ import {
     isSymbolConstructorInScope, SymbolScope
 } from "./symbolScope";
 import {checkFunctionCall} from "./functionCall";
-import {canTypeCast, checkTypeCast, isAllowedToAccessInstanceMember} from "./typeCast";
+import {canTypeCast, checkTypeCast} from "./typeCast";
 import {
     builtinBoolType,
     resolvedBuiltinBool,
@@ -66,7 +66,7 @@ import {
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
     findSymbolWithParent,
-    getSymbolAndScopeIfExist,
+    getSymbolAndScopeIfExist, isAllowedToAccessInstanceMember,
     isResolvedAutoType,
     stringifyResolvedType,
     stringifyResolvedTypes
