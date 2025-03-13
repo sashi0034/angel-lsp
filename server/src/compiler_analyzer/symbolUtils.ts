@@ -45,6 +45,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     // if (hasScopeSuffix) suffix = stringifyScopeSuffix(type.sourceScope) + suffix;
 
     if (type.templateTranslator !== undefined) {
+        // FIXME: Maybe this should be consider the order of the template arguments.
         suffix = `<${Array.from(type.templateTranslator.values()).map(t => stringifyResolvedType(t)).join(', ')}>${suffix}`;
     }
 

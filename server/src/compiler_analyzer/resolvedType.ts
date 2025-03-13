@@ -6,31 +6,50 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 // the key 'T' is mapped to the type `int`.
 export type TemplateTranslator = Map<TokenObject, ResolvedType | undefined>;
 
-// TODO: Fix around template translation?
+/**
+ * Apply the template translator to the target type.
+ */
+export function applyTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
+    // e.g.1:
+    // target: array<T> with {T: T}
+    // translator: {T: int}
+    // -> array<T> with {T: int}
+    // i.e., T at the end of the target is replaced with int
 
-export function resolveTemplateType(
-    templateTranslate: TemplateTranslator | undefined, type: ResolvedType | undefined
-): ResolvedType | undefined {
-    if (templateTranslate === undefined) return type;
+    // e.g.2:
+    // target: array<T> with {T: array<T> with {T: T}}
+    // translator: {T: bool}
+    // -> array<T> with {T: array<T> with {T: bool}}
+    // i.e., T at the end of the target is replaced with bool
 
-    if (type === undefined) return undefined;
+    if (target === undefined || translator === undefined) return target;
 
-    if (type.typeOrFunc.isFunction()) return undefined; // FIXME: Also check the function handler type?
+    if (target.typeOrFunc.templateTypes?.length === 0 || target.templateTranslator === undefined) {
+        // The target has no templates.
+        if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
+            // If the target is a type parameter such as `T`, translate it.
+            return translator.get(target.typeOrFunc.identifierToken) ?? target;
+        }
 
-    if (type.typeOrFunc.isTypeParameter !== true) return type;
-
-    if (templateTranslate.has(type.typeOrFunc.identifierToken)) {
-        return templateTranslate.get(type.typeOrFunc.identifierToken);
+        return target;
     }
 
-    return type;
-}
+    // -----------------------------------------------
+    // At this point, the target has template parameters.
 
-export function resolveTemplateTypes(
-    templateTranslate: (TemplateTranslator | undefined)[], type: ResolvedType | undefined
-): ResolvedType | undefined {
-    return templateTranslate
-        .reduce((arg, t) => t !== undefined ? resolveTemplateType(t, arg) : arg, type);
+    // Create a new template translator by replacing the template type with the translated type.
+    const newTranslator = new Map<TokenObject, ResolvedType | undefined>();
+    for (const [token, translatedType] of target.templateTranslator) {
+        if (translatedType?.identifierToken !== undefined && translator.has(translatedType?.identifierToken)) {
+            // Replace `T` at the end of the target with the translated type.
+            newTranslator.set(token, translator.get(translatedType?.identifierToken));
+        } else {
+            // Templates may be nested, so visit recursively.
+            newTranslator.set(token, applyTemplateTranslator(translatedType, translator));
+        }
+    }
+
+    return target.cloneWithTemplateTranslator(translator);
 }
 
 /**

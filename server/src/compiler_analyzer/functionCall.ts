@@ -3,7 +3,7 @@ import {
 } from "./symbolObject";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
-import {ResolvedType, resolveTemplateTypes, TemplateTranslator} from "./resolvedType";
+import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_parser/tokenRange";
@@ -84,48 +84,6 @@ function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undef
 
         return undefined;
     }
-}
-
-// e.g.1:
-// target: array<T> with {T: T}
-// translator: {T: int}
-// -> array<T> with {T: int}
-// i.e., T at the end of the target is replaced with int
-
-// e.g.2:
-// target: array<T> with {T: array<T> with {T: T}}
-// translator: {T: bool}
-// -> array<T> with {T: array<T> with {T: bool}}
-// i.e., T at the end of the target is replaced with bool
-function applyTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
-    if (target === undefined || translator === undefined) return target;
-
-    if (target.typeOrFunc.templateTypes?.length === 0 || target.templateTranslator === undefined) {
-        // The target has no templates.
-        if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
-            // If the target is a type parameter such as `T`, translate it.
-            return translator.get(target.typeOrFunc.identifierToken) ?? target;
-        }
-
-        return target;
-    }
-
-    // -----------------------------------------------
-    // At this point, the target has template parameters.
-
-    // Create a new template translator by replacing the template type with the translated type.
-    const newTranslator = new Map<TokenObject, ResolvedType | undefined>();
-    for (const [token, translatedType] of target.templateTranslator) {
-        if (translatedType?.identifierToken !== undefined && translator.has(translatedType?.identifierToken)) {
-            // Replace `T` at the end of the target with the translated type.
-            newTranslator.set(token, translator.get(translatedType?.identifierToken));
-        } else {
-            // Templates may be nested, so visit recursively.
-            newTranslator.set(token, applyTemplateTranslator(translatedType, translator));
-        }
-    }
-
-    return target.cloneWithTemplateTranslator(translator);
 }
 
 function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {

@@ -1,12 +1,11 @@
 import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
-import {findScopeContainingPosition} from "./serviceHelper";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
 import {ComplementKind, ComplementCallerArgument} from "../compiler_analyzer/complementHint";
 import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {resolveTemplateType} from "../compiler_analyzer/resolvedType";
+import {applyTemplateTranslator} from "../compiler_analyzer/resolvedType";
 
 export function provideSignatureHelp(
     globalScope: SymbolScope, caret: Position, uri: URI
@@ -48,7 +47,7 @@ function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: Sy
         const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
-        let label = stringifyResolvedType(resolveTemplateType(hint.templateTranslate, paramType));
+        let label = stringifyResolvedType(applyTemplateTranslator(paramType, hint.templateTranslate));
         if (paramIdentifier.identifier !== undefined) label += ' ' + paramIdentifier.identifier?.text;
         const parameter: ParameterInformation = {label: label};
 
