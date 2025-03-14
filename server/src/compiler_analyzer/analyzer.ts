@@ -1259,13 +1259,12 @@ function analyzeAssignOp(
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) return numberOperatorCall;
 
-    const aliases = assignOpAliases.get(operator.text);
-    assert(aliases !== undefined);
+    const alias = assignOpAliases.get(operator.text);
+    assert(alias !== undefined);
 
-    const [alias, alias_r] = aliases;
     const [callerScope, callerOperator] = [scope, operator];
     return checkOverloadedOperatorCall({
-        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+        callerScope, callerOperator, alias, lhs, lhsRange, rhs, rhsRange
     });
 }
 
