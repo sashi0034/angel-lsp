@@ -113,7 +113,7 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
     const typeTemplates = analyzeTemplateTypes(
         scope,
         func.typeTemplates,
-        (declared.symbol as SymbolFunctionHolder).first.templateTypes);
+        (declared.symbol as SymbolFunctionHolder)?.first?.templateTypes); // FIXME?
 
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
