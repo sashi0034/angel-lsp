@@ -487,7 +487,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     return resolvedTypes;
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 // BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 // BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']

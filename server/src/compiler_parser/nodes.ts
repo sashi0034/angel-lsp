@@ -97,6 +97,7 @@ export enum NodeName {
     Bits = 'Bits',
     Comment = 'Comment',
     Whitespace = 'Whitespace',
+    ListPattern = 'ListPattern'
 }
 
 export interface NodesBase {
@@ -173,6 +174,7 @@ export interface NodeFunc extends NodesBase {
     readonly funcAttr: FunctionAttribute | undefined;
     readonly statBlock: NodeStatBlock;
     readonly typeTemplates: NodeType[];
+    readonly listPattern: NodeListPattern | undefined
 }
 
 export interface FuncHeadReturnValue {
@@ -274,6 +276,48 @@ export interface NodeStatBlock extends NodesBase {
     readonly statementList: (NodeVar | NodeStatement)[];
 }
 
+export enum NodeListOp {
+    StartList = 'StartList',
+    EndList = 'EndList',
+    Repeat = 'Repeat',
+    RepeatSame = 'RepeatSame',
+    Type = 'Type'
+}
+
+export interface NodeListOperator {
+    readonly operator: NodeListOp
+}
+
+export interface NodeListOperatorStartList extends NodeListOperator {
+    readonly operator: NodeListOp.StartList
+}
+
+export interface NodeListOperatorEndList extends NodeListOperator {
+    readonly operator: NodeListOp.EndList
+}
+
+export interface NodeListOperatorRepeat extends NodeListOperator {
+    readonly operator: NodeListOp.Repeat
+}
+
+export interface NodeListOperatorRepeatSame extends NodeListOperator {
+    readonly operator: NodeListOp.RepeatSame
+}
+
+export interface NodeListOperatorType extends NodeListOperator {
+    readonly operator: NodeListOp.Type,
+    readonly type: NodeType
+}
+
+export type NodeListValidOperators = NodeListOperatorType | NodeListOperatorRepeatSame | NodeListOperatorRepeat | NodeListOperatorEndList | NodeListOperatorStartList;
+
+// BNF: LISTENTRY     ::= (['repeat' | 'repeat_same'] (('{' LISTENTRY '}') | TYPE)) | TYPE {',' TYPE}
+// BNF: LISTPATTERN   ::= '{' LISTENTRY {',' LISTENTRY} '}'
+export interface NodeListPattern extends NodesBase {
+    readonly nodeName: NodeName.ListPattern;
+    readonly operators: NodeListValidOperators[]
+}
+
 // BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
 export type NodeParamList = ParsedTypeIdentifier[];
 
@@ -285,7 +329,7 @@ export interface ParsedTypeIdentifier {
     readonly isVariadic: boolean
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
 // BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface NodeType extends NodesBase {

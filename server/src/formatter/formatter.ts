@@ -454,7 +454,7 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     formatTargetBy(format, ')', {condenseLeft: true});
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] [+] ['if_handle_then_const']]
+// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 function formatTypeMod(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) return;
