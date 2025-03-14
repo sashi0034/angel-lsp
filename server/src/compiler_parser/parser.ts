@@ -500,7 +500,7 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
                     operator: NodeListOp.EndList
                 });
             }
-        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_once') {
+        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
             parser.commit(HighlightForToken.Keyword);
 
             operators.push({
@@ -527,6 +527,8 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
 
 // BNF: LISTPATTERN   ::= '{' LISTENTRY {',' LISTENTRY} '}'
 function parseListPattern(parser: ParserState): NodeListPattern | undefined {
+    if (parser.next().location.path.endsWith('as.predefined') === false) return undefined;
+
     const rangeStart = parser.next();
 
     if (parser.next().text !== '{') {
