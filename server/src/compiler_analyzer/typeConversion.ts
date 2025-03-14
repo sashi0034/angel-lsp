@@ -1,9 +1,9 @@
 import {ResolvedType} from "./resolvedType";
-import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
+import assert = require("node:assert");
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -249,16 +249,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     // FIXME: An explicit handle cannot be converted to a primitive
 
     // FIXME: Consider ConversionType
-
-    const convFuncList: SymbolFunction[ ] = [];
-    const srcMembers =
-        resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
-    for (const methodHolder of srcMembers) {
-        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
-        ) {
-            convFuncList.push(...methodHolder.toList());
-        }
-    }
+    const convFuncList = collectOpConvFunctions(srcType);
 
     let selectedConvFunc: SymbolFunction | undefined = undefined;
     if (destType.isNumberType()) {
@@ -280,7 +271,6 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
             const returnType = convFunc.returnType?.typeOrFunc;
-            if (returnType?.isVariable() === false) continue;
             if (returnType?.identifierToken.equals(destType.identifierToken)) {
                 selectedConvFunc = convFunc;
                 break;
@@ -336,8 +326,17 @@ function evaluateConvObjectToObject(
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
 
+    // Check the conversion using a construct with a single parameter.
     const constByConstructor = evaluateConversionByConstructor(state, src, dest);
     if (constByConstructor !== undefined) return constByConstructor;
+
+    // Check the conversion using the opConv and opImpl function.
+    const convFuncList = collectOpConvFunctions(srcType);
+    for (const convFunc of convFuncList) {
+        if (convFunc.returnType?.equals(dest)) {
+            return ConversionConst.ToObjectConv;
+        }
+    }
 
     return undefined;
 }
@@ -456,4 +455,20 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
     }
 
     return true;
+}
+
+function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
+    // TODO: Consider implicit or explicit
+
+    const convFuncList: SymbolFunction[ ] = [];
+    const srcMembers =
+        resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
+    for (const methodHolder of srcMembers) {
+        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
+        ) {
+            convFuncList.push(...methodHolder.toList());
+        }
+    }
+
+    return convFuncList;
 }
