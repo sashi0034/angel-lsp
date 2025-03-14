@@ -38,18 +38,16 @@ export function stringifyResolvedType(type: ResolvedType | undefined,): string {
     if (type.typeOrFunc.isFunction()) {
         const func: SymbolFunction = type.typeOrFunc;
         const returnType = func.returnType;
-        const params = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
-        return `${stringifyResolvedType(returnType)}(${params})` + suffix;
+        const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
+        return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
     }
-
-    // if (hasScopeSuffix) suffix = stringifyScopeSuffix(type.sourceScope) + suffix;
 
     const templateTypes = type.typeOrFunc.templateTypes;
     if (templateTypes !== undefined) {
-        const templateTypeTexts = templateTypes
-            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text);
-
-        suffix = `<${templateTypeTexts.join(', ')}>${suffix}`;
+        const templateTypesText = templateTypes
+            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text)
+            .join(', ');
+        suffix = `<${templateTypesText}>${suffix}`;
     }
 
     return type.typeOrFunc.identifierText + suffix;
