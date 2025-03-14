@@ -847,14 +847,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
     const args = exprPostOp.indexingList.map(indexer => analyzeAssign(scope, indexer.assign));
-    return analyzeOperatorAlias(
-        scope,
-        exprPostOp.nodeRange.end,
-        exprValue,
-        args,
-        exprRange,
-        exprPostOp.nodeRange,
-        'opIndex');
+    return analyzeOperatorAlias(scope, exprPostOp.nodeRange.end, 'opIndex', exprValue, args, exprPostOp.nodeRange);
 }
 
 // BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -1148,10 +1141,12 @@ function analyzeExprOp(
 }
 
 function analyzeOperatorAlias(
-    scope: SymbolScope, operator: TokenObject,
-    lhs: ResolvedType, rhs: ResolvedType | (ResolvedType | undefined)[],
-    leftRange: TokenRange, rightRange: TokenRange,
-    alias: string
+    scope: SymbolScope,
+    operator: TokenObject,
+    alias: string,
+    lhs: ResolvedType,
+    rhs: ResolvedType | (ResolvedType | undefined)[],
+    rightRange: TokenRange
 ) {
     const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
 
@@ -1210,8 +1205,8 @@ function analyzeBitOp(
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
     return lhs.typeOrFunc instanceof SymbolType && lhs.typeOrFunc.isPrimitiveType()
-        ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
-        : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
+        ? analyzeOperatorAlias(scope, operator, alias[1], rhs, lhs, leftRange)
+        : analyzeOperatorAlias(scope, operator, alias[0], lhs, rhs, rightRange);
 }
 
 const bitOpAliases = new Map<string, [string, string]>([
@@ -1240,8 +1235,8 @@ function analyzeMathOp(
 
     // If the left-hand side is a primitive type, use the operator of the right-hand side type
     return lhs.typeOrFunc instanceof SymbolType && lhs.typeOrFunc.isPrimitiveType()
-        ? analyzeOperatorAlias(scope, operator, rhs, lhs, rightRange, leftRange, alias[1])
-        : analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias[0]);
+        ? analyzeOperatorAlias(scope, operator, alias[1], rhs, lhs, leftRange)
+        : analyzeOperatorAlias(scope, operator, alias[0], lhs, rhs, rightRange);
 }
 
 const mathOpAliases = new Map<string, [string, string]>([
@@ -1267,7 +1262,7 @@ function analyzeCompOp(
 
     const alias = compOpAliases.get(operator.text);
     assert(alias !== undefined);
-    return analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias);
+    return analyzeOperatorAlias(scope, operator, alias, lhs, rhs, rightRange);
 }
 
 const compOpAliases = new Map<string, string>([
@@ -1309,7 +1304,7 @@ function analyzeAssignOp(
 
     const alias = assignOpAliases.get(operator.text);
     assert(alias !== undefined);
-    return analyzeOperatorAlias(scope, operator, lhs, rhs, leftRange, rightRange, alias);
+    return analyzeOperatorAlias(scope, operator, alias, lhs, rhs, rightRange);
 }
 
 const assignOpAliases = new Map<string, string>([
