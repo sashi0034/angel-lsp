@@ -1,9 +1,9 @@
 import {ResolvedType} from "./resolvedType";
-import assert = require("node:assert");
 import {resolveActiveScope} from "./symbolScope";
 import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
+import assert = require("node:assert");
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
@@ -130,17 +130,6 @@ function evaluateConversionCostHandler(
     }
 }
 
-function normalizeType(type: ResolvedType | undefined) {
-    if (type === undefined) return undefined;
-
-    // We use int and uint instead of int32 and uint32 respectively here.
-    if (type.identifierText === 'int32') return resolvedBuiltinInt;
-
-    if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
-
-    return type;
-}
-
 // -----------------------------------------------
 // A primitive to a primitive
 // as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
@@ -227,16 +216,16 @@ function evaluateConvPrimitiveToPrimitive(
 // as_compiler.cpp: ImplicitConvObjectToPrimitive
 
 const numberConversionCostTable = new Map<string, string[]>([
-    ['double', ['float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
-    ['float', ['double', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
-    ['int64', ['uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
-    ['uint64', ['int64', 'uint', 'int', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
-    ['int', ['uint', 'int64', 'uint64', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
-    ['uint', ['int', 'uint64', 'int64', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
-    ['int16', ['uint16', 'int', 'uint', 'int64', 'uint64', 'int8', 'uint8', 'double', 'float']],
-    ['uint16', ['int16', 'uint', 'int', 'uint64', 'int64', 'uint8', 'int8', 'double', 'float']],
-    ['int8', ['uint8', 'int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'double', 'float']],
-    ['uint8', ['int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
+    ['double', ['double', 'float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
+    ['float', ['float', 'double', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8']],
+    ['int64', ['int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
+    ['uint64', ['uint64', 'int64', 'uint', 'int', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
+    ['int', ['int', 'uint', 'int64', 'uint64', 'int16', 'uint16', 'int8', 'uint8', 'double', 'float']],
+    ['uint', ['uint', 'int', 'uint64', 'int64', 'uint16', 'int16', 'uint8', 'int8', 'double', 'float']],
+    ['int16', ['int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'int8', 'uint8', 'double', 'float']],
+    ['uint16', ['uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'uint8', 'int8', 'double', 'float']],
+    ['int8', ['int8', 'uint8', 'int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'double', 'float']],
+    ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
 ]);
 
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
@@ -249,15 +238,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     // FIXME: An explicit handle cannot be converted to a primitive
 
     // FIXME: Consider ConversionType
-
-    const convFuncList: SymbolFunction[ ] = [];
-    const srcMembers = resolveActiveScope(srcType.scopePath).symbolTable.values();
-    for (const methodHolder of srcMembers) {
-        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
-        ) {
-            convFuncList.push(...methodHolder.toList());
-        }
-    }
+    const convFuncList = collectOpConvFunctions(srcType);
 
     let selectedConvFunc: SymbolFunction | undefined = undefined;
     if (destType.isNumberType()) {
@@ -267,7 +248,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 
         for (const nextType of tableRow) {
             for (const convFunc of convFuncList) {
-                if (convFunc.returnType?.identifierText === nextType) {
+                if (normalizeType(convFunc.returnType)?.identifierText === nextType) {
                     selectedConvFunc = convFunc;
                     break;
                 }
@@ -279,7 +260,6 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
             const returnType = convFunc.returnType?.typeOrFunc;
-            if (returnType?.isVariable() === false) continue;
             if (returnType?.identifierToken.equals(destType.identifierToken)) {
                 selectedConvFunc = convFunc;
                 break;
@@ -316,7 +296,7 @@ function evaluateConvPrimitiveToObject(
 }
 
 // -----------------------------------------------
-// Object to Object
+// An object to An object
 // as_compiler.cpp: ImplicitConvObjectToObject
 
 function evaluateConvObjectToObject(
@@ -335,14 +315,34 @@ function evaluateConvObjectToObject(
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
 
+    // Check the conversion using a construct with a single parameter.
     const constByConstructor = evaluateConversionByConstructor(state, src, dest);
     if (constByConstructor !== undefined) return constByConstructor;
+
+    // Check the conversion using the opConv and opImpl function.
+    const convFuncList = collectOpConvFunctions(srcType);
+    for (const convFunc of convFuncList) {
+        if (convFunc.returnType?.equals(dest)) {
+            return ConversionConst.ToObjectConv;
+        }
+    }
 
     return undefined;
 }
 
 // -----------------------------------------------
 // Helper functions
+
+export function normalizeType(type: ResolvedType | undefined) {
+    if (type === undefined) return undefined;
+
+    // We use int and uint instead of int32 and uint32 respectively here.
+    if (type.identifierText === 'int32') return resolvedBuiltinInt;
+
+    if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
+
+    return type;
+}
 
 function evaluateConversionByConstructor(
     state: EvaluationState,
@@ -414,8 +414,7 @@ function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
 
         if (srcParam === undefined || destParam === undefined) continue; // FIXME?
 
-        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
-        // if (areTypesEqual(srcParam, destParam) === false) return false;
+        if (srcParam.equals(destParam) === false) return false;
     }
 
     return true;
@@ -456,4 +455,20 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
     }
 
     return true;
+}
+
+function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
+    // TODO: Consider implicit or explicit
+
+    const convFuncList: SymbolFunction[ ] = [];
+    const srcMembers =
+        resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
+    for (const methodHolder of srcMembers) {
+        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
+        ) {
+            convFuncList.push(...methodHolder.toList());
+        }
+    }
+
+    return convFuncList;
 }

@@ -22,12 +22,36 @@ interface FunctionCallArgs {
     calleeTemplateTranslator: (TemplateTranslator | undefined);
 }
 
+interface FunctionCallResult {
+    bestMatching: SymbolFunction | undefined;
+
+    /**
+     * The return type of the function.
+     */
+    returnType: ResolvedType | undefined;
+
+    /**
+     * Side effect of the function call. (e.g. output error message)
+     */
+    sideEffect: () => void;
+}
+
+/**
+ * Evaluates the function call and returns its resolved type.
+ * It does not trigger side effects.
+ */
+export function evaluateFunctionCall(args: FunctionCallArgs): FunctionCallResult {
+    return checkFunctionCallInternal(args);
+}
+
 /**
  * Checks whether the arguments provided by the caller match the parameters of the callee function.
- * @param args
+ * If the function call is valid, it triggers side effects and returns the resolved return type.
  */
 export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefined {
-    return checkFunctionCallInternal(args);
+    const result = checkFunctionCallInternal(args);
+    result.sideEffect();
+    return result.returnType;
 }
 
 interface FunctionAndCost {
@@ -49,10 +73,10 @@ type MismatchReason = {
     actualType: ResolvedType | undefined,
 }
 
-function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undefined {
+function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     const {callerScope, callerIdentifier, calleeFuncHolder} = args;
 
-    let matching: FunctionAndCost | undefined = undefined;
+    let bestMatching: FunctionAndCost | undefined = undefined;
     let lastMismatchReason: MismatchReason = {tooManyArguments: true};
 
     // Find the best matching function.
@@ -64,25 +88,33 @@ function checkFunctionCallInternal(args: FunctionCallArgs): ResolvedType | undef
             continue;
         }
 
-        if (matching === undefined || evaluated < matching.cost) {
+        if (bestMatching === undefined || evaluated < bestMatching.cost) {
             // Update the best matching function.
-            matching = {function: callee, cost: evaluated};
+            bestMatching = {function: callee, cost: evaluated};
         }
     }
 
-    if (matching !== undefined) {
-        // Add the reference to the function that was called.
-        callerScope.referencedList.push({
-            declaredSymbol: matching.function, referencedToken: callerIdentifier
-        });
-
+    if (bestMatching !== undefined) {
         // Return the return type of the best matching function
-        return applyTemplateTranslator(matching.function.returnType, args.calleeTemplateTranslator);
+        return {
+            bestMatching: bestMatching.function,
+            returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
+            sideEffect: () => {
+                // Add the reference to the function that was called.
+                callerScope.referencedList.push({
+                    declaredSymbol: bestMatching.function, referencedToken: callerIdentifier
+                });
+            }
+        };
     } else {
-        // Handle mismatch errors.
-        handleMismatchError(args, lastMismatchReason);
-
-        return undefined;
+        return {
+            bestMatching: undefined,
+            returnType: undefined,
+            sideEffect: () => {
+                // Handle mismatch errors.
+                handleMismatchError(args, lastMismatchReason);
+            }
+        };
     }
 }
 
