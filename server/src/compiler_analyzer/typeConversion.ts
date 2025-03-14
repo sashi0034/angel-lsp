@@ -415,8 +415,7 @@ function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
 
         if (srcParam === undefined || destParam === undefined) continue; // FIXME?
 
-        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
-        // if (areTypesEqual(srcParam, destParam) === false) return false;
+        if (srcParam.equals(destParam) === false) return false;
     }
 
     return true;

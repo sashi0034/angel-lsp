@@ -91,4 +91,24 @@ export class ResolvedType {
     public get identifierText(): string {
         return this.typeOrFunc.identifierToken.text;
     }
+
+    public equals(other: ResolvedType | undefined): boolean {
+        if (other === undefined) return false;
+
+        if (this.typeOrFunc.equals(other.typeOrFunc) === false) return false;
+
+        // Compare the template types.
+        if (this.typeOrFunc.templateTypes !== undefined && other.typeOrFunc.templateTypes !== undefined) {
+            if (this.typeOrFunc.templateTypes.length !== other.typeOrFunc.templateTypes.length) return false;
+
+            const thisTemplates = this.typeOrFunc.templateTypes.map(type => this.templateTranslator?.get(type));
+            const otherTemplates = other.typeOrFunc.templateTypes.map(type => other.templateTranslator?.get(type));
+
+            for (let i = 0; i < thisTemplates.length; i++) {
+                if (thisTemplates[i]?.equals(otherTemplates[i]) === false) return false;
+            }
+        }
+
+        return true;
+    }
 }
