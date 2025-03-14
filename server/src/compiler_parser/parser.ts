@@ -495,7 +495,7 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
             } else {
                 parser.commit(HighlightForToken.Operator);
                 listDepth--;
-    
+
                 operators.push({
                     operator: NodeListOp.EndList
                 });
@@ -512,7 +512,7 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
             const type = parseType(parser);
 
             if (type === undefined) {
-                return false;                
+                return false;
             }
 
             operators.push({
@@ -527,7 +527,7 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
 
 // BNF: LISTPATTERN   ::= '{' LISTENTRY {',' LISTENTRY} '}'
 function parseListPattern(parser: ParserState): NodeListPattern | undefined {
-    if (parser.next().location.path.endsWith('as.predefined') === false) return undefined;
+    if (parser.isPredefinedFile === false) return undefined;
 
     const rangeStart = parser.next();
 

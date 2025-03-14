@@ -47,6 +47,11 @@ export class ParserState {
     private readonly _sofToken; // start of file
     private readonly _eofToken; // end of file
 
+    /**
+     * Whether the current file is 'as.predefined'
+     */
+    public readonly isPredefinedFile: boolean = false;
+
     public constructor(
         private readonly _tokens: TokenObject[],
         private _cursorIndex: number = 0
@@ -55,6 +60,8 @@ export class ParserState {
 
         this._sofToken = makeSofToken(_tokens.at(0));
         this._eofToken = makeEofToken(_tokens.at(-1));
+
+        this.isPredefinedFile = _tokens.at(0)?.location.path.endsWith('as.predefined') ?? false;
     }
 
     public backtrack(token: TokenObject) {
