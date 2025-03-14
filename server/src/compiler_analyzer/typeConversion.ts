@@ -130,17 +130,6 @@ function evaluateConversionCostHandler(
     }
 }
 
-function normalizeType(type: ResolvedType | undefined) {
-    if (type === undefined) return undefined;
-
-    // We use int and uint instead of int32 and uint32 respectively here.
-    if (type.identifierText === 'int32') return resolvedBuiltinInt;
-
-    if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
-
-    return type;
-}
-
 // -----------------------------------------------
 // A primitive to a primitive
 // as_compiler.cpp: ImplicitConvPrimitiveToPrimitive
@@ -343,6 +332,17 @@ function evaluateConvObjectToObject(
 
 // -----------------------------------------------
 // Helper functions
+
+export function normalizeType(type: ResolvedType | undefined) {
+    if (type === undefined) return undefined;
+
+    // We use int and uint instead of int32 and uint32 respectively here.
+    if (type.identifierText === 'int32') return resolvedBuiltinInt;
+
+    if (type.identifierText === 'uint32') return resolvedBuiltinUInt;
+
+    return type;
+}
 
 function evaluateConversionByConstructor(
     state: EvaluationState,

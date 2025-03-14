@@ -54,6 +54,7 @@ export function applyTemplateTranslator(target: ResolvedType | undefined, transl
 
 /**
  * The type of symbol that has been resolved by deduction.
+ * This has the template translator, which is a mapping from `T` to actual types.
  */
 export class ResolvedType {
     constructor(

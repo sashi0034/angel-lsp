@@ -79,6 +79,7 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
 import {AnalyzerScope} from "./analyzerScope";
+import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 
 export type HoistQueue = (() => void)[];
 
@@ -847,7 +848,15 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
     const args = exprPostOp.indexingList.map(indexer => analyzeAssign(scope, indexer.assign));
-    return analyzeOperatorAlias(scope, exprPostOp.nodeRange.end, 'opIndex', exprValue, args, exprPostOp.nodeRange);
+    return checkOverloadedOperatorCall({
+        callerScope: scope,
+        callerOperator: exprPostOp.nodeRange.end,
+        alias: 'opIndex',
+        lhs: exprValue,
+        lhsRange: exprRange,
+        rhs: args,
+        rhsRange: exprPostOp.nodeRange
+    });
 }
 
 // BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
@@ -1140,73 +1149,23 @@ function analyzeExprOp(
     assert(false);
 }
 
-function analyzeOperatorAlias(
-    scope: SymbolScope,
-    operator: TokenObject,
-    alias: string,
-    lhs: ResolvedType,
-    rhs: ResolvedType | (ResolvedType | undefined)[],
-    rightRange: TokenRange
-) {
-    const rhsArgs = Array.isArray(rhs) ? rhs : [rhs];
-
-    if (lhs.typeOrFunc instanceof SymbolType === false) {
-        analyzerDiagnostic.add(
-            operator.location,
-            `Invalid operation '${alias}' between '${stringifyResolvedType(lhs)}' and '${stringifyResolvedTypes(rhsArgs)}'.`);
-        return undefined;
-    }
-
-    if (lhs.typeOrFunc.isPrimitiveType()) {
-        analyzerDiagnostic.add(
-            operator.location,
-            `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
-        return undefined;
-    }
-
-    if (lhs.scopePath === undefined) return undefined;
-
-    const classScope = lhs.typeOrFunc.membersScope;
-    if (classScope === undefined) return undefined;
-
-    const aliasFunction = resolveActiveScope(classScope).lookupSymbol(alias);
-    if (aliasFunction === undefined || aliasFunction.isFunctionHolder() === false) {
-        analyzerDiagnostic.add(
-            operator.location,
-            `Operator '${alias}' of '${stringifyResolvedType(lhs)}' is not defined.`);
-        return undefined;
-    }
-
-    return checkFunctionCall({
-        callerScope: scope,
-        callerIdentifier: operator,
-        callerRange: new TokenRange(operator, operator),
-        callerArgRanges: [rightRange],
-        callerArgTypes: rhsArgs,
-        calleeFuncHolder: aliasFunction,
-        calleeTemplateTranslator: lhs.templateTranslator // FIXME? ...rhsArgs.map(rhs => rhs?.templateTranslator)
-    });
-}
-
 // BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: TokenRange, rightRange: TokenRange
+    lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
-    if (lhs.typeOrFunc instanceof SymbolType && rhs.typeOrFunc instanceof SymbolType) {
-        if (canTypeCast(lhs, resolvedBuiltinInt) && canTypeCast(
-            rhs,
-            resolvedBuiltinInt)) return resolvedBuiltinInt;
-    }
+    const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
+    if (numberOperatorCall) return numberOperatorCall;
 
-    const alias = bitOpAliases.get(operator.text);
-    assert(alias !== undefined);
+    const aliases = bitOpAliases.get(operator.text);
+    assert(aliases !== undefined);
 
-    // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.typeOrFunc instanceof SymbolType && lhs.typeOrFunc.isPrimitiveType()
-        ? analyzeOperatorAlias(scope, operator, alias[1], rhs, lhs, leftRange)
-        : analyzeOperatorAlias(scope, operator, alias[0], lhs, rhs, rightRange);
+    const [alias, alias_r] = aliases;
+    const [callerScope, callerOperator] = [scope, operator];
+    return checkOverloadedOperatorCall({
+        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+    });
 }
 
 const bitOpAliases = new Map<string, [string, string]>([
@@ -1222,21 +1181,19 @@ const bitOpAliases = new Map<string, [string, string]>([
 function analyzeMathOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: TokenRange, rightRange: TokenRange
+    lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
-    if (lhs.typeOrFunc instanceof SymbolType && rhs.typeOrFunc instanceof SymbolType) {
-        if (canTypeCast(lhs, resolvedBuiltinInt) && canTypeCast(rhs, resolvedBuiltinInt)) {
-            return resolvedBuiltinInt;
-        }
-    }
+    const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
+    if (numberOperatorCall) return numberOperatorCall;
 
-    const alias = mathOpAliases.get(operator.text);
-    assert(alias !== undefined);
+    const aliases = mathOpAliases.get(operator.text);
+    assert(aliases !== undefined);
 
-    // If the left-hand side is a primitive type, use the operator of the right-hand side type
-    return lhs.typeOrFunc instanceof SymbolType && lhs.typeOrFunc.isPrimitiveType()
-        ? analyzeOperatorAlias(scope, operator, alias[1], rhs, lhs, leftRange)
-        : analyzeOperatorAlias(scope, operator, alias[0], lhs, rhs, rightRange);
+    const [alias, alias_r] = aliases;
+    const [callerScope, callerOperator] = [scope, operator];
+    return checkOverloadedOperatorCall({
+        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+    });
 }
 
 const mathOpAliases = new Map<string, [string, string]>([
@@ -1252,17 +1209,17 @@ const mathOpAliases = new Map<string, [string, string]>([
 function analyzeCompOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
-    leftRange: TokenRange, rightRange: TokenRange
+    lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
-    if (lhs.typeOrFunc instanceof SymbolType && rhs.typeOrFunc instanceof SymbolType) {
-        if (canTypeCast(lhs, rhs) || canTypeCast(rhs, lhs)) {
-            return new ResolvedType(builtinBoolType);
-        }
-    }
+    if (canComparisonOperatorCall(lhs, rhs)) return resolvedBuiltinBool;
 
     const alias = compOpAliases.get(operator.text);
     assert(alias !== undefined);
-    return analyzeOperatorAlias(scope, operator, alias, lhs, rhs, rightRange);
+
+    const [callerScope, callerOperator] = [scope, operator];
+    return checkOverloadedOperatorCall({
+        callerScope, callerOperator, alias, lhs, lhsRange, rhs, rhsRange
+    });
 }
 
 const compOpAliases = new Map<string, string>([
@@ -1291,20 +1248,25 @@ function analyzeLogicOp(
 function analyzeAssignOp(
     scope: SymbolScope, operator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
-    leftRange: TokenRange, rightRange: TokenRange
+    lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
-    if (lhs.typeOrFunc instanceof SymbolType && rhs.typeOrFunc instanceof SymbolType) {
-        if (lhs.typeOrFunc.isNumberType() && rhs.typeOrFunc.isNumberType()) return lhs;
-    }
 
     if (operator.text === '=') {
         if (canTypeCast(rhs, lhs)) return lhs;
     }
 
-    const alias = assignOpAliases.get(operator.text);
-    assert(alias !== undefined);
-    return analyzeOperatorAlias(scope, operator, alias, lhs, rhs, rightRange);
+    const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
+    if (numberOperatorCall) return numberOperatorCall;
+
+    const aliases = assignOpAliases.get(operator.text);
+    assert(aliases !== undefined);
+
+    const [alias, alias_r] = aliases;
+    const [callerScope, callerOperator] = [scope, operator];
+    return checkOverloadedOperatorCall({
+        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+    });
 }
 
 const assignOpAliases = new Map<string, string>([
