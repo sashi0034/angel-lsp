@@ -316,7 +316,7 @@ function evaluateConvPrimitiveToObject(
 }
 
 // -----------------------------------------------
-// Object to Object
+// An object to An object
 // as_compiler.cpp: ImplicitConvObjectToObject
 
 function evaluateConvObjectToObject(
