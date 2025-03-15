@@ -219,6 +219,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 }
 
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
+    // Iterate over each base class
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
         if (baseType.typeOrFunc.isFunction()) continue;
@@ -226,12 +227,21 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
         const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScope);
         if (baseScope === undefined) continue;
 
+        // Insert each base class member if possible
         for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
+
             for (const symbol of symbolHolder.toList()) {
-                const errored = scope.insertSymbol(symbol);
-                if (errored !== undefined) {
-                    analyzerDiagnostic.add(errored.toList()[0].identifierToken.location, `Duplicated symbol '${key}'`);
+                if (symbol.isFunction() || symbol.isVariable()) {
+                    if (symbol.accessRestriction === AccessModifier.Private) continue;
+                }
+
+                const alreadyExists = scope.insertSymbol(symbol);
+                if (alreadyExists !== undefined) {
+                    analyzerDiagnostic.add(
+                        alreadyExists.toList()[0].identifierToken.location,
+                        `Duplicated symbol '${key}'`
+                    );
                 }
             }
         }

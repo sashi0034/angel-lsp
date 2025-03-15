@@ -103,4 +103,50 @@ describe("Completion", () => {
         }
     `, ["call_baz"]
     );
+
+    testCompletion(`
+        class Foo {
+            int x;
+            private int z;
+            protected int y;
+            
+            void a() { }
+            private void b() { }
+            protected void c() { }
+        }
+        
+        class Bar : Foo {
+            int w;
+            void d() { $C$ }
+
+            private int v;
+            private void e() { }
+        }
+    `, ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e"]
+    );
+
+    testCompletion(`
+        class Foo {
+            int x;
+            private int z;
+            protected int y;
+            
+            void a() { }
+            private void b() { }
+            protected void c() { }
+        }
+        
+        class Bar : Foo {
+            int w;
+            void d() { }
+            
+            private int v;
+            private void e() { }
+        }
+        
+        void main() {
+            Bar bar;
+            bar.$C$
+    `, ["w", "d", "x", "a"]
+    );
 });
