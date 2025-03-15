@@ -41,37 +41,18 @@ export function evaluateConversionCost(
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionConst | undefined {
-    return evaluateConversionCostInternal({stack: []}, src, dest);
-}
+    const initialState: EvaluationState = {
+        allowObjectConstruct: true,
+    };
 
-interface SrcAndDest {
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    return evaluateConversionCostInternal(initialState, src, dest);
 }
 
 interface EvaluationState {
-    stack: SrcAndDest[];
+    allowObjectConstruct: boolean,
 }
 
 function evaluateConversionCostInternal(
-    state: EvaluationState,
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
-    // type: ConversionType = ConversionType.Implicit // TODO?
-): ConversionConst | undefined {
-    // Prevent infinite recursion
-    if (state.stack.some((x) => x.src === src && x.dest === dest)) return undefined;
-
-    state.stack.push({src, dest});
-
-    const result = evaluateConversionCostHandler(state, src, dest);
-
-    state.stack.pop();
-
-    return result;
-}
-
-function evaluateConversionCostHandler(
     state: EvaluationState,
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
@@ -349,6 +330,10 @@ function evaluateConversionByConstructor(
     src: ResolvedType,
     dest: ResolvedType
 ): ConversionConst | undefined {
+    if (!state.allowObjectConstruct) {
+        return undefined;
+    }
+
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -375,8 +360,14 @@ function evaluateConversionByConstructor(
         // Prevent infinite recursion.
         if (paramType === dest) continue;
 
+        assert(state.allowObjectConstruct); // because of the condition at the beginning of the function
+        state.allowObjectConstruct = false; // To prevent infinite recursion
+
         // Source type must be convertible to the parameter type of the constructor.
         const cost = evaluateConversionCostInternal(state, src, paramType);
+
+        state.allowObjectConstruct = true;
+
         if (cost === undefined) continue;
 
         return ConversionConst.ToObjectConv + cost; // FIXME?
