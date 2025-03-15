@@ -26,9 +26,9 @@ export class TextPosition implements languageserver.Position {
     /**
      * Returns true if this position is ahead of the other position.
      */
-    public isAheadOf(other: languageserver.Position): boolean {
+    public isLessThan(other: languageserver.Position): boolean {
         if (this.line < other.line) return true;
-        return this.isSameLine(other) && this.character < other.character;
+        return this.line === other.line && this.character < other.character;
     }
 
     public formatWithColon(): string {
@@ -64,11 +64,20 @@ export class TextRange implements languageserver.Range {
     ) {
     }
 
+    public static create(range: languageserver.Range): TextRange {
+        return new TextRange(TextPosition.create(range.start), TextPosition.create(range.end));
+    }
+
     public positionInRange(position: languageserver.Position): boolean {
         if (position.line < this.start.line || position.line > this.end.line) return false;
         if (position.line === this.start.line && position.character < this.start.character) return false;
         if (position.line === this.end.line && position.character > this.end.character) return false;
 
+        return true;
+    }
+
+    public intersects(other: TextRange): boolean {
+        if (this.end.isLessThan(other.start) || other.end.isLessThan(this.start)) return false;
         return true;
     }
 

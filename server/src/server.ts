@@ -27,11 +27,12 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {changeGlobalSettings} from "./core/settings";
+import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
-import {TextPosition} from "./compiler_tokenizer/textLocation";
+import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
+import {provideInlineHint} from "./services/inlineHint";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -72,7 +73,6 @@ connection.onInitialize((params: InitializeParams) => {
                 triggerCharacters: ["(", ")", ","],
                 retriggerCharacters: ["="],
             },
-            // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true,
                 triggerCharacters: [' ', '.', ':']
@@ -89,6 +89,7 @@ connection.onInitialize((params: InitializeParams) => {
                 range: false, // if true, the server supports range-based requests
                 full: true
             },
+            inlayHintProvider: true,
             documentFormattingProvider: true,
         }
     };
@@ -147,10 +148,27 @@ documents.onDidClose(e => {
 //     } satisfies DocumentDiagnosticReport;
 // });
 
+// -----------------------------------------------
+// Semantic Tokens Provider
 connection.languages.semanticTokens.on((params) => {
     return provideSemanticTokens(getInspectedRecord(params.textDocument.uri).tokenizedTokens);
 });
 
+// -----------------------------------------------
+// Inlay Hints Provider
+connection.languages.inlayHint.on((params) => {
+    if (!getGlobalSettings().experimental.inlineHints) return []; // TODO: Delete after the preview ends.
+
+    const uri = params.textDocument.uri;
+    const range = TextRange.create(params.range);
+
+    return provideInlineHint(
+        getInspectedRecord(uri).analyzerScope.globalScope,
+        new TextLocation(uri, range.start, range.end)
+    );
+});
+
+// -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
     const document = documents.get(params.textDocument.uri);
@@ -189,6 +207,7 @@ connection.onReferences((params) => {
     return getReferenceLocations(params);
 });
 
+// -----------------------------------------------
 // Rename Provider
 connection.onRenameRequest((params) => {
     const locations = getReferenceLocations(params);
@@ -206,6 +225,7 @@ connection.onRenameRequest((params) => {
     return {changes};
 });
 
+// -----------------------------------------------
 // Hover Provider
 connection.onHover((params) => {
     const document = documents.get(params.textDocument.uri);
@@ -241,6 +261,7 @@ connection.onDidChangeWatchedFiles(_change => {
     connection.console.log('We received a file change event');
 });
 
+// -----------------------------------------------
 // Completion Provider
 connection.onCompletion(
     (params: TextDocumentPositionParams): CompletionItem[] => {
@@ -288,7 +309,8 @@ connection.onCompletionResolve(
     }
 );
 
-// Signature Help
+// -----------------------------------------------
+// Signature Help Provider
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
@@ -300,7 +322,8 @@ connection.onSignatureHelp((params) => {
     return provideSignatureHelp(diagnosedScope.globalScope, params.position, uri);
 });
 
-// Document Formatting
+// -----------------------------------------------
+// Document Formatting Provider
 connection.onDocumentFormatting((params) => {
     flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);

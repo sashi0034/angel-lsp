@@ -1,6 +1,6 @@
 import {ResolvedType} from "./resolvedType";
 import {resolveActiveScope} from "./symbolScope";
-import {isDefinitionNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
+import {isNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
 import assert = require("node:assert");
@@ -391,7 +391,7 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
 
     if (srcType.linkedNode === destType.linkedNode) return true;
 
-    if (isDefinitionNodeClassOrInterface(srcNode)) {
+    if (isNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
 
         for (const srcBase of srcType.baseList) {
