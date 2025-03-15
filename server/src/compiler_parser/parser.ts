@@ -72,12 +72,12 @@ import {
     TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../core/highlight";
-import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
+import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
 import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
-import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {getGlobalSettings} from '../core/settings';
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
@@ -2464,11 +2464,12 @@ function parseExprOp(parser: ParserState) {
 function parseNotIsOperator(parser: ParserState) {
     if (areTokensJoinedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
-    const location = getBoundingLocationBetween(parser.next(0), parser.next(1));
+    const replacedRange = new TokenRange(parser.next(), parser.next(1));
+    const location = replacedRange.getBoundingLocation();
     parser.commit(HighlightForToken.Builtin);
     parser.commit(HighlightForToken.Builtin);
 
-    return TokenReserved.createVirtual('!is', location);
+    return TokenReserved.createVirtual('!is', location, replacedRange);
 }
 
 // BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -2491,10 +2492,18 @@ function getNextLinkedGreaterThan(parser: ParserState) {
     if (parser.next().text !== '>') return parser.next();
 
     const check = (targets: string[], uniqueTokenText: string) => {
-        if (areTokensJoinedBy(parser.next(1), targets) === false) return undefined;
-        const location = getBoundingLocationBetween(parser.next(0), parser.next(targets.length));
-        for (let i = 0; i < targets.length; ++i) parser.commit(HighlightForToken.Operator);
-        return TokenReserved.createVirtual(uniqueTokenText, location);
+        if (areTokensJoinedBy(parser.next(1), targets) === false) {
+            return undefined;
+        }
+
+        const replacedRange = new TokenRange(parser.next(0), parser.next(targets.length));
+        const location = replacedRange.getBoundingLocation();
+
+        for (let i = 0; i < targets.length; ++i) {
+            parser.commit(HighlightForToken.Operator);
+        }
+
+        return TokenReserved.createVirtual(uniqueTokenText, location, replacedRange);
     };
 
     // '>='

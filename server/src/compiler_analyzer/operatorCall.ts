@@ -9,6 +9,7 @@ import assert = require("node:assert");
 import {canTypeCast} from "./typeCast";
 import {resolvedBuiltinInt} from "./builtinType";
 import {normalizeType} from "./typeConversion";
+import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 
 type OverloadedOperatorCallArgs = {
     // For dual operators
@@ -120,7 +121,7 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
 function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: MismatchReason, rhsReason?: MismatchReason) {
     const {callerOperator, alias, alias_r, lhs, rhs} = args;
 
-    const operatorLocation = callerOperator.location; // FIXME: More user-friendly location.
+    const operatorLocation = extendTokenLocation(callerOperator, 1, 1);
 
     // FIXME: Consider the rhs reason.
 

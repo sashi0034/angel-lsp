@@ -1,6 +1,8 @@
 import {HighlightForModifier, HighlightForToken} from "../core/highlight";
 import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
+import {TokenRange} from "./tokenRange";
+import assert = require("node:assert");
 
 /**
  * Tokenizer categorizes tokens into the following kinds.
@@ -28,7 +30,11 @@ export abstract class TokenBase {
 
     // Preprocessed token information are set by the preprocessor.
     private _indexInPreprocessedTokenList: number = -1;
+    private _prevPreprocessedToken: TokenBase | undefined = undefined;
     private _nextPreprocessedToken: TokenBase | undefined = undefined;
+
+    // Information on the token range this token replaced
+    private _replacedRange: TokenRange | undefined = undefined;
 
     protected constructor(
         // The text content of a token as it is
@@ -86,6 +92,7 @@ export abstract class TokenBase {
     public setPreprocessedTokenInfo(index: number, next: TokenBase | undefined) {
         this._indexInPreprocessedTokenList = index;
         this._nextPreprocessedToken = next;
+        if (next !== undefined) next._prevPreprocessedToken = this;
     }
 
     /**
@@ -96,10 +103,30 @@ export abstract class TokenBase {
     }
 
     /**
+     * Returns the previous token in the preprocessed token list.
+     */
+    public get prev(): TokenBase | undefined {
+        return this._prevPreprocessedToken;
+    }
+
+    /**
      * Returns the next token in the preprocessed token list.
      */
-    public get next() {
+    public get next(): TokenBase | undefined {
         return this._nextPreprocessedToken;
+    }
+
+    public setReplacedRange(range: TokenRange) {
+        assert(this._replacedRange === undefined);
+        this._replacedRange = range;
+    }
+
+    /**
+     * Information on the token range this token replaced
+     * It is basically set for virtual tokens.
+     */
+    public get replacedRange(): TokenRange | undefined {
+        return this._replacedRange;
     }
 
     /**
@@ -127,9 +154,10 @@ export class TokenReserved extends TokenBase {
         this.property = property ?? findAllReservedWordProperty(text);
     }
 
-    public static createVirtual(text: string, location?: TextLocation): TokenReserved {
+    public static createVirtual(text: string, location?: TextLocation, replacedRange?: TokenRange): TokenReserved {
         const token = new TokenReserved(text, location ?? TextLocation.createEmpty());
         token.markVirtual();
+        if (replacedRange !== undefined) token.setReplacedRange(replacedRange);
         return token;
     }
 
