@@ -130,6 +130,12 @@
                     "default": false,
                     "description": "Whether your codebase supports the foreach construct."
                 },
+                "angelScript.experimental.inlineHints": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Provide inline hints (preview)"
+                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",

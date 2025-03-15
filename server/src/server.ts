@@ -27,7 +27,7 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {changeGlobalSettings} from "./core/settings";
+import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
@@ -157,6 +157,8 @@ connection.languages.semanticTokens.on((params) => {
 // -----------------------------------------------
 // Inlay Hints Provider
 connection.languages.inlayHint.on((params) => {
+    if (!getGlobalSettings().experimental.inlineHints) return []; // TODO: Delete after the preview ends.
+
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
 

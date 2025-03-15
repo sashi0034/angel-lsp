@@ -9,6 +9,9 @@ export interface LanguageServerSettings {
     explicitPropertyAccessor: boolean;
     supportsForEach: boolean;
     supportsTypedEnumerations: boolean;
+    experimental: {
+        inlineHints: boolean;
+    };
     builtinStringTypes: string[];
     builtinArrayType: string,
     formatter: {
@@ -28,6 +31,9 @@ const defaultSettings: LanguageServerSettings = {
     explicitPropertyAccessor: false,
     supportsForEach: false,
     supportsTypedEnumerations: false,
+    experimental: {
+        inlineHints: false
+    },
     builtinStringTypes: ["string", "String"],
     builtinArrayType: "array",
     formatter: {
