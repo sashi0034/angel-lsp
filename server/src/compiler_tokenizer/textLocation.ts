@@ -26,9 +26,9 @@ export class TextPosition implements languageserver.Position {
     /**
      * Returns true if this position is ahead of the other position.
      */
-    public isAheadOf(other: languageserver.Position): boolean {
+    public isLessThan(other: languageserver.Position): boolean {
         if (this.line < other.line) return true;
-        return this.isSameLine(other) && this.character < other.character;
+        return this.line === other.line && this.character < other.character;
     }
 
     public formatWithColon(): string {
