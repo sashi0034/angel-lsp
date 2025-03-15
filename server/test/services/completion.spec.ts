@@ -13,7 +13,7 @@ function testCompletion(rawContent: string, expected: string[]) {
 
         const completions = provideCompletions(globalScope, caret).map(c => c.label);
         if (completions.length !== expected.length) {
-            throw new Error(`Expected completions [${completions.join(", ")}], but got [${expected.join(", ")}]`);
+            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
         }
 
         let remainingCandidates = expected;
@@ -22,7 +22,7 @@ function testCompletion(rawContent: string, expected: string[]) {
         });
 
         if (remainingCandidates.length > 0) {
-            throw new Error(`Expected completions [${completions.join(", ")}], but got [${expected.join(", ")}]`);
+            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
         }
     });
 }

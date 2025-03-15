@@ -130,6 +130,21 @@ export class SymbolScope {
         return this._linkedNode;
     }
 
+    /**
+     * Whether this scope has scopes for each overloaded function.
+     */
+    public hasFunctionScopes(): boolean {
+        return this._childScopeTable.values().next().value?.linkedNode?.nodeName === NodeName.Func;
+    }
+
+    /**
+     * Whether this scope is a namespace without a node.
+     * Note: AngelScript allows defining a class and a namespace with the same name simultaneously.
+     */
+    public isNamespaceWithoutNode(): boolean {
+        return this.linkedNode === undefined && this.hasFunctionScopes() === false;
+    }
+
     public getContext(): Readonly<GlobalScopeContext> {
         const globalScope = this.getGlobalScope();
         assert(globalScope._parentOrContext instanceof SymbolScope === false);
