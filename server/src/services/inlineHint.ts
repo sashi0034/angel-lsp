@@ -42,7 +42,7 @@ function hintOperatorOverloadDefinition(scope: SymbolScope, location: TextLocati
                 const identifier = symbol.linkedNode.identifier;
                 result.push({
                     position: identifier.location.end,
-                    label: `: ${operatorText}`
+                    label: `: ${operatorText} `
                 });
             }
         }
@@ -89,30 +89,41 @@ const operatorOverloads = new Map([
 
     // Binary operators
     ['opAdd', '+'],
+    ['opAdd_r', '+'],
     ['opSub', '-'],
+    ['opSub_r', '-'],
     ['opMul', '*'],
+    ['opMul_r', '*'],
     ['opDiv', '/'],
+    ['opDiv_r', '/'],
     ['opMod', '%'],
+    ['opMod_r', '%'],
     ['opPow', '**'],
+    ['opPow_r', '**'],
     ['opAnd', '&'],
+    ['opAnd_r', '&'],
     ['opOr', '|'],
+    ['opOr_r', '|'],
     ['opXor', '^'],
+    ['opXor_r', '^'],
     ['opShl', '<<'],
+    ['opShl_r', '<<'],
     ['opShr', '>>'],
+    ['opShr_r', '>>'],
     ['opUShr', '>>>'],
+    ['opUShr_r', '>>>'],
 
     // Index operators
-    ['opIndex', '[]'],
-    ['get_opIndex', '[] get'],
-    ['set_opIndex', '[] set'],
+    ['opIndex', '[...]'],
+    ['get_opIndex', '[...]'],
+    ['set_opIndex', '[...]'],
 
     // Functor operator
-    ['opCall', '()'],
+    ['opCall', '(...)'],
 
     // Type conversion operators
-    ['constructor', 'type(expr)'],
-    ['opConv', 'type(expr)'],
-    ['opImplConv', 'type(expr)'],
-    ['opCast', 'cast<type>(expr)'],
-    ['opImplCast', 'cast<type>(expr)'],
+    ['opConv', '(...) -> (T)'],
+    ['opImplConv', '(...) -> (T)'],
+    ['opCast', 'cast<T>(...)'],
+    ['opImplCast', 'cast<T>(...)'],
 ]);
