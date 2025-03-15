@@ -31,7 +31,7 @@ import {changeGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
-import {TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
+import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
 import {provideInlineHint} from "./services/inlineHint";
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -157,9 +157,12 @@ connection.languages.semanticTokens.on((params) => {
 // -----------------------------------------------
 // Inlay Hints Provider
 connection.languages.inlayHint.on((params) => {
+    const uri = params.textDocument.uri;
+    const range = TextRange.create(params.range);
+
     return provideInlineHint(
-        getInspectedRecord(params.textDocument.uri).analyzerScope.globalScope,
-        TextRange.create(params.range)
+        getInspectedRecord(uri).analyzerScope.globalScope,
+        new TextLocation(uri, range.start, range.end)
     );
 });
 

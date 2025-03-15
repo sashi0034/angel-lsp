@@ -76,6 +76,11 @@ export class TextRange implements languageserver.Range {
         return true;
     }
 
+    public intersects(other: TextRange): boolean {
+        if (this.end.isLessThan(other.start) || other.end.isLessThan(this.start)) return false;
+        return true;
+    }
+
     public clone(): TextRange {
         return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
     }
