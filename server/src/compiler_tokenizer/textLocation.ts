@@ -64,6 +64,10 @@ export class TextRange implements languageserver.Range {
     ) {
     }
 
+    public static create(range: languageserver.Range): TextRange {
+        return new TextRange(TextPosition.create(range.start), TextPosition.create(range.end));
+    }
+
     public positionInRange(position: languageserver.Position): boolean {
         if (position.line < this.start.line || position.line > this.end.line) return false;
         if (position.line === this.start.line && position.character < this.start.character) return false;
