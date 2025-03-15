@@ -1,7 +1,7 @@
 import {resolveActiveScope, SymbolScope} from "./symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {ResolvedType} from "./resolvedType";
-import {TokenRange} from "../compiler_parser/tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateFunctionCall} from "./functionCall";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";

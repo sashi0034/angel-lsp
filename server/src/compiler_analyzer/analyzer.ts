@@ -77,7 +77,7 @@ import assert = require("node:assert");
 import {ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {getBoundingLocationBetween, TokenRange} from "../compiler_parser/tokenRange";
+import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
 import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 

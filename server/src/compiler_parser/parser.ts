@@ -77,7 +77,7 @@ import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserSt
 import {ParserCacheKind} from "./parserCache";
 import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
 import {Mutable} from "../utils/utilities";
-import {getBoundingLocationBetween, TokenRange} from "./tokenRange";
+import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
 import {getGlobalSettings} from '../core/settings';
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
