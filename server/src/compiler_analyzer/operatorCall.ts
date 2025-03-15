@@ -11,6 +11,7 @@ import {resolvedBuiltinInt} from "./builtinType";
 import {normalizeType} from "./typeConversion";
 
 type OverloadedOperatorCallArgs = {
+    // For dual operators
     callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
@@ -24,7 +25,7 @@ type OverloadedOperatorCallArgs = {
     callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
-    alias_r?: undefined,
+    alias_r?: undefined, // The alias_r is not defined.
     lhs: ResolvedType,
     lhsRange: TokenRange,
     rhs: ResolvedType | (ResolvedType | undefined)[], // If alias_r is not defined, the rhs can be an array.
@@ -227,18 +228,6 @@ const widerNumberTable = [
 ];
 
 function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType {
-    // if (lhs.typeOrFunc.isType() === false || rhs.typeOrFunc.isType() === false) {
-    //     return resolvedBuiltinInt;
-    // }
-    //
-    // if (lhs.typeOrFunc.isNumberType() === false && rhs.typeOrFunc.isNumberType() === false) {
-    //     return resolvedBuiltinInt;
-    // } else if (lhs.typeOrFunc.isNumberType() === false) {
-    //     return rhs; // rhs is a number type here.
-    // } else if (rhs.typeOrFunc.isNumberType() === false) {
-    //     return lhs; // lhs is a number type here.
-    // }
-
     lhs = normalizeType(lhs)!;
     rhs = normalizeType(rhs)!;
 
