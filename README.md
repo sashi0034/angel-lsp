@@ -80,6 +80,13 @@ The following features are currently under development:
 - Debugger: While the approach is still undecided, adding a debugger is being explored.
 
 
+# Other Clients
+
+It's still in development, but there are implementations for clients other than VSCode as well.
+
+- [AngelScript Language Server for IntelliJ](https://plugins.jetbrains.com/plugin/26645-angelscript-language-server)
+
+
 # Issues and Contributions
 
 Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sashi0034/angel-lsp/issues) .
