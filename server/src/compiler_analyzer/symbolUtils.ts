@@ -93,7 +93,7 @@ export function findSymbolWithParent(scope: SymbolScope, identifier: string): Sy
  * @param accessingScope
  * @param instanceMember
  */
-export function isAllowedToAccessInstanceMember(accessingScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
+export function canAccessInstanceMember(accessingScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
     const instanceMemberSymbol = instanceMember.toList()[0]; // FIXME: What if there are multiple functions?
 
     if (instanceMemberSymbol instanceof SymbolType) return true;

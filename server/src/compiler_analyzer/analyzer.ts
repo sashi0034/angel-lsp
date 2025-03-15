@@ -40,7 +40,7 @@ import {
     NodeWhile
 } from "../compiler_parser/nodes";
 import {
-    isDefinitionNodeClassOrInterface,
+    isNodeClassOrInterface,
     SymbolFunction,
     SymbolFunctionHolder,
     SymbolObjectHolder,
@@ -66,7 +66,7 @@ import {
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
     findSymbolWithParent,
-    getSymbolAndScopeIfExist, isAllowedToAccessInstanceMember,
+    getSymbolAndScopeIfExist, canAccessInstanceMember,
     isResolvedAutoType,
     stringifyResolvedType,
     stringifyResolvedTypes
@@ -817,7 +817,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const identifier = isMemberMethod ? member.identifier : member;
     if (identifier === undefined) return undefined;
 
-    if (isDefinitionNodeClassOrInterface(exprValue.typeOrFunc.linkedNode) === false) {
+    if (isNodeClassOrInterface(exprValue.typeOrFunc.linkedNode) === false) {
         analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
@@ -1054,7 +1054,7 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (isAllowedToAccessInstanceMember(checkingScope, declared.symbol) === false) {
+    if (canAccessInstanceMember(checkingScope, declared.symbol) === false) {
         analyzerDiagnostic.add(varIdentifier.location, `'${varIdentifier.text}' is not public member.`);
         return undefined;
     }

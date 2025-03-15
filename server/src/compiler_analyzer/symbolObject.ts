@@ -6,7 +6,8 @@ import {
     NodeFuncDef,
     NodeInterface,
     NodeIntfMethod,
-    NodeName
+    NodeName,
+    NodesBase
 } from "../compiler_parser/nodes";
 import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
@@ -18,7 +19,7 @@ import assert = require("node:assert");
  */
 export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
 
-export function isDefinitionNodeClassOrInterface(type: TypeDefinitionNode | undefined): type is NodeClass {
+export function isNodeClassOrInterface(type: NodesBase | undefined): type is NodeClass {
     if (type === undefined) return false;
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
