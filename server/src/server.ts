@@ -177,7 +177,14 @@ connection.onDidCloseTextDocument(params => {
     // s_documentMap.delete(params.textDocument.uri); // FIXME?
 });
 
+// TODO: We want to observe the deletion of a file, but it seems that the LSP doesn't provide such an event?
+
 // FIXME: Should we also handle `onWillSaveTextDocument`, `onWillSaveTextDocumentWaitUntil` and `onDidSaveTextDocument`?
+
+connection.onDidChangeWatchedFiles(params => {
+    // Maybe we don't need to do anything here, right?
+    // https://github.com/microsoft/vscode-discussions/discussions/511
+});
 
 // -----------------------------------------------
 // Semantic Tokens Provider
