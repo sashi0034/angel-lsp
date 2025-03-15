@@ -1,6 +1,5 @@
 import {
     createConnection,
-    TextDocuments,
     ProposedFeatures,
     InitializeParams,
     DidChangeConfigurationNotification,
@@ -20,7 +19,8 @@ import {
     getInspectedRecordList,
     inspectFile,
     reinspectAllFiles,
-    registerDiagnosticsCallback, flushInspectedRecord
+    registerDiagnosticsCallback,
+    flushInspectedRecord
 } from "./inspector/inspector";
 import {provideCompletions} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -39,7 +39,6 @@ import {provideInlineHint} from "./services/inlineHint";
 const connection = createConnection(ProposedFeatures.all);
 
 // Create a simple text document manager.
-const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
@@ -134,10 +133,6 @@ connection.onDidChangeConfiguration(change => {
     reloadSettings();
 });
 
-// Only keep settings for open documents
-documents.onDidClose(e => {
-});
-
 // connection.languages.diagnostics.on(async (params) => {
 //     return {
 //         kind: DocumentDiagnosticReportKind.Full,
@@ -147,6 +142,49 @@ documents.onDidClose(e => {
 //         ]
 //     } satisfies DocumentDiagnosticReport;
 // });
+
+// -----------------------------------------------
+// Text Document Events
+
+// Reference: https://github.com/microsoft/vscode-languageserver-node/blob/df05883f34b39255d40d68cef55caf2e93cff35f/server/src/common/textDocuments.ts#L185
+
+const s_documentMap = new Map<string, TextDocument>();
+
+connection.onDidOpenTextDocument(params => {
+    const document = params.textDocument;
+    s_documentMap.set(
+        params.textDocument.uri,
+        TextDocument.create(document.uri, document.languageId, document.version, document.text)
+    );
+
+    inspectFile(params.textDocument.uri, document.text);
+});
+
+connection.onDidChangeTextDocument((params) => {
+    const document = s_documentMap.get(params.textDocument.uri);
+    if (document === undefined) {
+        connection.console.error('Missing a document: ' + params.textDocument.uri);
+        return;
+    }
+
+    TextDocument.update(document, params.contentChanges, params.textDocument.version);
+
+    // TODO: We should implement incremental compilation.
+    inspectFile(params.textDocument.uri, document.getText());
+});
+
+connection.onDidCloseTextDocument(params => {
+    // s_documentMap.delete(params.textDocument.uri); // FIXME?
+});
+
+// TODO: We want to observe the deletion of a file, but it seems that the LSP doesn't provide such an event?
+
+// FIXME: Should we also handle `onWillSaveTextDocument`, `onWillSaveTextDocumentWaitUntil` and `onDidSaveTextDocument`?
+
+connection.onDidChangeWatchedFiles(params => {
+    // Maybe we don't need to do anything here, right?
+    // https://github.com/microsoft/vscode-discussions/discussions/511
+});
 
 // -----------------------------------------------
 // Semantic Tokens Provider
@@ -171,9 +209,6 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const document = documents.get(params.textDocument.uri);
-    if (document === undefined) return;
-
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
@@ -187,9 +222,6 @@ connection.onDefinition((params) => {
 
 // Search for references of a symbol
 function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
-    const document = documents.get(params.textDocument.uri);
-    if (document === undefined) return [];
-
     flushInspectedRecord(params.textDocument.uri);
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
@@ -228,9 +260,6 @@ connection.onRenameRequest((params) => {
 // -----------------------------------------------
 // Hover Provider
 connection.onHover((params) => {
-    const document = documents.get(params.textDocument.uri);
-    if (document === undefined) return;
-
     flushInspectedRecord(params.textDocument.uri);
 
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
@@ -245,20 +274,6 @@ connection.onHover((params) => {
         // FIXME: Currently colored in C#, which is close in syntax, but will properly support AngelScript.
         contents: [{language: 'c#', value: stringifySymbolObject(definition)}]
     };
-});
-
-// The content of a text document has changed. This event is emitted
-// when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-    const uri = change.document.uri;
-
-    registerDiagnosticsCallback(connection.sendDiagnostics);
-    inspectFile(uri, change.document.getText());
-});
-
-connection.onDidChangeWatchedFiles(_change => {
-    // Monitored files have change in VSCode
-    connection.console.log('We received a file change event');
 });
 
 // -----------------------------------------------
@@ -330,9 +345,7 @@ connection.onDocumentFormatting((params) => {
     return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-documents.listen(connection);
-
 // Listen on the connection
 connection.listen();
+
+registerDiagnosticsCallback(connection.sendDiagnostics);
