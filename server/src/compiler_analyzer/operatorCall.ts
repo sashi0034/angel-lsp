@@ -1,7 +1,7 @@
 import {resolveActiveScope, SymbolScope} from "./symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {ResolvedType} from "./resolvedType";
-import {TokenRange} from "../compiler_parser/tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateFunctionCall} from "./functionCall";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
@@ -9,8 +9,10 @@ import assert = require("node:assert");
 import {canTypeCast} from "./typeCast";
 import {resolvedBuiltinInt} from "./builtinType";
 import {normalizeType} from "./typeConversion";
+import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 
 type OverloadedOperatorCallArgs = {
+    // For dual operators
     callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
@@ -24,7 +26,7 @@ type OverloadedOperatorCallArgs = {
     callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
-    alias_r?: undefined,
+    alias_r?: undefined, // The alias_r is not defined.
     lhs: ResolvedType,
     lhsRange: TokenRange,
     rhs: ResolvedType | (ResolvedType | undefined)[], // If alias_r is not defined, the rhs can be an array.
@@ -119,7 +121,7 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
 function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: MismatchReason, rhsReason?: MismatchReason) {
     const {callerOperator, alias, alias_r, lhs, rhs} = args;
 
-    const operatorLocation = callerOperator.location; // FIXME: More user-friendly location.
+    const operatorLocation = extendTokenLocation(callerOperator, 1, 1);
 
     // FIXME: Consider the rhs reason.
 
@@ -227,18 +229,6 @@ const widerNumberTable = [
 ];
 
 function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType {
-    // if (lhs.typeOrFunc.isType() === false || rhs.typeOrFunc.isType() === false) {
-    //     return resolvedBuiltinInt;
-    // }
-    //
-    // if (lhs.typeOrFunc.isNumberType() === false && rhs.typeOrFunc.isNumberType() === false) {
-    //     return resolvedBuiltinInt;
-    // } else if (lhs.typeOrFunc.isNumberType() === false) {
-    //     return rhs; // rhs is a number type here.
-    // } else if (rhs.typeOrFunc.isNumberType() === false) {
-    //     return lhs; // lhs is a number type here.
-    // }
-
     lhs = normalizeType(lhs)!;
     rhs = normalizeType(rhs)!;
 

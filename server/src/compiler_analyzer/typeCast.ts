@@ -1,7 +1,7 @@
 import {stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenRange} from "../compiler_parser/tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateConversionCost} from "./typeConversion";
 
 /**

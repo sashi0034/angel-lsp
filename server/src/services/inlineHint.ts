@@ -122,8 +122,8 @@ const operatorOverloads = new Map([
     ['opCall', '(...)'],
 
     // Type conversion operators
-    ['opConv', '(...) -> (T)'],
-    ['opImplConv', '(...) -> (T)'],
-    ['opCast', 'cast<T>(...)'],
-    ['opImplCast', 'cast<T>(...)'],
+    ['opConv', 'convert'],
+    ['opImplConv', 'convert'],
+    ['opCast', 'cast'],
+    ['opImplCast', 'cast'],
 ]);

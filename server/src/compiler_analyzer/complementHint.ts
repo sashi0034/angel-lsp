@@ -2,7 +2,7 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
 import {SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {TokenRange} from "../compiler_parser/tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {TemplateTranslator} from "./resolvedType";
 
 /**

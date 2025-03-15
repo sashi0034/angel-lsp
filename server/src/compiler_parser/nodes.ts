@@ -1,5 +1,5 @@
 import {TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {TokenRange} from "./tokenRange";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 
 export enum AccessModifier {
     Private = 'Private',

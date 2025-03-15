@@ -1,5 +1,5 @@
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {TokenObject} from "./tokenObject";
+import {TextLocation} from "./textLocation";
 
 export function getBoundingLocationBetween(start: TokenObject, end: TokenObject): TextLocation {
     return start.location.withEnd(end.location.end);

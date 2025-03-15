@@ -13,7 +13,7 @@ function testCompletion(rawContent: string, expected: string[]) {
 
         const completions = provideCompletions(globalScope, caret).map(c => c.label);
         if (completions.length !== expected.length) {
-            throw new Error(`Expected completions [${completions.join(", ")}], but got [${expected.join(", ")}]`);
+            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
         }
 
         let remainingCandidates = expected;
@@ -22,7 +22,7 @@ function testCompletion(rawContent: string, expected: string[]) {
         });
 
         if (remainingCandidates.length > 0) {
-            throw new Error(`Expected completions [${completions.join(", ")}], but got [${expected.join(", ")}]`);
+            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
         }
     });
 }
@@ -102,5 +102,51 @@ describe("Completion", () => {
             foo::bar::$C$
         }
     `, ["call_baz"]
+    );
+
+    testCompletion(`
+        class Foo {
+            int x;
+            private int z;
+            protected int y;
+            
+            void a() { }
+            private void b() { }
+            protected void c() { }
+        }
+        
+        class Bar : Foo {
+            int w;
+            void d() { $C$ }
+
+            private int v;
+            private void e() { }
+        }
+    `, ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e"]
+    );
+
+    testCompletion(`
+        class Foo {
+            int x;
+            private int z;
+            protected int y;
+            
+            void a() { }
+            private void b() { }
+            protected void c() { }
+        }
+        
+        class Bar : Foo {
+            int w;
+            void d() { }
+            
+            private int v;
+            private void e() { }
+        }
+        
+        void main() {
+            Bar bar;
+            bar.$C$
+    `, ["w", "d", "x", "a"]
     );
 });

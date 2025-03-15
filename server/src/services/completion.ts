@@ -1,8 +1,7 @@
-import {Position, URI} from "vscode-languageserver";
+import {Position} from "vscode-languageserver";
 import {
     isSymbolInstanceMember,
-    SymbolObject,
-    SymbolType, SymbolFunction, SymbolVariable, SymbolObjectHolder
+    SymbolObjectHolder
 } from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
@@ -53,7 +52,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
 
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopeTable) {
-        if (childScope.linkedNode !== undefined) continue;
+        if (childScope.isNamespaceWithoutNode() === false) continue;
         if (isAnonymousIdentifier(childName)) continue;
         items.push({
             label: childName,
@@ -129,7 +128,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 }
 
 function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
-    if (symbol instanceof SymbolType) {
+    if (symbol.isType()) {
         if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) return CompletionItemKind.Keyword;
         if (symbol.linkedNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
         return CompletionItemKind.Class;

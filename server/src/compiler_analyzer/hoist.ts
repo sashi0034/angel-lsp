@@ -219,6 +219,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
 }
 
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
+    // Iterate over each base class
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
         if (baseType.typeOrFunc.isFunction()) continue;
@@ -226,12 +227,21 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
         const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScope);
         if (baseScope === undefined) continue;
 
+        // Insert each base class member if possible
         for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
+
             for (const symbol of symbolHolder.toList()) {
-                const errored = scope.insertSymbol(symbol);
-                if (errored !== undefined) {
-                    analyzerDiagnostic.add(errored.toList()[0].identifierToken.location, `Duplicated symbol '${key}'`);
+                if (symbol.isFunction() || symbol.isVariable()) {
+                    if (symbol.accessRestriction === AccessModifier.Private) continue;
+                }
+
+                const alreadyExists = scope.insertSymbol(symbol);
+                if (alreadyExists !== undefined) {
+                    analyzerDiagnostic.add(
+                        alreadyExists.toList()[0].identifierToken.location,
+                        `Duplicated symbol '${key}'`
+                    );
                 }
             }
         }
@@ -273,9 +283,15 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
+    // Function holder scope (with no node)
+    // |-- Anonymous scope of one of the overloads (with NodeFunc)
+    //     |-- ...
+
     // Create a new scope for the function
-    const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
-    const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
+    const funcionHolderScope: SymbolScope =
+        // This doesn't have a linked node because the function may be overloaded.
+        parentScope.insertScope(nodeFunc.identifier.text, undefined);
+    const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), nodeFunc);
 
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: nodeFunc.identifier,
@@ -287,11 +303,11 @@ function hoistFunc(
         accessRestriction: nodeFunc.accessor
     });
 
-    const templateTypes = hoistClassTemplateTypes(scope, nodeFunc.typeTemplates);
+    const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
     if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
 
     const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
-        scope,
+        functionScope,
         nodeFunc.head.returnType) : undefined;
     symbol.mutate().returnType = returnType;
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
@@ -317,11 +333,11 @@ function hoistFunc(
     }
 
     hoisting.push(() => {
-        symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
+        symbol.mutate().parameterTypes = hoistParamList(functionScope, nodeFunc.paramList);
     });
 
     analyzing.push(() => {
-        analyzeFunc(scope, nodeFunc);
+        analyzeFunc(functionScope, nodeFunc);
     });
 }
 
