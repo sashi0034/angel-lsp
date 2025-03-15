@@ -525,27 +525,34 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     const functionScope = scope.takeParentByNode([NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
     if (functionScope === undefined || functionScope.linkedNode === undefined) return;
 
-    // TODO: Support for lambda
-
     if (functionScope.linkedNode.nodeName === NodeName.Func) {
-        const functionReturnHolder = functionScope.parentScope?.symbolTable.get(functionScope.key);
-        if (functionReturnHolder?.isFunctionHolder() === false) return;
+        // functionHolderScope: Function holder scope (with no node)
+        // |-- functionScope: Anonymous scope of one of the overloads (with NodeFunc)
+        //     |-- ...
+        //         |-- scope containing 'return'
+
+        const functionHolderScope = functionScope.parentScope;
+        assert(functionHolderScope !== undefined);
+
+        const functionHolder =
+            functionHolderScope.parentScope?.symbolTable.get(functionHolderScope.key);
+        if (functionHolder?.isFunctionHolder() === false) return;
 
         // Select suitable overload if there are multiple overloads
-        let functionReturn = functionReturnHolder.first;
-        for (const nextOverload of functionReturnHolder.overloadList) {
-            if (nextOverload.linkedNode === functionScope.linkedNode) {
-                functionReturn = nextOverload;
+        let functionSymbol = functionHolder.first;
+        for (const overload of functionHolder.toList()) {
+            if (overload.linkedNode === functionScope.linkedNode) {
+                functionSymbol = overload;
                 break;
             }
         }
 
-        const expectedReturn = functionReturn.returnType?.typeOrFunc;
-        if (expectedReturn instanceof SymbolType && expectedReturn?.identifierText === 'void') {
+        const expectedReturn = functionSymbol.returnType?.typeOrFunc;
+        if (expectedReturn?.isType() && expectedReturn?.identifierText === 'void') {
             if (nodeReturn.assign === undefined) return;
             analyzerDiagnostic.add(nodeReturn.nodeRange.getBoundingLocation(), `Function does not return a value.`);
         } else {
-            checkTypeCast(returnType, functionReturn.returnType, nodeReturn.nodeRange);
+            checkTypeCast(returnType, functionSymbol.returnType, nodeReturn.nodeRange);
         }
     } else if (functionScope.linkedNode.nodeName === NodeName.VirtualProp) {
         const key = functionScope.key;
@@ -563,6 +570,8 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) return;
 
         checkTypeCast(returnType, functionReturn.type, nodeReturn.nodeRange);
+    } else if (functionScope.linkedNode.nodeName === NodeName.Lambda) {
+        // TODO: Support for lambda
     }
 }
 

@@ -273,9 +273,15 @@ function hoistFunc(
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
+    // Function holder scope (with no node)
+    // |-- Anonymous scope of one of the overloads (with NodeFunc)
+    //     |-- ...
+
     // Create a new scope for the function
-    const funcScope: SymbolScope = parentScope.insertScope(nodeFunc.identifier.text, nodeFunc);
-    const scope = funcScope.insertScope(createAnonymousIdentifier(), undefined);
+    const funcionHolderScope: SymbolScope =
+        // This doesn't have a linked node because the function may be overloaded.
+        parentScope.insertScope(nodeFunc.identifier.text, undefined);
+    const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), nodeFunc);
 
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: nodeFunc.identifier,
@@ -287,11 +293,11 @@ function hoistFunc(
         accessRestriction: nodeFunc.accessor
     });
 
-    const templateTypes = hoistClassTemplateTypes(scope, nodeFunc.typeTemplates);
+    const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
     if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
 
     const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
-        scope,
+        functionScope,
         nodeFunc.head.returnType) : undefined;
     symbol.mutate().returnType = returnType;
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
@@ -317,11 +323,11 @@ function hoistFunc(
     }
 
     hoisting.push(() => {
-        symbol.mutate().parameterTypes = hoistParamList(scope, nodeFunc.paramList);
+        symbol.mutate().parameterTypes = hoistParamList(functionScope, nodeFunc.paramList);
     });
 
     analyzing.push(() => {
-        analyzeFunc(scope, nodeFunc);
+        analyzeFunc(functionScope, nodeFunc);
     });
 }
 
