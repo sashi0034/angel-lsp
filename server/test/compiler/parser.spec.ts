@@ -3,18 +3,19 @@ import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
 import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenized} from "../../src/compiler_parser/parserPreprocess";
 
-function itParses(content: string) {
-    it(`parses ${content}`, () => {
+function testParser(content: string, expectSuccess: boolean) {
+    it(`parses: ${content}`, () => {
         diagnostic.beginSession();
 
-        const targetUri = "/foo/bar.as";
-        const tokenizedTokens = tokenize(targetUri, content);
+        const uri = "/foo/bar.as";
+        const tokenizedTokens = tokenize(uri, content);
         const preprocessedTokens = preprocessAfterTokenized(tokenizedTokens);
         parseAfterPreprocessed(preprocessedTokens.preprocessedTokens);
 
-        const diagnosticsInAnalyzer = diagnostic.endSession();
-        if (diagnosticsInAnalyzer.length > 0) {
-            const diagnostic = diagnosticsInAnalyzer[0];
+        const diagnosticsInParser = diagnostic.endSession();
+        const hasError = diagnosticsInParser.length > 0;
+        if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
+            const diagnostic = diagnosticsInParser[0];
             const message = diagnostic.message;
             const line = diagnostic.range.start.line;
             const character = diagnostic.range.start.character;
@@ -23,24 +24,40 @@ function itParses(content: string) {
     });
 }
 
+function expectSuccess(content: string) {
+    testParser(content, true);
+}
+
+// We also should test for failures to avoid an infinite loop.
+function expectFailure(content: string) {
+    testParser(content, false);
+}
+
+// TODO: Separate tests for as.predefined?
+
 describe("Parser", () => {
-    itParses("void foo() {}");
-    itParses("int MyValue = 0; float MyFloat = 15.f;");
-    itParses("const uint Flag1 = 0x01;");
-    itParses(`
+    expectSuccess("void foo() {}");
+
+    expectSuccess("int MyValue = 0; float MyFloat = 15.f;");
+
+    expectSuccess("const uint Flag1 = 0x01;");
+
+    expectSuccess(`
         class Foo
         {
             void bar() { value++; }
             int value;
         }
     `);
-    itParses(`
+
+    expectSuccess(`
         interface MyInterface
         {
             void DoSomething();
         }
     `);
-    itParses(`
+
+    expectSuccess(`
         enum MyEnum
         {
             eValue0,
@@ -49,23 +66,28 @@ describe("Parser", () => {
             eValue200 = eValue2 * 100
         }
     `);
-    itParses(`
+
+    expectSuccess(`
         enum Foo
         {
             fizz,
             buzz,
         }
     `);
-    itParses("funcdef bool CALLBACK(int, int);");
-    itParses("typedef double real64;");
-    itParses(`
+
+    expectSuccess("funcdef bool CALLBACK(int, int);");
+
+    expectSuccess("typedef double real64;");
+
+    expectSuccess(`
         namespace A
         {
             void function() { variable++; }
             int variable;
         }
     `);
-    itParses(`
+
+    expectSuccess(`
         enum Test {
             A = 1,
             B = 2
@@ -79,5 +101,8 @@ describe("Parser", () => {
             bool w = v == Test::A;
         }
     `);
-    itParses(`bool foo = not true; bool bar = not not false;`);
+
+    expectSuccess(`bool foo = not true; bool bar = not not false;`);
+
+    expectFailure(`funcdef`);
 });
