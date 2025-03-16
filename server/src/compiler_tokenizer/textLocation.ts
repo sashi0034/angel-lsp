@@ -1,4 +1,5 @@
 import * as languageserver from 'vscode-languageserver';
+import assert = require("node:assert");
 
 export class TextPosition implements languageserver.Position {
     constructor(
@@ -31,8 +32,22 @@ export class TextPosition implements languageserver.Position {
         return this.line === other.line && this.character < other.character;
     }
 
-    public isLessThanOrEqual(other: languageserver.Position): boolean {
-        return this.isLessThan(other) || this.equals(other);
+    /**
+     *  Returns -1 if lhs is closer to this position than rhs, 1 if rhs is closer than lhs, and 0 if both are equidistant.
+     */
+    public compare(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 {
+        const lhsLineDiff = Math.abs(lhs.line - this.line);
+        const rhsLineDiff = Math.abs(rhs.line - this.line);
+
+        if (lhsLineDiff < rhsLineDiff) return -1;
+        if (lhsLineDiff > rhsLineDiff) return 1;
+
+        const lhsCharacterDiff = Math.abs(lhs.character - this.character);
+        const rhsCharacterDiff = Math.abs(rhs.character - this.character);
+        if (lhsCharacterDiff < rhsCharacterDiff) return -1;
+        if (lhsCharacterDiff > rhsCharacterDiff) return 1;
+
+        return 0;
     }
 
     public formatWithColon(): string {

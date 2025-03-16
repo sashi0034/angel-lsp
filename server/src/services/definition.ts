@@ -1,4 +1,8 @@
-import {ScopePath, SymbolObject} from "../compiler_analyzer/symbolObject";
+import {
+    isNodeEnumOrClassOrInterface,
+    ScopePath,
+    SymbolObject
+} from "../compiler_analyzer/symbolObject";
 import {Position} from "vscode-languageserver";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
@@ -73,7 +77,11 @@ function provideNamespaceDefinition(globalScope: SymbolScope, globalScopeList: S
         const destinationGlobalScope =
             globalScopeList.find(scope => scope.getContext().filepath === destinationFilepath);
         if (destinationGlobalScope !== undefined) {
-            findNamespaceTokenNearPosition(destinationGlobalScope, accessScope.scopePath, tokenOnCaret.location.start);
+            return findNamespaceTokenNearPosition(
+                destinationGlobalScope,
+                accessScope.scopePath,
+                closetTokenDefinitionSymbol.identifierToken.location.start
+            );
         }
     }
 
@@ -133,13 +141,20 @@ function findNamespaceTokenNearPosition(globalScope: SymbolScope, scopePath: Sco
     const namespaceScope = globalScope.resolveScope(scopePath);
     if (namespaceScope === undefined) return undefined;
 
-    // FIXME?: The namespace token may be not necessarily the closest one to the token
-    for (let i = namespaceScope.namespaceTokens.length - 1; i >= 0; i--) {
-        const next = namespaceScope.namespaceTokens[i];
-        if (next.location.start.isLessThanOrEqual(position)) {
-            return next;
+    let result: TokenObject | undefined;
+    if (isNodeEnumOrClassOrInterface(namespaceScope.linkedNode)) {
+        const linkedNode = namespaceScope.linkedNode;
+        if (linkedNode.identifier.location.path === namespaceScope.getContext().filepath) {
+            result = namespaceScope.linkedNode.identifier;
         }
     }
 
-    return undefined;
+    for (let i = namespaceScope.namespaceTokens.length - 1; i >= 0; i--) {
+        const next = namespaceScope.namespaceTokens[i];
+        result = result === undefined
+            ? next
+            : position.compare(result.location.start, next.location.start) === -1 ? result : next;
+    }
+
+    return result;
 }
