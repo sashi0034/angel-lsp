@@ -33,17 +33,27 @@ export function provideCompletions(
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
     for (const scope of [...collectParentScopeList(caretScope), caretScope]) {
-        items.push(...getCompletionSymbolsInScope(scope));
+        items.push(...getCompletionSymbolsInScope(scope, true));
     }
 
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
+function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of scope.symbolTable) {
+        if (includeInstanceMember === false) {
+            // Skip instance members
+            if (isSymbolInstanceMember(symbol)) continue;
+
+            if (symbol.isVariable() && symbol.identifierToken.isVirtual() && symbol.identifierText === 'this') {
+                // FIXME: Probably something is wrong
+                continue;
+            }
+        }
+
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -53,7 +63,9 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopeTable) {
         if (childScope.isNamespaceWithoutNode() === false) continue;
+
         if (isAnonymousIdentifier(childName)) continue;
+
         items.push({
             label: childName,
             kind: CompletionItemKind.Module,
@@ -109,7 +121,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
     } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
         // Return the completion candidates in the scope.
-        return getCompletionSymbolsInScope(completion.accessScope);
+        return getCompletionSymbolsInScope(completion.accessScope, false);
     }
 
     return undefined;

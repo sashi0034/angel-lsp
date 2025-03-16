@@ -308,8 +308,9 @@ export class SymbolFunctionHolder implements SymbolHolder {
 }
 
 export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is SymbolFunctionHolder | SymbolVariable {
-    const canBeMember = (symbol.isFunctionHolder()) || (symbol instanceof SymbolVariable);
+    const canBeMember = symbol.isFunctionHolder() || symbol.isVariable();
     if (canBeMember === false) return false;
+
     return symbol.toList()[0].isInstanceMember;
 }
 
