@@ -157,7 +157,12 @@ connection.onDidOpenTextDocument(params => {
         TextDocument.create(document.uri, document.languageId, document.version, document.text)
     );
 
-    inspectFile(params.textDocument.uri, document.text);
+    if (getInspectedRecord(document.uri).content === document.text) {
+        // No need to re-inspect because the contents of the file are identical.
+        return;
+    }
+
+    inspectFile(document.uri, document.text);
 });
 
 connection.onDidChangeTextDocument((params) => {

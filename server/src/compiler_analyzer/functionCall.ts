@@ -1,5 +1,5 @@
 import {
-    SymbolFunction, SymbolFunctionHolder,
+    SymbolFunction, SymbolFunctionHolder, SymbolVariable,
 } from "./symbolObject";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import {SymbolScope} from "./symbolScope";
@@ -20,6 +20,7 @@ interface FunctionCallArgs {
     // callee arguments
     calleeFuncHolder: SymbolFunctionHolder;
     calleeTemplateTranslator: (TemplateTranslator | undefined);
+    calleeDelegate?: SymbolVariable; // This is required because the delegate is called by a variable.
 }
 
 interface FunctionCallResult {
@@ -74,7 +75,7 @@ type MismatchReason = {
 }
 
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
-    const {callerScope, callerIdentifier, calleeFuncHolder} = args;
+    const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegate} = args;
 
     let bestMatching: FunctionAndCost | undefined = undefined;
     let lastMismatchReason: MismatchReason = {tooManyArguments: true};
@@ -102,7 +103,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             sideEffect: () => {
                 // Add the reference to the function that was called.
                 callerScope.referencedList.push({
-                    declaredSymbol: bestMatching.function, referencedToken: callerIdentifier
+                    declaredSymbol: calleeDelegate ?? bestMatching.function, referencedToken: callerIdentifier
                 });
             }
         };
@@ -113,6 +114,11 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             sideEffect: () => {
                 // Handle mismatch errors.
                 handleMismatchError(args, lastMismatchReason);
+
+                // Although the function call resolution fails, an approximate symbol is added as a reference.
+                callerScope.referencedList.push({
+                    declaredSymbol: calleeDelegate ?? calleeFuncHolder.first, referencedToken: callerIdentifier
+                });
             }
         };
     }
