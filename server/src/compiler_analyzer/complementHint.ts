@@ -59,8 +59,8 @@ export interface ComplementInstanceMember extends ComplementBase {
 export interface ComplementNamespaceSymbol extends ComplementBase {
     complementKind: ComplementKind.NamespaceSymbol;
     accessScope: SymbolScope;
-    slicedNamespaceList: TokenObject[]; // Tokens sliced from the beginning of the namespace to the target
-    tokenAfterNamespace: TokenObject | undefined; // The token after the namespace list. This is outside the NodeScope.
+    namespaceToken: TokenObject; // The namespace qualifier token.
+    tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the NodeScope.
 }
 
 /**

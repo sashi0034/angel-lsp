@@ -343,7 +343,7 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
     let scopeIterator =
         nodeScope.isGlobal ? parentScope.getGlobalScope() : parentScope;
-    const tokenAfterNamespace = nodeScope.nodeRange.end.next;
+    const tokenAfterNamespaces = nodeScope.nodeRange.end.next;
 
     for (let i = 0; i < nodeScope.scopeList.length; i++) {
         const scopeToken = nodeScope.scopeList[i];
@@ -373,8 +373,8 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
             complementKind: ComplementKind.NamespaceSymbol,
             complementLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
-            slicedNamespaceList: nodeScope.scopeList.slice(0, i + 1),
-            tokenAfterNamespace: tokenAfterNamespace,
+            namespaceToken: scopeToken,
+            tokenAfterNamespaces: tokenAfterNamespaces,
         });
     }
 

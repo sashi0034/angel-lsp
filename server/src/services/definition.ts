@@ -60,7 +60,7 @@ function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: 
 // Find the definition of the scope token at the cursor position.
 // This is a bit complicated because there may be multiple definitions of the namespace.
 function provideNamespaceDefinition(globalScope: SymbolScope, globalScopeList: SymbolScope[], caret: Position) {
-    // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespace
+    // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespaces
     const {accessScope, tokenOnCaret, tokenAfterNamespace} = findNamespaceTokenOnCaret(globalScope, caret);
     if (accessScope === undefined || tokenOnCaret === undefined) {
         return undefined;
@@ -100,10 +100,10 @@ function findNamespaceTokenOnCaret(globalScope: SymbolScope, caret: Position) {
             continue;
         }
 
-        if (hint.slicedNamespaceList.at(-1)?.location.positionInRange(caret)) {
+        if (hint.namespaceToken.location.positionInRange(caret)) {
             accessScope = hint.accessScope;
-            tokenOnCaret = hint.slicedNamespaceList.at(-1);
-            tokenAfterNamespace = hint.tokenAfterNamespace;
+            tokenOnCaret = hint.namespaceToken;
+            tokenAfterNamespace = hint.tokenAfterNamespaces;
             break;
         }
     }

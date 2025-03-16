@@ -108,20 +108,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         // Return the completion candidates in the scope.
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
     } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
-        // Find the scope to which the namespace to be completed belongs.
-        const namespaceList = completion.slicedNamespaceList;
-        if (namespaceList.length === 0) return [];
-
-        let namespaceScope = globalScope.lookupScopeWithParent(namespaceList[0].text);
-        if (namespaceScope === undefined) return [];
-
-        for (let i = 1; i < namespaceList.length; i++) {
-            namespaceScope = namespaceScope.lookupScope(namespaceList[i].text);
-            if (namespaceScope === undefined) return [];
-        }
-
         // Return the completion candidates in the scope.
-        return getCompletionSymbolsInScope(namespaceScope);
+        return getCompletionSymbolsInScope(completion.accessScope);
     }
 
     return undefined;
