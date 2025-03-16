@@ -39,7 +39,7 @@ export function makeCaretListAndContent(rawContent: string): CaretListAndContent
     const lines = rawContent.split(/\r?\n/);
     const caretList: TextPosition[] = [];
     // Regex to match markers like $C0$, $C1$, $C2$, etc.
-    const markerRegex = /\$C\d+\$/g;
+    const markerRegex = /\$C\d+\$/;
     const newLines = lines.map((line, lineNumber) => {
         // For each match in the line, record its position.
         let match: RegExpExecArray | null;
