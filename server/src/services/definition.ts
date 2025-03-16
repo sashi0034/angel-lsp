@@ -85,8 +85,15 @@ function provideNamespaceDefinition(globalScope: SymbolScope, globalScopeList: S
         }
     }
 
-    // If the definition of token after namespace does not exist, find the namespace token in the current global scope.
-    return findNamespaceTokenNearPosition(globalScope, accessScope.scopePath, tokenOnCaret.location.start);
+    // If the definition of token after namespace does not exist,
+    // look for a matching namespace token in global scopes in all files.
+    for (const scope of [globalScope, ...globalScopeList]) { // Search from the current global scope
+        const namespaceToken =
+            findNamespaceTokenNearPosition(scope, accessScope.scopePath, new TextPosition(0, 0));
+        if (namespaceToken !== undefined) return namespaceToken;
+    }
+
+    return undefined;
 }
 
 function findNamespaceTokenOnCaret(globalScope: SymbolScope, caret: Position) {
