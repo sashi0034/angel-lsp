@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.28] 2025/03/15
+
+- Fixed bugs.
+
 ## [0.3.26] 2025/03/14
 
 - Fixed bugs.
