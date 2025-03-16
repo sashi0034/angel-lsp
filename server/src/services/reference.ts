@@ -3,13 +3,13 @@ import {provideDefinitionAsToken} from "./definition";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-export function provideReferences(globalScope: SymbolScope, analyzedScopes: SymbolScope[], caret: Position): TokenObject[] {
-    const targetDefinition = provideDefinitionAsToken(globalScope, caret);
+export function provideReferences(globalScope: SymbolScope, globalScopeList: SymbolScope[], caret: Position): TokenObject[] {
+    const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
     if (targetDefinition === undefined) return [];
 
     // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?
 
-    const result = analyzedScopes.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
+    const result = globalScopeList.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
     result.push(targetDefinition);
     return result;
 }

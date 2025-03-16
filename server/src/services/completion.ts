@@ -109,7 +109,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
     } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
         // Find the scope to which the namespace to be completed belongs.
-        const namespaceList = completion.namespaceList;
+        const namespaceList = completion.slicedNamespaceList;
         if (namespaceList.length === 0) return [];
 
         let namespaceScope = globalScope.lookupScopeWithParent(namespaceList[0].text);

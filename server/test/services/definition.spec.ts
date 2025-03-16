@@ -1,5 +1,10 @@
 import {makeCaretListAndContent} from "./utils";
-import {flushInspectedRecord, getInspectedRecord, inspectFile} from "../../src/inspector/inspector";
+import {
+    flushInspectedRecord,
+    getInspectedRecord,
+    getInspectedRecordList,
+    inspectFile
+} from "../../src/inspector/inspector";
 import {provideDefinitionAsToken} from "../../src/services/definition";
 
 function testDefinition(rawContent: string) {
@@ -13,9 +18,10 @@ function testDefinition(rawContent: string) {
         inspectFile(uri, content);
         flushInspectedRecord();
         const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
+        const globalScopeList = getInspectedRecordList().map(record => record.analyzerScope.globalScope);
 
         for (let i = 1; i < caretList.length; i++) {
-            const definitionToken = provideDefinitionAsToken(globalScope, caretList[i]);
+            const definitionToken = provideDefinitionAsToken(globalScope, globalScopeList, caretList[i]);
             if (definitionToken === undefined) {
                 throw new Error(`Missing definition for ${caretList[i].formatWithColon()}`);
             }

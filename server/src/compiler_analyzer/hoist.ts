@@ -79,11 +79,15 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
 
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        const nextNamespace = nodeNamespace.namespaceList[i];
-        scopeIterator = scopeIterator.insertScopeAndCheck(nextNamespace, undefined);
+        const namespaceToken = nodeNamespace.namespaceList[i];
+        scopeIterator = scopeIterator.insertScopeAndCheck(namespaceToken, undefined);
+        scopeIterator.pushNamespaceToken(namespaceToken);
     }
 
-    hoistScript(scopeIterator, nodeNamespace.script, queue, queue);
+    hoistScript(
+        scopeIterator, nodeNamespace.script, queue,
+        queue // TODO: Is this correct? Check
+    );
 
     complementHintForScope(scopeIterator, nodeNamespace.nodeRange);
 }

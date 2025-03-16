@@ -31,6 +31,10 @@ export class TextPosition implements languageserver.Position {
         return this.line === other.line && this.character < other.character;
     }
 
+    public isLessThanOrEqual(other: languageserver.Position): boolean {
+        return this.isLessThan(other) || this.equals(other);
+    }
+
     public formatWithColon(): string {
         return `${this.line}:${this.character}`;
     }
@@ -131,6 +135,10 @@ export class TextLocation extends TextRange {
 
     public equals(other: TextLocation): boolean {
         return this.path === other.path && this.start.equals(other.start) && this.end.equals(other.end);
+    }
+
+    public toServerLocation(): languageserver.Location {
+        return languageserver.Location.create(this.path, this);
     }
 
     public withEnd(newEnd: TextPosition): TextLocation {
