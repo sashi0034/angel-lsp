@@ -841,20 +841,25 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
     if (isMemberMethod) {
         // Analyze method call.
-        const method = resolveActiveScope(classScope).lookupSymbol(identifier.text);
-        if (method === undefined) {
+        const instanceMember = resolveActiveScope(classScope).lookupSymbol(identifier.text);
+        if (instanceMember === undefined) {
             analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not defined.`);
             return undefined;
         }
 
-        if (method.isFunctionHolder()) {
-            return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslator);
+        if (instanceMember.isFunctionHolder()) {
+            // This instance member is a method.
+            return analyzeFunctionCaller(
+                scope, identifier, member.argList, instanceMember, exprValue.templateTranslator
+            );
         }
 
-        if (method.isVariable() && method.type?.typeOrFunc.isFunction()) {
-            // This member is a delegate.
-            const delegate = method.type.typeOrFunc.toHolder();
-            return analyzeFunctionCaller(scope, identifier, member.argList, delegate, exprValue.templateTranslator);
+        if (instanceMember.isVariable() && instanceMember.type?.typeOrFunc.isFunction()) {
+            // This instance member is a delegate.
+            const delegate = instanceMember.type.typeOrFunc.toHolder();
+            return analyzeFunctionCaller(
+                scope, identifier, member.argList, delegate, exprValue.templateTranslator, instanceMember
+            );
         }
 
         analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a method.`);
@@ -960,13 +965,16 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    if (calleeSymbol instanceof SymbolVariable && calleeSymbol.type?.typeOrFunc.isFunction()) {
+    if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
+        // Invoke function handler
         return analyzeFunctionCaller(
             scope,
             funcCall.identifier,
             funcCall.argList,
             new SymbolFunctionHolder(calleeSymbol.type.typeOrFunc),
-            undefined);
+            undefined,
+            calleeSymbol
+        );
     }
 
     if (calleeSymbol instanceof SymbolVariable) {
@@ -1007,7 +1015,8 @@ function analyzeFunctionCaller(
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
     calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslator: TemplateTranslator | undefined
+    templateTranslator: TemplateTranslator | undefined,
+    calleeDelegate?: SymbolVariable
 ) {
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
@@ -1039,7 +1048,8 @@ function analyzeFunctionCaller(
         callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         callerArgTypes: callerArgTypes,
         calleeFuncHolder: calleeFuncHolder,
-        calleeTemplateTranslator: templateTranslator
+        calleeTemplateTranslator: templateTranslator,
+        calleeDelegate: calleeDelegate
     });
 }
 
