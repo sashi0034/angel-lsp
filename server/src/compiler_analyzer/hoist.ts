@@ -28,7 +28,7 @@ import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../core/settings";
-import {builtinSetterValueToken, builtinThisToken, tryGetBuiltInType} from "./builtinType";
+import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from "./builtinType";
 import {TokenIdentifier, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {getIdentifierInNodeType} from "../compiler_parser/nodesUtils";
 import {
@@ -269,7 +269,7 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: 
 
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
-    const builtInType = tryGetBuiltInType(typeDef.type);
+    const builtInType = tryGetBuiltinType(typeDef.type);
     if (builtInType === undefined) return;
 
     const symbol: SymbolType = SymbolType.create({

@@ -61,7 +61,7 @@ import {
     resolvedBuiltinDouble,
     resolvedBuiltinFloat,
     resolvedBuiltinInt,
-    tryGetBuiltInType
+    tryGetBuiltinType
 } from "./builtinType";
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
@@ -297,11 +297,14 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        analyzerDiagnostic.add(typeIdentifier.location, `Invalid scope.`);
+        // This may seem like redundant processing, but it is invoked to add complement hints.
+        analyzeScope(scope, nodeType.scope);
+
+        analyzerDiagnostic.add(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
     }
 
-    const foundBuiltin = tryGetBuiltInType(typeIdentifier);
-    if (foundBuiltin !== undefined) return new ResolvedType(foundBuiltin);
+    const builtinType = tryGetBuiltinType(typeIdentifier);
+    if (builtinType !== undefined) return new ResolvedType(builtinType);
 
     return undefined;
 }
