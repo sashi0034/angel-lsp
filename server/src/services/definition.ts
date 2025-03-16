@@ -143,13 +143,17 @@ function findNamespaceTokenNearPosition(globalScope: SymbolScope, scopePath: Sco
 
     let result: TokenObject | undefined;
     if (isNodeEnumOrClassOrInterface(namespaceScope.linkedNode)) {
+        // When the access scope may be an enum, class or interface
         const linkedNode = namespaceScope.linkedNode;
+
+        // The namespace and the file defining the node may be different, so verification is necessary.
         if (linkedNode.identifier.location.path === namespaceScope.getContext().filepath) {
             result = namespaceScope.linkedNode.identifier;
         }
     }
 
     for (let i = namespaceScope.namespaceTokens.length - 1; i >= 0; i--) {
+        // Take the token of the namespace closest to the position
         const next = namespaceScope.namespaceTokens[i];
         result = result === undefined
             ? next
