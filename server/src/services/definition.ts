@@ -14,10 +14,11 @@ export function provideDefinition(globalScope: SymbolScope, caret: Position): Sy
 
 /**
  * Search for the definition of the symbol at the cursor position and return it as a token.
- * It also supports namespace definitions.
+ * This also supports namespace definitions.
  */
 export function provideDefinitionAsToken(globalScope: SymbolScope, globalScopeList: SymbolScope[], caret: Position): TokenObject | undefined {
     return provideDefinition(globalScope, caret)?.identifierToken
+        // fallback to namespace definition
         ?? provideNamespaceDefinition(globalScope, globalScopeList, caret);
 }
 
