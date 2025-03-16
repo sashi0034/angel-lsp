@@ -19,6 +19,11 @@ import assert = require("node:assert");
  */
 export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
 
+export function isNodeEnumOrClassOrInterface(type: NodesBase | undefined): type is NodeClass {
+    if (type === undefined) return false;
+    return type.nodeName === NodeName.Enum || type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
+}
+
 export function isNodeClassOrInterface(type: NodesBase | undefined): type is NodeClass {
     if (type === undefined) return false;
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
@@ -303,8 +308,9 @@ export class SymbolFunctionHolder implements SymbolHolder {
 }
 
 export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is SymbolFunctionHolder | SymbolVariable {
-    const canBeMember = (symbol.isFunctionHolder()) || (symbol instanceof SymbolVariable);
+    const canBeMember = symbol.isFunctionHolder() || symbol.isVariable();
     if (canBeMember === false) return false;
+
     return symbol.toList()[0].isInstanceMember;
 }
 

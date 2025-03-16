@@ -9,13 +9,13 @@ import {TemplateTranslator} from "./resolvedType";
  * Enumeration defining the different kinds of autocomplete targets.
  */
 export enum ComplementKind {
-    /** Autocomplete within a scope, such as inside `{}` in a function body. */
-    Scope = 'Scope',
+    /** Autocomplete within a scope, such as inside `{ }` in a function body. */
+    Scope = 'Scope', // TODO: Rename to ScopeRegion
 
-    /** Autocomplete for instance members, such as properties or methods of a class instance. */
+    /** Autocomplete for instance members, like `player.m_parent.$C$` */
     InstanceMember = 'InstanceMember',
 
-    /** Autocomplete for namespace symbols, such as `Outer::Inner::Symbol`. */
+    /** Autocomplete for namespace symbols, like `Outer::Inner::$C$`. */
     NamespaceSymbol = 'NamespaceSymbol',
 
     /** Autocomplete for function arguments, suggesting possible values when calling a function. */
@@ -53,16 +53,19 @@ export interface ComplementInstanceMember extends ComplementBase {
 
 /**
  * Represents an autocomplete target for namespace symbols.
- * e.g,, suggesting possible completions for `Outer::Inner::...`.
+ * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two hints.
+ * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
  */
 export interface ComplementNamespaceSymbol extends ComplementBase {
     complementKind: ComplementKind.NamespaceSymbol;
-    namespaceList: TokenObject[];
+    accessScope: SymbolScope;
+    namespaceToken: TokenObject; // The namespace qualifier token.
+    tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the NodeScope.
 }
 
 /**
  * Represents an autocomplete target for function arguments.
- * e.g., providing argument suggestions when typing inside a function call `fn(|)`, where `|` is the caret.
+ * e.g., providing argument suggestions when typing inside a function call `fn($C$)`, where `$C$` is the caret.
  */
 export interface ComplementCallerArgument extends ComplementBase {
     complementKind: ComplementKind.CallerArguments;

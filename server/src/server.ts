@@ -13,7 +13,7 @@ import {
     TextDocument
 } from 'vscode-languageserver-textdocument';
 import {highlightForModifierList, highlightForTokenList} from "./core/highlight";
-import {getFileLocationOfToken, provideDefinition, provideDefinitionAsToken} from "./services/definition";
+import {provideDefinition, provideDefinitionAsToken} from "./services/definition";
 import {
     getInspectedRecord,
     getInspectedRecordList,
@@ -214,11 +214,15 @@ connection.onDefinition((params) => {
 
     const caret = params.position;
 
-    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, caret);
+    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, getGlobalScopeList(), caret);
     if (jumping === undefined) return;
 
-    return getFileLocationOfToken(jumping);
+    return jumping.location.toServerLocation();
 });
+
+function getGlobalScopeList() {
+    return getInspectedRecordList().map(result => result.analyzerScope.globalScope);
+}
 
 // Search for references of a symbol
 function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
@@ -232,7 +236,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
         analyzedScope.globalScope,
         getInspectedRecordList().map(result => result.analyzerScope.globalScope),
         caret);
-    return references.map(ref => getFileLocationOfToken(ref));
+    return references.map(ref => ref.location.toServerLocation());
 }
 
 connection.onReferences((params) => {

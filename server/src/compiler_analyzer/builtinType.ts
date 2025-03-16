@@ -54,7 +54,7 @@ export const builtinAnyType: SymbolType = createBuiltinType(TokenReserved.create
 
 export const builtinAutoType: SymbolType = createBuiltinType(TokenReserved.createVirtual('auto'));
 
-export function tryGetBuiltInType(token: TokenObject): SymbolType | undefined {
+export function tryGetBuiltinType(token: TokenObject): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;

@@ -83,7 +83,10 @@ export class SymbolScope {
     // The symbol table that contains the symbols declared in this scope
     private readonly _symbolTable: SymbolTable = new Map();
 
-    public readonly referencedList: ReferencedSymbolInfo[] = [];
+    // Tokens that represent this scope.
+    private readonly _namespaceTokens: TokenObject[] = [];
+
+    public readonly referencedList: ReferencedSymbolInfo[] = []; // TODO: Rename
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
@@ -188,6 +191,7 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
+    // FIXME: Should be used from the global scope?
     public pushCompletionHint(hint: ComplementHint) {
         const context = this.getContext();
         assert(hint.complementLocation.path === context.filepath);
@@ -197,6 +201,17 @@ export class SymbolScope {
     public get completionHints(): ReadonlyArray<ComplementHint> {
         assert(this._parentOrContext instanceof SymbolScope === false);
         return this._parentOrContext.completionHints;
+    }
+
+    public pushNamespaceToken(token: TokenObject) {
+        this._namespaceTokens.push(token);
+    }
+
+    /**
+     * Tokens that represent this scope.
+     */
+    public get namespaceTokens(): ReadonlyArray<TokenObject> {
+        return this._namespaceTokens;
     }
 
     /**

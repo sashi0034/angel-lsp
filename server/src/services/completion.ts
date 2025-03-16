@@ -10,7 +10,7 @@ import {
     isAnonymousIdentifier, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
-import {findScopeContainingPosition} from "./serviceHelper";
+import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 
@@ -33,17 +33,27 @@ export function provideCompletions(
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
     for (const scope of [...collectParentScopeList(caretScope), caretScope]) {
-        items.push(...getCompletionSymbolsInScope(scope));
+        items.push(...getCompletionSymbolsInScope(scope, true));
     }
 
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
+function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItem[] {
     const items: CompletionItem[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of scope.symbolTable) {
+        if (includeInstanceMember === false) {
+            // Skip instance members
+            if (isSymbolInstanceMember(symbol)) continue;
+
+            if (symbol.isVariable() && symbol.identifierToken.isVirtual() && symbol.identifierText === 'this') {
+                // FIXME: Probably something is wrong
+                continue;
+            }
+        }
+
         items.push({
             label: symbolName,
             kind: symbolToCompletionKind(symbol),
@@ -53,7 +63,9 @@ function getCompletionSymbolsInScope(scope: SymbolScope): CompletionItem[] {
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopeTable) {
         if (childScope.isNamespaceWithoutNode() === false) continue;
+
         if (isAnonymousIdentifier(childName)) continue;
+
         items.push({
             label: childName,
             kind: CompletionItemKind.Module,
@@ -108,20 +120,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
         // Return the completion candidates in the scope.
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
     } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
-        // Find the scope to which the namespace to be completed belongs.
-        const namespaceList = completion.namespaceList;
-        if (namespaceList.length === 0) return [];
-
-        let namespaceScope = globalScope.lookupScopeWithParent(namespaceList[0].text);
-        if (namespaceScope === undefined) return [];
-
-        for (let i = 1; i < namespaceList.length; i++) {
-            namespaceScope = namespaceScope.lookupScope(namespaceList[i].text);
-            if (namespaceScope === undefined) return [];
-        }
-
         // Return the completion candidates in the scope.
-        return getCompletionSymbolsInScope(namespaceScope);
+        return getCompletionSymbolsInScope(completion.accessScope, false);
     }
 
     return undefined;

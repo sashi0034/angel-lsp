@@ -61,7 +61,7 @@ import {
     resolvedBuiltinDouble,
     resolvedBuiltinFloat,
     resolvedBuiltinInt,
-    tryGetBuiltInType
+    tryGetBuiltinType
 } from "./builtinType";
 import {complementHintForScope, ComplementKind} from "./complementHint";
 import {
@@ -76,10 +76,10 @@ import {getGlobalSettings} from "../core/settings";
 import assert = require("node:assert");
 import {ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
 import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
+import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 
 export type HoistQueue = (() => void)[];
 
@@ -297,11 +297,14 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        analyzerDiagnostic.add(typeIdentifier.location, `Invalid scope.`);
+        // This may seem like redundant processing, but it is invoked to add complement hints.
+        analyzeScope(scope, nodeType.scope);
+
+        analyzerDiagnostic.add(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
     }
 
-    const foundBuiltin = tryGetBuiltInType(typeIdentifier);
-    if (foundBuiltin !== undefined) return new ResolvedType(foundBuiltin);
+    const builtinType = tryGetBuiltinType(typeIdentifier);
+    if (builtinType !== undefined) return new ResolvedType(builtinType);
 
     return undefined;
 }
@@ -341,24 +344,26 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
-    let scopeIterator = parentScope;
-    if (nodeScope.isGlobal) {
-        scopeIterator = findGlobalScope(parentScope);
-    }
+    let scopeIterator =
+        nodeScope.isGlobal ? parentScope.getGlobalScope() : parentScope;
+    const tokenAfterNamespaces = nodeScope.nodeRange.end.next;
+
     for (let i = 0; i < nodeScope.scopeList.length; i++) {
-        const nextScope = nodeScope.scopeList[i];
+        const scopeToken = nodeScope.scopeList[i];
 
         // Search for the scope corresponding to the name.
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
-            found = scopeIterator.lookupScope(nextScope.text);
-            if (found?.linkedNode?.nodeName === NodeName.Func) found = undefined;
+            found = scopeIterator.lookupScope(scopeToken.text);
+            if (found?.hasFunctionScopes()) found = undefined;
             if (found !== undefined) break;
+            // -----------------------------------------------
+
             if (i == 0 && scopeIterator.parentScope !== undefined) {
-                // If it is not a global scope, search further up the hierarchy.
+                // If it is not a global scope, search higher in the hierarchy.
                 scopeIterator = scopeIterator.parentScope;
             } else {
-                analyzerDiagnostic.add(nextScope.location, `Undefined scope: ${nextScope.text}`);
+                analyzerDiagnostic.add(scopeToken.location, `Undefined scope: ${scopeToken.text}`);
                 return undefined;
             }
         }
@@ -367,12 +372,12 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // Append a hint for completion of the namespace to the scope.
-        const complementRange: TextLocation = nextScope.location.withEnd(
-            nextScope.getNextOrSelf().getNextOrSelf().location.start);
         parentScope.pushCompletionHint({
             complementKind: ComplementKind.NamespaceSymbol,
-            complementLocation: complementRange,
-            namespaceList: nodeScope.scopeList.slice(0, i + 1)
+            complementLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+            accessScope: scopeIterator,
+            namespaceToken: scopeToken,
+            tokenAfterNamespaces: tokenAfterNamespaces,
         });
     }
 
