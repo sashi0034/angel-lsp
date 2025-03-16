@@ -124,4 +124,40 @@ describe("Completion", () => {
         , /* $C0 */ ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e", "main"]
         , /* $C1 */ ["w", "d", "x", "a"]
     );
+
+    testCompletion(`
+        class A {
+            void apple();
+        }
+        
+        namespace A {
+            namespace B {
+                void beta_0() { }
+                
+                namespace C_0 { int c_0; }
+            }
+
+            void alpha_0() { }
+        }
+        
+        namespace A {
+            namespace B {
+                void beta_1() { }
+                
+                namespace C_1 { int c_1; }
+            }
+
+            void alpha_1() { }
+        }
+        
+        void main() {
+            A::$C0$B::$C1$ int value; // We want to complement even though it is invalid syntax.
+            
+            A a;
+            a.$C2$
+        }`
+        , /* $C0$ */ ["B", "alpha_0", "alpha_1"]
+        , /* $C1$ */ ["beta_0", "beta_1", "C_0", "C_1"]
+        , /* $C2$ */ ["apple"]
+    );
 });
