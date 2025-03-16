@@ -136,7 +136,8 @@ export abstract class TokenBase {
         return this.next ?? this;
     }
 
-    public equals(other: TokenBase): boolean {
+    public equals(other: TokenBase | undefined): boolean {
+        if (other === undefined) return false;
         return this === other || (this.location.equals(other.location));
     }
 }

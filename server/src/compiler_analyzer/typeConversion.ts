@@ -291,7 +291,8 @@ function evaluateConvObjectToObject(
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
-    if (srcType.linkedNode === destType.linkedNode) return ConversionConst.NoConv;
+    // Check if these are identical
+    if (src.identifierToken?.equals(dest.identifierToken)) return ConversionConst.NoConv;
 
     // FIXME?
     if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
@@ -380,7 +381,8 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) return false;
 
-    if (srcType.linkedNode === destType.linkedNode) return true;
+    // Check if these are identical
+    if (srcType.identifierToken.equals(destType.identifierToken)) return true;
 
     if (isNodeClassOrInterface(srcNode)) {
         if (srcType.baseList === undefined) return false;
