@@ -1,9 +1,17 @@
 import {flushInspectedRecord, getInspectedRecord, inspectFile} from "../../src/inspector/inspector";
 import {provideCompletions} from "../../src/services/completion";
-import {makeCaretAndContent} from "./utils";
+import {makeCaretListAndContent} from "./utils";
 
-function testCompletion(rawContent: string, expected: string[]) {
-    const {caret, content} = makeCaretAndContent(rawContent);
+function concatIndexAndItem(item: string, index: number) {
+    return `${index}:${item}`;
+}
+
+function testCompletion(rawContent: string, ...expectedList: string[][]) {
+    const {caretList, content} = makeCaretListAndContent(rawContent);
+
+    if (caretList.length !== expectedList.length) {
+        throw new Error(`Expected ${expectedList.length} caret positions, but got ${caretList.length}`);
+    }
 
     it(`completion ${rawContent}`, () => {
         const uri = "/foo/bar.as";
@@ -11,24 +19,22 @@ function testCompletion(rawContent: string, expected: string[]) {
         flushInspectedRecord();
         const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
 
-        const completions = provideCompletions(globalScope, caret).map(c => c.label);
-        if (completions.length !== expected.length) {
-            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
-        }
-
-        let remainingCandidates = expected;
-        completions.map((item) => {
-            remainingCandidates = remainingCandidates.filter((candidate) => candidate !== item);
-        });
-
-        if (remainingCandidates.length > 0) {
-            throw new Error(`Expected completions [${expected.join(", ")}], but got [${completions.join(", ")}]`);
+        // Iterate through each caret position and check if the completions are as expected.
+        for (let i = 0; i < caretList.length; i++) {
+            const caret = caretList[i];
+            const expected =
+                expectedList[i].sort().map(concatIndexAndItem).join(", ");
+            const completions =
+                provideCompletions(globalScope, caret).map(c => c.label).sort().map(concatIndexAndItem).join(", ");
+            if (completions !== expected) {
+                throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);
+            }
         }
     });
 }
 
 describe("Completion", () => {
-    // Caret is marked by "$C$"
+    // Caret is marked by "$C0$", "$C2$", etc.
 
     testCompletion(`
         void foo() { 
@@ -38,7 +44,7 @@ describe("Completion", () => {
         void bar() {
             int y = 1;
             while (y < 10) {
-                $C$
+                $C0$
             }
         }    
         `, ["foo", "bar", "y"]
@@ -48,7 +54,7 @@ describe("Completion", () => {
         class Player {
             int x, y;
             
-            void attack() { }
+            void attack() { $C0$ }
             
             private void move() { }
         }
@@ -56,22 +62,10 @@ describe("Completion", () => {
         void bar() {
             int y = 1;
             Player player;
-            player.$C$
+            player.$C1$
         }    
-        `, ["x", "y", "attack"]
-    );
-
-    testCompletion(`
-        class Player {
-            int x, y;
-            
-            void attack() { $C$ }
-            
-            private void move() { }
-        }
-        
-        void bar() { }    
-        `, ["Player", "x", "y", "this", "attack", "move", "bar"]
+        `,  /* $C0$ */ ["Player", "x", "y", "this", "attack", "move", "bar"]
+        , /* $C1$ */ ["x", "y", "attack"]
     );
 
     testCompletion(`
@@ -84,7 +78,7 @@ describe("Completion", () => {
         }
         
         void main() {
-            foo::$C$
+            foo::$C0$
         }
     `, ["bar", "call_foo"]
     );
@@ -99,7 +93,7 @@ describe("Completion", () => {
         }
         
         void main() {
-            foo::bar::$C$
+            foo::bar::$C0$
         }
     `, ["call_baz"]
     );
@@ -117,28 +111,7 @@ describe("Completion", () => {
         
         class Bar : Foo {
             int w;
-            void d() { $C$ }
-
-            private int v;
-            private void e() { }
-        }
-    `, ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e"]
-    );
-
-    testCompletion(`
-        class Foo {
-            int x;
-            private int z;
-            protected int y;
-            
-            void a() { }
-            private void b() { }
-            protected void c() { }
-        }
-        
-        class Bar : Foo {
-            int w;
-            void d() { }
+            void d() { $C0$ }
             
             private int v;
             private void e() { }
@@ -146,7 +119,9 @@ describe("Completion", () => {
         
         void main() {
             Bar bar;
-            bar.$C$
-    `, ["w", "d", "x", "a"]
+            bar.$C1$
+        }`
+        , /* $C0 */ ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e", "main"]
+        , /* $C1 */ ["w", "d", "x", "a"]
     );
 });
