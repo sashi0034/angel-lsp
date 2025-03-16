@@ -56,6 +56,8 @@ export abstract class SymbolBase {
 
     public abstract get identifierText(): string;
 
+    public abstract toHolder(): SymbolObjectHolder;
+
     public isType(): this is SymbolType {
         return this.kind === SymbolKind.Type;
     }
@@ -66,12 +68,6 @@ export abstract class SymbolBase {
 
     public isFunction(): this is SymbolFunction {
         return this.kind === SymbolKind.Function;
-    }
-
-    public toHolder(): SymbolObjectHolder {
-        if (this.isFunction()) return new SymbolFunctionHolder(this);
-        assert(this instanceof SymbolType || this instanceof SymbolVariable);
-        return this;
     }
 
     public equals(other: SymbolBase): boolean {
@@ -140,6 +136,10 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         return this.identifierToken.text;
     }
 
+    public toHolder(): SymbolObjectHolder {
+        return this;
+    }
+
     /**
      * Determine if the type is a primitive type. (e.g. int, float, void)
      * Note: enum is not a primitive type here.
@@ -203,6 +203,10 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         return this.identifierToken.text;
     }
 
+    public toHolder(): SymbolObjectHolder {
+        return this;
+    }
+
     public isFunctionHolder(): this is SymbolFunctionHolder {
         return false;
     }
@@ -260,6 +264,10 @@ export class SymbolFunction extends SymbolBase {
 
     public get identifierText(): string {
         return this.identifierToken.text;
+    }
+
+    public toHolder(): SymbolFunctionHolder {
+        return new SymbolFunctionHolder(this);
     }
 }
 
@@ -324,7 +332,7 @@ export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHol
  * Information about a symbol that references a symbol declared elsewhere.
  */
 export interface ReferencedSymbolInfo {
-    readonly declaredSymbol: SymbolObject;
+    readonly declaredSymbol: SymbolObject; // TODO: Rename it
     readonly referencedToken: TokenObject;
 }
 

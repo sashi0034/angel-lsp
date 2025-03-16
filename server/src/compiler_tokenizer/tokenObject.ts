@@ -125,6 +125,7 @@ export abstract class TokenBase {
      * Information on the token range this token replaced
      * It is basically set for virtual tokens.
      */
+    // TODO: Rename to coveredRange?
     public get replacedRange(): TokenRange | undefined {
         return this._replacedRange;
     }

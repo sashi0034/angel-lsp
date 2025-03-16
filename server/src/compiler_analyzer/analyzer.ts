@@ -847,12 +847,18 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
-        if (method.isFunctionHolder() === false) {
-            analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a method.`);
-            return undefined;
+        if (method.isFunctionHolder()) {
+            return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslator);
         }
 
-        return analyzeFunctionCaller(scope, identifier, member.argList, method, exprValue.templateTranslator);
+        if (method.isVariable() && method.type?.typeOrFunc.isFunction()) {
+            // This member is a delegate.
+            const delegate = method.type.typeOrFunc.toHolder();
+            return analyzeFunctionCaller(scope, identifier, member.argList, delegate, exprValue.templateTranslator);
+        }
+
+        analyzerDiagnostic.add(identifier.location, `'${identifier.text}' is not a method.`);
+        return undefined;
     } else {
         // Analyze field access.
         return analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
@@ -1006,6 +1012,7 @@ function analyzeFunctionCaller(
     const callerArgTypes = analyzeArgList(scope, callerArgList);
 
     if (calleeFuncHolder.first.linkedNode.nodeName === NodeName.FuncDef) {
+        // TODO: It seems that the below code is not necessary?
         // If the callee is a delegate, return it as a function handler.
         const handlerType = new ResolvedType(calleeFuncHolder.first);
         if (callerArgTypes.length === 1 && canTypeCast(callerArgTypes[0], handlerType)) {
