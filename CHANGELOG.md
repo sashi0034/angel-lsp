@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.29] 2025/03/17
+
+- [#146](https://github.com/sashi0034/angel-lsp/pull/146), [#145](https://github.com/sashi0034/angel-lsp/pull/145), etc.
+
 ## [0.3.28] 2025/03/15
 
 - Fixed bugs.
