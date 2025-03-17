@@ -47,7 +47,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     resolveActiveScope,
@@ -924,11 +924,11 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
         switch (literalValue.numberLiteral) {
-        case NumberLiterals.Integer:
+        case NumberLiteral.Integer:
             return resolvedBuiltinInt;
-        case NumberLiterals.Float:
+        case NumberLiteral.Float:
             return resolvedBuiltinFloat;
-        case NumberLiterals.Double:
+        case NumberLiteral.Double:
             return resolvedBuiltinDouble;
         }
     }

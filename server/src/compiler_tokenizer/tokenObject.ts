@@ -187,7 +187,7 @@ export class TokenIdentifier extends TokenBase {
     }
 }
 
-export enum NumberLiterals { // TODO: Rename to NumberLiteral
+export enum NumberLiteral {
     Integer = 'Integer',
     Float = 'Float',
     Double = 'Double',
@@ -197,7 +197,7 @@ export class TokenNumber extends TokenBase {
     public constructor(
         text: string,
         location: TextLocation,
-        public readonly numberLiteral: NumberLiterals,
+        public readonly numberLiteral: NumberLiteral,
     ) {
         super(text, location, HighlightForToken.Number);
     }
