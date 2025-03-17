@@ -37,12 +37,12 @@ function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: 
         }
     }
 
-    for (const reference of scope.referencedList) {
+    for (const reference of scope.referenceList) {
         // Search a symbol in references in this scope
-        const referencedLocation = reference.referencedToken.location;
+        const referencedLocation = reference.fromToken.location;
         if (referencedLocation.positionInRange(caret)) {
             // If the reference location is on the cursor, return the declaration
-            return reference.declaredSymbol;
+            return reference.toSymbol;
         }
     }
 
@@ -128,10 +128,10 @@ function findDefinitionByToken(scope: SymbolScope, target: TokenObject): SymbolO
         }
     }
 
-    for (const reference of scope.referencedList) {
+    for (const reference of scope.referenceList) {
         // Search a symbol in references in this scope
-        if (reference.referencedToken.equals(target)) {
-            return reference.declaredSymbol;
+        if (reference.fromToken.equals(target)) {
+            return reference.toSymbol;
         }
     }
 

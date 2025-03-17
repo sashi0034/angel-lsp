@@ -279,9 +279,9 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    scope.referencedList.push({
-        declaredSymbol: foundSymbol,
-        referencedToken: identifier
+    scope.referenceList.push({
+        toSymbol: foundSymbol,
+        fromToken: identifier
     });
 
     return ResolvedType.create({
@@ -779,16 +779,16 @@ function analyzeBuiltinConstructorCaller(
                 `Enum constructor '${constructorIdentifier}' requires an integer.`);
         }
 
-        scope.referencedList.push({declaredSymbol: constructorType.typeOrFunc, referencedToken: callerIdentifier});
+        scope.referenceList.push({toSymbol: constructorType.typeOrFunc, fromToken: callerIdentifier});
 
         return constructorType;
     }
 
     if (callerArgList.argList.length === 0) {
         // Default constructor
-        scope.referencedList.push({
-            declaredSymbol: constructorType.typeOrFunc,
-            referencedToken: callerIdentifier
+        scope.referenceList.push({
+            toSymbol: constructorType.typeOrFunc,
+            fromToken: callerIdentifier
         });
         return constructorType;
     }
@@ -1092,9 +1092,9 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        checkingScope.referencedList.push({
-            declaredSymbol: declared.symbol.toList()[0],
-            referencedToken: varIdentifier
+        checkingScope.referenceList.push({
+            toSymbol: declared.symbol.toList()[0],
+            fromToken: varIdentifier
         });
     }
 

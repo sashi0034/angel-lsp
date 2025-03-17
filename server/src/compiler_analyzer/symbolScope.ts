@@ -1,5 +1,5 @@
 import {
-    ReferencedSymbolInfo,
+    ReferenceInformation,
     ScopePath,
     SymbolObject,
     SymbolObjectHolder,
@@ -86,7 +86,7 @@ export class SymbolScope {
     // Tokens that represent this scope.
     private readonly _namespaceTokens: TokenObject[] = [];
 
-    public readonly referencedList: ReferencedSymbolInfo[] = []; // TODO: Rename
+    public readonly referenceList: ReferenceInformation[] = [];
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
