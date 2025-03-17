@@ -1049,7 +1049,7 @@ function analyzeFunctionCaller(
         complementKind: ComplementKind.CallerArguments,
         boundingLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
-        passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
+        callerNode: callerArgList,
         templateTranslator: templateTranslator
     });
 

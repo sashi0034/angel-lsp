@@ -35,6 +35,7 @@ import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLo
 import {provideInlineHint} from "./services/inlineHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
+import {provideCodeAction} from "./services/codeAction";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -282,15 +283,18 @@ connection.onCodeActionResolve((action) => {
     const context = action.data as CodeActionContext;
     const uri = context.uri;
 
-    action.edit = {
-        changes: {
-            [uri]: [
-                {
-                    range: action.diagnostics![0].range,
-                    newText: 'Hello, World!'
-                }]
-        }
-    };
+    if (action.diagnostics === undefined || action.diagnostics.length === 0) return action;
+
+    const range = TextRange.create(action.diagnostics[0].range);
+
+    const edits = provideCodeAction(
+        getInspectedRecord(uri).analyzerScope.globalScope,
+        getGlobalScopeList(),
+        new TextLocation(uri, range.start, range.end),
+        action.diagnostics[0].data
+    );
+
+    action.edit = {changes: {[uri]: edits}};
 
     return action;
 });

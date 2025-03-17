@@ -4,6 +4,7 @@ import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {TemplateTranslator} from "./resolvedType";
+import {NodeArgList} from "../compiler_parser/nodes";
 
 /**
  * Enumeration defining the different kinds of autocomplete targets.
@@ -70,7 +71,7 @@ export interface ComplementNamespaceSymbol extends ComplementBase {
 export interface ComplementCallerArgument extends ComplementBase {
     complementKind: ComplementKind.CallerArguments;
     expectedCallee: SymbolFunction;
-    passingRanges: TokenRange[];
+    callerNode: NodeArgList;
     templateTranslator: TemplateTranslator | undefined;
 }
 
