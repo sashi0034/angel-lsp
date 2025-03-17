@@ -16,6 +16,7 @@
 		"vscode-languageserver-textdocument": "^1.0.11"
 	},
 	"scripts": {
-		"test": "mocha"
+		"test": "mocha",
+		"bundle": "tsc && npx esbuild src/server.ts --bundle --outfile=angelscript-language-server.js --minify --platform=node"
 	}
 }
