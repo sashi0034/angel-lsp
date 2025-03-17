@@ -7,7 +7,7 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopeList,
-    isAnonymousIdentifier, SymbolScope
+    isAnonymousIdentifier, SymbolGlobalScope, SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./utils";
@@ -18,7 +18,7 @@ import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletions(
-    globalScope: SymbolScope, caret: TextPosition
+    globalScope: SymbolGlobalScope, caret: TextPosition
 ): CompletionItem[] {
     const items: CompletionItem[] = [];
 
@@ -92,12 +92,12 @@ function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: Symbo
     return items;
 }
 
-function checkMissingCompletionInScope(globalScope: SymbolScope, caretScope: SymbolScope, caret: Position) {
+function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
     if (globalScope.completionHints.length === 0) return;
 
     for (const hint of globalScope.completionHints) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.complementLocation;
+        const location = hint.boundingLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             const result = searchMissingCompletion(globalScope, caretScope, hint);

@@ -1,5 +1,5 @@
 import {
-    NumberLiterals,
+    NumberLiteral,
     TokenComment,
     TokenIdentifier,
     TokenObject,
@@ -85,45 +85,45 @@ function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumb
 
 function consumeNumber(tokenizer: TokenizerState) {
     // Fails if the next token is not a number or a dot.
-    if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiterals.Integer;
+    if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiteral.Integer;
 
     // Fails if the token after a dot is another dot
-    if (tokenizer.next() === '.' && tokenizer.next(1) === '.') return NumberLiterals.Integer;
+    if (tokenizer.next() === '.' && tokenizer.next(1) === '.') return NumberLiteral.Integer;
 
     // Fails if the next tokens are '.f' or '.F'
-    if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) return NumberLiterals.Integer;
+    if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) return NumberLiteral.Integer;
 
     if (tokenizer.next(0) === '0') {
         if (/^[bB]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
             while (tokenizer.isEnd() === false && isBinChara(tokenizer.next())) tokenizer.stepNext();
-            return NumberLiterals.Integer;
+            return NumberLiteral.Integer;
         } else if (/^[oO]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
             while (tokenizer.isEnd() === false && isOctChara(tokenizer.next())) tokenizer.stepNext();
-            return NumberLiterals.Integer;
+            return NumberLiteral.Integer;
         } else if (/^[dD]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
             while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
-            return NumberLiterals.Integer;
+            return NumberLiteral.Integer;
         } else if (/^[xX]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
             while (tokenizer.isEnd() === false && isHexChar(tokenizer.next())) tokenizer.stepNext();
-            return NumberLiterals.Integer;
+            return NumberLiteral.Integer;
         }
     }
 
     // Read until it is 0-9.
     while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
 
-    let numberLiteral = NumberLiterals.Integer;
+    let numberLiteral = NumberLiteral.Integer;
 
     // Check if it is a floating point number
     let f = 0;
     if (tokenizer.next() === '.') {
         f++;
         while (isDigit(tokenizer.next(f))) f++;
-        numberLiteral = NumberLiterals.Double;
+        numberLiteral = NumberLiteral.Double;
     }
 
     // Check if it has an exponent
@@ -131,17 +131,17 @@ function consumeNumber(tokenizer: TokenizerState) {
     if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer.next(f + 2))) {
         f += 3;
         while (isDigit(tokenizer.next(f))) f++;
-        numberLiteral = NumberLiterals.Double;
+        numberLiteral = NumberLiteral.Double;
     }
 
     if (f >= 1) {
         tokenizer.stepFor(f);
 
         // Check half precision floating point
-        if (numberLiteral === NumberLiterals.Double) {
+        if (numberLiteral === NumberLiteral.Double) {
             if (/^[fF]$/.test(tokenizer.next())) {
                 tokenizer.stepNext();
-                return NumberLiterals.Float;
+                return NumberLiteral.Float;
             }
         }
     }

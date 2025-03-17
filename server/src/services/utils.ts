@@ -1,11 +1,11 @@
-import {ComplementKind, ComplementScope} from "../compiler_analyzer/complementHint";
+import {ComplementKind, ComplementScopeRegion} from "../compiler_analyzer/complementHint";
 import {Position} from "vscode-languageserver";
 import {SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 
-export function takeNarrowestHint(lhs: ComplementScope, rhs: ComplementScope): ComplementScope {
-    const lhsDiff = lhs.complementLocation.getDifference();
-    const rhsDiff = rhs.complementLocation.getDifference();
+export function takeNarrowestHint(lhs: ComplementScopeRegion, rhs: ComplementScopeRegion): ComplementScopeRegion {
+    const lhsDiff = lhs.boundingLocation.getDifference();
+    const rhsDiff = rhs.boundingLocation.getDifference();
 
     if (lhsDiff.line < rhsDiff.line) return lhs;
     if (lhsDiff.line > rhsDiff.line) return rhs;
@@ -18,11 +18,11 @@ export function takeNarrowestHint(lhs: ComplementScope, rhs: ComplementScope): C
 export function findScopeContainingPosition(scope: SymbolScope, caret: Position, path: string): SymbolScope {
     const globalScope = scope.getGlobalScope();
 
-    let cursor: ComplementScope | undefined = undefined;
+    let cursor: ComplementScopeRegion | undefined = undefined;
     for (const hint of globalScope.completionHints) {
-        if (hint.complementKind !== ComplementKind.Scope) continue;
+        if (hint.complementKind !== ComplementKind.ScopeRegion) continue;
 
-        const location = hint.complementLocation;
+        const location = hint.boundingLocation;
         if (location.path !== path) continue;
 
         if (location.positionInRange(caret)) {

@@ -102,8 +102,8 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                callerScope.referencedList.push({
-                    declaredSymbol: calleeDelegate ?? bestMatching.function, referencedToken: callerIdentifier
+                callerScope.pushReference({
+                    toSymbol: calleeDelegate ?? bestMatching.function, fromToken: callerIdentifier
                 });
             }
         };
@@ -116,8 +116,8 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 handleMismatchError(args, lastMismatchReason);
 
                 // Although the function call resolution fails, an approximate symbol is added as a reference.
-                callerScope.referencedList.push({
-                    declaredSymbol: calleeDelegate ?? calleeFuncHolder.first, referencedToken: callerIdentifier
+                callerScope.pushReference({
+                    toSymbol: calleeDelegate ?? calleeFuncHolder.first, fromToken: callerIdentifier
                 });
             }
         };

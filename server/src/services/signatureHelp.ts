@@ -3,12 +3,12 @@ import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
 import {ComplementKind, ComplementCallerArgument} from "../compiler_analyzer/complementHint";
 import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
-import {SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {applyTemplateTranslator} from "../compiler_analyzer/resolvedType";
 
 export function provideSignatureHelp(
-    globalScope: SymbolScope, caret: Position, uri: URI
+    globalScope: SymbolGlobalScope, caret: Position, uri: URI
 ): SignatureHelp {
     const signatures: SignatureInformation[] = [];
 
@@ -17,7 +17,7 @@ export function provideSignatureHelp(
         if (hint.complementKind !== ComplementKind.CallerArguments) continue;
 
         // Check if the caller location is at the cursor position in the scope.
-        const location = hint.complementLocation;
+        const location = hint.boundingLocation;
         if (location.positionInRange(caret)) {
             const expectedCallee =
                 globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.identifierToken.text);

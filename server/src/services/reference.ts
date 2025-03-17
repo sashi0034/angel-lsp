@@ -1,9 +1,9 @@
 import {Position} from "vscode-languageserver";
 import {provideDefinitionAsToken} from "./definition";
-import {SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-export function provideReferences(globalScope: SymbolScope, globalScopeList: SymbolScope[], caret: Position): TokenObject[] {
+export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolScope[], caret: Position): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
     if (targetDefinition === undefined) return [];
 
@@ -17,12 +17,12 @@ export function provideReferences(globalScope: SymbolScope, globalScopeList: Sym
 function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObject): TokenObject[] {
     const references = [];
 
-    for (const reference of scope.referencedList) {
+    for (const reference of scope.referenceList) {
         // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        if (reference.declaredSymbol.identifierToken === targetDefinition
-            || reference.declaredSymbol.identifierToken.equals(targetDefinition)
+        if (reference.toSymbol.identifierToken === targetDefinition
+            || reference.toSymbol.identifierToken.equals(targetDefinition)
         ) {
-            references.push(reference.referencedToken);
+            references.push(reference.fromToken);
         }
     }
 

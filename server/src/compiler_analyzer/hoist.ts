@@ -1,5 +1,5 @@
 import {
-    createAnonymousIdentifier,
+    createAnonymousIdentifier, SymbolGlobalScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -23,7 +23,7 @@ import {
     NodeVirtualProp,
     ParsedEnumMember
 } from "../compiler_parser/nodes";
-import {complementHintForScope} from "./complementHint";
+import {complementScopeRegion} from "./complementHint";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -44,6 +44,7 @@ import {
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {AnalyzerScope} from "./analyzerScope";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
@@ -89,7 +90,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
         queue // TODO: Is this correct? Check
     );
 
-    complementHintForScope(scopeIterator, nodeNamespace.nodeRange);
+    complementScopeRegion(scopeIterator, nodeNamespace.nodeRange);
 }
 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -168,7 +169,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
                 for (const superSymbol of superConstructor.toList()) {
                     superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
                         'super',
-                        superSymbol.identifierToken.location
+                        new TokenRange(superSymbol.identifierToken, superSymbol.identifierToken)
                     );
 
                     scope.insertSymbolAndCheck(superSymbol);
@@ -177,7 +178,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         });
     });
 
-    complementHintForScope(scope, nodeClass.nodeRange);
+    complementScopeRegion(scope, nodeClass.nodeRange);
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
@@ -213,9 +214,9 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             // Found the base class
             baseList.push(new ResolvedType(baseType.symbol));
 
-            scope.referencedList.push({
-                declaredSymbol: baseType.symbol,
-                referencedToken: baseIdentifier
+            scope.pushReference({
+                toSymbol: baseType.symbol,
+                fromToken: baseIdentifier
             });
         }
     }
@@ -321,7 +322,8 @@ function hoistFunc(
         if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
             const identifier: TokenObject = TokenIdentifier.createVirtual(
                 nodeFunc.identifier.text.substring(4),
-                nodeFunc.identifier.location);
+                new TokenRange(nodeFunc.identifier, nodeFunc.identifier)
+            );
 
             const symbol: SymbolVariable = SymbolVariable.create({
                 identifierToken: identifier, // FIXME?
@@ -366,7 +368,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    complementHintForScope(scope, nodeInterface.nodeRange);
+    complementScopeRegion(scope, nodeInterface.nodeRange);
 }
 
 function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
@@ -548,7 +550,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
-    const globalScope: SymbolScope = SymbolScope.createEmpty();
+    const globalScope: SymbolGlobalScope = new SymbolGlobalScope();
 
     globalScope.initializeContext(path);
 

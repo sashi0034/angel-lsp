@@ -13,6 +13,7 @@ const reservedMarkArray = [
 
 // A list of Marks with context-dependent reserved words removed. We call it Atomic Marks.
 // For example, in "array<array<int>>", '>>' should be recognized as ['>', '>'].
+// This should not include non-alphanumeric characters that are not Marks.
 const reservedAtomicMarkArray = [
     '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '...', '&&', '||', '!', '[', ']', '^^', '@', '::',
     // '>=', '>>', '>>>', '>>=', '>>>=', '!is' // These are context-dependent.

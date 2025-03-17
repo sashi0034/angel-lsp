@@ -331,9 +331,9 @@ export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHol
 /**
  * Information about a symbol that references a symbol declared elsewhere.
  */
-export interface ReferencedSymbolInfo {
-    readonly declaredSymbol: SymbolObject; // TODO: Rename it
-    readonly referencedToken: TokenObject;
+export interface ReferenceInformation {
+    readonly toSymbol: SymbolObject;
+    readonly fromToken: TokenObject;
 }
 
 

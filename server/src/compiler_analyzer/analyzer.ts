@@ -47,11 +47,14 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
-    findGlobalScope, resolveActiveScope,
-    isSymbolConstructorInScope, SymbolScope
+    resolveActiveScope,
+    isSymbolConstructorInScope,
+    SymbolScope,
+    SymbolGlobalScope,
+    getActiveGlobalScope
 } from "./symbolScope";
 import {checkFunctionCall} from "./functionCall";
 import {canTypeCast, checkTypeCast} from "./typeCast";
@@ -63,7 +66,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {complementHintForScope, ComplementKind} from "./complementHint";
+import {complementScopeRegion, ComplementKind} from "./complementHint";
 import {
     findSymbolWithParent,
     getSymbolAndScopeIfExist, canAccessInstanceMember,
@@ -201,7 +204,7 @@ export function analyzeVarInitializer(
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
-    complementHintForScope(scope, statBlock.nodeRange);
+    complementScopeRegion(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -279,9 +282,9 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    scope.referencedList.push({
-        declaredSymbol: foundSymbol,
-        referencedToken: identifier
+    scope.pushReference({
+        toSymbol: foundSymbol,
+        fromToken: identifier
     });
 
     return ResolvedType.create({
@@ -372,9 +375,9 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // Append a hint for completion of the namespace to the scope.
-        parentScope.pushCompletionHint({
+        getActiveGlobalScope().pushCompletionHint({
             complementKind: ComplementKind.NamespaceSymbol,
-            complementLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+            boundingLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
             tokenAfterNamespaces: tokenAfterNamespaces,
@@ -779,16 +782,16 @@ function analyzeBuiltinConstructorCaller(
                 `Enum constructor '${constructorIdentifier}' requires an integer.`);
         }
 
-        scope.referencedList.push({declaredSymbol: constructorType.typeOrFunc, referencedToken: callerIdentifier});
+        scope.pushReference({toSymbol: constructorType.typeOrFunc, fromToken: callerIdentifier});
 
         return constructorType;
     }
 
     if (callerArgList.argList.length === 0) {
         // Default constructor
-        scope.referencedList.push({
-            declaredSymbol: constructorType.typeOrFunc,
-            referencedToken: callerIdentifier
+        scope.pushReference({
+            toSymbol: constructorType.typeOrFunc,
+            fromToken: callerIdentifier
         });
         return constructorType;
     }
@@ -819,9 +822,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const complementRange = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
-    scope.pushCompletionHint({
+    getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.InstanceMember,
-        complementLocation: complementRange,
+        boundingLocation: complementRange,
         targetType: exprValue.typeOrFunc
     });
 
@@ -921,11 +924,11 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
         switch (literalValue.numberLiteral) {
-        case NumberLiterals.Integer:
+        case NumberLiteral.Integer:
             return resolvedBuiltinInt;
-        case NumberLiterals.Float:
+        case NumberLiteral.Float:
             return resolvedBuiltinFloat;
-        case NumberLiterals.Double:
+        case NumberLiteral.Double:
             return resolvedBuiltinDouble;
         }
     }
@@ -1033,9 +1036,9 @@ function analyzeFunctionCaller(
     const complementRange = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
         callerArgList.nodeRange.end.getNextOrSelf());
-    scope.pushCompletionHint({
+    getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
-        complementLocation: complementRange,
+        boundingLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
         passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         templateTranslator: templateTranslator
@@ -1092,9 +1095,9 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        checkingScope.referencedList.push({
-            declaredSymbol: declared.symbol.toList()[0],
-            referencedToken: varIdentifier
+        checkingScope.pushReference({
+            toSymbol: declared.symbol.toList()[0],
+            fromToken: varIdentifier
         });
     }
 
@@ -1316,7 +1319,7 @@ const assignOpAliases = new Map<string, string>([
 ]);
 
 export interface HoistResult {
-    readonly globalScope: SymbolScope;
+    readonly globalScope: SymbolGlobalScope;
     readonly analyzeQueue: AnalyzeQueue;
 }
 

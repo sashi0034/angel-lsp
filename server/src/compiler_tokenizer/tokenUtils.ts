@@ -35,8 +35,8 @@ export function areTokensJoinedBy(headToken: TokenObject, expectedTexts: string[
  * @param forward The number of characters to extend forward.
  */
 export function extendTokenLocation(token: TokenObject, backward: number, forward: number): TextLocation {
-    let start = token.replacedRange?.start ?? token;
-    let end = token.replacedRange?.end ?? token;
+    let start = token.coveredRange?.start ?? token;
+    let end = token.coveredRange?.end ?? token;
     for (let i = 0; i < backward; i++) {
         start = start.prev ?? start;
     }

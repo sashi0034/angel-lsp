@@ -1,6 +1,6 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
-import {SymbolScope} from "./symbolScope";
+import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {TemplateTranslator} from "./resolvedType";
@@ -10,7 +10,7 @@ import {TemplateTranslator} from "./resolvedType";
  */
 export enum ComplementKind {
     /** Autocomplete within a scope, such as inside `{ }` in a function body. */
-    Scope = 'Scope', // TODO: Rename to ScopeRegion
+    ScopeRegion = 'ScopeRegion',
 
     /** Autocomplete for instance members, like `player.m_parent.$C$` */
     InstanceMember = 'InstanceMember',
@@ -30,15 +30,15 @@ export interface ComplementBase {
     complementKind: ComplementKind;
 
     /** The location in the text where the autocomplete is being triggered. */
-    complementLocation: TextLocation;
+    boundingLocation: TextLocation;
 }
 
 /**
  * Represents an autocomplete target within a scope.
  * e.g., the code block inside `{}` in `void fn() { ... }`.
  */
-export interface ComplementScope extends ComplementBase {
-    complementKind: ComplementKind.Scope;
+export interface ComplementScopeRegion extends ComplementBase {
+    complementKind: ComplementKind.ScopeRegion;
     targetScope: SymbolScope;
 }
 
@@ -75,17 +75,17 @@ export interface ComplementCallerArgument extends ComplementBase {
 }
 
 export type ComplementHint =
-    ComplementScope
+    ComplementScopeRegion
     | ComplementInstanceMember
     | ComplementNamespaceSymbol
     | ComplementCallerArgument;
 
 // -----------------------------------------------
 
-export function complementHintForScope(targetScope: SymbolScope, tokenRange: TokenRange) {
-    targetScope.pushCompletionHint({
-        complementKind: ComplementKind.Scope,
-        complementLocation: tokenRange.getBoundingLocation(),
+export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
+    getActiveGlobalScope().pushCompletionHint({
+        complementKind: ComplementKind.ScopeRegion,
+        boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
 }
