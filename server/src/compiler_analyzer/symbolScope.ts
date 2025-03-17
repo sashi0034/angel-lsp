@@ -86,7 +86,8 @@ export class SymbolScope {
     // Tokens that represent this scope.
     private readonly _namespaceTokens: TokenObject[] = [];
 
-    public readonly referenceList: ReferenceInformation[] = [];
+    // The list of symbol references to this scope.
+    private readonly _referenceList: ReferenceInformation[] = [];
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
@@ -205,6 +206,14 @@ export class SymbolScope {
 
     public pushNamespaceToken(token: TokenObject) {
         this._namespaceTokens.push(token);
+    }
+
+    public get referenceList(): ReadonlyArray<ReferenceInformation> {
+        return this._referenceList;
+    }
+
+    public pushReference(reference: ReferenceInformation) {
+        this._referenceList.push(reference);
     }
 
     /**
