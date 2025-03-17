@@ -75,7 +75,7 @@ export type ScopeLinkedNode =
  */
 export class SymbolScope {
     // The parent scope of this scope. If this is the global scope, it has the context for the file
-    private readonly _parentOrContext: SymbolScope | GlobalScopeContext;
+    private readonly _parentScope: SymbolScope | undefined;
 
     // The child scopes of this scope
     private readonly _childScopeTable: ScopeTable = new Map();
@@ -96,25 +96,25 @@ export class SymbolScope {
 
     public constructor(
         // The parent scope of this scope.
-        parentScope: SymbolScope | GlobalScopeContext | undefined,
+        parentScope: SymbolScope | undefined,
         // The key of this scope. It is the identifier of the class, function, or block.
         public readonly key: string,
         // A node associated with this scope
         private _linkedNode: ScopeLinkedNode | undefined,
     ) {
-        parentScope = parentScope ?? createGlobalScopeContext();
-        this._parentOrContext = parentScope instanceof SymbolScope ? parentScope : {...parentScope};
+        assert(parentScope !== undefined || this instanceof SymbolGlobalScope);
 
-        this.scopePath = parentScope instanceof SymbolScope ? [...parentScope.scopePath, key] : [];
-    }
+        this._parentScope = parentScope;
 
-    public static createEmpty(context?: GlobalScopeContext): SymbolScope {
-        return new SymbolScope(context, '', undefined);
+        this.scopePath = parentScope !== undefined ? [...parentScope.scopePath, key] : [];
     }
 
     public get parentScope(): SymbolScope | undefined {
-        if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext;
-        return undefined;
+        return this._parentScope;
+    }
+
+    public isGlobalScope(): this is SymbolGlobalScope {
+        return this._parentScope === undefined;
     }
 
     public get symbolTable(): ReadonlySymbolTable {
@@ -151,27 +151,11 @@ export class SymbolScope {
 
     public getContext(): Readonly<GlobalScopeContext> {
         const globalScope = this.getGlobalScope();
-        assert(globalScope._parentOrContext instanceof SymbolScope === false);
-        return globalScope._parentOrContext;
-    }
-
-    public initializeContext(filepath: string) {
-        assert(this._parentOrContext instanceof SymbolScope === false);
-        this._parentOrContext.filepath = filepath;
-        setActiveGlobalScope(this);
-    }
-
-    /**
-     * Cache information in the context of the file
-     */
-    public commitContext() {
-        assert(this._parentOrContext instanceof SymbolScope === false);
-        this._parentOrContext.builtinStringType = findBuiltinStringType(this);
+        return globalScope.getContext();
     }
 
     public getBuiltinStringType(): SymbolType | undefined {
-        if (this._parentOrContext instanceof SymbolScope) return this._parentOrContext.getBuiltinStringType();
-        return this._parentOrContext.builtinStringType;
+        return this.getContext().builtinStringType;
     }
 
     /**
@@ -187,21 +171,11 @@ export class SymbolScope {
         return this.takeParentBy(scope => scope.linkedNode !== undefined && nodeCandidates.includes(scope.linkedNode.nodeName));
     }
 
-    public getGlobalScope(): SymbolScope {
-        if (this.parentScope === undefined) return this;
+    public getGlobalScope(): SymbolGlobalScope {
+        if (this.isGlobalScope()) return this;
+
+        assert(this.parentScope !== undefined);
         return this.parentScope.getGlobalScope();
-    }
-
-    // FIXME: Should be used from the global scope?
-    public pushCompletionHint(hint: ComplementHint) {
-        const context = this.getContext();
-        assert(hint.complementLocation.path === context.filepath);
-        context.completionHints.push(hint);
-    }
-
-    public get completionHints(): ReadonlyArray<ComplementHint> {
-        assert(this._parentOrContext instanceof SymbolScope === false);
-        return this._parentOrContext.completionHints;
     }
 
     public pushNamespaceToken(token: TokenObject) {
@@ -309,16 +283,7 @@ export class SymbolScope {
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
     }
 
-    /**
-     * Includes the symbols and scopes declared in an external file into the current scope.
-     * Symbols and scopes from other files are not included.
-     */
-    public includeExternalScope(externalScope: SymbolScope) {
-        const externalFilepath = externalScope.getContext().filepath;
-        this.includeExternalScopeInternal(externalScope, externalFilepath);
-    }
-
-    private includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
+    protected includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
         // Copy symbols from the external scope.
         for (const [key, symbolHolder] of externalScope.symbolTable) {
             for (const symbol of symbolHolder.toList()) {
@@ -336,6 +301,50 @@ export class SymbolScope {
                 nextChildScope.includeExternalScopeInternal(child, externalFilepath);
             }
         }
+    }
+}
+
+export class SymbolGlobalScope extends SymbolScope {
+    private readonly _context: GlobalScopeContext;
+
+    public constructor(context?: GlobalScopeContext) {
+        super(undefined, '', undefined);
+
+        this._context = context !== undefined ? {...context} : createGlobalScopeContext();
+    }
+
+    public getContext(): Readonly<GlobalScopeContext> {
+        return this._context;
+    }
+
+    public initializeContext(filepath: string) {
+        this._context.filepath = filepath;
+        setActiveGlobalScope(this);
+    }
+
+    /**
+     * Cache information in the context of the file
+     */
+    public commitContext() {
+        this._context.builtinStringType = findBuiltinStringType(this);
+    }
+
+    /**
+     * Includes the symbols and scopes declared in an external file into the current scope.
+     * Symbols and scopes from other files are not included.
+     */
+    public includeExternalScope(externalScope: SymbolScope) {
+        const externalFilepath = externalScope.getContext().filepath;
+        this.includeExternalScopeInternal(externalScope, externalFilepath);
+    }
+
+    public pushCompletionHint(hint: ComplementHint) {
+        assert(hint.complementLocation.path === this._context.filepath);
+        this._context.completionHints.push(hint);
+    }
+
+    public get completionHints(): ReadonlyArray<ComplementHint> {
+        return this._context.completionHints;
     }
 }
 
@@ -394,14 +403,14 @@ export function collectParentScopeList(scope: SymbolScope): SymbolScope[] {
 // -----------------------------------------------
 
 // The global scope that is currently being analyzed.
-let s_activeGlobalScope: SymbolScope | undefined;
+let s_activeGlobalScope: SymbolGlobalScope | undefined;
 
-function setActiveGlobalScope(scope: SymbolScope) {
+function setActiveGlobalScope(scope: SymbolGlobalScope) {
     s_activeGlobalScope = scope;
 }
 
 /** @internal */
-export function getActiveGlobalScope(): SymbolScope {
+export function getActiveGlobalScope(): SymbolGlobalScope {
     assert(s_activeGlobalScope !== undefined);
     return s_activeGlobalScope;
 }

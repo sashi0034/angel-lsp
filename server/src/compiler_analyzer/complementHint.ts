@@ -1,6 +1,6 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {SymbolType, SymbolFunction} from "./symbolObject";
-import {SymbolScope} from "./symbolScope";
+import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {TemplateTranslator} from "./resolvedType";
@@ -83,7 +83,7 @@ export type ComplementHint =
 // -----------------------------------------------
 
 export function complementHintForScope(targetScope: SymbolScope, tokenRange: TokenRange) {
-    targetScope.pushCompletionHint({
+    getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.Scope,
         complementLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope

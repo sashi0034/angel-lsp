@@ -50,8 +50,11 @@ import {
 import {NumberLiterals, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
-    findGlobalScope, resolveActiveScope,
-    isSymbolConstructorInScope, SymbolScope
+    resolveActiveScope,
+    isSymbolConstructorInScope,
+    SymbolScope,
+    SymbolGlobalScope,
+    getActiveGlobalScope
 } from "./symbolScope";
 import {checkFunctionCall} from "./functionCall";
 import {canTypeCast, checkTypeCast} from "./typeCast";
@@ -372,7 +375,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // Append a hint for completion of the namespace to the scope.
-        parentScope.pushCompletionHint({
+        getActiveGlobalScope().pushCompletionHint({
             complementKind: ComplementKind.NamespaceSymbol,
             complementLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
@@ -819,7 +822,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const complementRange = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
-    scope.pushCompletionHint({
+    getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.InstanceMember,
         complementLocation: complementRange,
         targetType: exprValue.typeOrFunc
@@ -1033,7 +1036,7 @@ function analyzeFunctionCaller(
     const complementRange = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
         callerArgList.nodeRange.end.getNextOrSelf());
-    scope.pushCompletionHint({
+    getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
         complementLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
@@ -1316,7 +1319,7 @@ const assignOpAliases = new Map<string, string>([
 ]);
 
 export interface HoistResult {
-    readonly globalScope: SymbolScope;
+    readonly globalScope: SymbolGlobalScope;
     readonly analyzeQueue: AnalyzeQueue;
 }
 

@@ -1,5 +1,5 @@
 import {
-    createAnonymousIdentifier,
+    createAnonymousIdentifier, SymbolGlobalScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -548,7 +548,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
-    const globalScope: SymbolScope = SymbolScope.createEmpty();
+    const globalScope: SymbolGlobalScope = new SymbolGlobalScope();
 
     globalScope.initializeContext(path);
 
