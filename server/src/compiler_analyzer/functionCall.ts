@@ -9,13 +9,18 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateConversionCost} from "./typeConversion";
 
+interface CallerArgument {
+    name: TokenObject | undefined; // Support for named arguments
+    range?: TokenRange; // The range of the argument without the name. It is used for error messages.
+    type: ResolvedType | undefined;
+}
+
 interface FunctionCallArgs {
     // caller arguments
     callerScope: SymbolScope;
     callerIdentifier: TokenObject;
     callerRange: TokenRange;
-    callerArgRanges: TokenRange[];
-    callerArgTypes: (ResolvedType | undefined)[];
+    callerArgs: CallerArgument[];
 
     // callee arguments
     calleeFuncHolder: SymbolFunctionHolder;
@@ -125,17 +130,18 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 }
 
 function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
-    const {callerArgTypes, calleeTemplateTranslator} = args;
+    const {callerArgs, calleeTemplateTranslator} = args;
 
     let totalCost = 0;
 
     // Caller arguments must be at least as many as the callee parameters.
-    if (callee.parameterTypes.length < callerArgTypes.length) return {tooManyArguments: true};
+    if (callee.parameterTypes.length < callerArgs.length) return {tooManyArguments: true};
 
-    for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
-        if (paramId >= callerArgTypes.length) {
+    // let callerArgId = 0; // TODO
+    for (let calleeParamId = 0; calleeParamId < callee.parameterTypes.length; calleeParamId++) {
+        if (calleeParamId >= callerArgs.length) {
             // Handle when the caller arguments are insufficient.
-            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined) {
+            if (callee.linkedNode.paramList[calleeParamId].defaultExpr !== undefined) {
                 // When there is default expressions
                 break;
             } else {
@@ -144,15 +150,15 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
         }
 
         const expectedType =
-            applyTemplateTranslator(callee.parameterTypes[paramId], calleeTemplateTranslator);
-        const actualType = callerArgTypes[paramId];
+            applyTemplateTranslator(callee.parameterTypes[calleeParamId], calleeTemplateTranslator);
+        const actualType = callerArgs[calleeParamId].type;
 
         const cost = evaluateConversionCost(actualType, expectedType);
         if (cost === undefined) {
             return {
                 tooManyArguments: false,
                 fewerArguments: false,
-                mismatchIndex: paramId,
+                mismatchIndex: calleeParamId,
                 expectedType: expectedType,
                 actualType: actualType
             };
@@ -165,25 +171,26 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
 }
 
 function handleMismatchError(args: FunctionCallArgs, lastMismatchReason: MismatchReason) {
-    const {callerRange, callerArgRanges, callerArgTypes, calleeFuncHolder, calleeTemplateTranslator} = args;
+    const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
     if (calleeFuncHolder.count === 1) {
         const calleeFunction = calleeFuncHolder.first;
         if (lastMismatchReason.tooManyArguments || lastMismatchReason.fewerArguments) {
             analyzerDiagnostic.add(
                 callerRange.getBoundingLocation(),
-                `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgTypes.length} were provided.`
+                `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
             );
         } else {
             const actualTypeMessage = stringifyResolvedType(lastMismatchReason.actualType);
             const expectedTypeMessage = stringifyResolvedType(lastMismatchReason.expectedType);
+            const callerArgRange = callerArgs[lastMismatchReason.mismatchIndex].range;
             analyzerDiagnostic.add(
-                callerArgRanges[lastMismatchReason.mismatchIndex].getBoundingLocation(),
+                callerArgRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
                 `Cannot convert '${actualTypeMessage}' to parameter type '${expectedTypeMessage}'.`
             );
         }
     } else {
         let message = 'No viable function.\n';
-        message += `Arguments types: (${stringifyResolvedTypes(callerArgTypes)})\n`;
+        message += `Arguments types: (${stringifyResolvedTypes(callerArgs.map(arg => arg.type))})\n`;
         message += 'Candidates considered:';
 
         // TODO: suffix `...` for variadic functions

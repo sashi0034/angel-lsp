@@ -883,7 +883,9 @@ function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exp
         lhs: exprValue,
         lhsRange: exprRange,
         rhs: args,
-        rhsRange: exprPostOp.nodeRange
+        rhsRange: exprPostOp.nodeRange,
+        // Support for named args on index operator are not implemented yet in AngelScript?
+        rhsArgNames: exprPostOp.indexingList.map(indexer => indexer.identifier)
     });
 }
 
@@ -1035,7 +1037,9 @@ function analyzeFunctionCaller(
     // Append a hint for completion of function arguments to the scope.
     const complementRange = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
-        callerArgList.nodeRange.end.getNextOrSelf());
+        callerArgList.nodeRange.end.getNextOrSelf()
+    );
+
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
         boundingLocation: complementRange,
@@ -1044,12 +1048,18 @@ function analyzeFunctionCaller(
         templateTranslator: templateTranslator
     });
 
+    const callerArgs =
+        callerArgList.argList.map((arg, i) => ({
+            name: arg.identifier,
+            range: arg.assign.nodeRange,
+            type: callerArgTypes[i]
+        }));
+
     return checkFunctionCall({
         callerScope: scope,
         callerIdentifier: callerIdentifier,
         callerRange: callerArgList.nodeRange,
-        callerArgRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
-        callerArgTypes: callerArgTypes,
+        callerArgs: callerArgs,
         calleeFuncHolder: calleeFuncHolder,
         calleeTemplateTranslator: templateTranslator,
         calleeDelegate: calleeDelegate

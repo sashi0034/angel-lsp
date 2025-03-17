@@ -20,7 +20,8 @@ type OverloadedOperatorCallArgs = {
     lhs: ResolvedType,
     lhsRange: TokenRange,
     rhs: ResolvedType,
-    rhsRange: TokenRange
+    rhsRange: TokenRange,
+    rhsArgNames?: undefined,
 } | {
     // For the case where the alias_r is not defined.
     callerScope: SymbolScope,
@@ -30,7 +31,8 @@ type OverloadedOperatorCallArgs = {
     lhs: ResolvedType,
     lhsRange: TokenRange,
     rhs: ResolvedType | (ResolvedType | undefined)[], // If alias_r is not defined, the rhs can be an array.
-    rhsRange: TokenRange
+    rhsRange: TokenRange,
+    rhsArgNames?: (TokenObject | undefined)[] // Support for named arguments.
 }
 
 /**
@@ -85,7 +87,8 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
         alias: args.alias,
         lhs: args.lhs,
         rhs: args.rhs,
-        rhsRange: args.rhsRange
+        rhsRange: args.rhsRange,
+        rhsArgNames: args.rhsArgNames
     });
 
     if (args.alias_r === undefined) {
@@ -107,7 +110,8 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
         alias: args.alias_r,
         lhs: args.rhs,
         rhs: args.lhs,
-        rhsRange: args.lhsRange
+        rhsRange: args.lhsRange,
+        rhsArgNames: args.rhsArgNames
     });
 
     if (hasMismatchReason(rhsResult)) {
@@ -180,11 +184,12 @@ interface LhsOperatorCallArgs {
     alias: string,
     lhs: ResolvedType,
     rhs: ResolvedType | (ResolvedType | undefined)[],
-    rhsRange: TokenRange
+    rhsRange: TokenRange,
+    rhsArgNames: (TokenObject | undefined)[] | undefined
 }
 
 function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType | undefined | MismatchReason {
-    const {callerScope, callerOperator, alias, lhs, rhs, rhsRange} = args;
+    const {callerScope, callerOperator, alias, lhs, rhs, rhsRange, rhsArgNames} = args;
 
     const rhsArgs = Array.isArray(args.rhs) ? args.rhs : [args.rhs];
 
@@ -204,12 +209,19 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
         return {reason: MismatchKind.MissingAliasOperator, foundButNotFunction: true};
     }
 
+    const callerArgs = rhsArgs.map((arg, i) => {
+        return {
+            name: rhsArgNames !== undefined ? rhsArgNames[i] : undefined,
+            range: undefined, // We don't need to specify the range because we'll print the error later.
+            type: arg
+        };
+    });
+
     const evaluated = evaluateFunctionCall({
         callerScope: callerScope,
         callerIdentifier: callerOperator,
         callerRange: new TokenRange(callerOperator, callerOperator),
-        callerArgRanges: [rhsRange],
-        callerArgTypes: rhsArgs,
+        callerArgs: callerArgs,
         calleeFuncHolder: aliasFunction,
         calleeTemplateTranslator: lhs.templateTranslator // FIXME?
     });
