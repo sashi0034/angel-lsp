@@ -54,9 +54,10 @@ function getFunctionSignature(hint: ComplementCallerArgument, expectedCallee: Sy
         if (i > 0) signatureLabel += ', ';
         signatureLabel += label;
 
-        if (i < hint.passingRanges.length && caret.isLessThan(hint.passingRanges[i].start.location.start) === false) {
+        const passingRanges = hint.callerNode.argList.map(arg => arg.assign.nodeRange);
+        if (i < passingRanges.length && caret.isLessThan(passingRanges[i].start.location.start) === false) {
             activeIndex = i;
-            if (hint.passingRanges[i].end.next?.text === ',') activeIndex++;
+            if (passingRanges[i].end.next?.text === ',') activeIndex++;
         }
 
         parameters.push(parameter);

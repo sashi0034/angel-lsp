@@ -50,11 +50,11 @@ import {
 import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
-    resolveActiveScope,
+    getActiveGlobalScope,
     isSymbolConstructorInScope,
-    SymbolScope,
+    resolveActiveScope,
     SymbolGlobalScope,
-    getActiveGlobalScope
+    SymbolScope
 } from "./symbolScope";
 import {checkFunctionCall} from "./functionCall";
 import {canTypeCast, checkTypeCast} from "./typeCast";
@@ -66,23 +66,24 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {complementScopeRegion, ComplementKind} from "./complementHint";
+import {ComplementKind, complementScopeRegion} from "./complementHint";
 import {
+    canAccessInstanceMember,
     findSymbolWithParent,
-    getSymbolAndScopeIfExist, canAccessInstanceMember,
+    getSymbolAndScopeIfExist,
     isResolvedAutoType,
-    stringifyResolvedType,
-    stringifyResolvedTypes
+    stringifyResolvedType
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../core/settings";
-import assert = require("node:assert");
 import {ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
 import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
+import {ActionHint} from "./actionHint";
+import assert = require("node:assert");
 
 export type HoistQueue = (() => void)[];
 
@@ -1040,11 +1041,15 @@ function analyzeFunctionCaller(
         callerArgList.nodeRange.end.getNextOrSelf()
     );
 
+    if (callerArgList.argList[0]?.identifier === undefined) {
+        analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
+    }
+
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
         boundingLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
-        passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
+        callerNode: callerArgList,
         templateTranslator: templateTranslator
     });
 

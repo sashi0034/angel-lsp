@@ -33,6 +33,9 @@ import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
 import {provideInlineHint} from "./services/inlineHint";
+import {DiagnosticSeverity} from "vscode-languageserver-types";
+import {CodeAction} from "vscode-languageserver-protocol";
+import {provideCodeAction} from "./services/codeAction";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -66,6 +69,10 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             declarationProvider: true,
             referencesProvider: true,
+            codeActionProvider: {
+                codeActionKinds: ["quickfix"],
+                resolveProvider: true,
+            },
             renameProvider: true,
             hoverProvider: true,
             signatureHelpProvider: {
@@ -246,6 +253,50 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
 
 connection.onReferences((params) => {
     return getReferenceLocations(params);
+});
+
+// -----------------------------------------------
+// Code Action Provider
+
+interface CodeActionContext {
+    uri: string;
+}
+
+connection.onCodeAction((params) => {
+    const result: CodeAction[] = [];
+    const context: CodeActionContext = {uri: params.textDocument.uri};
+
+    for (const diagnostic of params.context.diagnostics) {
+        if (diagnostic.severity == DiagnosticSeverity.Hint) {
+            result.push({
+                title: diagnostic.message, // FIXME?
+                diagnostics: [diagnostic],
+                data: context
+            });
+        }
+    }
+
+    return result;
+});
+
+connection.onCodeActionResolve((action) => {
+    const context = action.data as CodeActionContext;
+    const uri = context.uri;
+
+    if (action.diagnostics === undefined || action.diagnostics.length === 0) return action;
+
+    const range = TextRange.create(action.diagnostics[0].range);
+
+    const edits = provideCodeAction(
+        getInspectedRecord(uri).analyzerScope.globalScope,
+        getGlobalScopeList(),
+        new TextLocation(uri, range.start, range.end),
+        action.diagnostics[0].data
+    );
+
+    action.edit = {changes: {[uri]: edits}};
+
+    return action;
 });
 
 // -----------------------------------------------

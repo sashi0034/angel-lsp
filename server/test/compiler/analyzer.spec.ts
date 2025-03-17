@@ -5,6 +5,8 @@ import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
 import {analyzeAfterHoisted} from "../../src/compiler_analyzer/analyzer";
 import {hoistAfterParsed} from "../../src/compiler_analyzer/hoist";
 import {analyzerDiagnostic} from "../../src/compiler_analyzer/analyzerDiagnostic";
+import {Diagnostic} from "vscode-languageserver/node";
+import {DiagnosticSeverity} from "vscode-languageserver-types";
 
 function testAnalyzer(content: string, expectSuccess: boolean) {
     it(`analyzes: ${content}`, () => {
@@ -24,15 +26,20 @@ function testAnalyzer(content: string, expectSuccess: boolean) {
         const hoistResult = hoistAfterParsed(ast, uri, []);
         analyzeAfterHoisted(uri, hoistResult);
 
-        const diagnosticsInAnalyzer = analyzerDiagnostic.flush();
+        const diagnosticsInAnalyzer =
+            analyzerDiagnostic.flush().filter(
+                diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
+            );
 
         const hasError = diagnosticsInAnalyzer.length > 0;
-        if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
+        if ((expectSuccess && hasError)) {
             const diagnostic = diagnosticsInAnalyzer[0];
             const message = diagnostic.message;
             const line = diagnostic.range.start.line;
             const character = diagnostic.range.start.character;
             throw new Error(`${message} (:${line}:${character})`);
+        } else if (!expectSuccess && !hasError) {
+            throw new Error("Expecting error but got none.");
         }
     });
 }

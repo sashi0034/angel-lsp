@@ -1,8 +1,9 @@
 import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
 import {getGlobalSettings} from "../core/settings";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {ActionHint} from "./actionHint";
 
-// TODO: Processing multiple files simultaneously?
+const sourceName = 'AngelScript - Analyzer';
 
 const s_diagnostics: Diagnostic[] = [];
 
@@ -10,6 +11,7 @@ function reset() {
     s_diagnostics.length = 0;
 }
 
+// TODO: Rename to error
 function add(location: TextLocation, message: string) {
     const severity = getGlobalSettings().suppressAnalyzerErrors ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
 
@@ -17,7 +19,17 @@ function add(location: TextLocation, message: string) {
         severity: severity,
         range: location,
         message: message,
-        source: 'AngelScript - Analyzer',
+        source: sourceName,
+    });
+}
+
+function hint(location: TextLocation, hint: ActionHint, message: string) {
+    s_diagnostics.push({
+        severity: DiagnosticSeverity.Hint,
+        range: location,
+        message: message,
+        source: sourceName,
+        data: hint
     });
 }
 
@@ -30,5 +42,6 @@ function flush(): Diagnostic[] {
 export const analyzerDiagnostic = {
     reset,
     add,
+    hint,
     flush,
 } as const;
