@@ -2453,9 +2453,19 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
 
 // BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parser: ParserState) {
+    const rangeStart = parser.next();
+
     const next = handleGreaterThanAndGetNext(parser);
-    if (next.isReservedToken() === false) return undefined;
-    if (next.property.isExprOp === false) return parseNotIsOperator(parser);
+    if (next.isReservedToken() === false) {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
+    if (next.property.isExprOp === false) {
+        parser.backtrack(rangeStart);
+        return parseNotIsOperator(parser);
+    }
+
     parser.commit(next.text === 'is' ? HighlightForToken.Builtin : HighlightForToken.Operator);
     return next;
 }
@@ -2481,8 +2491,14 @@ function parseNotIsOperator(parser: ParserState) {
 
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parser: ParserState) {
+    const rangeStart = parser.next();
+
     const next = handleGreaterThanAndGetNext(parser);
-    if (next.isReservedToken() === false || next.property.isAssignOp === false) return undefined;
+    if (next.isReservedToken() === false || next.property.isAssignOp === false) {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
     parser.commit(HighlightForToken.Operator);
     return next;
 }
