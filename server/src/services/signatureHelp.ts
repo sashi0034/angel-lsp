@@ -17,7 +17,7 @@ export function provideSignatureHelp(
         if (hint.complementKind !== ComplementKind.CallerArguments) continue;
 
         // Check if the caller location is at the cursor position in the scope.
-        const location = hint.complementLocation;
+        const location = hint.boundingLocation;
         if (location.positionInRange(caret)) {
             const expectedCallee =
                 globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.identifierToken.text);

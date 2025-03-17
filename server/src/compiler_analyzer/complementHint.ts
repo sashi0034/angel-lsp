@@ -30,7 +30,7 @@ export interface ComplementBase {
     complementKind: ComplementKind;
 
     /** The location in the text where the autocomplete is being triggered. */
-    complementLocation: TextLocation; // TODO: Rename to `boundingLocation`?
+    boundingLocation: TextLocation;
 }
 
 /**
@@ -85,7 +85,7 @@ export type ComplementHint =
 export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.ScopeRegion,
-        complementLocation: tokenRange.getBoundingLocation(),
+        boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
 }

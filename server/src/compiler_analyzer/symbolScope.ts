@@ -339,7 +339,7 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     public pushCompletionHint(hint: ComplementHint) {
-        assert(hint.complementLocation.path === this._context.filepath);
+        assert(hint.boundingLocation.path === this._context.filepath);
         this._context.completionHints.push(hint);
     }
 

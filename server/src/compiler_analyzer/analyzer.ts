@@ -377,7 +377,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Append a hint for completion of the namespace to the scope.
         getActiveGlobalScope().pushCompletionHint({
             complementKind: ComplementKind.NamespaceSymbol,
-            complementLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+            boundingLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
             tokenAfterNamespaces: tokenAfterNamespaces,
@@ -824,7 +824,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         exprPostOp.nodeRange.start.getNextOrSelf());
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.InstanceMember,
-        complementLocation: complementRange,
+        boundingLocation: complementRange,
         targetType: exprValue.typeOrFunc
     });
 
@@ -1038,7 +1038,7 @@ function analyzeFunctionCaller(
         callerArgList.nodeRange.end.getNextOrSelf());
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.CallerArguments,
-        complementLocation: complementRange,
+        boundingLocation: complementRange,
         expectedCallee: calleeFuncHolder.first,
         passingRanges: callerArgList.argList.map(arg => arg.assign.nodeRange),
         templateTranslator: templateTranslator

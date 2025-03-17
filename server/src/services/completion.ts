@@ -97,7 +97,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 
     for (const hint of globalScope.completionHints) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.complementLocation;
+        const location = hint.boundingLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             const result = searchMissingCompletion(globalScope, caretScope, hint);
