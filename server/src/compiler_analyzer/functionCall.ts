@@ -74,6 +74,15 @@ enum MismatchKind {
     ParameterMismatch = 'ParameterMismatch'
 }
 
+const mismatchPriority: Map<MismatchKind, number> = new Map([
+    [MismatchKind.TooManyArguments, 0],
+    [MismatchKind.FewerArguments, 0],
+    [MismatchKind.InvalidNamedArgumentOrder, 10], // We highly prioritize errors related to named arguments.
+    [MismatchKind.DuplicateNamedArgument, 10],
+    [MismatchKind.NotFoundNamedArgument, 10],
+    [MismatchKind.ParameterMismatch, 5]
+]);
+
 type MismatchReason = {
     reason: MismatchKind.TooManyArguments
 } | {
@@ -102,7 +111,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegate} = args;
 
     let bestMatching: FunctionAndCost | undefined = undefined;
-    let lastMismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
+    let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
     // TODO: Output error messages for the overloads that are most closest to the caller arguments.
 
@@ -111,7 +120,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         const evaluated = evaluateFunctionMatch(args, callee);
         if (hasMismatchReason(evaluated)) {
             // Handle mismatch errors.
-            lastMismatchReason = evaluated;
+            if (mismatchPriority.get(evaluated.reason)! >= mismatchPriority.get(mismatchReason.reason)!) {
+                mismatchReason = evaluated;
+            }
+
             continue;
         }
 
@@ -139,7 +151,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             returnType: undefined,
             sideEffect: () => {
                 // Handle mismatch errors.
-                handleMismatchError(args, lastMismatchReason);
+                handleMismatchError(args, mismatchReason);
 
                 // Although the function call resolution fails, an approximate symbol is added as a reference.
                 callerScope.pushReference({
@@ -294,43 +306,43 @@ function evaluatePassingArgument(
 
 // -----------------------------------------------
 
-function handleMismatchError(args: FunctionCallArgs, lastMismatchReason: MismatchReason) {
+function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchReason) {
     const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
 
-    if (lastMismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
-        const argRange = callerArgs[lastMismatchReason.invalidArgumentIndex].range;
+    if (mismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
+        const argRange = callerArgs[mismatchReason.invalidArgumentIndex].range;
         analyzerDiagnostic.add(
             argRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
             'Positional arguments cannot be passed after named arguments.'
         );
         return;
-    } else if (lastMismatchReason.reason === MismatchKind.DuplicateNamedArgument) {
-        const argLocation = callerArgs[lastMismatchReason.nameIndex].name?.location;
+    } else if (mismatchReason.reason === MismatchKind.DuplicateNamedArgument) {
+        const argLocation = callerArgs[mismatchReason.nameIndex].name?.location;
         analyzerDiagnostic.add(
             argLocation ?? callerRange.getBoundingLocation(),
-            `Duplicate named argument '${callerArgs[lastMismatchReason.nameIndex].name?.text}'.`
+            `Duplicate named argument '${callerArgs[mismatchReason.nameIndex].name?.text}'.`
         );
         return;
-    } else if (lastMismatchReason.reason === MismatchKind.NotFoundNamedArgument) {
-        const argLocation = callerArgs[lastMismatchReason.nameIndex].name?.location;
+    } else if (mismatchReason.reason === MismatchKind.NotFoundNamedArgument) {
+        const argLocation = callerArgs[mismatchReason.nameIndex].name?.location;
         analyzerDiagnostic.add(
             argLocation ?? callerRange.getBoundingLocation(),
-            `Named argument '${callerArgs[lastMismatchReason.nameIndex].name?.text}' does not found in the ${calleeFuncHolder.identifierText}.`
+            `Named argument '${callerArgs[mismatchReason.nameIndex].name?.text}' does not found in '${calleeFuncHolder.identifierText}'.`
         );
         return;
     }
 
     if (calleeFuncHolder.count === 1) {
         const calleeFunction = calleeFuncHolder.first;
-        if (lastMismatchReason.reason === MismatchKind.TooManyArguments || lastMismatchReason.reason === MismatchKind.FewerArguments) {
+        if (mismatchReason.reason === MismatchKind.TooManyArguments || mismatchReason.reason === MismatchKind.FewerArguments) {
             analyzerDiagnostic.add(
                 callerRange.getBoundingLocation(),
                 `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
             );
         } else { // lastMismatchReason.reason === MismatchKind.ParameterMismatch
-            const actualTypeMessage = stringifyResolvedType(lastMismatchReason.actualType);
-            const expectedTypeMessage = stringifyResolvedType(lastMismatchReason.expectedType);
-            const callerArgRange = callerArgs[lastMismatchReason.mismatchIndex].range;
+            const actualTypeMessage = stringifyResolvedType(mismatchReason.actualType);
+            const expectedTypeMessage = stringifyResolvedType(mismatchReason.expectedType);
+            const callerArgRange = callerArgs[mismatchReason.mismatchIndex].range;
             analyzerDiagnostic.add(
                 callerArgRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
                 `Cannot convert '${actualTypeMessage}' to parameter type '${expectedTypeMessage}'.`
