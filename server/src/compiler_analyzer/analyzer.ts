@@ -377,8 +377,8 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 
         // Append a hint for completion of the namespace to the scope.
         getActiveGlobalScope().pushCompletionHint({
-            complementKind: ComplementKind.NamespaceSymbol,
-            boundingLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+            complementKind: ComplementKind.AutocompleteNamespaceAccess,
+            autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
             tokenAfterNamespaces: tokenAfterNamespaces,
@@ -824,8 +824,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.InstanceMember,
-        boundingLocation: complementRange,
+        complementKind: ComplementKind.AutocompleteInstanceMember,
+        autocompleteLocation: complementRange,
         targetType: exprValue.typeOrFunc
     });
 
@@ -1036,7 +1036,7 @@ function analyzeFunctionCaller(
     }
 
     // Append a hint for completion of function arguments to the scope.
-    const complementRange = getBoundingLocationBetween(
+    const callerArgumentsLocation = getBoundingLocationBetween(
         callerArgList.nodeRange.start,
         callerArgList.nodeRange.end.getNextOrSelf()
     );
@@ -1046,11 +1046,11 @@ function analyzeFunctionCaller(
     }
 
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.CallerArguments,
-        boundingLocation: complementRange,
+        complementKind: ComplementKind.FunctionCall,
+        callerArgumentsLocation: callerArgumentsLocation,
+        callerArgumentsNode: callerArgList,
+        callerTemplateTranslator: templateTranslator,
         expectedCallee: calleeFuncHolder.first,
-        callerNode: callerArgList,
-        templateTranslator: templateTranslator
     });
 
     const callerArgs =

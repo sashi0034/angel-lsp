@@ -107,7 +107,7 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenAfterNamespace: TokenObject | undefined;
     for (const hint of globalScope.completionHints) {
         // It's a bit rough, but we'll reuse completionHints here
-        if (hint.complementKind !== ComplementKind.NamespaceSymbol) {
+        if (hint.complementKind !== ComplementKind.AutocompleteNamespaceAccess) {
             continue;
         }
 
