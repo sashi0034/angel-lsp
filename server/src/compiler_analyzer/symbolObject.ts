@@ -225,6 +225,7 @@ export class SymbolFunction extends SymbolBase {
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
         public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly functionScope: ScopePath | undefined,
         public readonly returnType: ResolvedType | undefined,
         public readonly parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
@@ -239,6 +240,7 @@ export class SymbolFunction extends SymbolBase {
         identifierToken: TokenObject
         scopePath: ScopePath
         linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod
+        functionScope: ScopePath | undefined,
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
         isInstanceMember: boolean
@@ -248,6 +250,7 @@ export class SymbolFunction extends SymbolBase {
             args.identifierToken,
             args.scopePath,
             args.linkedNode,
+            args.functionScope,
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,

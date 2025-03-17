@@ -232,7 +232,7 @@ export class SymbolScope {
         return this._childScopeTable.get(identifier);
     }
 
-    public resolveScope(path: ScopePath): SymbolScope | undefined {
+    public resolveScope(path: ScopePath): SymbolScope | undefined { // FIXME: Should be moved to GlobalScope?
         if (path.length === 0) return this;
         const child = this._childScopeTable.get(path[0]);
         if (child === undefined) return undefined;

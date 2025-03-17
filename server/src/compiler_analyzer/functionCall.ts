@@ -2,7 +2,7 @@ import {
     SymbolFunction, SymbolFunctionHolder, SymbolVariable,
 } from "./symbolObject";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
-import {SymbolScope} from "./symbolScope";
+import {resolveActiveScope, SymbolScope} from "./symbolScope";
 import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
@@ -143,6 +143,8 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 callerScope.pushReference({
                     toSymbol: calleeDelegate ?? bestMatching.function, fromToken: callerIdentifier
                 });
+
+                pushReferenceToNamedArguments(callerScope, args.callerArgs, bestMatching.function);
             }
         };
     } else {
@@ -153,12 +155,34 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 // Handle mismatch errors.
                 handleMismatchError(args, mismatchReason);
 
-                // Although the function call resolution fails, an approximate symbol is added as a reference.
+                // Although the function call resolution fails, a fallback symbol is added as a reference.
+                const fallbackCallee = calleeFuncHolder.first;
                 callerScope.pushReference({
-                    toSymbol: calleeDelegate ?? calleeFuncHolder.first, fromToken: callerIdentifier
+                    toSymbol: calleeDelegate ?? fallbackCallee, fromToken: callerIdentifier
                 });
+
+                pushReferenceToNamedArguments(callerScope, args.callerArgs, fallbackCallee);
             }
         };
+    }
+}
+
+function pushReferenceToNamedArguments(callerScope: SymbolScope, callerArgs: CallerArgument[], callee: SymbolFunction) {
+    if (callee.functionScope === undefined) return;
+    const functionScope = resolveActiveScope(callee.functionScope);
+
+    for (const args of callerArgs) {
+        if (args.name === undefined) continue;
+
+        const name = args.name.text;
+        const paramId = callee.linkedNode.paramList.findIndex(p => p.identifier?.text === name);
+        if (paramId === -1) continue;
+
+        const toSymbol = functionScope.lookupSymbol(name);
+        if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
+
+        // Add a reference to the named argument in the callee function scope.
+        callerScope.pushReference({toSymbol: toSymbol, fromToken: args.name});
     }
 }
 
