@@ -85,7 +85,7 @@ export abstract class TokenBase {
      * Returns whether the token does not exist in the original code.
      */
     public isVirtual(): boolean {
-        return this.location === undefined;
+        return this._location === undefined;
     }
 
     public isReservedToken(): this is TokenReserved {
