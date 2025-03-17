@@ -21,10 +21,15 @@ interface HighlightInfo {
     modifier: HighlightForModifier;
 }
 
+const emptyLocation = TextLocation.createEmpty();
+
 /**
  * Base object for all tokens.
  */
 export abstract class TokenBase {
+    // Location information of a token including the file path and the position within the file.
+    private readonly _location: TextLocation | undefined;
+
     // Syntax highlight information
     private _highlight: HighlightInfo;
 
@@ -33,23 +38,38 @@ export abstract class TokenBase {
     private _prevPreprocessedToken: TokenBase | undefined = undefined;
     private _nextPreprocessedToken: TokenBase | undefined = undefined;
 
-    // Information on the token range this token replaced
-    private _replacedRange: TokenRange | undefined = undefined;
+    // Information about the token range covered by this virtual token
+    private readonly _coveredRange: TokenRange | undefined = undefined;
 
     protected constructor(
-        // The text content of a token as it is
+        // The text content of a token as it is in principle. (Note that a combined multi-string token is modified.)
         public readonly text: string,
-        // The location information of a token including the file path and the position within the file.
-        public readonly location: TextLocation,
+        // The location information of a token. If this is a virtual token, it can specify the range it covers.
+        location: TextLocation | TokenRange | undefined,
+        // Initial highlight information for the token type
         highlightToken: HighlightForToken,
+        // Initial highlight information for the token modifier
         highlightModifier: HighlightForModifier = HighlightForModifier.Nothing,
     ) {
+        if (location instanceof TextLocation) {
+            this._location = location;
+        } else if (location instanceof TokenRange) {
+            this._coveredRange = location;
+        }
+
         this._highlight = {token: highlightToken, modifier: highlightModifier};
     }
 
     public abstract get kind(): TokenKind;
 
+    public get location(): TextLocation {
+        return this._location
+            ?? this._coveredRange?.getBoundingLocation()
+            ?? emptyLocation;
+    }
+
     public setHighlight(token: HighlightForToken, modifier?: HighlightForModifier) {
+        assert(this.isVirtual() === false);
         if (modifier === undefined) {
             this._highlight.token = token;
         } else {
@@ -62,19 +82,10 @@ export abstract class TokenBase {
     }
 
     /**
-     * Makes the token virtual.
-     * Virtual tokens are not part of the original code.
-     */
-    protected markVirtual() {
-        // We recognize the virtual token by whether the highlight is invalid.
-        this._highlight.token = HighlightForToken.Invalid;
-    }
-
-    /**
      * Returns whether the token does not exist in the original code.
      */
     public isVirtual(): boolean {
-        return this._highlight.token === HighlightForToken.Invalid;
+        return this.location === undefined;
     }
 
     public isReservedToken(): this is TokenReserved {
@@ -116,18 +127,12 @@ export abstract class TokenBase {
         return this._nextPreprocessedToken;
     }
 
-    public setReplacedRange(range: TokenRange) {
-        assert(this._replacedRange === undefined);
-        this._replacedRange = range;
-    }
-
     /**
-     * Information on the token range this token replaced
+     * Information on the token range this token covered.
      * It is basically set for virtual tokens.
      */
-    // TODO: Rename to coveredRange?
-    public get replacedRange(): TokenRange | undefined {
-        return this._replacedRange;
+    public get coveredRange(): TokenRange | undefined {
+        return this._coveredRange;
     }
 
     /**
@@ -148,7 +153,7 @@ export class TokenReserved extends TokenBase {
 
     public constructor(
         text: string,
-        location: TextLocation,
+        location: TextLocation | TokenRange | undefined,
         property?: ReservedWordProperty,
     ) {
         super(text, location, HighlightForToken.Keyword);
@@ -156,11 +161,8 @@ export class TokenReserved extends TokenBase {
         this.property = property ?? findAllReservedWordProperty(text);
     }
 
-    public static createVirtual(text: string, location?: TextLocation, replacedRange?: TokenRange): TokenReserved {
-        const token = new TokenReserved(text, location ?? TextLocation.createEmpty());
-        token.markVirtual();
-        if (replacedRange !== undefined) token.setReplacedRange(replacedRange);
-        return token;
+    public static createVirtual(text: string, coveredRange?: TokenRange): TokenReserved {
+        return new TokenReserved(text, coveredRange);
     }
 
     public get kind(): TokenKind {
@@ -171,15 +173,13 @@ export class TokenReserved extends TokenBase {
 export class TokenIdentifier extends TokenBase {
     public constructor(
         text: string,
-        location: TextLocation,
+        location: TextLocation | TokenRange | undefined,
     ) {
         super(text, location, HighlightForToken.Variable);
     }
 
-    public static createVirtual(text: string, location?: TextLocation): TokenIdentifier {
-        const token = new TokenIdentifier(text, location ?? TextLocation.createEmpty());
-        token.markVirtual();
-        return token;
+    public static createVirtual(text: string, coveredRange?: TokenRange): TokenIdentifier {
+        return new TokenIdentifier(text, coveredRange);
     }
 
     public get kind(): TokenKind {
@@ -187,7 +187,7 @@ export class TokenIdentifier extends TokenBase {
     }
 }
 
-export enum NumberLiterals {
+export enum NumberLiterals { // TODO: Rename to NumberLiteral
     Integer = 'Integer',
     Float = 'Float',
     Double = 'Double',
@@ -210,15 +210,13 @@ export class TokenNumber extends TokenBase {
 export class TokenString extends TokenBase {
     public constructor(
         text: string,
-        location: TextLocation,
+        location: TextLocation | TokenRange | undefined,
     ) {
         super(text, location, HighlightForToken.String);
     }
 
-    public static createVirtual(text: string, location?: TextLocation): TokenString {
-        const token = new TokenString(text, location ?? TextLocation.createEmpty());
-        token.markVirtual();
-        return token;
+    public static createVirtual(text: string, coveredRange?: TokenRange): TokenString {
+        return new TokenString(text, coveredRange);
     }
 
     public get kind(): TokenKind {

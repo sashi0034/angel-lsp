@@ -2453,7 +2453,7 @@ function parseCondition(parser: ParserState): NodeCondition | undefined {
 
 // BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
 function parseExprOp(parser: ParserState) {
-    const next = getNextLinkedGreaterThan(parser);
+    const next = handleGreaterThanAndGetNext(parser);
     if (next.isReservedToken() === false) return undefined;
     if (next.property.isExprOp === false) return parseNotIsOperator(parser);
     parser.commit(next.text === 'is' ? HighlightForToken.Builtin : HighlightForToken.Operator);
@@ -2464,12 +2464,11 @@ function parseExprOp(parser: ParserState) {
 function parseNotIsOperator(parser: ParserState) {
     if (areTokensJoinedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
-    const replacedRange = new TokenRange(parser.next(), parser.next(1));
-    const location = replacedRange.getBoundingLocation();
+    const coveredRange = new TokenRange(parser.next(), parser.next(1));
     parser.commit(HighlightForToken.Builtin);
     parser.commit(HighlightForToken.Builtin);
 
-    return TokenReserved.createVirtual('!is', location, replacedRange);
+    return TokenReserved.createVirtual('!is', coveredRange);
 }
 
 // BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -2482,28 +2481,33 @@ function parseNotIsOperator(parser: ParserState) {
 
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function parseAssignOp(parser: ParserState) {
-    const next = getNextLinkedGreaterThan(parser);
+    const next = handleGreaterThanAndGetNext(parser);
     if (next.isReservedToken() === false || next.property.isAssignOp === false) return undefined;
     parser.commit(HighlightForToken.Operator);
     return next;
 }
 
-function getNextLinkedGreaterThan(parser: ParserState) {
-    if (parser.next().text !== '>') return parser.next();
+function handleGreaterThanAndGetNext(parser: ParserState) {
+    if (parser.next().text !== '>') {
+        return parser.next();
+    }
 
-    const check = (targets: string[], uniqueTokenText: string) => {
-        if (areTokensJoinedBy(parser.next(1), targets) === false) {
+    // -----------------------------------------------
+    // We need to combine the tokens starting with '>' with the next token
+    // because they are separated at the time of tokenization.
+
+    const check = (expected: string[], combinedText: string) => {
+        if (areTokensJoinedBy(parser.next(1), expected) === false) {
             return undefined;
         }
 
-        const replacedRange = new TokenRange(parser.next(0), parser.next(targets.length));
-        const location = replacedRange.getBoundingLocation();
+        const coveredRange = new TokenRange(parser.next(0), parser.next(expected.length));
 
-        for (let i = 0; i < targets.length; ++i) {
+        for (let i = 0; i < expected.length; ++i) {
             parser.commit(HighlightForToken.Operator);
         }
 
-        return TokenReserved.createVirtual(uniqueTokenText, location, replacedRange);
+        return TokenReserved.createVirtual(combinedText, coveredRange);
     };
 
     // '>='

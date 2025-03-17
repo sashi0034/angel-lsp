@@ -44,6 +44,7 @@ import {
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {AnalyzerScope} from "./analyzerScope";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
@@ -168,7 +169,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
                 for (const superSymbol of superConstructor.toList()) {
                     superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
                         'super',
-                        superSymbol.identifierToken.location
+                        new TokenRange(superSymbol.identifierToken, superSymbol.identifierToken)
                     );
 
                     scope.insertSymbolAndCheck(superSymbol);
@@ -321,7 +322,8 @@ function hoistFunc(
         if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
             const identifier: TokenObject = TokenIdentifier.createVirtual(
                 nodeFunc.identifier.text.substring(4),
-                nodeFunc.identifier.location);
+                new TokenRange(nodeFunc.identifier, nodeFunc.identifier)
+            );
 
             const symbol: SymbolVariable = SymbolVariable.create({
                 identifierToken: identifier, // FIXME?

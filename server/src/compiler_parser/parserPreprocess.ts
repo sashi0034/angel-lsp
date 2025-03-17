@@ -1,7 +1,7 @@
 import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {diagnostic} from "../core/diagnostic";
 import {HighlightForToken} from "../core/highlight";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
+import {TokenRange} from "../compiler_tokenizer/tokenRange";
 
 /**
  * Output of the 'preprocessAfterTokenized' function.
@@ -25,11 +25,13 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
 
     // Concatenate continuous strings.
     for (let i = actualTokens.length - 1; i >= 1; i--) {
-        const isContinuousString = actualTokens[i].kind === TokenKind.String && actualTokens[i - 1].kind === TokenKind.String;
-        if (isContinuousString === false) continue;
+        const canCombine =
+            actualTokens[i - 1].isStringToken() && actualTokens[i].isStringToken(); // "string" --> "string"
+        if (canCombine === false) continue;
 
         // Create a new token with the combined elements.
-        actualTokens[i - 1] = createConnectedStringTokenAt(actualTokens, i);
+        actualTokens[i - 1] =
+            createCombinedStringToken(actualTokens[i - 1] as TokenString, actualTokens[i] as TokenString); // "stringstring"
         actualTokens.splice(i, 1);
     }
 
@@ -102,14 +104,7 @@ function sliceTokenListBySameLine(tokens: TokenObject[], head: number): TokenObj
     return tokens.slice(head, tail + 1);
 }
 
-function createConnectedStringTokenAt(actualTokens: TokenObject[], index: number): TokenObject {
-    const tokenText = actualTokens[index].text + actualTokens[index + 1].text;
-
-    const tokenLocation = new TextLocation(
-        actualTokens[index].location.path,
-        actualTokens[index].location.start,
-        actualTokens[index + 1].location.end
-    );
-
-    return TokenString.createVirtual(tokenText, tokenLocation);
+function createCombinedStringToken(lhs: TokenString, rhs: TokenString): TokenObject {
+    const tokenText = '"' + lhs.getStringContent() + rhs.getStringContent() + '"'; // FIXME?
+    return TokenString.createVirtual(tokenText, new TokenRange(lhs, rhs));
 }
