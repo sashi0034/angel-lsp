@@ -56,7 +56,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
     for (let paramId = 0; paramId < calleeeParams.length; ++paramId) {
         if (calleeeParams[paramId].identifier === undefined) continue;
 
-        if (callerNode.argList.length >= paramId) {
+        if (callerNode.argList.length <= paramId) {
             break;
         }
 
@@ -76,7 +76,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
     for (let paramId = callerNode.argList.length; paramId < calleeeParams.length; ++paramId) {
         if (calleeeParams[paramId].identifier === undefined) continue;
 
-        if (tail !== '') {
+        if (paramId > 0) {
             tail += ', ';
         }
 
