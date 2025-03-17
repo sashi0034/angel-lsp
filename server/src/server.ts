@@ -33,6 +33,8 @@ import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
 import {provideInlineHint} from "./services/inlineHint";
+import {DiagnosticSeverity} from "vscode-languageserver-types";
+import {CodeAction} from "vscode-languageserver-protocol";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -66,7 +68,10 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             declarationProvider: true,
             referencesProvider: true,
-            codeActionProvider: true,
+            codeActionProvider: {
+                codeActionKinds: ["quickfix"],
+                resolveProvider: true,
+            },
             renameProvider: true,
             hoverProvider: true,
             signatureHelpProvider: {
@@ -251,21 +256,43 @@ connection.onReferences((params) => {
 
 // -----------------------------------------------
 // Code Action Provider
+
+interface CodeActionContext {
+    uri: string;
+}
+
 connection.onCodeAction((params) => {
-    const uri = params.textDocument.uri;
-    return [{
-        title: 'Insert named arguments into a function call.',
-        edit: {
-            changes: {
-                [uri]: [
-                    {
-                        range: {start: {line: 0, character: 0}, end: {line: 0, character: 0}},
-                        newText: 'Hello, World!'
-                    }
-                ]
-            }
+    const result: CodeAction[] = [];
+    const context: CodeActionContext = {uri: params.textDocument.uri};
+
+    for (const diagnostic of params.context.diagnostics) {
+        if (diagnostic.severity == DiagnosticSeverity.Hint) {
+            result.push({
+                title: diagnostic.message, // FIXME?
+                diagnostics: [diagnostic],
+                data: context
+            });
         }
-    }];
+    }
+
+    return result;
+});
+
+connection.onCodeActionResolve((action) => {
+    const context = action.data as CodeActionContext;
+    const uri = context.uri;
+
+    action.edit = {
+        changes: {
+            [uri]: [
+                {
+                    range: action.diagnostics![0].range,
+                    newText: 'Hello, World!'
+                }]
+        }
+    };
+
+    return action;
 });
 
 // -----------------------------------------------
