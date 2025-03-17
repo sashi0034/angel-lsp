@@ -65,30 +65,51 @@ interface FunctionAndCost {
     cost: number;
 }
 
+enum MismatchKind {
+    TooManyArguments = 'TooManyArguments',
+    FewerArguments = 'FewerArguments',
+    InvalidNamedArgumentOrder = 'InvalidNamedArgumentOrder',
+    DuplicateNamedArgument = 'DuplicateNamedArgument',
+    NotFoundNamedArgument = 'NotFoundNamedArgument',
+    ParameterMismatch = 'ParameterMismatch'
+}
+
 type MismatchReason = {
-    tooManyArguments: true,
-    fewerArguments?: false
+    reason: MismatchKind.TooManyArguments
 } | {
-    tooManyArguments?: false,
-    fewerArguments: true
+    reason: MismatchKind.FewerArguments
 } | {
-    tooManyArguments: false,
-    fewerArguments: false,
+    reason: MismatchKind.InvalidNamedArgumentOrder,
+    invalidArgumentIndex: number
+} | {
+    reason: MismatchKind.DuplicateNamedArgument
+    nameIndex: number
+} | {
+    reason: MismatchKind.NotFoundNamedArgument
+    nameIndex: number
+} | {
+    reason: MismatchKind.ParameterMismatch,
     mismatchIndex: number,
     expectedType: ResolvedType | undefined,
     actualType: ResolvedType | undefined,
+}
+
+function hasMismatchReason(reason: number | MismatchReason): reason is MismatchReason {
+    return typeof reason !== "number";
 }
 
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegate} = args;
 
     let bestMatching: FunctionAndCost | undefined = undefined;
-    let lastMismatchReason: MismatchReason = {tooManyArguments: true};
+    let lastMismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
+
+    // TODO: Output error messages for the overloads that are most closest to the caller arguments.
 
     // Find the best matching function.
     for (const callee of calleeFuncHolder.toList()) {
         const evaluated = evaluateFunctionMatch(args, callee);
-        if (typeof evaluated !== "number") {
+        if (hasMismatchReason(evaluated)) {
             // Handle mismatch errors.
             lastMismatchReason = evaluated;
             continue;
@@ -129,39 +150,118 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     }
 }
 
+// -----------------------------------------------
+
 function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
-    const {callerArgs, calleeTemplateTranslator} = args;
+    const {callerArgs} = args;
 
     let totalCost = 0;
 
     // Caller arguments must be at least as many as the callee parameters.
-    if (callee.parameterTypes.length < callerArgs.length) return {tooManyArguments: true};
+    if (callee.parameterTypes.length < callerArgs.length) {
+        return {reason: MismatchKind.TooManyArguments};
+    }
 
-    // let callerArgId = 0; // TODO
-    for (let calleeParamId = 0; calleeParamId < callee.parameterTypes.length; calleeParamId++) {
-        if (calleeParamId >= callerArgs.length) {
-            // Handle when the caller arguments are insufficient.
-            if (callee.linkedNode.paramList[calleeParamId].defaultExpr !== undefined) {
-                // When there is default expressions
-                break;
+    // The order of the caller arguments is expected to be as follows:
+    // ('positional', 'positional', ... 'positional', 'named', 'named', ... 'named')
+
+    // -----------------------------------------------
+    // Evaluate the named arguments in the caller
+    const namedArgumentCost = evaluatePassingNamedArgument(args, callee);
+    if (hasMismatchReason(namedArgumentCost)) {
+        return namedArgumentCost;
+    }
+
+    totalCost += namedArgumentCost;
+
+    // -----------------------------------------------
+    // Evaluate the positional arguments in the caller
+    const positionalArgumentCost = evaluatePassingPositionalArgument(args, callee);
+    if (hasMismatchReason(positionalArgumentCost)) {
+        return positionalArgumentCost;
+    }
+
+    totalCost += positionalArgumentCost;
+
+    return totalCost;
+}
+
+function evaluatePassingNamedArgument(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+    const {callerArgs} = args;
+
+    let totalCost = 0;
+    let foundNamedArgument = false;
+    for (let argId = 0; argId < callerArgs.length; argId++) {
+        const callerArgName = callerArgs[argId].name?.text;
+        if (callerArgName === undefined) {
+            if (foundNamedArgument) {
+                // Positional arguments cannot be passed after named arguments
+                return {reason: MismatchKind.InvalidNamedArgumentOrder, invalidArgumentIndex: argId};
             } else {
-                return {fewerArguments: true};
+                continue;
             }
         }
 
-        const expectedType =
-            applyTemplateTranslator(callee.parameterTypes[calleeParamId], calleeTemplateTranslator);
-        const actualType = callerArgs[calleeParamId].type;
+        // At this point, the named argument is found.
+        foundNamedArgument = true;
 
-        const cost = evaluateConversionCost(actualType, expectedType);
-        if (cost === undefined) {
-            return {
-                tooManyArguments: false,
-                fewerArguments: false,
-                mismatchIndex: calleeParamId,
-                expectedType: expectedType,
-                actualType: actualType
-            };
+        // Check if the named argument is duplicated.
+        for (let i = 0; i < argId; i++) {
+            if (callerArgs[i].name?.text === callerArgName) {
+                return {reason: MismatchKind.DuplicateNamedArgument, nameIndex: argId};
+            }
+        }
+
+        // Find the matching parameter name in the callee function.
+        for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
+            const calleeArgName = callee.linkedNode.paramList[paramId].identifier?.text;
+            if (callerArgName === calleeArgName) {
+                // Found a matching parameter name between the caller and callee
+
+                // Check the type of the passing argument
+                const cost = evaluatePassingArgument(args, argId, callee.parameterTypes[paramId]);
+                if (hasMismatchReason(cost)) {
+                    return cost;
+                }
+
+                totalCost += cost;
+                break;
+            }
+
+            if (paramId === callee.parameterTypes.length - 1) {
+                return {reason: MismatchKind.NotFoundNamedArgument, nameIndex: argId};
+            }
+        }
+    }
+
+    return totalCost;
+}
+
+function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+    const {callerArgs} = args;
+    let totalCost = 0;
+
+    // Iterate over the parameters of the callee function.
+    for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
+        if (paramId >= callerArgs.length) {
+            // Handle when the caller arguments are insufficient.
+            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined) {
+                // When there is default expressions
+                break;
+            } else {
+                return {reason: MismatchKind.FewerArguments};
+            }
+        }
+
+        if (callerArgs[paramId].name !== undefined) {
+            // Finish the positional arguments when the named argument is found.
+            break;
+        }
+
+        // Check the type of the passing argument
+        const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId]);
+        if (hasMismatchReason(cost)) {
+            return cost;
         }
 
         totalCost += cost;
@@ -170,16 +270,64 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
     return totalCost;
 }
 
+function evaluatePassingArgument(
+    args: FunctionCallArgs, callerArgId: number, calleeParam: ResolvedType | undefined
+): number | MismatchReason {
+    const {callerArgs, calleeTemplateTranslator} = args;
+    const expectedType =
+        applyTemplateTranslator(calleeParam, calleeTemplateTranslator);
+
+    const actualType = callerArgs[callerArgId].type;
+
+    const cost = evaluateConversionCost(actualType, expectedType);
+    if (cost === undefined) {
+        return {
+            reason: MismatchKind.ParameterMismatch,
+            mismatchIndex: callerArgId,
+            expectedType: expectedType,
+            actualType: actualType
+        };
+    }
+
+    return cost;
+}
+
+// -----------------------------------------------
+
 function handleMismatchError(args: FunctionCallArgs, lastMismatchReason: MismatchReason) {
     const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
+
+    if (lastMismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
+        const argRange = callerArgs[lastMismatchReason.invalidArgumentIndex].range;
+        analyzerDiagnostic.add(
+            argRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
+            'Positional arguments cannot be passed after named arguments.'
+        );
+        return;
+    } else if (lastMismatchReason.reason === MismatchKind.DuplicateNamedArgument) {
+        const argLocation = callerArgs[lastMismatchReason.nameIndex].name?.location;
+        analyzerDiagnostic.add(
+            argLocation ?? callerRange.getBoundingLocation(),
+            `Duplicate named argument '${callerArgs[lastMismatchReason.nameIndex].name?.text}'.`
+        );
+        return;
+    } else if (lastMismatchReason.reason === MismatchKind.NotFoundNamedArgument) {
+        const argLocation = callerArgs[lastMismatchReason.nameIndex].name?.location;
+        analyzerDiagnostic.add(
+            argLocation ?? callerRange.getBoundingLocation(),
+            `Named argument '${callerArgs[lastMismatchReason.nameIndex].name?.text}' does not found in the ${calleeFuncHolder.identifierText}.`
+        );
+        return;
+    }
+
     if (calleeFuncHolder.count === 1) {
         const calleeFunction = calleeFuncHolder.first;
-        if (lastMismatchReason.tooManyArguments || lastMismatchReason.fewerArguments) {
+        if (lastMismatchReason.reason === MismatchKind.TooManyArguments || lastMismatchReason.reason === MismatchKind.FewerArguments) {
             analyzerDiagnostic.add(
                 callerRange.getBoundingLocation(),
                 `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
             );
-        } else {
+        } else { // lastMismatchReason.reason === MismatchKind.ParameterMismatch
             const actualTypeMessage = stringifyResolvedType(lastMismatchReason.actualType);
             const expectedTypeMessage = stringifyResolvedType(lastMismatchReason.expectedType);
             const callerArgRange = callerArgs[lastMismatchReason.mismatchIndex].range;
