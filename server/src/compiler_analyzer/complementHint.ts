@@ -10,7 +10,7 @@ import {TemplateTranslator} from "./resolvedType";
  */
 export enum ComplementKind {
     /** Autocomplete within a scope, such as inside `{ }` in a function body. */
-    Scope = 'Scope', // TODO: Rename to ScopeRegion
+    ScopeRegion = 'ScopeRegion',
 
     /** Autocomplete for instance members, like `player.m_parent.$C$` */
     InstanceMember = 'InstanceMember',
@@ -30,15 +30,15 @@ export interface ComplementBase {
     complementKind: ComplementKind;
 
     /** The location in the text where the autocomplete is being triggered. */
-    complementLocation: TextLocation;
+    complementLocation: TextLocation; // TODO: Rename to `boundingLocation`?
 }
 
 /**
  * Represents an autocomplete target within a scope.
  * e.g., the code block inside `{}` in `void fn() { ... }`.
  */
-export interface ComplementScope extends ComplementBase {
-    complementKind: ComplementKind.Scope;
+export interface ComplementScopeRegion extends ComplementBase {
+    complementKind: ComplementKind.ScopeRegion;
     targetScope: SymbolScope;
 }
 
@@ -75,16 +75,16 @@ export interface ComplementCallerArgument extends ComplementBase {
 }
 
 export type ComplementHint =
-    ComplementScope
+    ComplementScopeRegion
     | ComplementInstanceMember
     | ComplementNamespaceSymbol
     | ComplementCallerArgument;
 
 // -----------------------------------------------
 
-export function complementHintForScope(targetScope: SymbolScope, tokenRange: TokenRange) {
+export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.Scope,
+        complementKind: ComplementKind.ScopeRegion,
         complementLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });

@@ -23,7 +23,7 @@ import {
     NodeVirtualProp,
     ParsedEnumMember
 } from "../compiler_parser/nodes";
-import {complementHintForScope} from "./complementHint";
+import {complementScopeRegion} from "./complementHint";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {findSymbolWithParent} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
@@ -89,7 +89,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
         queue // TODO: Is this correct? Check
     );
 
-    complementHintForScope(scopeIterator, nodeNamespace.nodeRange);
+    complementScopeRegion(scopeIterator, nodeNamespace.nodeRange);
 }
 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -177,7 +177,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
         });
     });
 
-    complementHintForScope(scope, nodeClass.nodeRange);
+    complementScopeRegion(scope, nodeClass.nodeRange);
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {
@@ -366,7 +366,7 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
-    complementHintForScope(scope, nodeInterface.nodeRange);
+    complementScopeRegion(scope, nodeInterface.nodeRange);
 }
 
 function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {

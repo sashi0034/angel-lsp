@@ -66,7 +66,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {complementHintForScope, ComplementKind} from "./complementHint";
+import {complementScopeRegion, ComplementKind} from "./complementHint";
 import {
     findSymbolWithParent,
     getSymbolAndScopeIfExist, canAccessInstanceMember,
@@ -204,7 +204,7 @@ export function analyzeVarInitializer(
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
-    complementHintForScope(scope, statBlock.nodeRange);
+    complementScopeRegion(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
