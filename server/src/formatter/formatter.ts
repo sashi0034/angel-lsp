@@ -978,7 +978,7 @@ function formatArgList(format: FormatterState, nodeArgList: NodeArgList) {
             const arg = nodeArgList.argList[i];
             if (arg.identifier !== undefined) {
                 formatTargetBy(format, arg.identifier.text, {});
-                formatTargetBy(format, ':', {connectTail: true});
+                formatTargetBy(format, ':', {condenseLeft: true, connectTail: true});
             }
 
             formatAssign(format, arg.assign);

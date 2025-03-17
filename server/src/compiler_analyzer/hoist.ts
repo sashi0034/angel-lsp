@@ -304,6 +304,7 @@ function hoistFunc(
         returnType: undefined, // set below
         parameterTypes: [],
         linkedNode: nodeFunc,
+        functionScope: functionScope.scopePath,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     });
@@ -406,6 +407,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
         returnType: undefined,
         parameterTypes: [],
         linkedNode: funcDef,
+        functionScope: undefined,
         isInstanceMember: false,
         accessRestriction: undefined,
     });
@@ -481,6 +483,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
         linkedNode: intfMethod,
+        functionScope: undefined, // TODO: Create a dummy function scope for the interface method because named arguments give reference
         isInstanceMember: true,
         accessRestriction: undefined,
     });

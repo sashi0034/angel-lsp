@@ -128,4 +128,15 @@ describe("Definition", () => {
     `, [[10, 0], [11, 1], [12, 2], [13, 3], [14, 4], [15, 5], [16, 6], [17, 7], [18, 8], [19, 9]]
         // This mapping is an array of pairs of caret positions in the format [(from), (to)]
     );
+
+    testDefinition(`
+        class B { }
+        class C { }
+
+        void foo(int a, B b$C0$ = B(), C c = C(), bool d = false, double e = 0) { }
+
+        void main() {
+            foo(1, e: 2.0, b$C1$: B(), d: true);
+        }
+    `);
 });

@@ -29,7 +29,7 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     return suffix.length === 0 ? '' : suffix + '::';
 }
 
-export function stringifyResolvedType(type: ResolvedType | undefined,): string {
+export function stringifyResolvedType(type: ResolvedType | undefined): string {
     if (type === undefined) return '(undefined)';
 
     let suffix = '';
