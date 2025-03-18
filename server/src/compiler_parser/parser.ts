@@ -611,6 +611,13 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         funcAttr = parseFuncAttr(parser);
 
         if (parser.next().text === ';') {
+            // Function declaration is allowed only in 'as.predefined'
+            if (parser.isPredefinedFile === false) {
+                // This node can be a variable calling a constructor, not a function declaration.
+                parser.backtrack(rangeStart);
+                return undefined;
+            }
+
             parser.commit(HighlightForToken.Operator);
         } else {
             statBlock = expectStatBlock(parser);
@@ -624,7 +631,7 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         parser.commit(HighlightForToken.Operator);
     }
 
-    if (statBlock === undefined) statBlock = {
+    statBlock = statBlock ?? {
         nodeName: NodeName.StatBlock,
         nodeRange: new TokenRange(parser.next(), parser.next()),
         statementList: []
@@ -1114,11 +1121,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
         if (type === undefined) {
             // if it's not a valid identifier, it's not
             // ever going to be a valid constructor.
-            // FIXME: this doesn't solve all of the
-            // conflicts between func defs and constructor
-            // calls; need to revisit this later
-            if (parser.next().kind === TokenKind.String ||
-                parser.next().kind === TokenKind.Number) {
+            if (parser.next().kind === TokenKind.String || parser.next().kind === TokenKind.Number) {
                 return undefined;
             }
 
