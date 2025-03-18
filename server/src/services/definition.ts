@@ -22,7 +22,7 @@ export function provideDefinition(globalScope: SymbolScope, caret: Position): Sy
  */
 export function provideDefinitionAsToken(
     globalScope: SymbolGlobalScope,
-    globalScopeList: SymbolScope[],
+    globalScopeList: SymbolGlobalScope[],
     caret: Position
 ): TokenObject | undefined {
     return provideDefinition(globalScope, caret)?.identifierToken
@@ -63,7 +63,7 @@ function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: 
 
 // Find the definition of the scope token at the cursor position.
 // This is a bit complicated because there may be multiple definitions of the namespace.
-function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolScope[], caret: Position) {
+function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: Position) {
     // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespaces
     const {accessScope, tokenOnCaret, tokenAfterNamespace} = findNamespaceTokenOnCaret(globalScope, caret);
     if (accessScope === undefined || tokenOnCaret === undefined) {
@@ -148,7 +148,7 @@ function findDefinitionByToken(scope: SymbolScope, target: TokenObject): SymbolO
     return undefined;
 }
 
-function findNamespaceTokenNearPosition(globalScope: SymbolScope, scopePath: ScopePath, position: TextPosition): TokenObject | undefined {
+function findNamespaceTokenNearPosition(globalScope: SymbolGlobalScope, scopePath: ScopePath, position: TextPosition): TokenObject | undefined {
     const namespaceScope = globalScope.resolveScope(scopePath);
     if (namespaceScope === undefined) return undefined;
 

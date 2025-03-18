@@ -232,7 +232,7 @@ export class SymbolScope {
         return this._childScopeTable.get(identifier);
     }
 
-    public resolveScope(path: ScopePath): SymbolScope | undefined { // FIXME: Should be moved to GlobalScope?
+    protected resolveScope(path: ScopePath): SymbolScope | undefined {
         if (path.length === 0) return this;
         const child = this._childScopeTable.get(path[0]);
         if (child === undefined) return undefined;
@@ -344,6 +344,10 @@ export class SymbolGlobalScope extends SymbolScope {
 
     public get completionHints(): ReadonlyArray<ComplementHint> {
         return this._context.completionHints;
+    }
+
+    public resolveScope(path: ScopePath): SymbolScope | undefined {
+        return super.resolveScope(path);
     }
 }
 

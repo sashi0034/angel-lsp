@@ -3,7 +3,7 @@ import {provideDefinitionAsToken} from "./definition";
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolScope[], caret: Position): TokenObject[] {
+export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: Position): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
     if (targetDefinition === undefined) return [];
 
