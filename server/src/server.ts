@@ -224,7 +224,7 @@ connection.onDefinition((params) => {
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
-    const caret = params.position;
+    const caret = TextPosition.create(params.position);
 
     const jumping = provideDefinitionAsToken(analyzedScope.globalScope, getGlobalScopeList(), caret);
     if (jumping === undefined) return;
@@ -242,7 +242,7 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
 
-    const caret = params.position;
+    const caret = TextPosition.create(params.position);
 
     const references = provideReferences(
         analyzedScope.globalScope,
@@ -325,7 +325,7 @@ connection.onHover((params) => {
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return;
 
-    const caret = params.position;
+    const caret = TextPosition.create(params.position);
 
     const definition = provideDefinition(analyzedScope.globalScope, caret);
     if (definition === undefined) return;

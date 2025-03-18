@@ -12,7 +12,7 @@ import {TextPosition} from "../compiler_tokenizer/textLocation";
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function provideDefinition(globalScope: SymbolScope, caret: Position): SymbolObject | undefined {
+export function provideDefinition(globalScope: SymbolScope, caret: TextPosition): SymbolObject | undefined {
     return provideDefinitionInternal(globalScope.getContext().filepath, globalScope, caret);
 }
 
@@ -23,7 +23,7 @@ export function provideDefinition(globalScope: SymbolScope, caret: Position): Sy
 export function provideDefinitionAsToken(
     globalScope: SymbolGlobalScope,
     globalScopeList: SymbolGlobalScope[],
-    caret: Position
+    caret: TextPosition
 ): TokenObject | undefined {
     return provideDefinition(globalScope, caret)?.identifierToken
         // fallback to namespace definition
