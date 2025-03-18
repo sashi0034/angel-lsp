@@ -11,8 +11,7 @@ function reset() {
     s_diagnostics.length = 0;
 }
 
-// TODO: Rename to error
-function add(location: TextLocation, message: string) {
+function error(location: TextLocation, message: string) {
     const severity = getGlobalSettings().suppressAnalyzerErrors ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
 
     s_diagnostics.push({
@@ -41,7 +40,7 @@ function flush(): Diagnostic[] {
 
 export const analyzerDiagnostic = {
     reset,
-    add,
+    error,
     hint,
     flush,
 } as const;

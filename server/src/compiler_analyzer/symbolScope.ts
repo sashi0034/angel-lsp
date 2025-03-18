@@ -348,7 +348,7 @@ export class SymbolGlobalScope extends SymbolScope {
 }
 
 function errorAlreadyDeclared(token: TokenObject) {
-    analyzerDiagnostic.add(
+    analyzerDiagnostic.error(
         token.location,
         `Symbol '${token.text}' is already declared in the scope.`
     );

@@ -372,21 +372,21 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
 
     if (mismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
         const argRange = callerArgs[mismatchReason.invalidArgumentIndex].range;
-        analyzerDiagnostic.add(
+        analyzerDiagnostic.error(
             argRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
             'Positional arguments cannot be passed after named arguments.'
         );
         return;
     } else if (mismatchReason.reason === MismatchKind.DuplicateNamedArgument) {
         const argLocation = callerArgs[mismatchReason.nameIndex].name?.location;
-        analyzerDiagnostic.add(
+        analyzerDiagnostic.error(
             argLocation ?? callerRange.getBoundingLocation(),
             `Duplicate named argument '${callerArgs[mismatchReason.nameIndex].name?.text}'.`
         );
         return;
     } else if (mismatchReason.reason === MismatchKind.NotFoundNamedArgument) {
         const argLocation = callerArgs[mismatchReason.nameIndex].name?.location;
-        analyzerDiagnostic.add(
+        analyzerDiagnostic.error(
             argLocation ?? callerRange.getBoundingLocation(),
             `Named argument '${callerArgs[mismatchReason.nameIndex].name?.text}' does not found in '${calleeFuncHolder.identifierText}'.`
         );
@@ -396,7 +396,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
     if (calleeFuncHolder.count === 1) {
         const calleeFunction = calleeFuncHolder.first;
         if (mismatchReason.reason === MismatchKind.TooManyArguments || mismatchReason.reason === MismatchKind.FewerArguments) {
-            analyzerDiagnostic.add(
+            analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
                 `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
             );
@@ -404,7 +404,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
             const actualTypeMessage = stringifyResolvedType(mismatchReason.actualType);
             const expectedTypeMessage = stringifyResolvedType(mismatchReason.expectedType);
             const callerArgRange = callerArgs[mismatchReason.mismatchIndex].range;
-            analyzerDiagnostic.add(
+            analyzerDiagnostic.error(
                 callerArgRange?.getBoundingLocation() ?? callerRange.getBoundingLocation(),
                 `Cannot convert '${actualTypeMessage}' to parameter type '${expectedTypeMessage}'.`
             );
@@ -421,6 +421,6 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
 
-        analyzerDiagnostic.add(callerRange.getBoundingLocation(), message);
+        analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
     }
 }
