@@ -750,7 +750,7 @@ export function analyzeConstructorCaller(
         return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
     }
 
-    analyzeFunctionCaller(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
+    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
     return constructorType;
 }
 
@@ -853,7 +853,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
-            return analyzeFunctionCaller(
+            return analyzeFunctionCall(
                 scope, identifier, member.argList, instanceMember, exprValue.templateTranslator
             );
         }
@@ -861,7 +861,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         if (instanceMember.isVariable() && instanceMember.type?.typeOrFunc.isFunction()) {
             // This instance member is a delegate.
             const delegate = instanceMember.type.typeOrFunc.toHolder();
-            return analyzeFunctionCaller(
+            return analyzeFunctionCall(
                 scope, identifier, member.argList, delegate, exprValue.templateTranslator, instanceMember
             );
         }
@@ -973,7 +973,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handler
-        return analyzeFunctionCaller(
+        return analyzeFunctionCall(
             scope,
             funcCall.identifier,
             funcCall.argList,
@@ -992,7 +992,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return undefined;
     }
 
-    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, calleeSymbol, undefined);
+    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, undefined);
 }
 
 function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {
@@ -1013,10 +1013,10 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    return analyzeFunctionCaller(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslator);
+    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslator);
 }
 
-function analyzeFunctionCaller(
+function analyzeFunctionCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
@@ -1032,8 +1032,8 @@ function analyzeFunctionCaller(
         complement: ComplementKind.FunctionCall,
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
-        callerTemplateTranslator: calleeTemplateTranslator,
-        expectedCallee: calleeFuncHolder.first,
+        calleeFuncHolder: calleeFuncHolder,
+        calleeTemplateTranslator: calleeTemplateTranslator,
     });
 
     const callerArgTypes = analyzeArgList(scope, callerArgList);

@@ -1,5 +1,5 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolType, SymbolFunction} from "./symbolObject";
+import {SymbolType, SymbolFunctionHolder} from "./symbolObject";
 import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
@@ -82,8 +82,8 @@ export interface ComplementFunctionCall extends ComplementBase {
     complement: ComplementKind.FunctionCall;
     callerIdentifier: TokenObject;
     callerArgumentsNode: NodeArgList;
-    callerTemplateTranslator: TemplateTranslator | undefined; // TODO: Rename to callee~
-    expectedCallee: SymbolFunction; // FIXME: Should be SymbolFunctionHolder?
+    calleeFuncHolder: SymbolFunctionHolder;
+    calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 
 export type ComplementHint =

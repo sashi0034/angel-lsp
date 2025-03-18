@@ -19,8 +19,9 @@ export function provideSignatureHelp(
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.callerArgumentsNode.nodeRange.extendForward(1); // Extend to the next token of ')'
         if (location.getBoundingLocation().positionInRange(caret)) {
+            const callee = hint.calleeFuncHolder.first; // FIXME?
             const expectedCallee =
-                globalScope.resolveScope(hint.expectedCallee.scopePath)?.lookupSymbolWithParent(hint.expectedCallee.identifierToken.text);
+                globalScope.resolveScope(callee.scopePath)?.lookupSymbolWithParent(callee.identifierToken.text);
             if (expectedCallee?.isFunctionHolder() === false) continue;
 
             for (const callee of expectedCallee.overloadList) {
@@ -47,7 +48,7 @@ function getFunctionSignature(hint: ComplementFunctionCall, expectedCallee: Symb
         const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
-        let label = stringifyResolvedType(applyTemplateTranslator(paramType, hint.callerTemplateTranslator));
+        let label = stringifyResolvedType(applyTemplateTranslator(paramType, hint.calleeTemplateTranslator));
         if (paramIdentifier.identifier !== undefined) label += ' ' + paramIdentifier.identifier?.text;
         const parameter: ParameterInformation = {label: label};
 
