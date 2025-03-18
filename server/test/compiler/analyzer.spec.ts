@@ -129,6 +129,23 @@ describe("Analyzer", () => {
             int number = int(1, 1); Kind kind = Kind(); bool flag = bool();
         }
     `);
+
+    // Implicit bool conversion in Logic operators
+    expectSuccess(`
+        class flag { bool opImplConv() const { return true; } }      
+        void main() {
+            flag f;
+            if (f && bool(f)) { }
+        }
+    `);
+
+    expectError(`
+        class flag { bool opImplConv() const { return true; } }      
+        void main() {
+            flag f;
+            if (f && f) { } // One of the operands must be explicitly boolean
+        }
+    `);
 });
 
 

@@ -1240,7 +1240,7 @@ function analyzeLogicOp(
         if (lhs.identifierText !== 'bool' && rhs.identifierText !== 'bool') {
             analyzerDiagnostic.error(
                 extendTokenLocation(operator, 1, 1),
-                `One of the operands must explicitly be of type 'bool'`
+                `One of the operands must be explicitly type 'bool'`
             );
         }
     }
