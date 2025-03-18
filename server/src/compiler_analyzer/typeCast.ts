@@ -18,7 +18,7 @@ export function checkTypeCast(
 ): boolean {
     if (canTypeCast(src, dest)) return true;
 
-    analyzerDiagnostic.add(
+    analyzerDiagnostic.error(
         nodeRange.getBoundingLocation(),
         `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`
     );

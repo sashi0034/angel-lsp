@@ -1,5 +1,5 @@
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolType, SymbolFunction} from "./symbolObject";
+import {SymbolType, SymbolFunctionHolder} from "./symbolObject";
 import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
@@ -7,39 +7,47 @@ import {TemplateTranslator} from "./resolvedType";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 /**
- * Enumeration defining the different kinds of autocomplete targets.
+ * Complement hint information that is not typically used in the analyzer but is utilized in the service layer.
  */
 export enum ComplementKind {
-    /** Autocomplete within a scope, such as inside `{ }` in a function body. */
+    /**
+     * Location information within the file where the target scope exists, like inside `{ }` in a function scope.
+     * */
     ScopeRegion = 'ScopeRegion',
 
-    /** Autocomplete for instance members, like `player.m_parent.$C$` */
-    InstanceMember = 'InstanceMember',
+    /**
+     * Autocomplete for instance members, like `player.m_parent.$C$`
+     * */
+    AutocompleteInstanceMember = 'AutocompleteInstanceMember',
 
-    /** Autocomplete for namespace symbols, like `Outer::Inner::$C$`. */
-    NamespaceSymbol = 'NamespaceSymbol',
+    /**
+     * Autocomplete for namespace symbols, like `Outer::Inner::$C$`.
+     * */
+    AutocompleteNamespaceAccess = 'AutocompleteNamespaceAccess',
 
-    /** Autocomplete for function arguments, suggesting possible values when calling a function. */
-    CallerArguments = 'CallerArguments',
+    /**
+     * Function call information that can be used when suggesting possible values when autocomplete an argument
+     * */
+    FunctionCall = 'FunctionCall',
 }
 
 /**
  * Base interface for all autocomplete target types.
  */
-export interface ComplementBase {
-    /** The specific kind of autocomplete target. */
-    complementKind: ComplementKind;
-
-    /** The location in the text where the autocomplete is being triggered. */
-    boundingLocation: TextLocation;
+interface ComplementBase {
+    /**
+     * The specific kind of autocomplete target.
+     * */
+    complement: ComplementKind;
 }
 
 /**
- * Represents an autocomplete target within a scope.
+ * Location information within the file where the target scope exists.
  * e.g., the code block inside `{}` in `void fn() { ... }`.
  */
 export interface ComplementScopeRegion extends ComplementBase {
-    complementKind: ComplementKind.ScopeRegion;
+    complement: ComplementKind.ScopeRegion;
+    boundingLocation: TextLocation;
     targetScope: SymbolScope;
 }
 
@@ -48,7 +56,8 @@ export interface ComplementScopeRegion extends ComplementBase {
  * e.g., suggesting methods or properties of an instance of a class.
  */
 export interface ComplementInstanceMember extends ComplementBase {
-    complementKind: ComplementKind.InstanceMember;
+    complement: ComplementKind.AutocompleteInstanceMember;
+    autocompleteLocation: TextLocation;
     targetType: SymbolType;
 }
 
@@ -57,35 +66,44 @@ export interface ComplementInstanceMember extends ComplementBase {
  * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two hints.
  * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
  */
-export interface ComplementNamespaceSymbol extends ComplementBase {
-    complementKind: ComplementKind.NamespaceSymbol;
+export interface ComplementNamespaceAccess extends ComplementBase {
+    complement: ComplementKind.AutocompleteNamespaceAccess;
+    autocompleteLocation: TextLocation;
     accessScope: SymbolScope;
     namespaceToken: TokenObject; // The namespace qualifier token.
     tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the NodeScope.
 }
 
 /**
- * Represents an autocomplete target for function arguments.
+ * Function call information that can be used when suggesting possible values.
  * e.g., providing argument suggestions when typing inside a function call `fn($C$)`, where `$C$` is the caret.
  */
-export interface ComplementCallerArgument extends ComplementBase {
-    complementKind: ComplementKind.CallerArguments;
-    expectedCallee: SymbolFunction;
-    callerNode: NodeArgList;
-    templateTranslator: TemplateTranslator | undefined;
+export interface ComplementFunctionCall extends ComplementBase {
+    complement: ComplementKind.FunctionCall;
+    callerIdentifier: TokenObject;
+    callerArgumentsNode: NodeArgList;
+    calleeFuncHolder: SymbolFunctionHolder;
+    calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 
 export type ComplementHint =
     ComplementScopeRegion
     | ComplementInstanceMember
-    | ComplementNamespaceSymbol
-    | ComplementCallerArgument;
+    | ComplementNamespaceAccess
+    | ComplementFunctionCall;
+
+type AutocompleteHint = ComplementInstanceMember | ComplementNamespaceAccess;
+
+export function isAutocompleteHint(hint: ComplementHint): hint is AutocompleteHint {
+    return hint.complement === ComplementKind.AutocompleteInstanceMember
+        || hint.complement === ComplementKind.AutocompleteNamespaceAccess;
+}
 
 // -----------------------------------------------
 
 export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.ScopeRegion,
+        complement: ComplementKind.ScopeRegion,
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });

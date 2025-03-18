@@ -3,3 +3,4 @@ node_modules
 client/server
 .vscode-test
 tsconfig.tsbuildinfo
+server/angelscript-language-server.js

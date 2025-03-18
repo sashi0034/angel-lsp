@@ -232,7 +232,7 @@ export class SymbolScope {
         return this._childScopeTable.get(identifier);
     }
 
-    public resolveScope(path: ScopePath): SymbolScope | undefined { // FIXME: Should be moved to GlobalScope?
+    protected resolveScope(path: ScopePath): SymbolScope | undefined {
         if (path.length === 0) return this;
         const child = this._childScopeTable.get(path[0]);
         if (child === undefined) return undefined;
@@ -339,17 +339,20 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     public pushCompletionHint(hint: ComplementHint) {
-        assert(hint.boundingLocation.path === this._context.filepath);
         this._context.completionHints.push(hint);
     }
 
     public get completionHints(): ReadonlyArray<ComplementHint> {
         return this._context.completionHints;
     }
+
+    public resolveScope(path: ScopePath): SymbolScope | undefined {
+        return super.resolveScope(path);
+    }
 }
 
 function errorAlreadyDeclared(token: TokenObject) {
-    analyzerDiagnostic.add(
+    analyzerDiagnostic.error(
         token.location,
         `Symbol '${token.text}' is already declared in the scope.`
     );

@@ -131,19 +131,19 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
 
     if (lhsReason.reason === MismatchKind.MissingAliasOperator) {
         if (lhsReason.foundButNotFunction) {
-            analyzerDiagnostic.add(
+            analyzerDiagnostic.error(
                 operatorLocation,
                 `The operator '${alias}' in ${stringifyResolvedType(lhs)} is found, but it is not a function.`
             );
             return;
         } else if (alias_r !== undefined) {
-            analyzerDiagnostic.add(
+            analyzerDiagnostic.error(
                 operatorLocation,
                 `The operator '${stringifyResolvedType(lhs)}::${alias}' or '${stringifyResolvedType(rhs)}::${alias_r}' is not defined.`
             );
             return;
         } else {
-            analyzerDiagnostic.add(
+            analyzerDiagnostic.error(
                 operatorLocation,
                 `The operator '${alias}' in ${stringifyResolvedType(lhs)} is not defined.`
             );
@@ -151,7 +151,7 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
         }
     } else if (lhsReason.reason === MismatchKind.MismatchOverload) {
         const rhsText = Array.isArray(rhs) ? stringifyResolvedTypes(rhs) : stringifyResolvedType(rhs);
-        analyzerDiagnostic.add(
+        analyzerDiagnostic.error(
             operatorLocation,
             `The operator '${alias}' in ${stringifyResolvedType(lhs)} does not match the argument types ${rhsText}.`
         );

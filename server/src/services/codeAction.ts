@@ -38,11 +38,11 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
 
     let callerNode: NodeArgList | undefined;
     for (const completion of globalScope.completionHints) {
-        if (completion.complementKind !== ComplementKind.CallerArguments) continue;
+        if (completion.complement !== ComplementKind.FunctionCall) continue;
 
-        if (completion.boundingLocation.intersects(location) === false) continue;
+        if (completion.callerIdentifier.location.intersects(location) === false) continue;
 
-        callerNode = completion.callerNode;
+        callerNode = completion.callerArgumentsNode;
         break;
     }
 

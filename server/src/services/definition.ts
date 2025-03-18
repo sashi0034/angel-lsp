@@ -12,7 +12,7 @@ import {TextPosition} from "../compiler_tokenizer/textLocation";
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function provideDefinition(globalScope: SymbolScope, caret: Position): SymbolObject | undefined {
+export function provideDefinition(globalScope: SymbolScope, caret: TextPosition): SymbolObject | undefined {
     return provideDefinitionInternal(globalScope.getContext().filepath, globalScope, caret);
 }
 
@@ -22,8 +22,8 @@ export function provideDefinition(globalScope: SymbolScope, caret: Position): Sy
  */
 export function provideDefinitionAsToken(
     globalScope: SymbolGlobalScope,
-    globalScopeList: SymbolScope[],
-    caret: Position
+    globalScopeList: SymbolGlobalScope[],
+    caret: TextPosition
 ): TokenObject | undefined {
     return provideDefinition(globalScope, caret)?.identifierToken
         // fallback to namespace definition
@@ -63,7 +63,7 @@ function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: 
 
 // Find the definition of the scope token at the cursor position.
 // This is a bit complicated because there may be multiple definitions of the namespace.
-function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolScope[], caret: Position) {
+function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: Position) {
     // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespaces
     const {accessScope, tokenOnCaret, tokenAfterNamespace} = findNamespaceTokenOnCaret(globalScope, caret);
     if (accessScope === undefined || tokenOnCaret === undefined) {
@@ -107,7 +107,7 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenAfterNamespace: TokenObject | undefined;
     for (const hint of globalScope.completionHints) {
         // It's a bit rough, but we'll reuse completionHints here
-        if (hint.complementKind !== ComplementKind.NamespaceSymbol) {
+        if (hint.complement !== ComplementKind.AutocompleteNamespaceAccess) {
             continue;
         }
 
@@ -148,7 +148,7 @@ function findDefinitionByToken(scope: SymbolScope, target: TokenObject): SymbolO
     return undefined;
 }
 
-function findNamespaceTokenNearPosition(globalScope: SymbolScope, scopePath: ScopePath, position: TextPosition): TokenObject | undefined {
+function findNamespaceTokenNearPosition(globalScope: SymbolGlobalScope, scopePath: ScopePath, position: TextPosition): TokenObject | undefined {
     const namespaceScope = globalScope.resolveScope(scopePath);
     if (namespaceScope === undefined) return undefined;
 

@@ -9,7 +9,7 @@ import {
     collectParentScopeList,
     isAnonymousIdentifier, SymbolGlobalScope, SymbolScope
 } from "../compiler_analyzer/symbolScope";
-import {ComplementHint, ComplementKind} from "../compiler_analyzer/complementHint";
+import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
@@ -96,8 +96,10 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
     if (globalScope.completionHints.length === 0) return;
 
     for (const hint of globalScope.completionHints) {
+        if (isAutocompleteHint(hint) === false) continue;
+
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.boundingLocation;
+        const location = hint.autocompleteLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             const result = searchMissingCompletion(globalScope, caretScope, hint);
@@ -109,7 +111,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 }
 
 function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolScope, completion: ComplementHint) {
-    if (completion.complementKind === ComplementKind.InstanceMember) {
+    if (completion.complement === ComplementKind.AutocompleteInstanceMember) {
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
@@ -119,7 +121,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 
         // Return the completion candidates in the scope.
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
-    } else if (completion.complementKind === ComplementKind.NamespaceSymbol) {
+    } else if (completion.complement === ComplementKind.AutocompleteNamespaceAccess) {
         // Return the completion candidates in the scope.
         return getCompletionSymbolsInScope(completion.accessScope, false);
     }

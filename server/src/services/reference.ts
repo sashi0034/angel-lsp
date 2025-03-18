@@ -2,8 +2,9 @@ import {Position} from "vscode-languageserver";
 import {provideDefinitionAsToken} from "./definition";
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
 
-export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolScope[], caret: Position): TokenObject[] {
+export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
     if (targetDefinition === undefined) return [];
 

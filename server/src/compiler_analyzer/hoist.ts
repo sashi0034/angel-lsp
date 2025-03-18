@@ -205,10 +205,10 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
         const baseType = findSymbolWithParent(scope, baseIdentifier.text);
 
         if (baseType === undefined) {
-            analyzerDiagnostic.add(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
+            analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
             baseList.push(undefined);
         } else if (baseType.symbol instanceof SymbolType === false) {
-            analyzerDiagnostic.add(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
+            analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
             // Found the base class
@@ -243,7 +243,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
 
                 const alreadyExists = scope.insertSymbol(symbol);
                 if (alreadyExists !== undefined) {
-                    analyzerDiagnostic.add(
+                    analyzerDiagnostic.error(
                         alreadyExists.toList()[0].identifierToken.location,
                         `Duplicated symbol '${key}'`
                     );
@@ -336,7 +336,7 @@ function hoistFunc(
             parentScope.insertSymbol(symbol);
         }
     } else if (nodeFunc.funcAttr?.isProperty === true) {
-        analyzerDiagnostic.add(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
+        analyzerDiagnostic.error(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 
     hoisting.push(() => {
