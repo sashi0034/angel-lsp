@@ -5,6 +5,7 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {checkTypeCast} from "./typeCast";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {SymbolObjectHolder} from "./symbolObject";
+import {stringifyResolvedType} from "./symbolUtils";
 
 export function findConstructorOfType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
     if (resolvedType?.scopePath === undefined) {
@@ -36,24 +37,33 @@ export function checkDefaultConstructorCall(
         callerScope.pushReference({toSymbol: calleeConstructorType.typeOrFunc, fromToken: callerIdentifier});
     }
 
-    if (callerArgTypes.length === 0) {
-        // Call without arguments
-        return calleeConstructorType;
-    }
-
     // -----------------------------------------------
 
-    if (callerArgTypes.length !== 1) {
-        analyzerDiagnostic.error(
-            callerRange.getBoundingLocation(),
-            `Too many initializers for primitive type ${constructorIdentifier.text}`
-        );
+    const calleeSymbol = calleeConstructorType.typeOrFunc;
+    if (calleeSymbol.isType() && calleeSymbol.isPrimitiveOrEnum()) {
+        // A primitive type constructor only accepts one argument.
+        if (callerArgTypes.length !== 1) {
+            const message = callerArgTypes.length === 0
+                ? `Primitive type '${constructorIdentifier.text}' requires an argument`
+                : `Too many arguments for type '${constructorIdentifier.text}'`;
+
+            analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
+        } else {
+            checkTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
+        }
+
+        return calleeConstructorType;
+    } else {
+        // An object default constructor only accepts zero arguments.
+        if (callerArgTypes.length !== 0) {
+            const firstArgument = () => stringifyResolvedType(callerArgTypes[0]);
+            const message = callerArgTypes.length === 1
+                ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts the argument '${firstArgument()}'`
+                : `Too many arguments for type '${constructorIdentifier.text}'`;
+
+            analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
+        }
 
         return calleeConstructorType;
     }
-
-    // FIXME: Check an object type
-
-    checkTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
-    return calleeConstructorType;
 }
