@@ -38,7 +38,7 @@ interface ComplementBase {
     /**
      * The specific kind of autocomplete target.
      * */
-    complementKind: ComplementKind;
+    complement: ComplementKind;
 }
 
 /**
@@ -46,7 +46,7 @@ interface ComplementBase {
  * e.g., the code block inside `{}` in `void fn() { ... }`.
  */
 export interface ComplementScopeRegion extends ComplementBase {
-    complementKind: ComplementKind.ScopeRegion;
+    complement: ComplementKind.ScopeRegion;
     boundingLocation: TextLocation;
     targetScope: SymbolScope;
 }
@@ -56,7 +56,7 @@ export interface ComplementScopeRegion extends ComplementBase {
  * e.g., suggesting methods or properties of an instance of a class.
  */
 export interface ComplementInstanceMember extends ComplementBase {
-    complementKind: ComplementKind.AutocompleteInstanceMember;
+    complement: ComplementKind.AutocompleteInstanceMember;
     autocompleteLocation: TextLocation;
     targetType: SymbolType;
 }
@@ -67,7 +67,7 @@ export interface ComplementInstanceMember extends ComplementBase {
  * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
  */
 export interface ComplementNamespaceAccess extends ComplementBase {
-    complementKind: ComplementKind.AutocompleteNamespaceAccess;
+    complement: ComplementKind.AutocompleteNamespaceAccess;
     autocompleteLocation: TextLocation;
     accessScope: SymbolScope;
     namespaceToken: TokenObject; // The namespace qualifier token.
@@ -79,7 +79,7 @@ export interface ComplementNamespaceAccess extends ComplementBase {
  * e.g., providing argument suggestions when typing inside a function call `fn($C$)`, where `$C$` is the caret.
  */
 export interface ComplementFunctionCall extends ComplementBase {
-    complementKind: ComplementKind.FunctionCall;
+    complement: ComplementKind.FunctionCall;
     callerIdentifier: TokenObject;
     callerArgumentsNode: NodeArgList;
     callerTemplateTranslator: TemplateTranslator | undefined;
@@ -95,15 +95,15 @@ export type ComplementHint =
 type AutocompleteHint = ComplementInstanceMember | ComplementNamespaceAccess;
 
 export function isAutocompleteHint(hint: ComplementHint): hint is AutocompleteHint {
-    return hint.complementKind === ComplementKind.AutocompleteInstanceMember
-        || hint.complementKind === ComplementKind.AutocompleteNamespaceAccess;
+    return hint.complement === ComplementKind.AutocompleteInstanceMember
+        || hint.complement === ComplementKind.AutocompleteNamespaceAccess;
 }
 
 // -----------------------------------------------
 
 export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.ScopeRegion,
+        complement: ComplementKind.ScopeRegion,
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });

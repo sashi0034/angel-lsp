@@ -14,7 +14,7 @@ export function provideSignatureHelp(
 
     for (let i = 0; i < globalScope.completionHints.length; i++) {
         const hint = globalScope.completionHints[i];
-        if (hint.complementKind !== ComplementKind.FunctionCall) continue;
+        if (hint.complement !== ComplementKind.FunctionCall) continue;
 
         // Check if the caller location is at the cursor position in the scope.
         const location = hint.callerArgumentsNode.nodeRange.extendForward(1); // Extend to the next token of ')'

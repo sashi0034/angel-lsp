@@ -20,7 +20,7 @@ export function findScopeContainingPosition(scope: SymbolScope, caret: Position,
 
     let cursor: ComplementScopeRegion | undefined = undefined;
     for (const hint of globalScope.completionHints) {
-        if (hint.complementKind !== ComplementKind.ScopeRegion) continue;
+        if (hint.complement !== ComplementKind.ScopeRegion) continue;
 
         const location = hint.boundingLocation;
         if (location.path !== path) continue;

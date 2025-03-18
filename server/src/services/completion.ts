@@ -111,7 +111,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 }
 
 function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolScope, completion: ComplementHint) {
-    if (completion.complementKind === ComplementKind.AutocompleteInstanceMember) {
+    if (completion.complement === ComplementKind.AutocompleteInstanceMember) {
         // Find the scope to which the type to be completed belongs.
         if (completion.targetType.membersScope === undefined) return [];
 
@@ -121,7 +121,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 
         // Return the completion candidates in the scope.
         return getCompletionMembersInScope(globalScope, caretScope, typeScope);
-    } else if (completion.complementKind === ComplementKind.AutocompleteNamespaceAccess) {
+    } else if (completion.complement === ComplementKind.AutocompleteNamespaceAccess) {
         // Return the completion candidates in the scope.
         return getCompletionSymbolsInScope(completion.accessScope, false);
     }

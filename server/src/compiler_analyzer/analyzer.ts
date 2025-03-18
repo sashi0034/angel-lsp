@@ -377,7 +377,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
 
         // Append a hint for completion of the namespace to the scope.
         getActiveGlobalScope().pushCompletionHint({
-            complementKind: ComplementKind.AutocompleteNamespaceAccess,
+            complement: ComplementKind.AutocompleteNamespaceAccess,
             autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
@@ -824,7 +824,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.AutocompleteInstanceMember,
+        complement: ComplementKind.AutocompleteInstanceMember,
         autocompleteLocation: complementRange,
         targetType: exprValue.typeOrFunc
     });
@@ -1046,7 +1046,7 @@ function analyzeFunctionCaller(
     }
 
     getActiveGlobalScope().pushCompletionHint({
-        complementKind: ComplementKind.FunctionCall,
+        complement: ComplementKind.FunctionCall,
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         callerTemplateTranslator: templateTranslator,
