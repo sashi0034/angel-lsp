@@ -1233,8 +1233,18 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
-    checkTypeCast(lhs, new ResolvedType(builtinBoolType), leftRange);
-    checkTypeCast(rhs, new ResolvedType(builtinBoolType), rightRange);
+    const lhsOk = checkTypeCast(lhs, resolvedBuiltinBool, leftRange);
+    const rhsOk = checkTypeCast(rhs, resolvedBuiltinBool, rightRange);
+
+    if (lhsOk && rhsOk) {
+        if (lhs.identifierText !== 'bool' && rhs.identifierText !== 'bool') {
+            analyzerDiagnostic.error(
+                extendTokenLocation(operator, 1, 1),
+                `One of the operands must explicitly be of type 'bool'`
+            );
+        }
+    }
+
     return new ResolvedType(builtinBoolType);
 }
 
