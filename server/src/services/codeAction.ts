@@ -40,7 +40,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
     for (const completion of globalScope.completionHints) {
         if (completion.complementKind !== ComplementKind.FunctionCall) continue;
 
-        if (completion.callerArgumentsLocation.intersects(location) === false) continue;
+        if (completion.callerIdentifier.location.intersects(location) === false) continue;
 
         callerNode = completion.callerArgumentsNode;
         break;

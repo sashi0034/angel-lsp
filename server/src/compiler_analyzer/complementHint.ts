@@ -80,7 +80,7 @@ export interface ComplementNamespaceAccess extends ComplementBase {
  */
 export interface ComplementFunctionCall extends ComplementBase {
     complementKind: ComplementKind.FunctionCall;
-    callerArgumentsLocation: TextLocation;
+    callerIdentifier: TokenObject;
     callerArgumentsNode: NodeArgList;
     callerTemplateTranslator: TemplateTranslator | undefined;
     expectedCallee: SymbolFunction; // FIXME: Should be SymbolFunctionHolder?

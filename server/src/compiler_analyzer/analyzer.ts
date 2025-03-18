@@ -1047,7 +1047,7 @@ function analyzeFunctionCaller(
 
     getActiveGlobalScope().pushCompletionHint({
         complementKind: ComplementKind.FunctionCall,
-        callerArgumentsLocation: callerArgumentsLocation,
+        callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         callerTemplateTranslator: templateTranslator,
         expectedCallee: calleeFuncHolder.first,

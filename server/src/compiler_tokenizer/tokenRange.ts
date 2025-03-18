@@ -29,4 +29,22 @@ export class TokenRange {
     public get path(): string {
         return this.start.location.path;
     }
+
+    public extendBackward(count: number): TokenRange {
+        let start = this.start;
+        for (let i = 0; i < count; i++) {
+            start = start.prev ?? start;
+        }
+
+        return new TokenRange(start, this.end);
+    }
+
+    public extendForward(count: number): TokenRange {
+        let end = this.end;
+        for (let i = 0; i < count; i++) {
+            end = end.next ?? end;
+        }
+
+        return new TokenRange(this.start, end);
+    }
 }
