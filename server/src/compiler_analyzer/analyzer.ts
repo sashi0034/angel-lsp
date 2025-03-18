@@ -84,6 +84,7 @@ import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOp
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 import {ActionHint} from "./actionHint";
 import assert = require("node:assert");
+import {checkDefaultConstructorCall, findConstructorOfType} from "./constrcutorCall";
 
 export type HoistQueue = (() => void)[];
 
@@ -188,7 +189,7 @@ export function analyzeVarInitializer(
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined || varType.typeOrFunc.isFunction()) return undefined;
-        return analyzeConstructorCaller(scope, varIdentifier, initializer, varType);
+        return analyzeConstructorCall(scope, varIdentifier, initializer, varType);
     }
 }
 
@@ -718,8 +719,12 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
 // BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
-    case NodeName.ConstructCall:
-        break;
+    case NodeName.ConstructCall: {
+        const type = analyzeType(scope, exprValue.type);
+        if (type === undefined) return undefined;
+
+        return analyzeConstructorCall(scope, exprValue.type.dataType.identifier, exprValue.argList, type);
+    }
     case NodeName.FuncCall:
         return analyzeFuncCall(scope, exprValue);
     case NodeName.VarAccess:
@@ -739,66 +744,22 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Resolve
 }
 
 // BNF: CONSTRUCTCALL ::= TYPE ARGLIST
-export function analyzeConstructorCaller(
+export function analyzeConstructorCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
     constructorType: ResolvedType
 ): ResolvedType | undefined {
-    const constructor = findConstructorForResolvedType(constructorType);
+    const constructor = findConstructorOfType(constructorType);
     if (constructor === undefined || constructor.isFunctionHolder() === false) {
-        return analyzeBuiltinConstructorCaller(scope, callerIdentifier, callerArgList, constructorType);
+        const callerArgTypes = callerArgList.argList.map(arg => analyzeAssign(scope, arg.assign));
+        return checkDefaultConstructorCall(
+            scope, callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType
+        );
     }
 
     analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
     return constructorType;
-}
-
-export function findConstructorForResolvedType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
-    if (resolvedType?.scopePath === undefined) return undefined;
-
-    const constructorIdentifier = resolvedType.typeOrFunc.identifierText;
-    const classScope = resolveActiveScope(resolvedType.scopePath).lookupScope(constructorIdentifier);
-    return classScope !== undefined ? classScope.lookupSymbol(constructorIdentifier) : undefined;
-}
-
-function analyzeBuiltinConstructorCaller(
-    scope: SymbolScope,
-    callerIdentifier: TokenObject,
-    callerArgList: NodeArgList,
-    constructorType: ResolvedType
-) {
-    const constructorIdentifier = constructorType.typeOrFunc.identifierText;
-    if (constructorType.scopePath === undefined) return undefined;
-
-    if (constructorType.typeOrFunc instanceof SymbolType
-        && constructorType.typeOrFunc.linkedNode?.nodeName === NodeName.Enum) {
-        // Constructor for enum
-        const argList = callerArgList.argList;
-        if (argList.length != 1 || canTypeCast(
-            analyzeAssign(scope, argList[0].assign),
-            resolvedBuiltinInt) === false) {
-            analyzerDiagnostic.error(
-                callerIdentifier.location,
-                `Enum constructor '${constructorIdentifier}' requires an integer.`);
-        }
-
-        scope.pushReference({toSymbol: constructorType.typeOrFunc, fromToken: callerIdentifier});
-
-        return constructorType;
-    }
-
-    if (callerArgList.argList.length === 0) {
-        // Default constructor
-        scope.pushReference({
-            toSymbol: constructorType.typeOrFunc,
-            fromToken: callerIdentifier
-        });
-        return constructorType;
-    }
-
-    analyzerDiagnostic.error(callerIdentifier.location, `Constructor '${constructorIdentifier}' is missing.`);
-    return undefined;
 }
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
@@ -968,7 +929,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
     if (calleeSymbol instanceof SymbolType) {
         const constructorType: ResolvedType = new ResolvedType(calleeSymbol);
-        return analyzeConstructorCaller(scope, funcCall.identifier, funcCall.argList, constructorType);
+        return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {

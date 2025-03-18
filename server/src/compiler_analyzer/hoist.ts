@@ -37,7 +37,6 @@ import {
     analyzeStatBlock,
     analyzeType,
     analyzeVarInitializer,
-    findConstructorForResolvedType,
     HoistQueue,
     HoistResult,
     insertVariables
@@ -45,6 +44,7 @@ import {
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {AnalyzerScope} from "./analyzerScope";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
+import {findConstructorOfType} from "./constrcutorCall";
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
@@ -164,7 +164,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
 
             // Check to insert the super constructor
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
-            const superConstructor = findConstructorForResolvedType(primeBase);
+            const superConstructor = findConstructorOfType(primeBase);
             if (superConstructor?.isFunctionHolder()) {
                 for (const superSymbol of superConstructor.toList()) {
                     superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
