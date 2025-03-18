@@ -1021,26 +1021,9 @@ function analyzeFunctionCaller(
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
     calleeFuncHolder: SymbolFunctionHolder,
-    templateTranslator: TemplateTranslator | undefined,
-    calleeDelegate?: SymbolVariable
+    calleeTemplateTranslator: TemplateTranslator | undefined,
+    calleeDelegateVariable?: SymbolVariable
 ) {
-    const callerArgTypes = analyzeArgList(scope, callerArgList);
-
-    if (calleeFuncHolder.first.linkedNode.nodeName === NodeName.FuncDef) {
-        // TODO: It seems that the below code is not necessary?
-        // If the callee is a delegate, return it as a function handler.
-        const handlerType = new ResolvedType(calleeFuncHolder.first);
-        if (callerArgTypes.length === 1 && canTypeCast(callerArgTypes[0], handlerType)) {
-            return callerArgTypes[0];
-        }
-    }
-
-    // Append a hint for completion of function arguments to the scope.
-    const callerArgumentsLocation = getBoundingLocationBetween(
-        callerArgList.nodeRange.start,
-        callerArgList.nodeRange.end.getNextOrSelf()
-    );
-
     if (callerArgList.argList[0]?.identifier === undefined) {
         analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
     }
@@ -1049,10 +1032,11 @@ function analyzeFunctionCaller(
         complement: ComplementKind.FunctionCall,
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
-        callerTemplateTranslator: templateTranslator,
+        callerTemplateTranslator: calleeTemplateTranslator,
         expectedCallee: calleeFuncHolder.first,
     });
 
+    const callerArgTypes = analyzeArgList(scope, callerArgList);
     const callerArgs =
         callerArgList.argList.map((arg, i) => ({
             name: arg.identifier,
@@ -1066,8 +1050,8 @@ function analyzeFunctionCaller(
         callerRange: callerArgList.nodeRange,
         callerArgs: callerArgs,
         calleeFuncHolder: calleeFuncHolder,
-        calleeTemplateTranslator: templateTranslator,
-        calleeDelegate: calleeDelegate
+        calleeTemplateTranslator: calleeTemplateTranslator,
+        calleeDelegateVariable: calleeDelegateVariable
     });
 }
 

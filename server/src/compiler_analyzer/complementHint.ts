@@ -82,7 +82,7 @@ export interface ComplementFunctionCall extends ComplementBase {
     complement: ComplementKind.FunctionCall;
     callerIdentifier: TokenObject;
     callerArgumentsNode: NodeArgList;
-    callerTemplateTranslator: TemplateTranslator | undefined;
+    callerTemplateTranslator: TemplateTranslator | undefined; // TODO: Rename to callee~
     expectedCallee: SymbolFunction; // FIXME: Should be SymbolFunctionHolder?
 }
 

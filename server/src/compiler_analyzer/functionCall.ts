@@ -8,6 +8,8 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateConversionCost} from "./typeConversion";
+import {NodeName} from "../compiler_parser/nodes";
+import {canTypeCast} from "./typeCast";
 
 interface CallerArgument {
     name: TokenObject | undefined; // Support for named arguments
@@ -25,7 +27,7 @@ interface FunctionCallArgs {
     // callee arguments
     calleeFuncHolder: SymbolFunctionHolder;
     calleeTemplateTranslator: (TemplateTranslator | undefined);
-    calleeDelegate?: SymbolVariable; // This is required because the delegate is called by a variable.
+    calleeDelegateVariable?: SymbolVariable; // This is required because the delegate is called by a variable.
 }
 
 interface FunctionCallResult {
@@ -108,7 +110,13 @@ function hasMismatchReason(reason: number | MismatchReason): reason is MismatchR
 }
 
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
-    const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegate} = args;
+    const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegateVariable} = args;
+
+    // If the callee is a delegate and succeeds in casting, return it directly.
+    const delegateCast = evaluateDelegateCast(args);
+    if (delegateCast !== undefined) {
+        return delegateCast;
+    }
 
     let bestMatching: FunctionAndCost | undefined = undefined;
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
@@ -141,7 +149,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             sideEffect: () => {
                 // Add the reference to the function that was called.
                 callerScope.pushReference({
-                    toSymbol: calleeDelegate ?? bestMatching.function, fromToken: callerIdentifier
+                    toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
                 });
 
                 pushReferenceToNamedArguments(callerScope, args.callerArgs, bestMatching.function);
@@ -158,7 +166,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
                 callerScope.pushReference({
-                    toSymbol: calleeDelegate ?? fallbackCallee, fromToken: callerIdentifier
+                    toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
                 });
 
                 pushReferenceToNamedArguments(callerScope, args.callerArgs, fallbackCallee);
@@ -183,6 +191,35 @@ function pushReferenceToNamedArguments(callerScope: SymbolScope, callerArgs: Cal
 
         // Add a reference to the named argument in the callee function scope.
         callerScope.pushReference({toSymbol: toSymbol, fromToken: args.name});
+    }
+}
+
+function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
+    const {callerScope, callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
+
+    if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) return undefined;
+
+    // If the callee is a delegate, check if it can be cast to a delegate.
+    const delegateType = ResolvedType.create({
+        typeOrFunc: calleeFuncHolder.first,
+        templateTranslator: calleeTemplateTranslator
+    });
+
+    if (callerArgs.length === 1 && canTypeCast(callerArgs[0].type, delegateType)) {
+        return {
+            bestMatching: calleeFuncHolder.first,
+            returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
+            sideEffect: () => {
+                // Add the reference to the function that was called.
+                callerScope.pushReference({
+                    toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
+                });
+
+                // Probably we do not need to add references to named arguments for delegates.
+            }
+        };
+    } else {
+        return undefined;
     }
 }
 
