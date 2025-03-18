@@ -331,8 +331,13 @@ connection.onHover((params) => {
     if (definition === undefined) return;
 
     return {
-        // FIXME: Currently colored in C#, which is close in syntax, but will properly support AngelScript.
-        contents: [{language: 'c#', value: stringifySymbolObject(definition)}]
+        contents: {
+            kind: 'markdown',
+            // FIXME: Currently colored in C++, because AngelScript support in linguist looks poor.
+            // I would like to see someone motivated to be a linguist contributor! https://github.com/github-linguist/linguist
+            value: "```cpp\n" + stringifySymbolObject(definition) + "\n```"
+            // value: "```AngelScript\n" + stringifySymbolObject(definition) + "\n```"
+        }
     };
 });
 
