@@ -99,6 +99,53 @@ describe("Analyzer", () => {
             foo(e: 2.0, 1, b: B(), d: true); // Positional arguments cannot be passed after named arguments
         }
     `);
+
+    // Default constructor
+    expectSuccess(`
+        class A { int m; }
+        A g_a();
+        void main() {
+            A a();
+        }
+    `);
+
+    expectError(`
+        class A { int m; }
+        void main() {
+            A a = A(A());
+        }
+    `);
+
+    expectSuccess(`
+        enum Kind { A, B, C }
+        void main() {
+            int number = int(1); Kind kind = Kind(1); bool flag = bool(true);
+        }
+    `);
+
+    expectError(`
+        enum Kind { A, B, C }
+        void main() {
+            int number = int(1, 1); Kind kind = Kind(); bool flag = bool();
+        }
+    `);
+
+    // Implicit bool conversion in Logic operators
+    expectSuccess(`
+        class flag { bool opImplConv() const { return true; } }      
+        void main() {
+            flag f;
+            if (f && bool(f)) { }
+        }
+    `);
+
+    expectError(`
+        class flag { bool opImplConv() const { return true; } }      
+        void main() {
+            flag f;
+            if (f && f) { } // One of the operands must be explicitly boolean
+        }
+    `);
 });
 
 

@@ -87,7 +87,7 @@ export class SymbolScope {
     private readonly _namespaceTokens: TokenObject[] = [];
 
     // The list of symbol references to this scope.
-    private readonly _referenceList: ReferenceInformation[] = [];
+    private readonly _referenceList: ReferenceInformation[] = []; // FIXME: Move to global scope?
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.

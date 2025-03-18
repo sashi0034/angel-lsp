@@ -62,6 +62,8 @@ export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefi
     return result.returnType;
 }
 
+// -----------------------------------------------
+
 interface FunctionAndCost {
     function: SymbolFunction;
     cost: number;
