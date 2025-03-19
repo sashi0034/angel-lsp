@@ -21,6 +21,8 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
         }
     } else if (scope.hasFunctionScopes()) {
         // Append function overloads
+
+        // TODO: Distinct between function and methods
         for (const [key, child] of scope.childScopeTable) {
             if (child.linkedNode === undefined) continue;
             if (child.linkedNode.nodeRange.path !== filepath) continue;
@@ -37,8 +39,13 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
     for (const namespaceNode of scope.namespaceNodes) {
         if (namespaceNode.linkedToken.location.path !== filepath) continue;
 
+        if (namespaceNode.node.namespaceList.at(-1) !== namespaceNode.linkedToken) {
+            // Skip nested namespaces like 'A' and 'B' in 'namespace A::B::C { ... }'
+            continue;
+        }
+
         result.push({
-            name: scope.key,
+            name: namespaceNode.node.namespaceList.map(t => t.text).join('::'),
             kind: languageserver.SymbolKind.Namespace,
             location: namespaceNode.node.nodeRange.getBoundingLocation().toServerLocation()
         });
