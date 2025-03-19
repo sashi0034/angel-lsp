@@ -84,8 +84,8 @@ export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
         if (symbol.linkedNode === undefined) return 'unknown type';
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start); // FIXME: mixin class is OK?
     } else if (symbol.isVariable()) {
-        const aboveToken = getAboveLineRawToken(symbol.identifierToken);
-        return aboveToken === undefined ? '' : getDocumentCommentOfToken(aboveToken);
+        const nearToken = getAboveLineRawToken(symbol.identifierToken)?.nextRaw;
+        return nearToken === undefined ? '' : getDocumentCommentOfToken(nearToken);
     } else { // Function
         if (symbol.linkedNode === undefined) return 'unknown function';
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start);
