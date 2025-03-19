@@ -225,15 +225,13 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return;
+    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
 
-    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, getGlobalScopeList(), caret);
-    if (jumping === undefined) return;
-
-    return jumping.location.toServerLocation();
+    const definition = provideDefinitionAsToken(globalScope.globalScope, getGlobalScopeList(), caret);
+    return definition?.location.toServerLocation();
 });
 
 function getGlobalScopeList() {

@@ -5,7 +5,7 @@ import {
 } from "../compiler_analyzer/symbolObject";
 import {Position} from "vscode-languageserver";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 
@@ -71,6 +71,15 @@ function provideIdenticalDefinitionInternal(filepath: string, scope: SymbolScope
 // Find the definition of the scope token at the cursor position.
 // This is a bit complicated because there may be multiple definitions of the namespace.
 function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: Position) {
+    const declarationToken = findNamespaceDeclarationToken(globalScope, caret);
+    if (declarationToken !== undefined) {
+        // It is a namespace declaration token like 'namespace A { ... }'
+        return declarationToken;
+    }
+
+    // -----------------------------------------------
+    // Since the namespace declaration token is not found, it is a namespace access token like 'A::B::C'
+
     // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespaces
     const {accessScope, tokenOnCaret, tokenAfterNamespace} = findNamespaceTokenOnCaret(globalScope, caret);
     if (accessScope === undefined || tokenOnCaret === undefined) {
@@ -107,13 +116,31 @@ function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeL
     return undefined;
 }
 
+// Find a namespace declaration token like 'namespace A { ... }'
+function findNamespaceDeclarationToken(scope: SymbolScope, caret: Position): TokenObject | undefined {
+    for (const namespaceToken of scope.namespaceTokens) {
+        if (namespaceToken.location.positionInRange(caret)) {
+            return namespaceToken;
+        }
+    }
+
+    for (const [key, child] of scope.childScopeTable) {
+        if (isAnonymousIdentifier(key)) continue;
+
+        const result = findNamespaceDeclarationToken(child, caret);
+        if (result !== undefined) return result;
+    }
+
+    return undefined;
+}
+
 function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Position) {
     // namespaceList[0] --> '::' --> namespaceList[1] --> '::' --> tokenAfterNamespace
     let accessScope: SymbolScope | undefined;
     let tokenOnCaret: TokenObject | undefined;
     let tokenAfterNamespace: TokenObject | undefined;
     for (const hint of globalScope.completionHints) {
-        // It's a bit rough, but we'll reuse completionHints here
+        // It's a bit rough, but we'll reuse autocomplete hint here
         if (hint.complement !== ComplementKind.AutocompleteNamespaceAccess) {
             continue;
         }
