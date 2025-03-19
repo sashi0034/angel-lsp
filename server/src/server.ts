@@ -230,11 +230,11 @@ connection.onDefinition((params) => {
 
     const caret = TextPosition.create(params.position);
 
-    const definition = provideDefinitionAsToken(globalScope.globalScope, getGlobalScopeList(), caret);
+    const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
     return definition?.location.toServerLocation();
 });
 
-function getGlobalScopeList() {
+function getAllGlobalScopes() {
     return getInspectedRecordList().map(result => result.analyzerScope.globalScope);
 }
 
@@ -291,7 +291,7 @@ connection.onCodeActionResolve((action) => {
 
     const edits = provideCodeAction(
         getInspectedRecord(uri).analyzerScope.globalScope,
-        getGlobalScopeList(),
+        getAllGlobalScopes(),
         new TextLocation(uri, range.start, range.end),
         action.diagnostics[0].data
     );

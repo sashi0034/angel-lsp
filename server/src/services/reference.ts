@@ -4,11 +4,11 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {ComplementKind} from "../compiler_analyzer/complementHint";
 
-export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
-    const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
+export function provideReferences(globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
+    const targetDefinition = provideDefinitionAsToken(globalScope, allGlobalScopes, caret);
     if (targetDefinition === undefined) return [];
 
-    const result = globalScopeList.flatMap(scope => collectSymbolReferencesInScope(scope, targetDefinition));
+    const result = allGlobalScopes.flatMap(scope => collectSymbolReferencesInScope(scope, targetDefinition));
 
     if (result.length === 0) {
         // If no symbol references are found, search for namespace references.

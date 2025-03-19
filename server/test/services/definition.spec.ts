@@ -33,14 +33,14 @@ function testDefinition(rawContent: string, mapping?: [number, number][]) {
         inspectFile(uri, content);
         flushInspectedRecord();
         const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
-        const globalScopeList = getInspectedRecordList().map(record => record.analyzerScope.globalScope);
+        const allGlobalScopes = getInspectedRecordList().map(record => record.analyzerScope.globalScope);
 
         // Iterate through the mapping and check if the definition is correct.
         for (let i = 0; i < mapping.length; i++) {
             const fromCaret = caretList[mapping[i][0]];
             const toCaret = caretList[mapping[i][1]];
 
-            const definitionToken = provideDefinitionAsToken(globalScope, globalScopeList, fromCaret);
+            const definitionToken = provideDefinitionAsToken(globalScope, allGlobalScopes, fromCaret);
             if (definitionToken === undefined) {
                 throw new Error(`Missing definition for ${fromCaret.formatWithColon()}`);
             }

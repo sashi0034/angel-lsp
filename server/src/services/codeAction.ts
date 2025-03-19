@@ -9,7 +9,7 @@ import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 export function provideCodeAction(
-    globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], location: TextLocation, hint: ActionHint
+    globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], location: TextLocation, hint: ActionHint
 ): languageserver.TextEdit[] {
     switch (hint) {
     case ActionHint.InsertNamedArgument:

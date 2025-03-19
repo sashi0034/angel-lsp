@@ -22,12 +22,12 @@ export function provideDefinition(globalScope: SymbolGlobalScope, caret: TextPos
  */
 export function provideDefinitionAsToken(
     globalScope: SymbolGlobalScope,
-    globalScopeList: SymbolGlobalScope[],
+    allGlobalScopes: SymbolGlobalScope[],
     caret: TextPosition
 ): TokenObject | undefined {
     return provideDefinition(globalScope, caret)?.identifierToken
         // fallback to namespace definition
-        ?? provideNamespaceDefinition(globalScope, globalScopeList, caret);
+        ?? provideNamespaceDefinition(globalScope, allGlobalScopes, caret);
 }
 
 function provideDefinitionInternal(globalScope: SymbolGlobalScope, caret: TextPosition) {
@@ -70,7 +70,7 @@ function provideIdenticalDefinitionInternal(filepath: string, scope: SymbolScope
 
 // Find the definition of the scope token at the cursor position.
 // This is a bit complicated because there may be multiple definitions of the namespace.
-function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: Position) {
+function provideNamespaceDefinition(globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], caret: Position) {
     const declarationToken = findNamespaceDeclarationToken(globalScope, caret);
     if (declarationToken !== undefined) {
         // It is a namespace declaration token like 'namespace A { ... }'
@@ -95,7 +95,7 @@ function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeL
         // The definition of token after namespace exits, find the namespace token in its global scope.
         const destinationFilepath = closetTokenDefinitionSymbol.identifierToken.location.path;
         const destinationGlobalScope =
-            globalScopeList.find(scope => scope.getContext().filepath === destinationFilepath);
+            allGlobalScopes.find(scope => scope.getContext().filepath === destinationFilepath);
         if (destinationGlobalScope !== undefined) {
             return findNamespaceTokenNearPosition(
                 destinationGlobalScope,
@@ -107,7 +107,7 @@ function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeL
 
     // If the definition of token after namespace does not exist,
     // look for a matching namespace token in global scopes in all files.
-    for (const scope of [globalScope, ...globalScopeList]) { // Search from the current global scope
+    for (const scope of [globalScope, ...allGlobalScopes]) { // Search from the current global scope
         const namespaceToken =
             findNamespaceTokenNearPosition(scope, accessScope.scopePath, new TextPosition(0, 0));
         if (namespaceToken !== undefined) return namespaceToken;
