@@ -5,6 +5,7 @@ import {InsertTextFormat} from "vscode-languageserver";
 import {SymbolFunctionHolder} from "../compiler_analyzer/symbolObject";
 import {CompletionItemWrapper} from "./completion";
 import {logger} from "../core/logger";
+import {getDocumentCommentOfSymbol} from "./utils";
 
 /**
  * Completion Resolve is invoked when the user sees the completion item.
@@ -40,6 +41,12 @@ function resolveFunctionItem(globalScope: SymbolGlobalScope, itemWrapper: Comple
     // https://code.visualstudio.com/docs/reference/default-keybindings#:~:text=Trigger%20Parameter%20Hints
     item.command = {command: 'editor.action.triggerParameterHints', title: 'Trigger Signature Help Provider'};
     // TODO: What should I do for other IDEs?
+
+    // FIXME: This doesn't work, why? :(
+    item.documentation = {
+        kind: 'markdown',
+        value: getDocumentCommentOfSymbol(functionSymbol)
+    };
 
     return item;
 }
