@@ -82,7 +82,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
         const namespaceToken = nodeNamespace.namespaceList[i];
         scopeIterator = scopeIterator.insertScopeAndCheck(namespaceToken, undefined);
-        scopeIterator.pushNamespaceToken(namespaceToken);
+        scopeIterator.pushNamespaceNode(nodeNamespace, namespaceToken);
     }
 
     hoistScript(

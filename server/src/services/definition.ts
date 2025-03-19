@@ -118,7 +118,7 @@ function provideNamespaceDefinition(globalScope: SymbolGlobalScope, allGlobalSco
 
 // Find a namespace declaration token like 'namespace A { ... }'
 function findNamespaceDeclarationToken(scope: SymbolScope, caret: Position): TokenObject | undefined {
-    for (const namespaceToken of scope.namespaceTokens) {
+    for (const namespaceToken of scope.namespaceNodes.map(node => node.linkedToken)) {
         if (namespaceToken.location.positionInRange(caret)) {
             return namespaceToken;
         }
@@ -171,9 +171,9 @@ function findNamespaceTokenNearPosition(globalScope: SymbolGlobalScope, scopePat
         }
     }
 
-    for (let i = namespaceScope.namespaceTokens.length - 1; i >= 0; i--) {
+    for (let i = namespaceScope.namespaceNodes.length - 1; i >= 0; i--) {
         // Take the token of the namespace closest to the position
-        const next = namespaceScope.namespaceTokens[i];
+        const next = namespaceScope.namespaceNodes[i].linkedToken;
         result = result === undefined
             ? next
             : position.compare(result.location.start, next.location.start) === -1 ? result : next;

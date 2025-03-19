@@ -34,7 +34,7 @@ function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken:
 }
 
 function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObject): TokenObject[] {
-    const references = [];
+    const references: TokenObject[] = [];
 
     // FIXME: This is not considered a nested namespace, i.e., we treat 'B' and 'A::B' as the same namespace.
 
@@ -51,7 +51,7 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
     }
 
     // Append namespace declaration in the scope.
-    for (const namespaceToken of scope.namespaceTokens) {
+    for (const namespaceToken of scope.namespaceNodes.map(node => node.linkedToken)) {
         if (namespaceToken.text === toToken.text) {
             references.push(namespaceToken);
         }

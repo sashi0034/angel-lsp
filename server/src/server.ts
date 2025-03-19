@@ -29,7 +29,6 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
-import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
 import {provideInlineHint} from "./services/inlineHint";
@@ -39,8 +38,8 @@ import {provideCodeAction} from "./services/codeAction";
 import {provideCompletionOfToken} from "./services/completionExtension";
 import {provideCompletionResolve} from "./services/completionResolve";
 import {logger} from "./core/logger";
-import {getDocumentCommentOfSymbol} from "./services/utils";
 import {provideHover} from "./services/hover";
+import {provideDocumentSymbol} from "./services/documentSymbol";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -74,8 +73,9 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             declarationProvider: true,
             referencesProvider: true,
+            documentSymbolProvider: true,
             codeActionProvider: {
-                codeActionKinds: ["quickfix"],
+                codeActionKinds: ["quickfix"], // FIXME
                 resolveProvider: true,
             },
             renameProvider: true,
@@ -259,6 +259,12 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
 
 connection.onReferences((params) => {
     return getReferenceLocations(params);
+});
+
+// -----------------------------------------------
+// Selection Range Provider
+connection.onDocumentSymbol(params => {
+    return provideDocumentSymbol(getInspectedRecord(params.textDocument.uri).analyzerScope.globalScope);
 });
 
 // -----------------------------------------------

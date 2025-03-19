@@ -16,7 +16,7 @@ import {
     NodeIf,
     NodeInterface,
     NodeLambda,
-    NodeName,
+    NodeName, NodeNamespace,
     NodeStatBlock,
     NodeTry,
     NodeVirtualProp,
@@ -54,6 +54,7 @@ function createGlobalScopeContext(): GlobalScopeContext {
 
 /**
  * Nodes that can have a scope containing symbols.
+ * Note: It does not contain NodeNamespace because a scope can have multiple namespaces.
  */
 export type ScopeLinkedNode =
     NodeEnum
@@ -72,6 +73,14 @@ export type ScopeLinkedNode =
     | NodeIf
     | NodeTry;
 
+interface ScopeLinkedNamespaceNode {
+    node: NodeNamespace;
+
+    // Since the namespace node can have multiple identifier tokens,
+    // we need to remember the token in the node that is linked to the scope.
+    linkedToken: TokenObject;
+}
+
 /**
  * Represents a scope that contains symbols.
  */
@@ -85,8 +94,8 @@ export class SymbolScope {
     // The symbol table that contains the symbols declared in this scope
     private readonly _symbolTable: SymbolTable = new Map();
 
-    // Tokens that represent this scope.
-    private readonly _namespaceTokens: TokenObject[] = [];
+    // The node list that represents this scope.
+    private readonly _namespaceNodes: ScopeLinkedNamespaceNode[] = [];
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
@@ -177,15 +186,15 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
-    public pushNamespaceToken(token: TokenObject) {
-        this._namespaceTokens.push(token);
+    public pushNamespaceNode(node: NodeNamespace, linkedToken: TokenObject) {
+        this._namespaceNodes.push({node, linkedToken});
     }
 
     /**
      * Tokens that represent this scope.
      */
-    public get namespaceTokens(): ReadonlyArray<TokenObject> {
-        return this._namespaceTokens;
+    public get namespaceNodes(): ReadonlyArray<Readonly<ScopeLinkedNamespaceNode>> {
+        return this._namespaceNodes;
     }
 
     /**
