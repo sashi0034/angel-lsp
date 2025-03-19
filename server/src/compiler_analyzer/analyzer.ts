@@ -277,14 +277,14 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
 }
 
 function completeAnalyzingType(
-    scope: SymbolScope,
+    scope: SymbolScope, // FIXME: Cleanup
     identifier: TokenObject,
     foundSymbol: SymbolType | SymbolFunction,
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    scope.pushReference({
+    getActiveGlobalScope().pushReference({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -753,9 +753,7 @@ export function analyzeConstructorCall(
     const constructor = findConstructorOfType(constructorType);
     if (constructor === undefined || constructor.isFunctionHolder() === false) {
         const callerArgTypes = callerArgList.argList.map(arg => analyzeAssign(scope, arg.assign));
-        return checkDefaultConstructorCall(
-            scope, callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType
-        );
+        return checkDefaultConstructorCall(callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType);
     }
 
     analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
@@ -839,7 +837,6 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 function analyzeExprPostOp2(scope: SymbolScope, exprPostOp: NodeExprPostOp2, exprValue: ResolvedType, exprRange: TokenRange) {
     const args = exprPostOp.indexingList.map(indexer => analyzeAssign(scope, indexer.assign));
     return checkOverloadedOperatorCall({
-        callerScope: scope,
         callerOperator: exprPostOp.nodeRange.end,
         alias: 'opIndex',
         lhs: exprValue,
@@ -1006,7 +1003,6 @@ function analyzeFunctionCall(
         }));
 
     return checkFunctionCall({
-        callerScope: scope,
         callerIdentifier: callerIdentifier,
         callerRange: callerArgList.nodeRange,
         callerArgs: callerArgs,
@@ -1055,7 +1051,7 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        checkingScope.pushReference({
+        getActiveGlobalScope().pushReference({
             toSymbol: declared.symbol.toList()[0],
             fromToken: varIdentifier
         });
@@ -1145,20 +1141,19 @@ function analyzeExprOp(
 
 // BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 function analyzeBitOp(
-    scope: SymbolScope, operator: TokenObject,
+    scope: SymbolScope, callerOperator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
     lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) return numberOperatorCall;
 
-    const aliases = bitOpAliases.get(operator.text);
+    const aliases = bitOpAliases.get(callerOperator.text);
     assert(aliases !== undefined);
 
     const [alias, alias_r] = aliases;
-    const [callerScope, callerOperator] = [scope, operator];
     return checkOverloadedOperatorCall({
-        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+        callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
     });
 }
 
@@ -1173,20 +1168,19 @@ const bitOpAliases = new Map<string, [string, string]>([
 
 // BNF: MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
 function analyzeMathOp(
-    scope: SymbolScope, operator: TokenObject,
+    scope: SymbolScope, callerOperator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
     lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) return numberOperatorCall;
 
-    const aliases = mathOpAliases.get(operator.text);
+    const aliases = mathOpAliases.get(callerOperator.text);
     assert(aliases !== undefined);
 
     const [alias, alias_r] = aliases;
-    const [callerScope, callerOperator] = [scope, operator];
     return checkOverloadedOperatorCall({
-        callerScope, callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
+        callerOperator, alias, alias_r, lhs, lhsRange, rhs, rhsRange
     });
 }
 
@@ -1201,18 +1195,17 @@ const mathOpAliases = new Map<string, [string, string]>([
 
 // BNF: COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
-    scope: SymbolScope, operator: TokenObject,
+    scope: SymbolScope, callerOperator: TokenObject,
     lhs: ResolvedType, rhs: ResolvedType,
     lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
     if (canComparisonOperatorCall(lhs, rhs)) return resolvedBuiltinBool;
 
-    const alias = compOpAliases.get(operator.text);
+    const alias = compOpAliases.get(callerOperator.text);
     assert(alias !== undefined);
 
-    const [callerScope, callerOperator] = [scope, operator];
     return checkOverloadedOperatorCall({
-        callerScope, callerOperator, alias, lhs, lhsRange, rhs, rhsRange
+        callerOperator, alias, lhs, lhsRange, rhs, rhsRange
     });
 }
 
@@ -1250,25 +1243,24 @@ function analyzeLogicOp(
 
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 function analyzeAssignOp(
-    scope: SymbolScope, operator: TokenObject,
+    scope: SymbolScope, callerOperator: TokenObject,
     lhs: ResolvedType | undefined, rhs: ResolvedType | undefined,
     lhsRange: TokenRange, rhsRange: TokenRange
 ): ResolvedType | undefined {
     if (lhs === undefined || rhs === undefined) return undefined;
 
-    if (operator.text === '=') {
+    if (callerOperator.text === '=') {
         if (canTypeCast(rhs, lhs)) return lhs;
     }
 
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) return numberOperatorCall;
 
-    const alias = assignOpAliases.get(operator.text);
+    const alias = assignOpAliases.get(callerOperator.text);
     assert(alias !== undefined);
 
-    const [callerScope, callerOperator] = [scope, operator];
     return checkOverloadedOperatorCall({
-        callerScope, callerOperator, alias, lhs, lhsRange, rhs, rhsRange
+        callerOperator, alias, lhs, lhsRange, rhs, rhsRange
     });
 }
 

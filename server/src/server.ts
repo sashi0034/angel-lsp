@@ -22,20 +22,24 @@ import {
     registerDiagnosticsCallback,
     flushInspectedRecord
 } from "./inspector/inspector";
-import {provideCompletions} from "./services/completion";
+import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
 import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
-import {stringifySymbolObject} from "./compiler_analyzer/symbolUtils";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
 import {provideInlineHint} from "./services/inlineHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
+import {provideCompletionOfToken} from "./services/completionExtension";
+import {provideCompletionResolve} from "./services/completionResolve";
+import {logger} from "./core/logger";
+import {provideHover} from "./services/hover";
+import {provideDocumentSymbol} from "./services/documentSymbol";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -69,8 +73,9 @@ connection.onInitialize((params: InitializeParams) => {
             definitionProvider: true,
             declarationProvider: true,
             referencesProvider: true,
+            documentSymbolProvider: true,
             codeActionProvider: {
-                codeActionKinds: ["quickfix"],
+                codeActionKinds: ["quickfix"], // FIXME
                 resolveProvider: true,
             },
             renameProvider: true,
@@ -81,7 +86,10 @@ connection.onInitialize((params: InitializeParams) => {
             },
             completionProvider: {
                 resolveProvider: true,
-                triggerCharacters: [' ', '.', ':']
+                triggerCharacters: [
+                    ' ', '.', ':', // for autocomplete symbol
+                    '/' // for autocomplete file path
+                ]
             },
             // diagnosticProvider: {
             //     interFileDependencies: false,
@@ -97,6 +105,10 @@ connection.onInitialize((params: InitializeParams) => {
             },
             inlayHintProvider: true,
             documentFormattingProvider: true,
+            documentOnTypeFormattingProvider: {
+                firstTriggerCharacter: ';',
+                moreTriggerCharacter: ['}', '\n'],
+            }
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -221,18 +233,16 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return;
+    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
 
-    const jumping = provideDefinitionAsToken(analyzedScope.globalScope, getGlobalScopeList(), caret);
-    if (jumping === undefined) return;
-
-    return jumping.location.toServerLocation();
+    const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
+    return definition?.location.toServerLocation();
 });
 
-function getGlobalScopeList() {
+function getAllGlobalScopes() {
     return getInspectedRecordList().map(result => result.analyzerScope.globalScope);
 }
 
@@ -253,6 +263,12 @@ function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
 
 connection.onReferences((params) => {
     return getReferenceLocations(params);
+});
+
+// -----------------------------------------------
+// Selection Range Provider
+connection.onDocumentSymbol(params => {
+    return provideDocumentSymbol(getInspectedRecord(params.textDocument.uri).analyzerScope.globalScope);
 });
 
 // -----------------------------------------------
@@ -289,7 +305,7 @@ connection.onCodeActionResolve((action) => {
 
     const edits = provideCodeAction(
         getInspectedRecord(uri).analyzerScope.globalScope,
-        getGlobalScopeList(),
+        getAllGlobalScopes(),
         new TextLocation(uri, range.start, range.end),
         action.diagnostics[0].data
     );
@@ -322,72 +338,60 @@ connection.onRenameRequest((params) => {
 connection.onHover((params) => {
     flushInspectedRecord(params.textDocument.uri);
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return;
+    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
 
-    const definition = provideDefinition(analyzedScope.globalScope, caret);
-    if (definition === undefined) return;
-
-    return {
-        contents: {
-            kind: 'markdown',
-            // FIXME: Currently colored in C++, because AngelScript support in linguist looks poor.
-            // I would like to see someone motivated to be a linguist contributor! https://github.com/github-linguist/linguist
-            value: "```cpp\n" + stringifySymbolObject(definition) + "\n```"
-            // value: "```AngelScript\n" + stringifySymbolObject(definition) + "\n```"
-        }
-    };
+    return provideHover(globalScope.globalScope, caret);
 });
 
 // -----------------------------------------------
 // Completion Provider
-connection.onCompletion(
-    (params: TextDocumentPositionParams): CompletionItem[] => {
-        // The pass parameter contains the position of the text document in
-        // which code complete got requested. For the example we ignore this
-        // info and always provide the same completion items.
+const s_lastCompletion: { uri: string; items: CompletionItemWrapper[] } = {uri: '', items: [],};
 
-        const uri = params.textDocument.uri;
+connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
+    const uri = params.textDocument.uri;
+    const caret = TextPosition.create(params.position);
 
-        flushInspectedRecord(uri);
+    // See if we can autocomplete file paths, etc.
+    const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
+    if (completionsOfToken !== undefined) return completionsOfToken;
 
-        const diagnosedScope = getInspectedRecord(uri).analyzerScope;
-        if (diagnosedScope === undefined) return [];
+    flushInspectedRecord(uri);
 
-        return provideCompletions(diagnosedScope.globalScope, TextPosition.create(params.position));
+    const globalScope = getInspectedRecord(uri).analyzerScope;
+    if (globalScope === undefined) return [];
 
-        // return [
-        //     {
-        //         label: 'TypeScript',
-        //         kind: CompletionItemKind.Text,
-        //         data: 1
-        //     },
-        //     {
-        //         label: 'AngelAngel2',
-        //         kind: CompletionItemKind.Text,
-        //         data: 2
-        //     }
-        // ];
+    // Collect completion candidates for symbols.
+    const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+
+    items.forEach((item, index) => {
+        // Attach the index to the data field so that we can resolve the item later.
+        item.item.data = index;
+    });
+
+    // Store the completion items for later resolution.
+    s_lastCompletion.uri = uri;
+    s_lastCompletion.items = items;
+
+    return items.map(item => item.item);
+});
+
+// This handler resolves additional information for the item selected in the completion list.
+connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
+    const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
+    if (globalScope === undefined) return item;
+
+    if (typeof item.data !== 'number') return item;
+
+    const itemWrapper = s_lastCompletion.items[item.data];
+    if (itemWrapper.item.label !== item.label) {
+        logger.error('Received an invalid completion item.');
     }
-);
 
-// This handler resolves additional information for the item selected in
-// the completion list.
-connection.onCompletionResolve(
-    // TODO
-    (item: CompletionItem): CompletionItem => {
-        if (item.data === 1) {
-            item.detail = 'TypeScript details';
-            item.documentation = 'TypeScript documentation';
-        } else if (item.data === 2) {
-            item.detail = 'AngelScript details';
-            item.documentation = 'AngelScript documentation';
-        }
-        return item;
-    }
-);
+    return provideCompletionResolve(globalScope.globalScope, itemWrapper);
+});
 
 // -----------------------------------------------
 // Signature Help Provider
@@ -408,6 +412,17 @@ connection.onDocumentFormatting((params) => {
     flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
     return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
+});
+
+// -----------------------------------------------
+// Document on Type Formatting Provider
+connection.onDocumentOnTypeFormatting((params) => {
+    // TODO
+    // - When '}' is typed, automatically align it with the corresponding '{' and adjust indentation appropriately.
+    // - When ';' is typed, immediately format spaces and tabs in that line to match the predefined formatting rules.
+    // To achieve this, it will first be necessary to improve the formatter.
+
+    return [];
 });
 
 // Listen on the connection

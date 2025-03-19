@@ -1,5 +1,5 @@
 import {
-    createAnonymousIdentifier, SymbolGlobalScope,
+    createAnonymousIdentifier, getActiveGlobalScope, SymbolGlobalScope,
     SymbolScope, tryResolveActiveScope
 } from "./symbolScope";
 import {
@@ -82,7 +82,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
         const namespaceToken = nodeNamespace.namespaceList[i];
         scopeIterator = scopeIterator.insertScopeAndCheck(namespaceToken, undefined);
-        scopeIterator.pushNamespaceToken(namespaceToken);
+        scopeIterator.pushNamespaceNode(nodeNamespace, namespaceToken);
     }
 
     hoistScript(
@@ -214,7 +214,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             // Found the base class
             baseList.push(new ResolvedType(baseType.symbol));
 
-            scope.pushReference({
+            getActiveGlobalScope().pushReference({
                 toSymbol: baseType.symbol,
                 fromToken: baseIdentifier
             });

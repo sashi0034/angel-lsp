@@ -5,6 +5,11 @@ export function message(info: string) {
     console.log(info);
 }
 
+export function error(info: string) {
+    if (getGlobalSettings().trace.server === 'off') return;
+    console.error(info);
+}
+
 export function verbose(info: string) {
     if (getGlobalSettings().trace.server !== 'verbose') return;
     console.log(info);
@@ -12,5 +17,6 @@ export function verbose(info: string) {
 
 export const logger = {
     message,
+    error,
     verbose,
 } as const;

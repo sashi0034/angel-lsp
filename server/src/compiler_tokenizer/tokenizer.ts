@@ -282,6 +282,13 @@ export function tokenize(path: string, content: string): TokenObject[] {
         tokenizer.stepNext();
     }
 
+    // -----------------------------------------------
+
     unknownWordBuffer.flush();
+
+    for (let i = 0; i < tokens.length; i++) {
+        tokens[i].bindRawToken(tokens[i + 1]);
+    }
+
     return tokens;
 }

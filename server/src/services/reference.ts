@@ -1,35 +1,67 @@
-import {Position} from "vscode-languageserver";
 import {provideDefinitionAsToken} from "./definition";
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {ComplementKind} from "../compiler_analyzer/complementHint";
 
-export function provideReferences(globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
-    const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
+export function provideReferences(globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
+    const targetDefinition = provideDefinitionAsToken(globalScope, allGlobalScopes, caret);
     if (targetDefinition === undefined) return [];
 
-    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?
+    const result = allGlobalScopes.flatMap(scope => collectSymbolReferencesInScope(scope, targetDefinition));
 
-    const result = globalScopeList.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
+    if (result.length === 0) {
+        // If no symbol references are found, search for namespace references.
+        result.push(...collectNamespaceReferenceInScope(globalScope.getGlobalScope(), targetDefinition));
+    }
+
     result.push(targetDefinition);
+
     return result;
 }
 
-function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObject): TokenObject[] {
+function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken: TokenObject): TokenObject[] {
     const references = [];
 
-    for (const reference of scope.referenceList) {
-        // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        if (reference.toSymbol.identifierToken === targetDefinition
-            || reference.toSymbol.identifierToken.equals(targetDefinition)
-        ) {
+    for (const reference of globalScope.referenceList) {
+        // If the reference points to the target definition, add it to the result.
+        if (reference.toSymbol.identifierToken.equals(toToken)) {
             references.push(reference.fromToken);
         }
     }
 
-    // Search in child scopes | 子要素も探索
+    return references;
+}
+
+function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObject): TokenObject[] {
+    const references: TokenObject[] = [];
+
+    // FIXME: This is not considered a nested namespace, i.e., we treat 'B' and 'A::B' as the same namespace.
+
+    if (scope.isGlobalScope()) {
+        // Append namespace access references from the completion hints.
+        for (const hint of scope.completionHints) {
+            if (hint.complement !== ComplementKind.AutocompleteNamespaceAccess) continue;
+
+            // It's a bit rough, but we'll reuse autocomplete hint here
+            if (hint.namespaceToken.text === toToken.text) {
+                references.push(hint.namespaceToken);
+            }
+        }
+    }
+
+    // Append namespace declaration in the scope.
+    for (const namespaceToken of scope.namespaceNodes.map(node => node.linkedToken)) {
+        if (namespaceToken.text === toToken.text) {
+            references.push(namespaceToken);
+        }
+    }
+
+    // Recursively search for namespace references in the child scopes
     for (const [key, child] of scope.childScopeTable) {
-        references.push(...collectReferencesInScope(child, targetDefinition));
+        if (isAnonymousIdentifier(key)) continue;
+
+        references.push(...collectNamespaceReferenceInScope(child, toToken));
     }
 
     return references;

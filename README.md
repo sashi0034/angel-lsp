@@ -72,8 +72,7 @@ The Language Server analyzes AngelScript files within your project and offers th
 
 The following features are currently under development:
 
-- Detailed AngelScript features: Support for `import` and `property` is still incomplete.
-- Hover Information: Plans to provide more descriptive symbol details on hover.
+- Detailed AngelScript features: Support for `import` is still incomplete.
 - More User Configuration Options
 - Enhanced Type Checking: Current support for handlers and arrays is limited.
 - Code Actions: Considering features like method signature changes.

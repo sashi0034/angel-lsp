@@ -33,6 +33,10 @@ export abstract class TokenBase {
     // Syntax highlight information
     private _highlight: HighlightInfo;
 
+    // Raw token information are set by the tokenizer.
+    private _prevRawToken: TokenBase | undefined = undefined;
+    private _nextRawToken: TokenBase | undefined = undefined;
+
     // Preprocessed token information are set by the preprocessor.
     private _indexInPreprocessedTokenList: number = -1;
     private _prevPreprocessedToken: TokenBase | undefined = undefined;
@@ -100,10 +104,33 @@ export abstract class TokenBase {
         return this.kind === TokenKind.String;
     }
 
-    public setPreprocessedTokenInfo(index: number, next: TokenBase | undefined) {
+    public isCommentToken(): this is TokenComment {
+        return this.kind === TokenKind.Comment;
+    }
+
+    public bindRawToken(next: TokenBase | undefined) {
+        this._nextRawToken = next;
+        if (next !== undefined) next._prevRawToken = this;
+    }
+
+    public bindPreprocessedToken(index: number, next: TokenBase | undefined) {
         this._indexInPreprocessedTokenList = index;
         this._nextPreprocessedToken = next;
         if (next !== undefined) next._prevPreprocessedToken = this;
+    }
+
+    /**
+     * Returns the previous token in the raw token list.
+     */
+    public get prevRaw(): TokenBase | undefined {
+        return this._prevRawToken;
+    }
+
+    /**
+     * Returns the next token in the raw token list.
+     */
+    public get nextRaw(): TokenBase | undefined {
+        return this._nextRawToken;
     }
 
     /**

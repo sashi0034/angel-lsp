@@ -2,7 +2,7 @@ import {
     SymbolFunction, SymbolFunctionHolder, SymbolVariable,
 } from "./symbolObject";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
-import {resolveActiveScope, SymbolScope} from "./symbolScope";
+import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolScope";
 import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
@@ -19,7 +19,6 @@ interface CallerArgument {
 
 interface FunctionCallArgs {
     // caller arguments
-    callerScope: SymbolScope;
     callerIdentifier: TokenObject;
     callerRange: TokenRange;
     callerArgs: CallerArgument[];
@@ -112,7 +111,7 @@ function hasMismatchReason(reason: number | MismatchReason): reason is MismatchR
 }
 
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
-    const {callerScope, callerIdentifier, calleeFuncHolder, calleeDelegateVariable} = args;
+    const {callerIdentifier, calleeFuncHolder, calleeDelegateVariable} = args;
 
     // If the callee is a delegate and succeeds in casting, return it directly.
     const delegateCast = evaluateDelegateCast(args);
@@ -150,11 +149,11 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                callerScope.pushReference({
+                getActiveGlobalScope().pushReference({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
                 });
 
-                pushReferenceToNamedArguments(callerScope, args.callerArgs, bestMatching.function);
+                pushReferenceToNamedArguments(args.callerArgs, bestMatching.function);
             }
         };
     } else {
@@ -167,17 +166,17 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
-                callerScope.pushReference({
+                getActiveGlobalScope().pushReference({
                     toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
                 });
 
-                pushReferenceToNamedArguments(callerScope, args.callerArgs, fallbackCallee);
+                pushReferenceToNamedArguments(args.callerArgs, fallbackCallee);
             }
         };
     }
 }
 
-function pushReferenceToNamedArguments(callerScope: SymbolScope, callerArgs: CallerArgument[], callee: SymbolFunction) {
+function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: SymbolFunction) {
     if (callee.functionScope === undefined) return;
     const functionScope = resolveActiveScope(callee.functionScope);
 
@@ -192,12 +191,12 @@ function pushReferenceToNamedArguments(callerScope: SymbolScope, callerArgs: Cal
         if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
 
         // Add a reference to the named argument in the callee function scope.
-        callerScope.pushReference({toSymbol: toSymbol, fromToken: args.name});
+        getActiveGlobalScope().pushReference({toSymbol: toSymbol, fromToken: args.name});
     }
 }
 
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
-    const {callerScope, callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
+    const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
 
     if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) return undefined;
 
@@ -213,7 +212,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
             returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                callerScope.pushReference({
+                getActiveGlobalScope().pushReference({
                     toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
                 });
 

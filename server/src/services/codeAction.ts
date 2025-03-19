@@ -9,7 +9,7 @@ import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 export function provideCodeAction(
-    globalScope: SymbolGlobalScope, globalScopeList: SymbolGlobalScope[], location: TextLocation, hint: ActionHint
+    globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], location: TextLocation, hint: ActionHint
 ): languageserver.TextEdit[] {
     switch (hint) {
     case ActionHint.InsertNamedArgument:
@@ -21,10 +21,8 @@ export function provideCodeAction(
 
 // -----------------------------------------------
 function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocation) {
-    const caretScope = findScopeContainingPosition(globalScope, location.start, location.path);
-
     let calleeFunction: SymbolFunction | undefined = undefined;
-    for (const reference of caretScope.referenceList) {
+    for (const reference of globalScope.referenceList) {
         if (reference.toSymbol.isFunction() === false) continue;
 
         if (reference.fromToken.location.intersects(location)) {

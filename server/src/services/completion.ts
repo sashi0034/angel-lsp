@@ -1,34 +1,38 @@
 import {Position} from "vscode-languageserver";
-import {
-    isSymbolInstanceMember,
-    SymbolObjectHolder
-} from "../compiler_analyzer/symbolObject";
+import {isSymbolInstanceMember, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopeList,
-    isAnonymousIdentifier, SymbolGlobalScope, SymbolScope
+    isAnonymousIdentifier,
+    SymbolGlobalScope,
+    SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 
+export interface CompletionItemWrapper {
+    item: CompletionItem;
+    symbol?: SymbolObjectHolder;
+}
+
 /**
  * Returns the completion candidates for the specified position.
  */
-export function provideCompletions(
+export function provideCompletion(
     globalScope: SymbolGlobalScope, caret: TextPosition
-): CompletionItem[] {
-    const items: CompletionItem[] = [];
+): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     const uri = globalScope.getContext().filepath;
     const caretScope = findScopeContainingPosition(globalScope, caret, uri);
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
-    const primeCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
-    if (primeCompletion !== undefined) return primeCompletion;
+    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
+    if (prioritizedCompletion !== undefined) return prioritizedCompletion;
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
@@ -39,8 +43,8 @@ export function provideCompletions(
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItem[] {
-    const items: CompletionItem[] = [];
+function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of scope.symbolTable) {
@@ -54,10 +58,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
             }
         }
 
-        items.push({
-            label: symbolName,
-            kind: symbolToCompletionKind(symbol),
-        });
+        items.push(makeCompletionItem(symbolName, symbol));
     }
 
     // Completion of namespace
@@ -67,26 +68,25 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
         if (isAnonymousIdentifier(childName)) continue;
 
         items.push({
-            label: childName,
-            kind: CompletionItemKind.Module,
+            item: {
+                label: childName,
+                kind: CompletionItemKind.Module,
+            }
         });
     }
 
     return items;
 }
 
-function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
-    const items: CompletionItem[] = [];
+function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) continue;
         if (canAccessInstanceMember(caretScope, symbol) === false) continue;
 
-        items.push({
-            label: symbolName,
-            kind: symbolToCompletionKind(symbol),
-        });
+        items.push(makeCompletionItem(symbolName, symbol));
     }
 
     return items;
@@ -129,14 +129,30 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
+function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {
+    const item: CompletionItem = {label: symbolName};
+
+    // FIXME: We should classify the completion items more precisely.
+
     if (symbol.isType()) {
-        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.linkedNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
-        return CompletionItemKind.Class;
+        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) {
+            item.kind = CompletionItemKind.Keyword;
+        } else if (symbol.isEnumType()) {
+            item.kind = CompletionItemKind.Enum;
+        } else if (symbol.linkedNode.nodeName === NodeName.Interface) {
+            item.kind = CompletionItemKind.Interface;
+        } else {
+            item.kind = CompletionItemKind.Class;
+        }
     } else if (symbol.isFunctionHolder()) {
-        return CompletionItemKind.Function;
-    } else { // SymbolVariable
-        return CompletionItemKind.Variable;
+        item.kind = CompletionItemKind.Function;
+    } else { // Variable
+        item.kind = CompletionItemKind.Variable;
     }
+
+    return {item, symbol};
 }
+
+// -----------------------------------------------
+
+// TODO: Autocomplete for built-in keywords? 'true', 'opAdd', etc.
