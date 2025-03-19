@@ -1,13 +1,12 @@
 import {Position} from "vscode-languageserver";
-import {
-    isSymbolInstanceMember,
-    SymbolObjectHolder
-} from "../compiler_analyzer/symbolObject";
+import {isSymbolInstanceMember, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopeList,
-    isAnonymousIdentifier, SymbolGlobalScope, SymbolScope
+    isAnonymousIdentifier,
+    SymbolGlobalScope,
+    SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
 import {findScopeContainingPosition} from "./utils";
@@ -54,10 +53,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
             }
         }
 
-        items.push({
-            label: symbolName,
-            kind: symbolToCompletionKind(symbol),
-        });
+        items.push(makeCompletionItem(symbolName, symbol));
     }
 
     // Completion of namespace
@@ -83,10 +79,7 @@ function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: Symbo
         if (isSymbolInstanceMember(symbol) === false) continue;
         if (canAccessInstanceMember(caretScope, symbol) === false) continue;
 
-        items.push({
-            label: symbolName,
-            kind: symbolToCompletionKind(symbol),
-        });
+        items.push(makeCompletionItem(symbolName, symbol));
     }
 
     return items;
@@ -129,14 +122,28 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
     return undefined;
 }
 
-function symbolToCompletionKind(symbol: SymbolObjectHolder): CompletionItemKind {
+function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItem {
+    const item: CompletionItem = {label: symbolName};
+
     if (symbol.isType()) {
-        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) return CompletionItemKind.Keyword;
-        if (symbol.linkedNode.nodeName === NodeName.Enum) return CompletionItemKind.Enum;
-        return CompletionItemKind.Class;
+        if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) {
+            item.kind = CompletionItemKind.Keyword;
+        } else if (symbol.isEnumType()) {
+            item.kind = CompletionItemKind.Enum;
+        } else if (symbol.linkedNode.nodeName === NodeName.Interface) {
+            item.kind = CompletionItemKind.Interface;
+        } else {
+            item.kind = CompletionItemKind.Class;
+        }
     } else if (symbol.isFunctionHolder()) {
-        return CompletionItemKind.Function;
-    } else { // SymbolVariable
-        return CompletionItemKind.Variable;
+        item.kind = CompletionItemKind.Function;
+    } else { // Variable
+        item.kind = CompletionItemKind.Variable;
     }
+
+    return item;
 }
+
+// -----------------------------------------------
+
+// TODO: Autocomplete for built-in keywords? 'true', 'opAdd', etc.

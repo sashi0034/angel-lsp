@@ -3,6 +3,8 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {findScopeContainingPosition} from "./utils";
 import {stringifySymbolObject} from "../compiler_analyzer/symbolUtils";
+import {InsertTextFormat} from "vscode-languageserver";
+import {SymbolFunctionHolder} from "../compiler_analyzer/symbolObject";
 
 /**
  * Completion Resolve is invoked when the user sees the completion item.
@@ -29,5 +31,14 @@ function resolveFunctionItem(caretScope: SymbolScope, item: CompletionItem) {
 
     item.detail = stringifySymbolObject(functionSymbol);
 
+    item.insertText = item.label + (hasFunctionArguments(symbol) ? '($0)' : `()$0`);
+    item.insertTextFormat = InsertTextFormat.Snippet;
+
     return item;
+}
+
+function hasFunctionArguments(functionHolder: SymbolFunctionHolder) {
+    if (functionHolder.toList().length !== 1) return true;
+
+    return functionHolder.first.parameterTypes.length > 0;
 }
