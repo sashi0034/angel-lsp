@@ -1,5 +1,5 @@
 import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {CompletionItem} from "vscode-languageserver/node";
+import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {stringifyResolvedType, stringifySymbolObject} from "../compiler_analyzer/symbolUtils";
 import {InsertTextFormat} from "vscode-languageserver";
 import {SymbolFunctionHolder, SymbolType, SymbolVariable} from "../compiler_analyzer/symbolObject";
@@ -21,6 +21,10 @@ export function provideCompletionResolve(
         return resolveTypeItem(globalScope, item, symbol);
     } else if (symbol?.isFunctionHolder()) {
         return resolveFunctionItem(item, symbol);
+    }
+
+    if (item.kind === CompletionItemKind.Module) {
+        return resolveNamespaceItem(item);
     }
 
     return item;
@@ -91,4 +95,21 @@ function hasFunctionArguments(functionHolder: SymbolFunctionHolder) {
     if (functionHolder.toList().length !== 1) return true;
 
     return functionHolder.first.parameterTypes.length > 0;
+}
+
+// -----------------------------------------------
+
+function resolveNamespaceItem(item: CompletionItem) {
+    item.detail = 'namespace';
+
+    // Set the snippet, e.g. "Inter" |--> autocomplete |--> "Internal$C$"
+    item.insertText = item.label + `::$0`;
+    item.insertTextFormat = InsertTextFormat.Snippet;
+
+    // Set VSCode-specific commands
+    // https://code.visualstudio.com/docs/reference/default-keybindings
+    item.command = {command: 'editor.action.triggerSuggest', title: 'Trigger Completion Provider'};
+    // TODO: What should I do for other IDEs?
+
+    return item;
 }

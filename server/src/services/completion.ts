@@ -132,6 +132,8 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
 function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {
     const item: CompletionItem = {label: symbolName};
 
+    // FIXME: We should classify the completion items more precisely.
+
     if (symbol.isType()) {
         if (symbol.isPrimitiveType() || symbol.linkedNode === undefined) {
             item.kind = CompletionItemKind.Keyword;
