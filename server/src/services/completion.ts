@@ -27,8 +27,8 @@ export function provideCompletion(
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.
-    const primeCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
-    if (primeCompletion !== undefined) return primeCompletion;
+    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
+    if (prioritizedCompletion !== undefined) return prioritizedCompletion;
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.

@@ -37,6 +37,7 @@ import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
 import {provideCompletionOfToken} from "./services/completionExtension";
+import {provideCompletionResolve} from "./services/completionResolve";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -345,11 +346,18 @@ connection.onHover((params) => {
 
 // -----------------------------------------------
 // Completion Provider
+const s_lastCompletion = {
+    uri: '',
+    caret: new TextPosition(0, 0)
+};
+
 connection.onCompletion(
     (params: TextDocumentPositionParams): CompletionItem[] => {
         const uri = params.textDocument.uri;
-
         const caret = TextPosition.create(params.position);
+
+        s_lastCompletion.uri = uri;
+        s_lastCompletion.caret = caret;
 
         // See if we can autocomplete file paths, etc.
         const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
@@ -357,40 +365,21 @@ connection.onCompletion(
 
         flushInspectedRecord(uri);
 
-        const diagnosedScope = getInspectedRecord(uri).analyzerScope;
-        if (diagnosedScope === undefined) return [];
+        const globalScope = getInspectedRecord(uri).analyzerScope;
+        if (globalScope === undefined) return [];
 
         // Autocomplete for symbols
-        return provideCompletion(diagnosedScope.globalScope, TextPosition.create(params.position));
-
-        // return [
-        //     {
-        //         label: 'TypeScript',
-        //         kind: CompletionItemKind.Text,
-        //         data: 1
-        //     },
-        //     {
-        //         label: 'AngelAngel2',
-        //         kind: CompletionItemKind.Text,
-        //         data: 2
-        //     }
-        // ];
+        return provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
     }
 );
 
-// This handler resolves additional information for the item selected in
-// the completion list.
+// This handler resolves additional information for the item selected in the completion list.
 connection.onCompletionResolve(
-    // TODO
     (item: CompletionItem): CompletionItem => {
-        if (item.data === 1) {
-            item.detail = 'TypeScript details';
-            item.documentation = 'TypeScript documentation';
-        } else if (item.data === 2) {
-            item.detail = 'AngelScript details';
-            item.documentation = 'AngelScript documentation';
-        }
-        return item;
+        const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
+        if (globalScope === undefined) return item;
+
+        return provideCompletionResolve(globalScope.globalScope, s_lastCompletion.caret, item);
     }
 );
 
