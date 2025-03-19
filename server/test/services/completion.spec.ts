@@ -25,7 +25,7 @@ function testCompletion(rawContent: string, ...expectedList: string[][]) {
             const expected =
                 expectedList[i].sort().map(concatIndexAndItem).join(", ");
             const completions =
-                provideCompletion(globalScope, caret).map(c => c.label).sort().map(concatIndexAndItem).join(", ");
+                provideCompletion(globalScope, caret).map(c => c.item.label).sort().map(concatIndexAndItem).join(", ");
             if (completions !== expected) {
                 throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);
             }
