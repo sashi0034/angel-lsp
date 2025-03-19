@@ -105,6 +105,10 @@ connection.onInitialize((params: InitializeParams) => {
             },
             inlayHintProvider: true,
             documentFormattingProvider: true,
+            documentOnTypeFormattingProvider: {
+                firstTriggerCharacter: ';',
+                moreTriggerCharacter: ['}', '\n'],
+            }
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -408,6 +412,17 @@ connection.onDocumentFormatting((params) => {
     flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
     return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
+});
+
+// -----------------------------------------------
+// Document on Type Formatting Provider
+connection.onDocumentOnTypeFormatting((params) => {
+    // TODO
+    // - When '}' is typed, automatically align it with the corresponding '{' and adjust indentation appropriately.
+    // - When ';' is typed, immediately format spaces and tabs in that line to match the predefined formatting rules.
+    // To achieve this, it will first be necessary to improve the formatter.
+
+    return [];
 });
 
 // Listen on the connection

@@ -6,6 +6,7 @@ export function provideDocumentSymbol(globalScope: SymbolGlobalScope) {
     return provideDocumentSymbolInternal(globalScope.getContext().filepath, globalScope);
 }
 
+// TODO: Also append symbols like variables.
 function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
     const result: languageserver.SymbolInformation[] = [];
 
