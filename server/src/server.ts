@@ -36,6 +36,7 @@ import {provideInlineHint} from "./services/inlineHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
+import {provideCompletionsOfToken} from "./services/completionExtension";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -81,7 +82,10 @@ connection.onInitialize((params: InitializeParams) => {
             },
             completionProvider: {
                 resolveProvider: true,
-                triggerCharacters: [' ', '.', ':']
+                triggerCharacters: [
+                    ' ', '.', ':', // for autocomplete symbol
+                    '/' // for autocomplete file path
+                ]
             },
             // diagnosticProvider: {
             //     interFileDependencies: false,
@@ -345,17 +349,20 @@ connection.onHover((params) => {
 // Completion Provider
 connection.onCompletion(
     (params: TextDocumentPositionParams): CompletionItem[] => {
-        // The pass parameter contains the position of the text document in
-        // which code complete got requested. For the example we ignore this
-        // info and always provide the same completion items.
-
         const uri = params.textDocument.uri;
+
+        const caret = TextPosition.create(params.position);
+
+        // See if we can autocomplete file paths, etc.
+        const completionsOfToken = provideCompletionsOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
+        if (completionsOfToken !== undefined) return completionsOfToken;
 
         flushInspectedRecord(uri);
 
         const diagnosedScope = getInspectedRecord(uri).analyzerScope;
         if (diagnosedScope === undefined) return [];
 
+        // Autocomplete for symbols
         return provideCompletions(diagnosedScope.globalScope, TextPosition.create(params.position));
 
         // return [
