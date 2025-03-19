@@ -340,52 +340,48 @@ connection.onHover((params) => {
 // Completion Provider
 const s_lastCompletion: { uri: string; items: CompletionItemWrapper[] } = {uri: '', items: [],};
 
-connection.onCompletion(
-    (params: TextDocumentPositionParams): CompletionItem[] => {
-        const uri = params.textDocument.uri;
-        const caret = TextPosition.create(params.position);
+connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
+    const uri = params.textDocument.uri;
+    const caret = TextPosition.create(params.position);
 
-        // See if we can autocomplete file paths, etc.
-        const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
-        if (completionsOfToken !== undefined) return completionsOfToken;
+    // See if we can autocomplete file paths, etc.
+    const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
+    if (completionsOfToken !== undefined) return completionsOfToken;
 
-        flushInspectedRecord(uri);
+    flushInspectedRecord(uri);
 
-        const globalScope = getInspectedRecord(uri).analyzerScope;
-        if (globalScope === undefined) return [];
+    const globalScope = getInspectedRecord(uri).analyzerScope;
+    if (globalScope === undefined) return [];
 
-        // Collect completion candidates for symbols.
-        const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+    // Collect completion candidates for symbols.
+    const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
 
-        items.forEach((item, index) => {
-            // Attach the index to the data field so that we can resolve the item later.
-            item.item.data = index;
-        });
+    items.forEach((item, index) => {
+        // Attach the index to the data field so that we can resolve the item later.
+        item.item.data = index;
+    });
 
-        // Store the completion items for later resolution.
-        s_lastCompletion.uri = uri;
-        s_lastCompletion.items = items;
+    // Store the completion items for later resolution.
+    s_lastCompletion.uri = uri;
+    s_lastCompletion.items = items;
 
-        return items.map(item => item.item);
-    }
-);
+    return items.map(item => item.item);
+});
 
 // This handler resolves additional information for the item selected in the completion list.
-connection.onCompletionResolve(
-    (item: CompletionItem): CompletionItem => {
-        const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
-        if (globalScope === undefined) return item;
+connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
+    const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
+    if (globalScope === undefined) return item;
 
-        if (typeof item.data !== 'number') return item;
+    if (typeof item.data !== 'number') return item;
 
-        const itemWrapper = s_lastCompletion.items[item.data];
-        if (itemWrapper.item.label !== item.label) {
-            logger.error('Received an invalid completion item.');
-        }
-
-        return provideCompletionResolve(globalScope.globalScope, itemWrapper);
+    const itemWrapper = s_lastCompletion.items[item.data];
+    if (itemWrapper.item.label !== item.label) {
+        logger.error('Received an invalid completion item.');
     }
-);
+
+    return provideCompletionResolve(globalScope.globalScope, itemWrapper);
+});
 
 // -----------------------------------------------
 // Signature Help Provider
