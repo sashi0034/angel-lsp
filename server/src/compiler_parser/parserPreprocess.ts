@@ -37,7 +37,7 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
 
     // Assign index information.
     for (let i = 0; i < actualTokens.length; i++) {
-        actualTokens[i].setPreprocessedTokenInfo(i, i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined);
+        actualTokens[i].bindPreprocessedToken(i, i != actualTokens.length - 1 ? actualTokens[i + 1] : undefined);
     }
 
     return {

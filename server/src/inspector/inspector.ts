@@ -18,7 +18,7 @@ interface InspectRecord {
     uri: string;
     diagnosticsInParser: Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenObject[];
+    tokenizedTokens: TokenObject[]; // FIXME: Rename to rawTokens?
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
