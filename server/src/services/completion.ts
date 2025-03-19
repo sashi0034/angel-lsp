@@ -17,7 +17,7 @@ import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 /**
  * Returns the completion candidates for the specified position.
  */
-export function provideCompletions(
+export function provideCompletion(
     globalScope: SymbolGlobalScope, caret: TextPosition
 ): CompletionItem[] {
     const items: CompletionItem[] = [];

@@ -22,7 +22,7 @@ import {
     registerDiagnosticsCallback,
     flushInspectedRecord
 } from "./inspector/inspector";
-import {provideCompletions} from "./services/completion";
+import {provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
@@ -36,7 +36,7 @@ import {provideInlineHint} from "./services/inlineHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
-import {provideCompletionsOfToken} from "./services/completionExtension";
+import {provideCompletionOfToken} from "./services/completionExtension";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -354,7 +354,7 @@ connection.onCompletion(
         const caret = TextPosition.create(params.position);
 
         // See if we can autocomplete file paths, etc.
-        const completionsOfToken = provideCompletionsOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
+        const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
         if (completionsOfToken !== undefined) return completionsOfToken;
 
         flushInspectedRecord(uri);
@@ -363,7 +363,7 @@ connection.onCompletion(
         if (diagnosedScope === undefined) return [];
 
         // Autocomplete for symbols
-        return provideCompletions(diagnosedScope.globalScope, TextPosition.create(params.position));
+        return provideCompletion(diagnosedScope.globalScope, TextPosition.create(params.position));
 
         // return [
         //     {

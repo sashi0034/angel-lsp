@@ -9,7 +9,7 @@ import {fileURLToPath} from "node:url";
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
  */
-export function provideCompletionsOfToken(tokenizedTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
+export function provideCompletionOfToken(tokenizedTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
     const tokenOnCaret = findTokenContainingPosition(tokenizedTokens, caret);
     if (tokenOnCaret === undefined) return undefined;
 
