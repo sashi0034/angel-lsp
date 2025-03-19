@@ -13,13 +13,18 @@ import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 
+export interface CompletionItemWrapper {
+    item: CompletionItem;
+    symbol?: SymbolObjectHolder;
+}
+
 /**
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletion(
     globalScope: SymbolGlobalScope, caret: TextPosition
-): CompletionItem[] {
-    const items: CompletionItem[] = [];
+): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     const uri = globalScope.getContext().filepath;
     const caretScope = findScopeContainingPosition(globalScope, caret, uri);
@@ -38,8 +43,8 @@ export function provideCompletion(
     return items;
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItem[] {
-    const items: CompletionItem[] = [];
+function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of scope.symbolTable) {
@@ -63,16 +68,18 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
         if (isAnonymousIdentifier(childName)) continue;
 
         items.push({
-            label: childName,
-            kind: CompletionItemKind.Module,
+            item: {
+                label: childName,
+                kind: CompletionItemKind.Module,
+            }
         });
     }
 
     return items;
 }
 
-function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItem[] {
-    const items: CompletionItem[] = [];
+function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
@@ -122,7 +129,7 @@ function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolSco
     return undefined;
 }
 
-function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItem {
+function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {
     const item: CompletionItem = {label: symbolName};
 
     if (symbol.isType()) {
@@ -141,7 +148,7 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
         item.kind = CompletionItemKind.Variable;
     }
 
-    return item;
+    return {item, symbol};
 }
 
 // -----------------------------------------------

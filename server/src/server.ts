@@ -22,7 +22,7 @@ import {
     registerDiagnosticsCallback,
     flushInspectedRecord
 } from "./inspector/inspector";
-import {provideCompletion} from "./services/completion";
+import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
@@ -38,6 +38,7 @@ import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
 import {provideCompletionOfToken} from "./services/completionExtension";
 import {provideCompletionResolve} from "./services/completionResolve";
+import {logger} from "./core/logger";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -346,18 +347,12 @@ connection.onHover((params) => {
 
 // -----------------------------------------------
 // Completion Provider
-const s_lastCompletion = {
-    uri: '',
-    caret: new TextPosition(0, 0)
-};
+const s_lastCompletion: { uri: string; items: CompletionItemWrapper[] } = {uri: '', items: [],};
 
 connection.onCompletion(
     (params: TextDocumentPositionParams): CompletionItem[] => {
         const uri = params.textDocument.uri;
         const caret = TextPosition.create(params.position);
-
-        s_lastCompletion.uri = uri;
-        s_lastCompletion.caret = caret;
 
         // See if we can autocomplete file paths, etc.
         const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
@@ -368,8 +363,19 @@ connection.onCompletion(
         const globalScope = getInspectedRecord(uri).analyzerScope;
         if (globalScope === undefined) return [];
 
-        // Autocomplete for symbols
-        return provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+        // Collect completion candidates for symbols.
+        const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+
+        items.forEach((item, index) => {
+            // Attach the index to the data field so that we can resolve the item later.
+            item.item.data = index;
+        });
+
+        // Store the completion items for later resolution.
+        s_lastCompletion.uri = uri;
+        s_lastCompletion.items = items;
+
+        return items.map(item => item.item);
     }
 );
 
@@ -379,7 +385,14 @@ connection.onCompletionResolve(
         const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
         if (globalScope === undefined) return item;
 
-        return provideCompletionResolve(globalScope.globalScope, s_lastCompletion.caret, item);
+        if (typeof item.data !== 'number') return item;
+
+        const itemWrapper = s_lastCompletion.items[item.data];
+        if (itemWrapper.item.label !== item.label) {
+            logger.error('Received an invalid completion item.');
+        }
+
+        return provideCompletionResolve(globalScope.globalScope, itemWrapper);
     }
 );
 
