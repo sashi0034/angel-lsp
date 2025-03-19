@@ -1,4 +1,4 @@
-import {resolveActiveScope, SymbolScope} from "./symbolScope";
+import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
@@ -26,7 +26,6 @@ export function findConstructorOfType(resolvedType: ResolvedType | undefined): S
  * Check if the default constructor call is valid. (e.g., primitive types, enum, Object())
  */
 export function checkDefaultConstructorCall(
-    callerScope: SymbolScope,
     callerIdentifier: TokenObject,
     callerRange: TokenRange,
     callerArgTypes: (ResolvedType | undefined)[],
@@ -34,7 +33,7 @@ export function checkDefaultConstructorCall(
 ) {
     const constructorIdentifier = calleeConstructorType.typeOrFunc.identifierToken;
     if (constructorIdentifier?.isVirtual() === false) {
-        callerScope.pushReference({toSymbol: calleeConstructorType.typeOrFunc, fromToken: callerIdentifier});
+        getActiveGlobalScope().pushReference({toSymbol: calleeConstructorType.typeOrFunc, fromToken: callerIdentifier});
     }
 
     // -----------------------------------------------

@@ -8,28 +8,19 @@ export function provideReferences(globalScope: SymbolGlobalScope, globalScopeLis
     const targetDefinition = provideDefinitionAsToken(globalScope, globalScopeList, caret);
     if (targetDefinition === undefined) return [];
 
-    // FIXME: 参照収集の前に、依存関係のあるファイルをリフレッシュする必要がある?
-
     const result = globalScopeList.flatMap(scope => collectReferencesInScope(scope, targetDefinition));
     result.push(targetDefinition);
     return result;
 }
 
-function collectReferencesInScope(scope: SymbolScope, targetDefinition: TokenObject): TokenObject[] {
+function collectReferencesInScope(scope: SymbolGlobalScope, targetDefinition: TokenObject): TokenObject[] {
     const references = [];
 
     for (const reference of scope.referenceList) {
-        // Search for reference locations in the scope (since the token instance changes every time it is compiled, strict comparison is required)
-        if (reference.toSymbol.identifierToken === targetDefinition
-            || reference.toSymbol.identifierToken.equals(targetDefinition)
-        ) {
+        // If the reference points to the target definition, add it to the result.
+        if (reference.toSymbol.identifierToken.equals(targetDefinition)) {
             references.push(reference.fromToken);
         }
-    }
-
-    // Search in child scopes | 子要素も探索
-    for (const [key, child] of scope.childScopeTable) {
-        references.push(...collectReferencesInScope(child, targetDefinition));
     }
 
     return references;

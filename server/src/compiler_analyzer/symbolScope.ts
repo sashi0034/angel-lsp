@@ -40,6 +40,7 @@ interface GlobalScopeContext {
     filepath: string;
     builtinStringType: SymbolType | undefined;
     completionHints: ComplementHint[];
+    referenceList: ReferenceInformation[];
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -47,6 +48,7 @@ function createGlobalScopeContext(): GlobalScopeContext {
         filepath: '',
         builtinStringType: undefined,
         completionHints: [],
+        referenceList: [],
     };
 }
 
@@ -85,9 +87,6 @@ export class SymbolScope {
 
     // Tokens that represent this scope.
     private readonly _namespaceTokens: TokenObject[] = [];
-
-    // The list of symbol references to this scope.
-    private readonly _referenceList: ReferenceInformation[] = []; // FIXME: Move to global scope?
 
     /**
      * The path of the scope. It is a list of identifiers from the global scope to this scope.
@@ -180,14 +179,6 @@ export class SymbolScope {
 
     public pushNamespaceToken(token: TokenObject) {
         this._namespaceTokens.push(token);
-    }
-
-    public get referenceList(): ReadonlyArray<ReferenceInformation> {
-        return this._referenceList;
-    }
-
-    public pushReference(reference: ReferenceInformation) {
-        this._referenceList.push(reference);
     }
 
     /**
@@ -344,6 +335,14 @@ export class SymbolGlobalScope extends SymbolScope {
 
     public get completionHints(): ReadonlyArray<ComplementHint> {
         return this._context.completionHints;
+    }
+
+    public pushReference(reference: ReferenceInformation) {
+        this._context.referenceList.push(reference);
+    }
+
+    public get referenceList(): ReadonlyArray<ReferenceInformation> {
+        return this._context.referenceList;
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {

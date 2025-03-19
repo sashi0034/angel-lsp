@@ -12,8 +12,8 @@ import {TextPosition} from "../compiler_tokenizer/textLocation";
 /**
  * Search for the definition of the symbol at the cursor position.
  */
-export function provideDefinition(globalScope: SymbolScope, caret: TextPosition): SymbolObject | undefined {
-    return provideDefinitionInternal(globalScope.getContext().filepath, globalScope, caret);
+export function provideDefinition(globalScope: SymbolGlobalScope, caret: TextPosition): SymbolObject | undefined {
+    return provideDefinitionInternal(globalScope, caret);
 }
 
 /**
@@ -30,8 +30,24 @@ export function provideDefinitionAsToken(
         ?? provideNamespaceDefinition(globalScope, globalScopeList, caret);
 }
 
-function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: Position): SymbolObject | undefined {
-    // Search a symbol in the symbol map in this scope if it is on the cursor
+function provideDefinitionInternal(globalScope: SymbolGlobalScope, caret: TextPosition) {
+    const filepath = globalScope.getContext().filepath;
+
+    // Find the symbol that the caret is on in the reference list
+    for (const reference of globalScope.referenceList) {
+        const referencedLocation = reference.fromToken.location;
+        if (referencedLocation.positionInRange(caret)) {
+            // If the reference location is on the cursor, return the declaration
+            return reference.toSymbol;
+        }
+    }
+
+    // If the symbol is not found in the reference list, check to see if it is the definition itself.
+    return provideIdenticalDefinitionInternal(filepath, globalScope, caret);
+}
+
+function provideIdenticalDefinitionInternal(filepath: string, scope: SymbolScope, caret: TextPosition): SymbolObject | undefined {
+    // Search a symbol in the symbol map in this scope if it is on the caret
     for (const [key, symbolHolder] of scope.symbolTable) {
         for (const symbol of symbolHolder.toList()) {
             const location = symbol.identifierToken.location;
@@ -41,18 +57,9 @@ function provideDefinitionInternal(filepath: string, scope: SymbolScope, caret: 
         }
     }
 
-    for (const reference of scope.referenceList) {
-        // Search a symbol in references in this scope
-        const referencedLocation = reference.fromToken.location;
-        if (referencedLocation.positionInRange(caret)) {
-            // If the reference location is on the cursor, return the declaration
-            return reference.toSymbol;
-        }
-    }
-
     // At this point, search in child scopes because the symbol is not found in the current scope
     for (const [key, child] of scope.childScopeTable) {
-        const jumping = provideDefinitionInternal(filepath, child, caret);
+        const jumping = provideIdenticalDefinitionInternal(filepath, child, caret);
         if (jumping !== undefined) return jumping;
     }
 
@@ -73,7 +80,7 @@ function provideNamespaceDefinition(globalScope: SymbolGlobalScope, globalScopeL
     // The definition of token after namespace
     const closetTokenDefinitionSymbol = tokenAfterNamespace === undefined
         ? undefined
-        : findDefinitionByToken(globalScope, tokenAfterNamespace);
+        : provideDefinitionInternal(globalScope, tokenAfterNamespace.location.start);
 
     if (closetTokenDefinitionSymbol !== undefined) {
         // The definition of token after namespace exits, find the namespace token in its global scope.
@@ -120,32 +127,6 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     }
 
     return {accessScope, tokenOnCaret, tokenAfterNamespace};
-}
-
-function findDefinitionByToken(scope: SymbolScope, target: TokenObject): SymbolObject | undefined {
-    // Search a symbol in the symbol map in this scope if it is on the cursor
-    for (const [key, symbolHolder] of scope.symbolTable) {
-        for (const symbol of symbolHolder.toList()) {
-            if (symbol.identifierToken.equals(target)) {
-                return symbol;
-            }
-        }
-    }
-
-    for (const reference of scope.referenceList) {
-        // Search a symbol in references in this scope
-        if (reference.fromToken.equals(target)) {
-            return reference.toSymbol;
-        }
-    }
-
-    // At this point, search in child scopes because the symbol is not found in the current scope
-    for (const [key, child] of scope.childScopeTable) {
-        const jumping = findDefinitionByToken(child, target);
-        if (jumping !== undefined) return jumping;
-    }
-
-    return undefined;
 }
 
 function findNamespaceTokenNearPosition(globalScope: SymbolGlobalScope, scopePath: ScopePath, position: TextPosition): TokenObject | undefined {

@@ -13,7 +13,6 @@ import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 
 type OverloadedOperatorCallArgs = {
     // For dual operators
-    callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
     alias_r: string,
@@ -24,7 +23,6 @@ type OverloadedOperatorCallArgs = {
     rhsArgNames?: undefined,
 } | {
     // For the case where the alias_r is not defined.
-    callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
     alias_r?: undefined, // The alias_r is not defined.
@@ -82,7 +80,6 @@ export function canComparisonOperatorCall(lhs: ResolvedType, rhs: ResolvedType):
 
 function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): ResolvedType | undefined {
     const lhsResult = checkLhsOverloadedOperatorCall({
-        callerScope: args.callerScope,
         callerOperator: args.callerOperator,
         alias: args.alias,
         lhs: args.lhs,
@@ -105,7 +102,6 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
     // If the alias_r is defined, also check the rhs operator call.
 
     const rhsResult = checkLhsOverloadedOperatorCall({
-        callerScope: args.callerScope,
         callerOperator: args.callerOperator,
         alias: args.alias_r,
         lhs: args.rhs,
@@ -179,7 +175,6 @@ function hasMismatchReason(reason: ResolvedType | MismatchReason | undefined): r
 }
 
 interface LhsOperatorCallArgs {
-    callerScope: SymbolScope,
     callerOperator: TokenObject,
     alias: string,
     lhs: ResolvedType,
@@ -189,7 +184,7 @@ interface LhsOperatorCallArgs {
 }
 
 function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType | undefined | MismatchReason {
-    const {callerScope, callerOperator, alias, lhs, rhs, rhsRange, rhsArgNames} = args;
+    const {callerOperator, alias, lhs, rhs, rhsRange, rhsArgNames} = args;
 
     const rhsArgs = Array.isArray(args.rhs) ? args.rhs : [args.rhs];
 
@@ -218,7 +213,6 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
     });
 
     const evaluated = evaluateFunctionCall({
-        callerScope: callerScope,
         callerIdentifier: callerOperator,
         callerRange: new TokenRange(callerOperator, callerOperator),
         callerArgs: callerArgs,
