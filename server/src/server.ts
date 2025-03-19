@@ -40,6 +40,7 @@ import {provideCompletionOfToken} from "./services/completionExtension";
 import {provideCompletionResolve} from "./services/completionResolve";
 import {logger} from "./core/logger";
 import {getDocumentCommentOfSymbol} from "./services/utils";
+import {provideHover} from "./services/hover";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -327,25 +328,12 @@ connection.onRenameRequest((params) => {
 connection.onHover((params) => {
     flushInspectedRecord(params.textDocument.uri);
 
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return;
+    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
 
-    const definition = provideDefinition(analyzedScope.globalScope, caret);
-    if (definition === undefined) return;
-
-    const documentComment = getDocumentCommentOfSymbol(definition);
-
-    return {
-        contents: {
-            kind: 'markdown',
-            // FIXME: Currently colored in C++, because AngelScript support in linguist looks poor.
-            // I would like to see someone motivated to be a linguist contributor! https://github.com/github-linguist/linguist
-            value: "```cpp\n" + stringifySymbolObject(definition) + ";\n```" + `\n***\n${documentComment}`
-            // value: "```AngelScript\n" + stringifySymbolObject(definition) + "\n```"
-        }
-    };
+    return provideHover(globalScope.globalScope, caret);
 });
 
 // -----------------------------------------------
