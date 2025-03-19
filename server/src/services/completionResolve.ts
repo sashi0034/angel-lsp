@@ -36,6 +36,11 @@ function resolveFunctionItem(globalScope: SymbolGlobalScope, itemWrapper: Comple
     item.insertText = item.label + (hasFunctionArguments(symbol) ? '($0)' : `()$0`);
     item.insertTextFormat = InsertTextFormat.Snippet;
 
+    // Set VSCode-specific commands
+    // https://code.visualstudio.com/docs/reference/default-keybindings#:~:text=Trigger%20Parameter%20Hints
+    item.command = {command: 'editor.action.triggerParameterHints', title: 'Trigger Signature Help Provider'};
+    // TODO: What should I do for other IDEs?
+
     return item;
 }
 
