@@ -66,6 +66,9 @@
                     "builtin": "#00b0e0",
                     "directive": "#ffe020"
                 }
+            },
+            "[angelscript]": {
+                "editor.formatOnType": true
             }
         },
         "snippets": [

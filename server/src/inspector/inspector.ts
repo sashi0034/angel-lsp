@@ -1,8 +1,7 @@
-import {Diagnostic} from "vscode-languageserver/node";
+import * as lsp from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {URI} from "vscode-languageserver";
+import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
 import {logger} from "../core/logger";
 import {Profiler} from "../core/profiler";
 import {tokenize} from "../compiler_tokenizer/tokenizer";
@@ -16,9 +15,9 @@ import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 interface InspectRecord {
     content: string;
     uri: string;
-    diagnosticsInParser: Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
-    diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenObject[]; // FIXME: Rename to rawTokens?
+    diagnosticsInParser: lsp.Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
+    diagnosticsInAnalyzer: lsp.Diagnostic[];
+    rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
@@ -46,7 +45,7 @@ function createEmptyRecord(): InspectRecord {
         uri: "",
         diagnosticsInParser: [],
         diagnosticsInAnalyzer: [],
-        tokenizedTokens: [],
+        rawTokens: [],
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         analyzerTask: new DelayedTask(),
@@ -65,7 +64,7 @@ function insertNewRecord(uri: string, content: string): InspectRecord {
 /**
  * Get the inspected record of the specified file.
  */
-export function getInspectedRecord(uri: URI): Readonly<InspectRecord> {
+export function getInspectedRecord(uri: string): Readonly<InspectRecord> {
     const result = s_inspectedResults.get(uri);
     if (result === undefined) return createEmptyRecord();
     return result;
@@ -81,13 +80,13 @@ export function getInspectedRecordList(): Readonly<InspectRecord>[] {
 /**
  * Flush the inspected record of the specified file since the analyzer runs asynchronously.
  */
-export function flushInspectedRecord(uri?: URI): void {
+export function flushInspectedRecord(uri?: string): void {
     s_analysisResolver.flush(uri);
 }
 
 const profilerDescriptionLength = 12;
 
-export function inspectFile(uri: URI, content: string): void {
+export function inspectFile(uri: string, content: string): void {
     logger.message(`[Tokenizer and Parser]\n${uri}`);
 
     const record = s_inspectedResults.get(uri) ?? insertNewRecord(uri, content);
@@ -101,11 +100,11 @@ export function inspectFile(uri: URI, content: string): void {
     const profiler = new Profiler();
 
     // Execute the tokenizer
-    record.tokenizedTokens = tokenize(uri, content);
+    record.rawTokens = tokenize(uri, content);
     profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
 
     // Execute the preprocessor
-    record.preprocessedOutput = preprocessAfterTokenized(record.tokenizedTokens);
+    record.preprocessedOutput = preprocessAfterTokenized(record.rawTokens);
     profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
     // Execute the parser

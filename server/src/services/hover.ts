@@ -4,9 +4,9 @@ import {provideDefinition} from "./definition";
 import {getDocumentCommentOfSymbol} from "./utils";
 import {stringifySymbolObject} from "../compiler_analyzer/symbolUtils";
 
-import * as languageserver from 'vscode-languageserver';
+import * as lsp from 'vscode-languageserver';
 
-export function provideHover(globalScope: SymbolGlobalScope, caret: TextPosition): languageserver.Hover | undefined {
+export function provideHover(globalScope: SymbolGlobalScope, caret: TextPosition): lsp.Hover | undefined {
     const definition = provideDefinition(globalScope, caret);
     if (definition === undefined) return undefined;
 

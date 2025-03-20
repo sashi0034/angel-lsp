@@ -8,8 +8,8 @@ function testParser(content: string, expectSuccess: boolean) {
         diagnostic.beginSession();
 
         const uri = "/foo/bar.as";
-        const tokenizedTokens = tokenize(uri, content);
-        const preprocessedTokens = preprocessAfterTokenized(tokenizedTokens);
+        const rawTokens = tokenize(uri, content);
+        const preprocessedTokens = preprocessAfterTokenized(rawTokens);
         parseAfterPreprocessed(preprocessedTokens.preprocessedTokens);
 
         const diagnosticsInParser = diagnostic.endSession();

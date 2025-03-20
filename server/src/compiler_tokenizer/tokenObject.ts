@@ -34,13 +34,13 @@ export abstract class TokenBase {
     private _highlight: HighlightInfo;
 
     // Raw token information are set by the tokenizer.
-    private _prevRawToken: TokenBase | undefined = undefined;
-    private _nextRawToken: TokenBase | undefined = undefined;
+    private _prevRawToken: TokenObject | undefined = undefined;
+    private _nextRawToken: TokenObject | undefined = undefined;
 
     // Preprocessed token information are set by the preprocessor.
     private _indexInPreprocessedTokenList: number = -1;
-    private _prevPreprocessedToken: TokenBase | undefined = undefined;
-    private _nextPreprocessedToken: TokenBase | undefined = undefined;
+    private _prevPreprocessedToken: TokenObject | undefined = undefined;
+    private _nextPreprocessedToken: TokenObject | undefined = undefined;
 
     // Information about the token range covered by this virtual token
     private readonly _coveredRange: TokenRange | undefined = undefined;
@@ -108,12 +108,12 @@ export abstract class TokenBase {
         return this.kind === TokenKind.Comment;
     }
 
-    public bindRawToken(next: TokenBase | undefined) {
+    public bindRawToken(next: TokenObject | undefined) {
         this._nextRawToken = next;
         if (next !== undefined) next._prevRawToken = this;
     }
 
-    public bindPreprocessedToken(index: number, next: TokenBase | undefined) {
+    public bindPreprocessedToken(index: number, next: TokenObject | undefined) {
         this._indexInPreprocessedTokenList = index;
         this._nextPreprocessedToken = next;
         if (next !== undefined) next._prevPreprocessedToken = this;
@@ -122,14 +122,14 @@ export abstract class TokenBase {
     /**
      * Returns the previous token in the raw token list.
      */
-    public get prevRaw(): TokenBase | undefined {
+    public get prevRaw(): TokenObject | undefined {
         return this._prevRawToken;
     }
 
     /**
      * Returns the next token in the raw token list.
      */
-    public get nextRaw(): TokenBase | undefined {
+    public get nextRaw(): TokenObject | undefined {
         return this._nextRawToken;
     }
 
@@ -143,14 +143,14 @@ export abstract class TokenBase {
     /**
      * Returns the previous token in the preprocessed token list.
      */
-    public get prev(): TokenBase | undefined {
+    public get prev(): TokenObject | undefined {
         return this._prevPreprocessedToken;
     }
 
     /**
      * Returns the next token in the preprocessed token list.
      */
-    public get next(): TokenBase | undefined {
+    public get next(): TokenObject | undefined {
         return this._nextPreprocessedToken;
     }
 
@@ -165,7 +165,7 @@ export abstract class TokenBase {
     /**
      * Returns the next token if it exists; otherwise, returns the current token.
      */
-    public getNextOrSelf() {
+    public getNextOrSelf(): TokenObject {
         return this.next ?? this;
     }
 

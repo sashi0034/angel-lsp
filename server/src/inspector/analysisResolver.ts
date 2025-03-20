@@ -1,4 +1,4 @@
-import {Diagnostic} from "vscode-languageserver/node";
+import * as lsp from "vscode-languageserver/node";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {DelayedTask} from "../utils/delayedTask";
@@ -19,9 +19,9 @@ import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 
 interface PartialInspectRecord {
     uri: string;
-    diagnosticsInParser: Diagnostic[];
-    diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenObject[];
+    diagnosticsInParser: lsp.Diagnostic[];
+    diagnosticsInAnalyzer: lsp.Diagnostic[];
+    rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
