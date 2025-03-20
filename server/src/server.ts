@@ -30,6 +30,7 @@ import {logger} from "./core/logger";
 import {provideHover} from "./services/hover";
 import {provideDocumentSymbol} from "./services/documentSymbol";
 import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatting";
+import {SimpleProfiler} from "./utils/simpleProfiler";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -184,6 +185,8 @@ connection.onDidChangeTextDocument((params) => {
 
     lsp_textDocument.TextDocument.update(document, params.contentChanges, params.textDocument.version);
 
+    // profileInspect(document); // for debug
+
     // TODO: We should implement incremental compilation.
     inspectFile(params.textDocument.uri, document.getText());
 
@@ -202,6 +205,18 @@ connection.onDidChangeWatchedFiles(params => {
     // Maybe we don't need to do anything here, right?
     // https://github.com/microsoft/vscode-discussions/discussions/511
 });
+
+function profileInspect(document: lsp_textDocument.TextDocument) {
+    const profiler = new SimpleProfiler('inspect');
+    for (let i = 0; i < 100; i++) {
+        profiler.beginSession();
+        inspectFile(document.uri, document.getText());
+        flushInspectedRecord(document.uri);
+        profiler.endSession();
+    }
+
+    profiler.outputResult();
+}
 
 // -----------------------------------------------
 // Semantic Tokens Provider
