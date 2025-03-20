@@ -20,7 +20,7 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
                 location: scope.linkedNode.nodeRange.getBoundingLocation().toServerLocation()
             });
         }
-    } else if (scope.hasChildFunctionScopes()) {
+    } else if (scope.isFunctionHolderScope()) {
         // Append function overloads
 
         // TODO: Distinct between function and methods
@@ -54,7 +54,7 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
 
     // Iterate child scopes
     for (const [key, child] of scope.childScopeTable) {
-        if (isAnonymousIdentifier(key)) continue;
+        if (child.isAnonymousScope()) continue;
 
         result.push(...provideDocumentSymbolInternal(filepath, child));
     }

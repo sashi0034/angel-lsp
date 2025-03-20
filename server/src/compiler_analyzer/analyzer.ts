@@ -360,7 +360,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
             found = scopeIterator.lookupScope(scopeToken.text);
-            if (found?.hasChildFunctionScopes()) found = undefined;
+            if (found?.isFunctionHolderScope()) found = undefined;
             if (found !== undefined) break;
             // -----------------------------------------------
 
@@ -536,10 +536,11 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     if (functionScope === undefined || functionScope.linkedNode === undefined) return;
 
     if (functionScope.linkedNode.nodeName === NodeName.Func) {
-        // functionHolderScope: Function holder scope (with no node)
-        // |-- functionScope: Anonymous scope of one of the overloads (with NodeFunc)
-        //     |-- ...
-        //         |-- scope containing 'return'
+        // ...
+        //   |-- Function holder scope (with no node)
+        //       |-- The function scope for one of the overloads (with NodeFunc)
+        //           |-- ...
+        //               |-- scope containing 'return'
 
         const functionHolderScope = functionScope.parentScope;
         assert(functionHolderScope !== undefined);

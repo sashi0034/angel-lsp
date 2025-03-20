@@ -148,23 +148,32 @@ export class SymbolScope {
     /**
      * Whether this scope has scopes for each overloaded function.
      */
-    public hasChildFunctionScopes(): boolean {
+    public isFunctionHolderScope(): boolean {
+        // ...
+        //   |-- Function holder scope (with no node)
+        //       |-- The function scope for one of the overloads (with NodeFunc)
+        //           |-- ...
         return this._childScopeTable.values().next().value?.isFunctionScope() === true;
     }
 
     /**
      * Whether this scope is one of the function scopes in overloaded functions.
+     * Note: Since the parent scope has an identifier related to the function, the function scope is anonymous.
      */
     public isFunctionScope(): boolean {
         return this.linkedNode?.nodeName === NodeName.Func;
+    }
+
+    public isAnonymousScope(): boolean {
+        return isAnonymousIdentifier(this.key);
     }
 
     /**
      * Whether this scope is a pure namespace that does not have a node.
      * Note: AngelScript allows defining a class and a namespace with the same name simultaneously.
      */
-    public isNamespaceWithoutNode(): boolean {
-        return this.linkedNode === undefined && this.hasChildFunctionScopes() === false;
+    public isPureNamespaceScope(): boolean {
+        return this.linkedNode === undefined && !this.isFunctionHolderScope() && !this.isAnonymousScope();
     }
 
     public getContext(): Readonly<GlobalScopeContext> {
@@ -308,12 +317,12 @@ export class SymbolScope {
             // We only insert it if it is a node specific to the external file.
             const canInsertNode = externalChild.linkedNode?.nodeRange.path === externalFilepath;
 
-            if (isAnonymousIdentifier(key)) {
+            if (externalChild.isAnonymousScope()) {
                 // The scope name of function overloads is represented by an anonymous identifier.
                 // This checks whether it can be inserted.
                 if (canInsertNode && externalChild.isFunctionScope()) {
                     const childScope = this.insertScope(key, externalChild.linkedNode);
-                    childScope.includeExternalScopeInternal(externalChild, externalFilepath);
+                    childScope.includeExternalScopeInternal(externalChild, externalFilepath); // FIXME?
                 }
             } else {
                 const childScope = this.insertScope(key, canInsertNode ? externalChild.linkedNode : undefined);
@@ -431,10 +440,12 @@ function errorAlreadyDeclared(token: TokenObject) {
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
     for (const [key, symbol] of scope.symbolTable) {
-        if (symbol instanceof SymbolType && isSourceBuiltinString(symbol.linkedNode)) return symbol;
+        if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) return symbol;
     }
 
     for (const [key, child] of scope.childScopeTable) {
+        if (child.isAnonymousScope()) continue;
+
         const found = findBuiltinStringType(child);
         if (found !== undefined) return found;
     }

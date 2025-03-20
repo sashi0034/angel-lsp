@@ -63,9 +63,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
 
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopeTable) {
-        if (childScope.isNamespaceWithoutNode() === false) continue;
-
-        if (isAnonymousIdentifier(childName)) continue;
+        if (childScope.isPureNamespaceScope() === false) continue;
 
         items.push({
             item: {
