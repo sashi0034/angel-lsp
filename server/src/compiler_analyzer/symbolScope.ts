@@ -322,29 +322,29 @@ export class SymbolScope {
         }
     }
 
-    protected cleanByFilepath(filepath: string) {
-        this._namespaceNodes.length = 0;
-
-        if (this._linkedNode?.nodeRange.path === filepath) {
-            this._linkedNode = undefined;
-        }
-
-        // Exclude symbols declared in this file
-        excludeSymbolTableByFilepath(this._symbolTable, filepath);
-
-        // Iterate child scopes recursively
-        for (const [key, child] of this._childScopeTable) {
-            if (isAnonymousIdentifier(key) && child.linkedNode?.nodeRange.path === filepath) {
-                // Anonymous scopes are deleted because they are defined in this file.
-                this._childScopeTable.delete(key);
-            } else {
-                child.cleanByFilepath(filepath);
-                if (child._childScopeTable.size === 0 && child._symbolTable.size === 0) {
-                    this._childScopeTable.delete(key);
-                }
-            }
-        }
-    }
+    // protected cleanByFilepath(filepath: string) {
+    //     this._namespaceNodes.length = 0;
+    //
+    //     if (this._linkedNode?.nodeRange.path === filepath) {
+    //         this._linkedNode = undefined;
+    //     }
+    //
+    //     // Exclude symbols declared in this file
+    //     excludeSymbolTableByFilepath(this._symbolTable, filepath);
+    //
+    //     // Iterate child scopes recursively
+    //     for (const [key, child] of this._childScopeTable) {
+    //         if (isAnonymousIdentifier(key) && child.linkedNode?.nodeRange.path === filepath) {
+    //             // Anonymous scopes are deleted because they are defined in this file.
+    //             this._childScopeTable.delete(key);
+    //         } else {
+    //             child.cleanByFilepath(filepath);
+    //             if (child._childScopeTable.size === 0 && child._symbolTable.size === 0) {
+    //                 this._childScopeTable.delete(key);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 export class SymbolGlobalScope extends SymbolScope {
@@ -391,15 +391,15 @@ export class SymbolGlobalScope extends SymbolScope {
     /**
      * Remove the information created in this file
      */
-    public cleanInFile() {
-        this.cleanByFilepath(this._context.filepath);
-
-        this._context.completionHints.length = 0;
-
-        this._context.referenceList.length = 0;
-
-        this.commitContext();
-    }
+    // public cleanInFile() {
+    //     this.cleanByFilepath(this._context.filepath);
+    //
+    //     this._context.completionHints.length = 0;
+    //
+    //     this._context.referenceList.length = 0;
+    //
+    //     this.commitContext();
+    // }
 
     public pushCompletionHint(hint: ComplementHint) {
         this._context.completionHints.push(hint);
@@ -458,26 +458,26 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     return getGlobalSettings().builtinStringTypes.includes(source.identifier.text);
 }
 
-function excludeSymbolTableByFilepath(table: SymbolTable, filepath: string) {
-    for (const [key, symbolHolder] of table) {
-        if (symbolHolder.isFunctionHolder()) {
-            const filteredList = symbolHolder.overloadList.filter(
-                overload => overload.identifierToken.location.path !== filepath
-            );
-
-            if (filteredList.length === 0) {
-                table.delete(key);
-            } else if (filteredList.length < symbolHolder.count) {
-                table.set(key, new SymbolFunctionHolder(filteredList));
-            } // else filteredList.length == symbolHolder.count
-            // fallthrough
-        } else {
-            if (symbolHolder.identifierToken.location.path === filepath) {
-                table.delete(key);
-            }
-        }
-    }
-}
+// function excludeSymbolTableByFilepath(table: SymbolTable, filepath: string) {
+//     for (const [key, symbolHolder] of table) {
+//         if (symbolHolder.isFunctionHolder()) {
+//             const filteredList = symbolHolder.overloadList.filter(
+//                 overload => overload.identifierToken.location.path !== filepath
+//             );
+//
+//             if (filteredList.length === 0) {
+//                 table.delete(key);
+//             } else if (filteredList.length < symbolHolder.count) {
+//                 table.set(key, new SymbolFunctionHolder(filteredList));
+//             } // else filteredList.length == symbolHolder.count
+//             // fallthrough
+//         } else {
+//             if (symbolHolder.identifierToken.location.path === filepath) {
+//                 table.delete(key);
+//             }
+//         }
+//     }
+// }
 
 export interface SymbolAndScope {
     readonly symbol: SymbolObjectHolder;
