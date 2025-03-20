@@ -297,11 +297,20 @@ export class SymbolScope {
         }
 
         // Copy child scopes recursively.
-        for (const [key, child] of externalScope._childScopeTable) {
-            const linkedNode = child.linkedNode?.nodeRange.path === externalFilepath ? child.linkedNode : undefined;
-            const nextChildScope = this.insertScope(key, linkedNode);
-            if (isAnonymousIdentifier(nextChildScope.key) === false) {
-                nextChildScope.includeExternalScopeInternal(child, externalFilepath);
+        for (const [key, externalChild] of externalScope._childScopeTable) {
+            // We only insert it if it is a node specific to the external file.
+            const canInsertNode = externalChild.linkedNode?.nodeRange.path === externalFilepath;
+
+            if (isAnonymousIdentifier(key)) {
+                // The scope name of function overloads is represented by an anonymous identifier.
+                // This checks whether it can be inserted.
+                if (canInsertNode && externalChild.linkedNode?.nodeName === NodeName.Func) {
+                    const childScope = this.insertScope(key, externalChild.linkedNode);
+                    childScope.includeExternalScopeInternal(externalChild, externalFilepath);
+                }
+            } else {
+                const childScope = this.insertScope(key, canInsertNode ? externalChild.linkedNode : undefined);
+                childScope.includeExternalScopeInternal(externalChild, externalFilepath);
             }
         }
     }
