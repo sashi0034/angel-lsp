@@ -109,8 +109,7 @@ connection.onInitialize((params: InitializeParams) => {
             documentRangeFormattingProvider: true,
             documentOnTypeFormattingProvider: {
                 firstTriggerCharacter: ';',
-                // Note: '\b' is not originally triggered in LSP, so it needs to be handled on the client side.
-                moreTriggerCharacter: ['}', '\n', '\b'],
+                moreTriggerCharacter: ['}', '\n'],
             }
         }
     };
@@ -198,6 +197,8 @@ connection.onDidChangeTextDocument((params) => {
 
     // TODO: We should implement incremental compilation.
     inspectFile(params.textDocument.uri, document.getText());
+
+    // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this!');
 });
 
 connection.onDidCloseTextDocument(params => {

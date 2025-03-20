@@ -48,10 +48,10 @@ export function activate(context: ExtensionContext) {
         clientOptions
     );
 
-    // Register smart backspace command
-    context.subscriptions.push(commands.registerCommand("angelScript.smartBackspace", async () => {
-        await executeSmartBackspace(s_client);
-    }));
+    // Register custom command
+    s_client.onRequest("angelScript/smartBackspace", params1 => {
+        console.log(params1); // TODO: Implement this!
+    });
 
     // Start the client. This will also launch the server
     s_client.start();

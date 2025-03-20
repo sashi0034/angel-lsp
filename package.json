@@ -77,13 +77,6 @@
                 "path": "./snippets.json"
             }
         ],
-        "keybindings": [
-            {
-                "key": "backspace",
-                "command": "angelScript.smartBackspace",
-                "when": "editorTextFocus && !editorReadOnly && editorLangId == angelscript"
-            }
-        ],
         "configuration": {
             "type": "object",
             "title": "AngelScript configuration",

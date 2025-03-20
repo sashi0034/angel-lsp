@@ -1,6 +1,8 @@
 import {LanguageClient} from "vscode-languageclient/node";
 import {commands, Position, Range, window, workspace, WorkspaceEdit} from "vscode";
 
+// obsoleted
+// I'll re-implement this feature in the future
 export async function executeSmartBackspace(client: LanguageClient) {
     const editor = window.activeTextEditor;
     if (!editor) {

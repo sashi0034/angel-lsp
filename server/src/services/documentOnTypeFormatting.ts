@@ -34,8 +34,8 @@ function executeSmartBackspace(
     // No token found.
     // const canSmartBackspace =
 
-    // bug!
     // TODO: Implement smart backspace check.
+    // WIP
 
     return [lsp.TextEdit.del(new TextRange(new TextPosition(caret.line - 1, 1000000), caret))];
 }
