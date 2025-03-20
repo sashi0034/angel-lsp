@@ -1,19 +1,8 @@
-import {
-    createConnection,
-    ProposedFeatures,
-    InitializeParams,
-    DidChangeConfigurationNotification,
-    CompletionItem,
-    TextDocumentPositionParams,
-    TextDocumentSyncKind,
-    InitializeResult,
-} from 'vscode-languageserver/node';
+import * as lsp from 'vscode-languageserver/node';
+import * as lsp_textDocument from 'vscode-languageserver-textdocument';
 
-import {
-    TextDocument
-} from 'vscode-languageserver-textdocument';
 import {highlightForModifierList, highlightForTokenList} from "./core/highlight";
-import {provideDefinition, provideDefinitionAsToken} from "./services/definition";
+import {provideDefinitionAsToken} from "./services/definition";
 import {
     getInspectedRecord,
     getInspectedRecordList,
@@ -44,14 +33,14 @@ import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatt
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
-const connection = createConnection(ProposedFeatures.all);
+const connection = lsp.createConnection(lsp.ProposedFeatures.all);
 
 // Create a simple text document manager.
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
 
-connection.onInitialize((params: InitializeParams) => {
+connection.onInitialize((params: lsp.InitializeParams) => {
     const capabilities = params.capabilities;
 
     // Does the client support the `workspace/configuration` request?
@@ -68,9 +57,9 @@ connection.onInitialize((params: InitializeParams) => {
         capabilities.textDocument.publishDiagnostics.relatedInformation
     );
 
-    const result: InitializeResult = {
+    const result: lsp.InitializeResult = {
         capabilities: {
-            textDocumentSync: TextDocumentSyncKind.Incremental,
+            textDocumentSync: lsp.TextDocumentSyncKind.Incremental,
             definitionProvider: true,
             declarationProvider: true,
             referencesProvider: true,
@@ -134,7 +123,7 @@ function reloadSettings() {
 connection.onInitialized(() => {
     if (hasConfigurationCapability) {
         // Register for all configuration changes.
-        connection.client.register(DidChangeConfigurationNotification.type, undefined);
+        connection.client.register(lsp.DidChangeConfigurationNotification.type, undefined);
     }
     if (hasWorkspaceFolderCapability) {
         connection.workspace.onDidChangeWorkspaceFolders(_event => {
@@ -169,13 +158,13 @@ connection.onDidChangeConfiguration(change => {
 
 // Reference: https://github.com/microsoft/vscode-languageserver-node/blob/df05883f34b39255d40d68cef55caf2e93cff35f/server/src/common/textDocuments.ts#L185
 
-const s_documentMap = new Map<string, TextDocument>();
+const s_documentMap = new Map<string, lsp_textDocument.TextDocument>();
 
 connection.onDidOpenTextDocument(params => {
     const document = params.textDocument;
     s_documentMap.set(
         params.textDocument.uri,
-        TextDocument.create(document.uri, document.languageId, document.version, document.text)
+        lsp_textDocument.TextDocument.create(document.uri, document.languageId, document.version, document.text)
     );
 
     if (getInspectedRecord(document.uri).content === document.text) {
@@ -193,7 +182,7 @@ connection.onDidChangeTextDocument((params) => {
         return;
     }
 
-    TextDocument.update(document, params.contentChanges, params.textDocument.version);
+    lsp_textDocument.TextDocument.update(document, params.contentChanges, params.textDocument.version);
 
     // TODO: We should implement incremental compilation.
     inspectFile(params.textDocument.uri, document.getText());
@@ -251,7 +240,7 @@ function getAllGlobalScopes() {
 }
 
 // Search for references of a symbol
-function getReferenceLocations(params: TextDocumentPositionParams): Location[] {
+function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
     flushInspectedRecord(params.textDocument.uri);
     const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
@@ -354,7 +343,7 @@ connection.onHover((params) => {
 // Completion Provider
 const s_lastCompletion: { uri: string; items: CompletionItemWrapper[] } = {uri: '', items: [],};
 
-connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] => {
+connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.CompletionItem[] => {
     const uri = params.textDocument.uri;
     const caret = TextPosition.create(params.position);
 
@@ -383,7 +372,7 @@ connection.onCompletion((params: TextDocumentPositionParams): CompletionItem[] =
 });
 
 // This handler resolves additional information for the item selected in the completion list.
-connection.onCompletionResolve((item: CompletionItem): CompletionItem => {
+connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
     const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
     if (globalScope === undefined) return item;
 
