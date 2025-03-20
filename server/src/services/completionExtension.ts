@@ -9,14 +9,14 @@ import {fileURLToPath} from "node:url";
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
  */
-export function provideCompletionOfToken(tokenizedTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
-    const tokenOnCaret = findTokenContainingPosition(tokenizedTokens, caret);
+export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
+    const tokenOnCaret = findTokenContainingPosition(rawTokens, caret);
     if (tokenOnCaret === undefined) return undefined;
 
     const uri = tokenOnCaret.token.location.path;
 
     if (tokenOnCaret.token.isStringToken()) {
-        if (canAutocompleteFilepath(tokenizedTokens, tokenOnCaret.index)) {
+        if (canAutocompleteFilepath(rawTokens, tokenOnCaret.index)) {
             const start = tokenOnCaret.token.getStringContent();
             return autocompleteFilepath(uri, start).map(name => {
                 return {label: name, kind: CompletionItemKind.File,};
@@ -27,13 +27,13 @@ export function provideCompletionOfToken(tokenizedTokens: TokenObject[], caret: 
     return undefined;
 }
 
-function canAutocompleteFilepath(tokenizedTokens: TokenObject[], caretTokenIndex: number): boolean {
-    const stringToken = tokenizedTokens[caretTokenIndex];
+function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: number): boolean {
+    const stringToken = rawTokens[caretTokenIndex];
     if (stringToken.isStringToken() === false) return false;
 
     if (caretTokenIndex >= 2) {
         // Check if the previous tokens are '#', 'include'.
-        const prev = tokenizedTokens.slice(caretTokenIndex - 2, caretTokenIndex).map(token => token.text).join('');
+        const prev = rawTokens.slice(caretTokenIndex - 2, caretTokenIndex).map(token => token.text).join('');
         if (prev === '#include') return true;
     }
 

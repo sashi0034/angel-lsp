@@ -206,7 +206,7 @@ connection.onDidChangeWatchedFiles(params => {
 // -----------------------------------------------
 // Semantic Tokens Provider
 connection.languages.semanticTokens.on((params) => {
-    return provideSemanticTokens(getInspectedRecord(params.textDocument.uri).tokenizedTokens);
+    return provideSemanticTokens(getInspectedRecord(params.textDocument.uri).rawTokens);
 });
 
 // -----------------------------------------------
@@ -348,7 +348,7 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
     const caret = TextPosition.create(params.position);
 
     // See if we can autocomplete file paths, etc.
-    const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).tokenizedTokens, caret);
+    const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).rawTokens, caret);
     if (completionsOfToken !== undefined) return completionsOfToken;
 
     flushInspectedRecord(uri);
@@ -404,7 +404,7 @@ connection.onSignatureHelp((params) => {
 connection.onDocumentFormatting((params) => {
     flushInspectedRecord();
     const inspected = getInspectedRecord(params.textDocument.uri);
-    return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
+    return formatFile(inspected.content, inspected.rawTokens, inspected.ast);
 });
 
 connection.onExecuteCommand((params) => {
@@ -417,7 +417,7 @@ connection.onDocumentOnTypeFormatting((params) => {
     const record = getInspectedRecord(params.textDocument.uri);
 
     const result = documentOnTypeFormattingProvider(
-        record.tokenizedTokens,
+        record.rawTokens,
         record.analyzerScope.globalScope,
         TextPosition.create(params.position),
         params.ch,

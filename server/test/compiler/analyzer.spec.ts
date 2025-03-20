@@ -13,8 +13,8 @@ function testAnalyzer(content: string, expectSuccess: boolean) {
         diagnostic.beginSession();
 
         const uri = "/foo/bar.as";
-        const tokenizedTokens = tokenize(uri, content);
-        const preprocessedOutput = preprocessAfterTokenized(tokenizedTokens);
+        const rawTokens = tokenize(uri, content);
+        const preprocessedOutput = preprocessAfterTokenized(rawTokens);
         const ast = parseAfterPreprocessed(preprocessedOutput.preprocessedTokens);
 
         const diagnosticsInParser = diagnostic.endSession();

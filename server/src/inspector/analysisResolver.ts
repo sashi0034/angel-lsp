@@ -21,7 +21,7 @@ interface PartialInspectRecord {
     uri: string;
     diagnosticsInParser: Diagnostic[];
     diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenObject[];
+    rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;

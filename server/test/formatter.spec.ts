@@ -30,7 +30,7 @@ function testFormatter(content: string, expectedContent: string) {
 
         const record = getInspectedRecord(uri);
 
-        const textEdits = formatFile(record.content, record.tokenizedTokens, record.ast);
+        const textEdits = formatFile(record.content, record.rawTokens, record.ast);
         const document = TextDocument.create(uri, 'angelscript', 0, content);
         const actualContent = TextDocument.applyEdits(document, textEdits);
 

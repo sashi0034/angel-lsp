@@ -18,7 +18,7 @@ interface InspectRecord {
     uri: string;
     diagnosticsInParser: Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: Diagnostic[];
-    tokenizedTokens: TokenObject[]; // FIXME: Rename to rawTokens?
+    rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
     analyzerTask: DelayedTask;
@@ -46,7 +46,7 @@ function createEmptyRecord(): InspectRecord {
         uri: "",
         diagnosticsInParser: [],
         diagnosticsInAnalyzer: [],
-        tokenizedTokens: [],
+        rawTokens: [],
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         analyzerTask: new DelayedTask(),
@@ -101,11 +101,11 @@ export function inspectFile(uri: URI, content: string): void {
     const profiler = new Profiler();
 
     // Execute the tokenizer
-    record.tokenizedTokens = tokenize(uri, content);
+    record.rawTokens = tokenize(uri, content);
     profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
 
     // Execute the preprocessor
-    record.preprocessedOutput = preprocessAfterTokenized(record.tokenizedTokens);
+    record.preprocessedOutput = preprocessAfterTokenized(record.rawTokens);
     profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
     // Execute the parser
