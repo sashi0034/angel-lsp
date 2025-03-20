@@ -148,16 +148,23 @@ export class SymbolScope {
     /**
      * Whether this scope has scopes for each overloaded function.
      */
-    public hasFunctionScopes(): boolean {
-        return this._childScopeTable.values().next().value?.linkedNode?.nodeName === NodeName.Func;
+    public hasChildFunctionScopes(): boolean {
+        return this._childScopeTable.values().next().value?.isFunctionScope() === true;
     }
 
     /**
-     * Whether this scope is a namespace without a node.
+     * Whether this scope is one of the function scopes in overloaded functions.
+     */
+    public isFunctionScope(): boolean {
+        return this.linkedNode?.nodeName === NodeName.Func;
+    }
+
+    /**
+     * Whether this scope is a pure namespace that does not have a node.
      * Note: AngelScript allows defining a class and a namespace with the same name simultaneously.
      */
     public isNamespaceWithoutNode(): boolean {
-        return this.linkedNode === undefined && this.hasFunctionScopes() === false;
+        return this.linkedNode === undefined && this.hasChildFunctionScopes() === false;
     }
 
     public getContext(): Readonly<GlobalScopeContext> {
@@ -304,7 +311,7 @@ export class SymbolScope {
             if (isAnonymousIdentifier(key)) {
                 // The scope name of function overloads is represented by an anonymous identifier.
                 // This checks whether it can be inserted.
-                if (canInsertNode && externalChild.linkedNode?.nodeName === NodeName.Func) {
+                if (canInsertNode && externalChild.isFunctionScope()) {
                     const childScope = this.insertScope(key, externalChild.linkedNode);
                     childScope.includeExternalScopeInternal(externalChild, externalFilepath);
                 }
