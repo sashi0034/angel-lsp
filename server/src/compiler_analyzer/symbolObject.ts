@@ -277,8 +277,13 @@ export class SymbolFunction extends SymbolBase {
 export class SymbolFunctionHolder implements SymbolHolder {
     private readonly _overloadList: SymbolFunction[] = [];
 
-    public constructor(firstElement: SymbolFunction) {
-        this._overloadList.push(firstElement);
+    public constructor(firstElement: SymbolFunction | SymbolFunction[]) {
+        if (Array.isArray(firstElement)) {
+            assert(firstElement.length > 0);
+            this._overloadList = firstElement;
+        } else {
+            this._overloadList.push(firstElement);
+        }
     }
 
     public pushOverload(overload: SymbolFunction) {
