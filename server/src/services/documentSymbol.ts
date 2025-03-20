@@ -20,7 +20,7 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
                 location: scope.linkedNode.nodeRange.getBoundingLocation().toServerLocation()
             });
         }
-    } else if (scope.hasFunctionScopes()) {
+    } else if (scope.hasChildFunctionScopes()) {
         // Append function overloads
 
         // TODO: Distinct between function and methods

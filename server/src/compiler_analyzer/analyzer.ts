@@ -360,7 +360,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         let found: SymbolScope | undefined = undefined;
         for (; ;) {
             found = scopeIterator.lookupScope(scopeToken.text);
-            if (found?.hasFunctionScopes()) found = undefined;
+            if (found?.hasChildFunctionScopes()) found = undefined;
             if (found !== undefined) break;
             // -----------------------------------------------
 

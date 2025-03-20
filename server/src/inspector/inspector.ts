@@ -39,24 +39,22 @@ const s_analysisResolver: AnalysisResolver = new AnalysisResolver(
     (params) => s_diagnosticsCallback(params)
 );
 
-function createEmptyRecord(): InspectRecord {
+function createEmptyRecord(uri: string, content: string): InspectRecord {
     return {
-        content: "",
-        uri: "",
+        content: content,
+        uri: uri,
         diagnosticsInParser: [],
         diagnosticsInAnalyzer: [],
         rawTokens: [],
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         analyzerTask: new DelayedTask(),
-        analyzerScope: new AnalyzerScope('', new SymbolGlobalScope()),
+        analyzerScope: new AnalyzerScope(uri, new SymbolGlobalScope(uri)),
     };
 }
 
 function insertNewRecord(uri: string, content: string): InspectRecord {
-    const record = createEmptyRecord();
-    record.content = content;
-    record.uri = uri;
+    const record = createEmptyRecord(uri, content);
     s_inspectedResults.set(uri, record);
     return record;
 }
@@ -66,7 +64,7 @@ function insertNewRecord(uri: string, content: string): InspectRecord {
  */
 export function getInspectedRecord(uri: string): Readonly<InspectRecord> {
     const result = s_inspectedResults.get(uri);
-    if (result === undefined) return createEmptyRecord();
+    if (result === undefined) return createEmptyRecord(uri, '');
     return result;
 }
 

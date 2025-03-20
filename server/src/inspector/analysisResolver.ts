@@ -15,7 +15,7 @@ import {logger} from "../core/logger";
 import {inspectFile} from "./inspector";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
-import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
+import {AnalyzerScope, createGlobalScope} from "../compiler_analyzer/analyzerScope";
 
 interface PartialInspectRecord {
     uri: string;
@@ -92,7 +92,7 @@ export class AnalysisResolver {
             shouldReanalyze = false;
         }
 
-        this.analyzeFile(record);
+        this.analyzeFile(record, shouldReanalyze);
 
         if (shouldReanalyze) {
             this.reanalyzeFilesWithDependency(record.uri);
@@ -136,7 +136,7 @@ export class AnalysisResolver {
         }
     }
 
-    private analyzeFile(record: PartialInspectRecord) {
+    private analyzeFile(record: PartialInspectRecord, isDirectAnalyze: boolean = false) {
         const predefinedUri = this.findPredefinedUri(record.uri);
 
         logger.message(`[Analyzer]\n${record.uri}`);
@@ -144,12 +144,27 @@ export class AnalysisResolver {
         // Collect scopes in included files
         const includedScopes = this.collectIncludedScope(record, predefinedUri);
 
+        // -----------------------------------------------
         analyzerDiagnostic.reset();
 
         const profiler = new Profiler();
 
         // Execute the hoist
-        const hoistResult = hoistAfterParsed(record.ast, record.uri, includedScopes);
+
+        // FIXME: (WIP) This still has a bug
+        // let newGlobalScope: SymbolGlobalScope;
+        // if (isDirectAnalyze) {
+        //     record.analyzerScope.cleanInFile();
+        //     newGlobalScope = record.analyzerScope.globalScope;
+        // } else {
+        //     newGlobalScope = createGlobalScope(record.uri, includedScopes);
+        // }
+
+        const newGlobalScope = createGlobalScope(record.uri, includedScopes);
+
+        newGlobalScope.activateContext();
+
+        const hoistResult = hoistAfterParsed(record.ast, newGlobalScope);
         profiler.mark('Hoist'.padEnd(profilerDescriptionLength));
 
         // Execute the analyzer
@@ -157,6 +172,7 @@ export class AnalysisResolver {
         profiler.mark('Analyzer'.padEnd(profilerDescriptionLength));
 
         record.diagnosticsInAnalyzer = analyzerDiagnostic.flush();
+        // -----------------------------------------------
 
         this.diagnosticsCallback({
             uri: record.uri,
@@ -238,9 +254,6 @@ export class AnalysisResolver {
         const preprocessOutput = record.preprocessedOutput;
         const targetUri = record.uri;
 
-        // Collect scopes in included files
-        const includePaths = this.resolveIncludePaths(record, predefinedUri);
-
         const includedScopes = [];
 
         // Load as.predefined
@@ -248,6 +261,9 @@ export class AnalysisResolver {
             const predefinedResult = this.recordList.get(predefinedUri);
             if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzerScope);
         }
+
+        // Collect scopes in included files
+        const includePaths = this.resolveIncludePaths(record, predefinedUri);
 
         // Get the analyzed scope of included files
         for (const relativeUri of includePaths) {

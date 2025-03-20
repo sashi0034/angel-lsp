@@ -1,6 +1,7 @@
 import {
     ReferenceInformation,
     ScopePath,
+    SymbolFunctionHolder,
     SymbolObject,
     SymbolObjectHolder,
     SymbolType,
@@ -95,6 +96,8 @@ export class SymbolScope {
     private readonly _symbolTable: SymbolTable = new Map();
 
     // The node list that represents this scope.
+    // Unlike linkedNode, this namespaceNode always contains elements
+    // that are defined in the same file as this scope.
     private readonly _namespaceNodes: ScopeLinkedNamespaceNode[] = [];
 
     /**
@@ -145,16 +148,23 @@ export class SymbolScope {
     /**
      * Whether this scope has scopes for each overloaded function.
      */
-    public hasFunctionScopes(): boolean {
-        return this._childScopeTable.values().next().value?.linkedNode?.nodeName === NodeName.Func;
+    public hasChildFunctionScopes(): boolean {
+        return this._childScopeTable.values().next().value?.isFunctionScope() === true;
     }
 
     /**
-     * Whether this scope is a namespace without a node.
+     * Whether this scope is one of the function scopes in overloaded functions.
+     */
+    public isFunctionScope(): boolean {
+        return this.linkedNode?.nodeName === NodeName.Func;
+    }
+
+    /**
+     * Whether this scope is a pure namespace that does not have a node.
      * Note: AngelScript allows defining a class and a namespace with the same name simultaneously.
      */
     public isNamespaceWithoutNode(): boolean {
-        return this.linkedNode === undefined && this.hasFunctionScopes() === false;
+        return this.linkedNode === undefined && this.hasChildFunctionScopes() === false;
     }
 
     public getContext(): Readonly<GlobalScopeContext> {
@@ -285,7 +295,7 @@ export class SymbolScope {
 
     protected includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
         // Copy symbols from the external scope.
-        for (const [key, symbolHolder] of externalScope.symbolTable) {
+        for (const [key, symbolHolder] of externalScope._symbolTable) {
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.identifierToken.location.path === externalFilepath) {
                     this.insertSymbol(symbol);
@@ -294,31 +304,71 @@ export class SymbolScope {
         }
 
         // Copy child scopes recursively.
-        for (const [key, child] of externalScope.childScopeTable) {
-            const linkedNode = child.linkedNode?.nodeRange.path === externalFilepath ? child.linkedNode : undefined;
-            const nextChildScope = this.insertScope(key, linkedNode);
-            if (isAnonymousIdentifier(nextChildScope.key) === false) {
-                nextChildScope.includeExternalScopeInternal(child, externalFilepath);
+        for (const [key, externalChild] of externalScope._childScopeTable) {
+            // We only insert it if it is a node specific to the external file.
+            const canInsertNode = externalChild.linkedNode?.nodeRange.path === externalFilepath;
+
+            if (isAnonymousIdentifier(key)) {
+                // The scope name of function overloads is represented by an anonymous identifier.
+                // This checks whether it can be inserted.
+                if (canInsertNode && externalChild.isFunctionScope()) {
+                    const childScope = this.insertScope(key, externalChild.linkedNode);
+                    childScope.includeExternalScopeInternal(externalChild, externalFilepath);
+                }
+            } else {
+                const childScope = this.insertScope(key, canInsertNode ? externalChild.linkedNode : undefined);
+                childScope.includeExternalScopeInternal(externalChild, externalFilepath);
             }
         }
     }
+
+    // protected cleanByFilepath(filepath: string) {
+    //     this._namespaceNodes.length = 0;
+    //
+    //     if (this._linkedNode?.nodeRange.path === filepath) {
+    //         this._linkedNode = undefined;
+    //     }
+    //
+    //     // Exclude symbols declared in this file
+    //     excludeSymbolTableByFilepath(this._symbolTable, filepath);
+    //
+    //     // Iterate child scopes recursively
+    //     for (const [key, child] of this._childScopeTable) {
+    //         if (isAnonymousIdentifier(key) && child.linkedNode?.nodeRange.path === filepath) {
+    //             // Anonymous scopes are deleted because they are defined in this file.
+    //             this._childScopeTable.delete(key);
+    //         } else {
+    //             child.cleanByFilepath(filepath);
+    //             if (child._childScopeTable.size === 0 && child._symbolTable.size === 0) {
+    //                 this._childScopeTable.delete(key);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 export class SymbolGlobalScope extends SymbolScope {
     private readonly _context: GlobalScopeContext;
 
-    public constructor(context?: GlobalScopeContext) {
+    public constructor(filepathOrContext: string | GlobalScopeContext) {
         super(undefined, '', undefined);
 
-        this._context = context !== undefined ? {...context} : createGlobalScopeContext();
+        if (typeof filepathOrContext === 'string') {
+            this._context = createGlobalScopeContext();
+            this._context.filepath = filepathOrContext;
+        } else {
+            this._context = filepathOrContext;
+        }
     }
 
     public getContext(): Readonly<GlobalScopeContext> {
         return this._context;
     }
 
-    public initializeContext(filepath: string) {
-        this._context.filepath = filepath;
+    /**
+     * Set this scope as the active global scope.
+     */
+    public activateContext() {
         setActiveGlobalScope(this);
     }
 
@@ -337,6 +387,19 @@ export class SymbolGlobalScope extends SymbolScope {
         const externalFilepath = externalScope.getContext().filepath;
         this.includeExternalScopeInternal(externalScope, externalFilepath);
     }
+
+    /**
+     * Remove the information created in this file
+     */
+    // public cleanInFile() {
+    //     this.cleanByFilepath(this._context.filepath);
+    //
+    //     this._context.completionHints.length = 0;
+    //
+    //     this._context.referenceList.length = 0;
+    //
+    //     this.commitContext();
+    // }
 
     public pushCompletionHint(hint: ComplementHint) {
         this._context.completionHints.push(hint);
@@ -395,6 +458,27 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     return getGlobalSettings().builtinStringTypes.includes(source.identifier.text);
 }
 
+// function excludeSymbolTableByFilepath(table: SymbolTable, filepath: string) {
+//     for (const [key, symbolHolder] of table) {
+//         if (symbolHolder.isFunctionHolder()) {
+//             const filteredList = symbolHolder.overloadList.filter(
+//                 overload => overload.identifierToken.location.path !== filepath
+//             );
+//
+//             if (filteredList.length === 0) {
+//                 table.delete(key);
+//             } else if (filteredList.length < symbolHolder.count) {
+//                 table.set(key, new SymbolFunctionHolder(filteredList));
+//             } // else filteredList.length == symbolHolder.count
+//             // fallthrough
+//         } else {
+//             if (symbolHolder.identifierToken.location.path === filepath) {
+//                 table.delete(key);
+//             }
+//         }
+//     }
+// }
+
 export interface SymbolAndScope {
     readonly symbol: SymbolObjectHolder;
     readonly scope: SymbolScope;
@@ -442,19 +526,10 @@ export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope 
 // -----------------------------------------------
 
 /**
- * Traverses up the parent scopes to find the global scope.
- * @param scope The scope to start from.
- * @returns The global scope.
- */
-export function findGlobalScope(scope: SymbolScope): SymbolScope {
-    if (scope.parentScope === undefined) return scope;
-    return findGlobalScope(scope.parentScope);
-}
-
-/**
  * Determines whether the given symbol in the scope is a constructor.
  * @param pair A pair consisting of a symbol and the scope that contains it.
  */
+// FIXME: deprecated
 export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
     const symbol = pair.symbol;
     const scope = pair.scope;

@@ -552,15 +552,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
-export function hoistAfterParsed(ast: NodeScript, path: string, includedScopes: AnalyzerScope[]): HoistResult {
-    const globalScope: SymbolGlobalScope = new SymbolGlobalScope();
-
-    globalScope.initializeContext(path);
-
-    for (const included of includedScopes) {
-        globalScope.includeExternalScope(included.getFileGlobalScope());
-    }
-
+export function hoistAfterParsed(ast: NodeScript, globalScope: SymbolGlobalScope): HoistResult {
     const analyzeQueue: AnalyzeQueue = [];
     const hoistQueue: HoistQueue = [];
 
