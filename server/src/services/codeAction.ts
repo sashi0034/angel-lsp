@@ -1,16 +1,15 @@
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
 import {ActionHint} from "../compiler_analyzer/actionHint";
-import * as languageserver from 'vscode-languageserver';
+import * as lsp from 'vscode-languageserver';
 import * as assert from "node:assert";
-import {findScopeContainingPosition} from "./utils";
 import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 export function provideCodeAction(
     globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], location: TextLocation, hint: ActionHint
-): languageserver.TextEdit[] {
+): lsp.TextEdit[] {
     switch (hint) {
     case ActionHint.InsertNamedArgument:
         return insertNamedArgument(globalScope, location);
@@ -49,7 +48,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
 
     // 'caller' --> '(' --> 'arg[0]' --> ',' ---> 'arg[1]' --> ',' --> ... --> ')'
     // 'caller' --> '(' --> 'name: arg[0]' --> ',' ---> 'name: arg[1]' --> ',' --> ... --> ')'
-    const edits: languageserver.TextEdit[] = [];
+    const edits: lsp.TextEdit[] = [];
     const calleeeParams = calleeFunction.linkedNode.paramList;
     for (let paramId = 0; paramId < calleeeParams.length; ++paramId) {
         if (calleeeParams[paramId].identifier === undefined) continue;
