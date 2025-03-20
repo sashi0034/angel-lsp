@@ -5,8 +5,8 @@ import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
 import {analyzeAfterHoisted} from "../../src/compiler_analyzer/analyzer";
 import {hoistAfterParsed} from "../../src/compiler_analyzer/hoist";
 import {analyzerDiagnostic} from "../../src/compiler_analyzer/analyzerDiagnostic";
-import {Diagnostic} from "vscode-languageserver/node";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
+import {createGlobalScope} from "../../src/compiler_analyzer/analyzerScope";
 
 function testAnalyzer(content: string, expectSuccess: boolean) {
     it(`analyzes: ${content}`, () => {
@@ -23,7 +23,7 @@ function testAnalyzer(content: string, expectSuccess: boolean) {
 
         analyzerDiagnostic.reset();
 
-        const hoistResult = hoistAfterParsed(ast, uri, []);
+        const hoistResult = hoistAfterParsed(ast, createGlobalScope(uri, []));
         analyzeAfterHoisted(uri, hoistResult);
 
         const diagnosticsInAnalyzer =
