@@ -51,9 +51,9 @@ export class AnalyzerScope {
     /**
      * Remove symbols declared in this file
      */
-    public cleanInFile() {
-        this._fileGlobalScope = undefined;
+    // public cleanInFile() {
+    //     this._fileGlobalScope = undefined;
 
-        this.globalScope.cleanInFile();
-    }
+    //     this.globalScope.cleanInFile();
+    // }
 }
