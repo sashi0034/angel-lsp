@@ -18,7 +18,8 @@ export function provideSignatureHelp(
         if (hint.complement !== ComplementKind.FunctionCall) continue;
 
         // Check if the caller location is at the cursor position in the scope.
-        const location = hint.callerArgumentsNode.nodeRange.extendForward(1); // Extend to the next token of ')'
+        const shouldExtend = hint.callerArgumentsNode.nodeRange.end.location.end.character > caret.character;
+        const location = hint.callerArgumentsNode.nodeRange.extendForward(shouldExtend ? 1 : 0); // Extend to the next token of ')'
         if (location.getBoundingLocation().positionInRange(caret)) {
             const callee = hint.calleeFuncHolder.first; // FIXME?
             const expectedCallee =
