@@ -79,17 +79,59 @@ function findTokenContainingPositionInternal(
     }
 }
 
+// -----------------------------------------------
+
 export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
     if (symbol.isType()) {
         if (symbol.linkedNode === undefined) return 'unknown type';
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start); // FIXME: mixin class is OK?
     } else if (symbol.isVariable()) {
-        const nearToken = getAboveLineRawToken(symbol.identifierToken)?.nextRaw;
-        return nearToken === undefined ? '' : getDocumentCommentOfToken(nearToken);
+        return getDocumentCommentOfToken(symbol.identifierToken);
     } else { // Function
         if (symbol.linkedNode === undefined) return 'unknown function';
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start);
     }
+}
+
+function getNearCommentToken(token: TokenObject): TokenObject | undefined {
+    const aboveLineToken = getAboveLineRawToken(token);
+
+    if (aboveLineToken !== undefined) {
+        if (aboveLineToken.location.end.line - token.location.start.line <= 1) {
+            // l1: ... --> 'aboveLineToken' -->
+            // l2: ... --> 'token'
+
+            const prevAboveLineToken = aboveLineToken?.prevRaw;
+            if (prevAboveLineToken?.isCommentToken() ||
+                prevAboveLineToken?.location.end.line !== aboveLineToken.location.start.line
+            ) {
+                // l1: 'prevAboveLineToken: comment' --> 'aboveLineToken' -->
+                // l2: ... --> 'token'
+                // or
+                // l0: 'prevAboveLineToken' --> ... -->
+                // l1: 'aboveLineToken' -->
+                // l2: ... --> 'token'
+
+                return aboveLineToken;
+            }
+        }
+    }
+
+    let behindToken: TokenObject | undefined = token.nextRaw;
+    while (behindToken !== undefined) {
+        if (behindToken.location.start.line !== token.location.end.line) {
+            break;
+        } else if (behindToken?.isCommentToken()) {
+            // ... -> 'token' --> ... --> 'behindToken: comment'
+            return behindToken;
+        } else if (behindToken.nextRaw === undefined) {
+            break;
+        }
+
+        behindToken = behindToken.nextRaw;
+    }
+
+    return undefined;
 }
 
 function getAboveLineRawToken(token: TokenObject): TokenObject | undefined {
@@ -106,11 +148,7 @@ function getAboveLineRawToken(token: TokenObject): TokenObject | undefined {
 export function getDocumentCommentOfToken(token: TokenObject) {
     let documentComment = "";
 
-    let currentToken: TokenObject | undefined = token;
-    if (currentToken.isCommentToken() === false) {
-        // If the current token is not a comment, iterate from the previous comment token
-        currentToken = token.prevRaw;
-    }
+    let currentToken: TokenObject | undefined = getNearCommentToken(token);
 
     const maxDocumentLines = 16;
     for (let i = 0; i < maxDocumentLines; i++) {
