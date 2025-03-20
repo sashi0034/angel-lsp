@@ -40,6 +40,7 @@ import {provideCompletionResolve} from "./services/completionResolve";
 import {logger} from "./core/logger";
 import {provideHover} from "./services/hover";
 import {provideDocumentSymbol} from "./services/documentSymbol";
+import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatting";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -105,9 +106,11 @@ connection.onInitialize((params: InitializeParams) => {
             },
             inlayHintProvider: true,
             documentFormattingProvider: true,
+            documentRangeFormattingProvider: true,
             documentOnTypeFormattingProvider: {
                 firstTriggerCharacter: ';',
-                moreTriggerCharacter: ['}', '\n'],
+                // Note: '\b' is not originally triggered in LSP, so it needs to be handled on the client side.
+                moreTriggerCharacter: ['}', '\n', '\b'],
             }
         }
     };
@@ -414,15 +417,23 @@ connection.onDocumentFormatting((params) => {
     return formatFile(inspected.content, inspected.tokenizedTokens, inspected.ast);
 });
 
+connection.onExecuteCommand((params) => {
+
+});
+
 // -----------------------------------------------
 // Document on Type Formatting Provider
 connection.onDocumentOnTypeFormatting((params) => {
-    // TODO
-    // - When '}' is typed, automatically align it with the corresponding '{' and adjust indentation appropriately.
-    // - When ';' is typed, immediately format spaces and tabs in that line to match the predefined formatting rules.
-    // To achieve this, it will first be necessary to improve the formatter.
+    const record = getInspectedRecord(params.textDocument.uri);
 
-    return [];
+    const result = documentOnTypeFormattingProvider(
+        record.tokenizedTokens,
+        record.analyzerScope.globalScope,
+        TextPosition.create(params.position),
+        params.ch,
+    );
+
+    return result;
 });
 
 // Listen on the connection

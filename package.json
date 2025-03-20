@@ -66,12 +66,22 @@
                     "builtin": "#00b0e0",
                     "directive": "#ffe020"
                 }
+            },
+            "[angelscript]": {
+                "editor.formatOnType": true
             }
         },
         "snippets": [
             {
                 "language": "angelscript",
                 "path": "./snippets.json"
+            }
+        ],
+        "keybindings": [
+            {
+                "key": "backspace",
+                "command": "angelScript.smartBackspace",
+                "when": "editorTextFocus && !editorReadOnly && editorLangId == angelscript"
             }
         ],
         "configuration": {

@@ -1,10 +1,5 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as path from 'path';
-import {workspace, ExtensionContext} from 'vscode';
+import {workspace, ExtensionContext, commands, window, WorkspaceEdit, Range, Position} from 'vscode';
 
 import {
     LanguageClient,
@@ -12,8 +7,9 @@ import {
     ServerOptions,
     TransportKind
 } from 'vscode-languageclient/node';
+import {executeSmartBackspace} from "./command/smartBackspace";
 
-let client: LanguageClient;
+let s_client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
     // The server is implemented in node
@@ -45,20 +41,25 @@ export function activate(context: ExtensionContext) {
     };
 
     // Create the language client and start the client.
-    client = new LanguageClient(
+    s_client = new LanguageClient(
         'angelScript',
         'AngelScript Language Server',
         serverOptions,
         clientOptions
     );
 
+    // Register smart backspace command
+    context.subscriptions.push(commands.registerCommand("angelScript.smartBackspace", async () => {
+        await executeSmartBackspace(s_client);
+    }));
+
     // Start the client. This will also launch the server
-    client.start();
+    s_client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
-    if (!client) {
+    if (!s_client) {
         return undefined;
     }
-    return client.stop();
+    return s_client.stop();
 }

@@ -35,7 +35,7 @@ export class TextPosition implements languageserver.Position {
     /**
      *  Returns -1 if lhs is closer to this position than rhs, 1 if rhs is closer than lhs, and 0 if both are equidistant.
      */
-    public compare(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 {
+    public compare(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 { // TODO: Rename
         const lhsLineDiff = Math.abs(lhs.line - this.line);
         const rhsLineDiff = Math.abs(rhs.line - this.line);
 
@@ -52,6 +52,19 @@ export class TextPosition implements languageserver.Position {
 
     public formatWithColon(): string {
         return `${this.line}:${this.character}`;
+    }
+
+    /**
+     * Returns a new position moved by the specified amount.
+     */
+    public movedBy(line: number, count: number): TextPosition {
+        let newLine = this.line + line;
+        if (newLine < 0) newLine = 0;
+
+        let newCharacter = this.character + count;
+        if (newCharacter < 0) newCharacter = 0;
+
+        return new TextPosition(newLine, newCharacter);
     }
 }
 
