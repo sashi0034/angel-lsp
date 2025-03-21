@@ -61,9 +61,24 @@ export class AnalysisResolver {
     public request(record: PartialInspectRecord) {
         this._analysisQueue.pushDirect({record: record!, shouldReanalyze: true});
 
+        this.rescheduleAnalyze();
+    }
+
+    private rescheduleAnalyze() {
+        let waitTime;
+        if (this._analysisQueue.hasDirect()) {
+            waitTime = veryShortWaitTime;
+        } else if (this._analysisQueue.hasIndirect()) {
+            waitTime = shortWaitTime;
+        } else if (this._analysisQueue.hasLazyIndirect()) {
+            waitTime = mediumWaitTime;
+        } else {
+            return;
+        }
+
         this._analyzerTask.reschedule(() => {
             this.handleAnalyze();
-        }, mediumWaitTime);
+        }, waitTime);
     }
 
     // Pop and analyze the file in the queue
@@ -107,11 +122,7 @@ export class AnalysisResolver {
         // Analyze the file in the queue
         this.popAndAnalyze();
 
-        if (this._analysisQueue.hasAny()) {
-            this._analyzerTask.reschedule(() => {
-                this.handleAnalyze();
-            }, veryShortWaitTime);
-        }
+        this.rescheduleAnalyze();
     }
 
     private analyzeFile(record: PartialInspectRecord) {

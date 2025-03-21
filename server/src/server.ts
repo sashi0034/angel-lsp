@@ -191,7 +191,7 @@ connection.onDidChangeTextDocument((params) => {
     // profileInspect(document); // for debug
 
     // TODO: We should implement incremental compilation.
-    activateInspectFile(params.textDocument.uri);
+     activateInspectFile(params.textDocument.uri);
     inspectFile(params.textDocument.uri, document.getText());
 
     // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this!');

@@ -43,9 +43,9 @@ export class AnalysisQueue<Record extends RecordElement> {
         return this._lazyIndirectQueue.length > 0;
     }
 
-    public hasAny(): boolean {
-        return this.hasDirect() || this.hasIndirect() || this.hasLazyIndirect();
-    }
+    // public hasAny(): boolean {
+    //     return this.hasDirect() || this.hasIndirect() || this.hasLazyIndirect();
+    // }
 
     public isInQueue(uri: string): boolean {
         return this._directQueue.some(r => r.record.uri === uri) ||
