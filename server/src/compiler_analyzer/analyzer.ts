@@ -47,7 +47,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {NumberLiteral, TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
@@ -896,6 +896,11 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     }
 
     if (literalValue.kind === TokenKind.String) {
+        if (literalValue.text[0] === '\'' && getGlobalSettings().characterLiterals) {
+            // TODO: verify utf8 validity
+            return resolvedBuiltinInt;
+        }
+
         const stringType = scope.getBuiltinStringType();
         return stringType === undefined ? undefined : new ResolvedType(stringType);
     }
