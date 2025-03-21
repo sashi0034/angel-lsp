@@ -176,7 +176,7 @@ function findNamespaceTokenNearPosition(globalScope: SymbolGlobalScope, scopePat
         const next = namespaceScope.namespaceNodes[i].linkedToken;
         result = result === undefined
             ? next
-            : position.compare(result.location.start, next.location.start) === -1 ? result : next;
+            : position.compareNearest(result.location.start, next.location.start) === -1 ? result : next;
     }
 
     return result;
