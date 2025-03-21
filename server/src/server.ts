@@ -4,12 +4,12 @@ import * as lsp_textDocument from 'vscode-languageserver-textdocument';
 import {highlightForModifierList, highlightForTokenList} from "./core/highlight";
 import {provideDefinitionAsToken} from "./services/definition";
 import {
-    getInspectedRecord,
-    getInspectedRecordList,
+    getInspectRecord,
+    getInspectRecordList,
     inspectFile,
     reinspectAllFiles,
     registerDiagnosticsCallback,
-    flushInspectedRecord
+    flushInspectRecord
 } from "./inspector/inspector";
 import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -170,7 +170,7 @@ connection.onDidOpenTextDocument(params => {
         lsp_textDocument.TextDocument.create(document.uri, document.languageId, document.version, document.text)
     );
 
-    if (getInspectedRecord(document.uri).content === document.text) {
+    if (getInspectRecord(document.uri).content === document.text) {
         // No need to re-inspect because the contents of the file are identical.
         return;
     }
@@ -213,7 +213,7 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
     for (let i = 0; i < 100; i++) {
         profiler.beginSession();
         inspectFile(document.uri, document.getText());
-        flushInspectedRecord(document.uri);
+        flushInspectRecord(document.uri);
         profiler.endSession();
     }
 
@@ -223,7 +223,7 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
 // -----------------------------------------------
 // Semantic Tokens Provider
 connection.languages.semanticTokens.on((params) => {
-    return provideSemanticTokens(getInspectedRecord(params.textDocument.uri).rawTokens);
+    return provideSemanticTokens(getInspectRecord(params.textDocument.uri).rawTokens);
 });
 
 // -----------------------------------------------
@@ -235,7 +235,7 @@ connection.languages.inlayHint.on((params) => {
     const range = TextRange.create(params.range);
 
     return provideInlineHint(
-        getInspectedRecord(uri).analyzerScope.globalScope,
+        getInspectRecord(uri).analyzerScope.globalScope,
         new TextLocation(uri, range.start, range.end)
     );
 });
@@ -243,7 +243,7 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
     if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
@@ -253,20 +253,20 @@ connection.onDefinition((params) => {
 });
 
 function getAllGlobalScopes() {
-    return getInspectedRecordList().map(result => result.analyzerScope.globalScope);
+    return getInspectRecordList().map(result => result.analyzerScope.globalScope);
 }
 
 // Search for references of a symbol
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
-    flushInspectedRecord(params.textDocument.uri);
-    const analyzedScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    flushInspectRecord(params.textDocument.uri);
+    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
     if (analyzedScope === undefined) return [];
 
     const caret = TextPosition.create(params.position);
 
     const references = provideReferences(
         analyzedScope.globalScope,
-        getInspectedRecordList().map(result => result.analyzerScope.globalScope),
+        getInspectRecordList().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => ref.location.toServerLocation());
 }
@@ -278,7 +278,7 @@ connection.onReferences((params) => {
 // -----------------------------------------------
 // Selection Range Provider
 connection.onDocumentSymbol(params => {
-    return provideDocumentSymbol(getInspectedRecord(params.textDocument.uri).analyzerScope.globalScope);
+    return provideDocumentSymbol(getInspectRecord(params.textDocument.uri).analyzerScope.globalScope);
 });
 
 // -----------------------------------------------
@@ -314,7 +314,7 @@ connection.onCodeActionResolve((action) => {
     const range = TextRange.create(action.diagnostics[0].range);
 
     const edits = provideCodeAction(
-        getInspectedRecord(uri).analyzerScope.globalScope,
+        getInspectRecord(uri).analyzerScope.globalScope,
         getAllGlobalScopes(),
         new TextLocation(uri, range.start, range.end),
         action.diagnostics[0].data
@@ -346,9 +346,9 @@ connection.onRenameRequest((params) => {
 // -----------------------------------------------
 // Hover Provider
 connection.onHover((params) => {
-    flushInspectedRecord(params.textDocument.uri);
+    flushInspectRecord(params.textDocument.uri);
 
-    const globalScope = getInspectedRecord(params.textDocument.uri).analyzerScope;
+    const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
     if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
@@ -365,12 +365,12 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
     const caret = TextPosition.create(params.position);
 
     // See if we can autocomplete file paths, etc.
-    const completionsOfToken = provideCompletionOfToken(getInspectedRecord(uri).rawTokens, caret);
+    const completionsOfToken = provideCompletionOfToken(getInspectRecord(uri).rawTokens, caret);
     if (completionsOfToken !== undefined) return completionsOfToken;
 
-    flushInspectedRecord(uri);
+    flushInspectRecord(uri);
 
-    const globalScope = getInspectedRecord(uri).analyzerScope;
+    const globalScope = getInspectRecord(uri).analyzerScope;
     if (globalScope === undefined) return [];
 
     // Collect completion candidates for symbols.
@@ -390,7 +390,7 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
 
 // This handler resolves additional information for the item selected in the completion list.
 connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
-    const globalScope = getInspectedRecord(s_lastCompletion.uri).analyzerScope;
+    const globalScope = getInspectRecord(s_lastCompletion.uri).analyzerScope;
     if (globalScope === undefined) return item;
 
     if (typeof item.data !== 'number') return item;
@@ -408,9 +408,9 @@ connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem =>
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
-    flushInspectedRecord(uri);
+    flushInspectRecord(uri);
 
-    const diagnosedScope = getInspectedRecord(uri).analyzerScope;
+    const diagnosedScope = getInspectRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
     return provideSignatureHelp(diagnosedScope.globalScope, params.position, uri);
@@ -419,9 +419,9 @@ connection.onSignatureHelp((params) => {
 // -----------------------------------------------
 // Document Formatting Provider
 connection.onDocumentFormatting((params) => {
-    flushInspectedRecord();
-    const inspected = getInspectedRecord(params.textDocument.uri);
-    return formatFile(inspected.content, inspected.rawTokens, inspected.ast);
+    flushInspectRecord();
+    const record = getInspectRecord(params.textDocument.uri);
+    return formatFile(record.content, record.rawTokens, record.ast);
 });
 
 connection.onExecuteCommand((params) => {
@@ -431,7 +431,7 @@ connection.onExecuteCommand((params) => {
 // -----------------------------------------------
 // Document on Type Formatting Provider
 connection.onDocumentOnTypeFormatting((params) => {
-    const record = getInspectedRecord(params.textDocument.uri);
+    const record = getInspectRecord(params.textDocument.uri);
 
     const result = documentOnTypeFormattingProvider(
         record.rawTokens,
@@ -449,7 +449,7 @@ connection.onDocumentOnTypeFormatting((params) => {
 connection.onRequest('angelScript/printGlobalScope', params => {
     const uri = params.uri as string;
 
-    const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
+    const globalScope = getInspectRecord(uri).analyzerScope.globalScope;
     const content = printSymbolScope(globalScope);
 
     const outputFilepath = uri + '.out';

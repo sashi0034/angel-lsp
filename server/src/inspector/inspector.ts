@@ -24,7 +24,7 @@ interface InspectRecord {
     analyzerScope: AnalyzerScope;
 }
 
-const s_inspectedResults: Map<string, InspectRecord> = new Map();
+const s_inspectorResults: Map<string, InspectRecord> = new Map();
 
 let s_diagnosticsCallback: DiagnosticsCallback = () => {
     return;
@@ -35,7 +35,7 @@ export function registerDiagnosticsCallback(callback: DiagnosticsCallback): void
 }
 
 const s_analysisResolver: AnalysisResolver = new AnalysisResolver(
-    s_inspectedResults,
+    s_inspectorResults,
     (params) => s_diagnosticsCallback(params)
 );
 
@@ -55,15 +55,15 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
 
 function insertNewRecord(uri: string, content: string): InspectRecord {
     const record = createEmptyRecord(uri, content);
-    s_inspectedResults.set(uri, record);
+    s_inspectorResults.set(uri, record);
     return record;
 }
 
 /**
  * Get the inspected record of the specified file.
  */
-export function getInspectedRecord(uri: string): Readonly<InspectRecord> {
-    const result = s_inspectedResults.get(uri);
+export function getInspectRecord(uri: string): Readonly<InspectRecord> {
+    const result = s_inspectorResults.get(uri);
     if (result === undefined) return createEmptyRecord(uri, '');
     return result;
 }
@@ -71,14 +71,14 @@ export function getInspectedRecord(uri: string): Readonly<InspectRecord> {
 /**
  * Get the list of all inspected records as a list.
  */
-export function getInspectedRecordList(): Readonly<InspectRecord>[] {
-    return Array.from(s_inspectedResults.values());
+export function getInspectRecordList(): Readonly<InspectRecord>[] {
+    return Array.from(s_inspectorResults.values());
 }
 
 /**
  * Flush the inspected record of the specified file since the analyzer runs asynchronously.
  */
-export function flushInspectedRecord(uri?: string): void {
+export function flushInspectRecord(uri?: string): void {
     s_analysisResolver.flush(uri);
 }
 
@@ -87,7 +87,7 @@ const profilerDescriptionLength = 12;
 export function inspectFile(uri: string, content: string): void {
     logger.message(`[Tokenizer and Parser]\n${uri}`);
 
-    const record = s_inspectedResults.get(uri) ?? insertNewRecord(uri, content);
+    const record = s_inspectorResults.get(uri) ?? insertNewRecord(uri, content);
 
     // Update the content
     record.content = content;
@@ -129,8 +129,8 @@ export function inspectFile(uri: string, content: string): void {
  * This method is used to fully apply the configuration settings.
  */
 export function reinspectAllFiles() {
-    for (const uri of s_inspectedResults.keys()) {
-        inspectFile(uri, s_inspectedResults.get(uri)!.content);
+    for (const uri of s_inspectorResults.keys()) {
+        inspectFile(uri, s_inspectorResults.get(uri)!.content);
     }
 }
 

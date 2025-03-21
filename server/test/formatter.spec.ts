@@ -1,4 +1,4 @@
-import {flushInspectedRecord, getInspectedRecord, inspectFile} from "../src/inspector/inspector";
+import {flushInspectRecord, getInspectRecord, inspectFile} from "../src/inspector/inspector";
 import {formatFile} from "../src/formatter/formatter";
 import {TextDocument} from "vscode-languageserver-textdocument";
 
@@ -26,9 +26,9 @@ function testFormatter(content: string, expectedContent: string) {
     it(`format ${content}`, () => {
         const uri = "/foo/bar.as";
         inspectFile(uri, content);
-        flushInspectedRecord();
+        flushInspectRecord();
 
-        const record = getInspectedRecord(uri);
+        const record = getInspectRecord(uri);
 
         const textEdits = formatFile(record.content, record.rawTokens, record.ast);
         const document = TextDocument.create(uri, 'angelscript', 0, content);
