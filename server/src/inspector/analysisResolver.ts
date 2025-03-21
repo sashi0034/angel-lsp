@@ -173,6 +173,7 @@ export class AnalysisResolver {
     }
 
     private resolveIncludePaths(record: PartialInspectRecord, predefinedUri: string | undefined): string[] {
+        // Add include paths from include directives
         let includePaths =
             record.preprocessedOutput.includePathTokens.map(token => token.getStringContent());
 
@@ -181,9 +182,15 @@ export class AnalysisResolver {
             if (record.uri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
                 const predefinedDirectory = resolveUri(predefinedUri, '.');
                 includePaths =
-                    Array.from(this.recordList.keys()).filter(uri => uri.startsWith(predefinedDirectory))
+                    Array.from(this.recordList.keys())
+                        .filter(uri => uri.startsWith(predefinedDirectory))
                         .filter(uri => uri.endsWith('.as') && uri !== record.uri);
             }
+        }
+
+        if (record.uri !== predefinedUri && predefinedUri !== undefined) {
+            // Add 'as.predefined' to the include path
+            includePaths.push(predefinedUri);
         }
 
         return includePaths;
@@ -239,20 +246,14 @@ export class AnalysisResolver {
         const preprocessOutput = record.preprocessedOutput;
         const targetUri = record.uri;
 
-        const includedScopes = [];
-
-        // Load as.predefined
-        if (targetUri !== predefinedUri && predefinedUri !== undefined) {
-            const predefinedResult = this.recordList.get(predefinedUri);
-            if (predefinedResult !== undefined) includedScopes.push(predefinedResult.analyzerScope);
-        }
-
         // Collect scopes in included files
         const includePaths = this.resolveIncludePaths(record, predefinedUri);
 
+        const includedScopes = [];
+
         // Get the analyzed scope of included files
-        for (const relativeUri of includePaths) {
-            const uri = resolveUri(targetUri, relativeUri);
+        for (const relativeOrAbsolute of includePaths) {
+            const uri = resolveUri(targetUri, relativeOrAbsolute);
 
             const includedRecord = this.recordList.get(uri);
             if (includedRecord !== undefined) {
@@ -269,8 +270,8 @@ export class AnalysisResolver {
 
             // If the file is not found, notify the error
             const includePathToken =
-                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeUri)!;
-            diagnostic.addError(includePathToken.location, `File not found: ${relativeUri}`);
+                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute)!;
+            diagnostic.addError(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
         }
 
         return includedScopes;
