@@ -15,6 +15,7 @@ import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 interface InspectRecord {
     content: string;
     uri: string;
+    isOpen: boolean;
     diagnosticsInParser: lsp.Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     rawTokens: TokenObject[];
@@ -43,6 +44,7 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
     return {
         content: content,
         uri: uri,
+        isOpen: false,
         diagnosticsInParser: [],
         diagnosticsInAnalyzer: [],
         rawTokens: [],
@@ -119,9 +121,23 @@ export function inspectFile(uri: string, content: string): void {
     });
 
     // Request delayed execution of the analyzer
-    s_analysisResolver.request(uri);
+    s_analysisResolver.request(record);
 
     logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+}
+
+export function activateInspectFile(uri: string): void {
+    const record = s_inspectorResults.get(uri);
+    if (record === undefined) return;
+
+    record.isOpen = true;
+}
+
+export function sleepInspectFile(uri: string): void {
+    const record = s_inspectorResults.get(uri);
+    if (record === undefined) return;
+
+    record.isOpen = false;
 }
 
 /**
@@ -134,3 +150,5 @@ export function reinspectAllFiles() {
     }
 }
 
+export class openInspectFile {
+}

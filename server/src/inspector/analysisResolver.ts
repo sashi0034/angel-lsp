@@ -16,9 +16,11 @@ import {inspectFile} from "./inspector";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
 import {AnalyzerScope, createGlobalScope} from "../compiler_analyzer/analyzerScope";
+import {AnalysisQueue} from "./analysisQueue";
 
 interface PartialInspectRecord {
     uri: string;
+    isOpen: boolean;
     diagnosticsInParser: lsp.Diagnostic[];
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     rawTokens: TokenObject[];
@@ -36,15 +38,16 @@ const profilerDescriptionLength = 12;
 
 const mediumWaitTime = 500; // ms
 
-const shortWaitTime = 10; // ms
+const shortWaitTime = 100; // ms
+
+const veryShortWaitTime = 10; // ms
 
 // TODO: Fix memory leak
 
 export class AnalysisResolver {
     private readonly _analyzerTask: DelayedTask = new DelayedTask();
 
-    private _analysisQueue: PartialInspectRecord[] = [];
-    private _reanalysisQueue: PartialInspectRecord[] = [];
+    private readonly _analysisQueue: AnalysisQueue<PartialInspectRecord> = new AnalysisQueue();
 
     public constructor(
         public readonly recordList: Map<string, PartialInspectRecord>,
@@ -55,47 +58,23 @@ export class AnalysisResolver {
     /**
      * Request to analyze the file specified by the URI at a later time.
      */
-    public request(uri: string) {
-        this.pushAnalysisQueue(uri);
+    public request(record: PartialInspectRecord) {
+        this._analysisQueue.pushDirect({record: record!, shouldReanalyze: true});
 
         this._analyzerTask.reschedule(() => {
             this.handleAnalyze();
         }, mediumWaitTime);
     }
 
-    private pushAnalysisQueue(uri: string) {
-        if (this._analysisQueue.some(record => record.uri === uri)) return;
-
-        this._analysisQueue.push(this.recordList.get(uri)!);
-
-        this._reanalysisQueue = this._reanalysisQueue.filter(record => record.uri !== uri);
-    }
-
-    private pushReanalysisQueue(uri: string) {
-        if (this._analysisQueue.some(record => record.uri === uri)) return;
-
-        if (this._reanalysisQueue.some(record => record.uri === uri)) return;
-
-        this._reanalysisQueue.push(this.recordList.get(uri)!);
-    }
-
     // Pop and analyze the file in the queue
     private popAndAnalyze() {
-        let record = this._analysisQueue.shift();
-        let shouldReanalyze = true;
+        const element = this._analysisQueue.frontPop();
+        if (element === undefined) return;
 
-        if (record === undefined) {
-            // If the analysis queue is empty, analyze the file in the reanalysis queue
-            record = this._reanalysisQueue.shift();
-            if (record === undefined) return;
+        this.analyzeFile(element.record);
 
-            shouldReanalyze = false;
-        }
-
-        this.analyzeFile(record, shouldReanalyze);
-
-        if (shouldReanalyze) {
-            this.reanalyzeFilesWithDependency(record.uri);
+        if (element.shouldReanalyze) {
+            this.reanalyzeFilesWithDependency(element.record.uri);
         }
     }
 
@@ -103,23 +82,22 @@ export class AnalysisResolver {
      * Processes any queued files for analysis immediately if they exist.
      */
     public flush(uri: string | undefined) {
-        // Analyze until the queue is empty
-        while (this._analysisQueue.length > 0) {
+        // Analyze until the direct queue is empty
+        while (this._analysisQueue.hasDirect()) {
             this.popAndAnalyze();
         }
 
         if (uri === undefined) {
             // If the uri is not specified, reanalyze all files in the reanalysis queue
-            while (this._reanalysisQueue.length > 0) {
+            while (this._analysisQueue.hasIndirect() && this._analysisQueue.hasLazyIndirect()) {
                 this.popAndAnalyze();
             }
-        } else if (this._reanalysisQueue.some(record => record.uri === uri)) {
-            // If the file is in the reanalysis queue, move it to the front of the queue and reanalyze it.
+        } else if (this._analysisQueue.isInQueue(uri)) {
+            // If the file is in the reanalysis queue, move it to the front of the direct queue and reanalyze it.
             const frontRecord = this.recordList.get(uri);
             if (frontRecord === undefined) return;
 
-            this._reanalysisQueue =
-                [frontRecord, ...this._reanalysisQueue.filter(record => record.uri !== uri)];
+            this._analysisQueue.frontPushDirect({record: frontRecord, shouldReanalyze: false});
 
             this.popAndAnalyze();
         }
@@ -129,14 +107,14 @@ export class AnalysisResolver {
         // Analyze the file in the queue
         this.popAndAnalyze();
 
-        if (this._analysisQueue.length > 0 || this._reanalysisQueue.length > 0) {
+        if (this._analysisQueue.hasAny()) {
             this._analyzerTask.reschedule(() => {
                 this.handleAnalyze();
-            }, shortWaitTime);
+            }, veryShortWaitTime);
         }
     }
 
-    private analyzeFile(record: PartialInspectRecord, isDirectAnalyze: boolean = false) {
+    private analyzeFile(record: PartialInspectRecord) {
         const predefinedUri = this.findPredefinedUri(record.uri);
 
         logger.message(`[Analyzer]\n${record.uri}`);
@@ -189,7 +167,11 @@ export class AnalysisResolver {
                 .some(relativePath => resolveUri(r.uri, relativePath) === targetUri));
 
         for (const dependedFile of dependedFiles) {
-            this.pushReanalysisQueue(dependedFile.uri);
+            if (dependedFile.isOpen) {
+                this._analysisQueue.pushIndirect({record: dependedFile});
+            } else {
+                this._analysisQueue.pushLazyIndirect({record: dependedFile});
+            }
         }
     }
 

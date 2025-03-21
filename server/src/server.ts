@@ -9,7 +9,7 @@ import {
     inspectFile,
     reinspectAllFiles,
     registerDiagnosticsCallback,
-    flushInspectRecord
+    flushInspectRecord, sleepInspectFile, activateInspectFile
 } from "./inspector/inspector";
 import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -175,6 +175,7 @@ connection.onDidOpenTextDocument(params => {
         return;
     }
 
+    activateInspectFile(document.uri);
     inspectFile(document.uri, document.text);
 });
 
@@ -190,13 +191,14 @@ connection.onDidChangeTextDocument((params) => {
     // profileInspect(document); // for debug
 
     // TODO: We should implement incremental compilation.
+    activateInspectFile(params.textDocument.uri);
     inspectFile(params.textDocument.uri, document.getText());
 
     // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this!');
 });
 
 connection.onDidCloseTextDocument(params => {
-    // s_documentMap.delete(params.textDocument.uri); // FIXME?
+    sleepInspectFile(params.textDocument.uri);
 });
 
 // TODO: We want to observe the deletion of a file, but it seems that the LSP doesn't provide such an event?
