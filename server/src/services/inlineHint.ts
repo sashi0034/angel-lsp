@@ -49,7 +49,7 @@ function hintOperatorOverloadDefinition(scope: SymbolScope, location: TextLocati
     }
 
     for (const childScope of scope.childScopeTable.values()) {
-        if (isAnonymousIdentifier(childScope.key)) continue;
+        if (childScope.isAnonymousScope()) continue;
 
         result.push(...hintOperatorOverloadDefinition(childScope, location));
     }

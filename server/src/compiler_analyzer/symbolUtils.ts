@@ -3,7 +3,7 @@ import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
-    SymbolAndScope,
+    SymbolAndScope, SymbolGlobalScope,
     SymbolScope
 } from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
@@ -73,6 +73,53 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
 
     assert(false);
 }
+
+export function printSymbolScope(scope: SymbolScope, indent: string = ''): string {
+    let result = '';
+
+    if (scope.isGlobalScope()) {
+        result += `${indent}${scope.getContext().filepath}\n`;
+    }
+
+    const elements: string[] = [];
+
+    const head = '├── ';
+    const last = '└── ';
+
+    for (const [key, symbolHolder] of scope.symbolTable) {
+        for (const symbol of symbolHolder.toList()) {
+            elements.push(`${indent}${head}${key} (${symbol.identifierToken.location.simpleFormat()})`);
+        }
+    }
+
+    for (const [key, childScope] of scope.childScopeTable) {
+        const locations: string[] = [];
+        if (childScope.linkedNode !== undefined) {
+            locations.push(childScope.linkedNode.nodeRange.getBoundingLocation().simpleFormat());
+        }
+
+        for (const node of childScope.namespaceNodes) {
+            locations.push(node.linkedToken.location.simpleFormat());
+        }
+
+        let childPrint = printSymbolScope(childScope, indent + '│   ');
+        if (childPrint.length > 0) childPrint = '\n' + childPrint;
+        elements.push(`${indent}${head}${key}::(${locations.join(', ')})` + childPrint);
+    }
+
+    elements.sort();
+
+    if (elements.length > 0) {
+        // Replace '├── ' with '└── ' for the last element.
+        elements[elements.length - 1] = elements[elements.length - 1].replace(head, last);
+    }
+
+    result += elements.join('\n');
+
+    return result;
+}
+
+// -----------------------------------------------
 
 // obsolete
 export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {

@@ -59,7 +59,7 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
 
     // Recursively search for namespace references in the child scopes
     for (const [key, child] of scope.childScopeTable) {
-        if (isAnonymousIdentifier(key)) continue;
+        if (child.isAnonymousScope()) continue;
 
         references.push(...collectNamespaceReferenceInScope(child, toToken));
     }

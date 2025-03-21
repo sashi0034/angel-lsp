@@ -34,7 +34,7 @@ export class TextPosition implements lsp.Position {
     /**
      *  Returns -1 if lhs is closer to this position than rhs, 1 if rhs is closer than lhs, and 0 if both are equidistant.
      */
-    public compare(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 { // TODO: Rename
+    public compareNearest(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 {
         const lhsLineDiff = Math.abs(lhs.line - this.line);
         const rhsLineDiff = Math.abs(rhs.line - this.line);
 
@@ -49,7 +49,7 @@ export class TextPosition implements lsp.Position {
         return 0;
     }
 
-    public formatWithColon(): string {
+    public simpleFormat(): string {
         return `${this.line}:${this.character}`;
     }
 
@@ -170,5 +170,10 @@ export class TextLocation extends TextRange {
 
     public withEnd(newEnd: TextPosition): TextLocation {
         return new TextLocation(this.path, this.start, newEnd);
+    }
+
+    public simpleFormat(): string {
+        const filename = this.path.match(/[^\\/]+[/\\][^\\/]+$/) ?? this.path;
+        return `${filename}:${this.start.simpleFormat()}-${this.end.simpleFormat()}`;
     }
 }

@@ -7,7 +7,7 @@ import {
     ServerOptions,
     TransportKind
 } from 'vscode-languageclient/node';
-import {executeSmartBackspace} from "./command/smartBackspace";
+import * as vscode from "vscode";
 
 let s_client: LanguageClient;
 
@@ -53,6 +53,8 @@ export function activate(context: ExtensionContext) {
         console.log(params1); // TODO: Implement this!
     });
 
+    subscribeCommands(context);
+
     // Start the client. This will also launch the server
     s_client.start();
 }
@@ -62,4 +64,21 @@ export function deactivate(): Thenable<void> | undefined {
         return undefined;
     }
     return s_client.stop();
+}
+
+// -----------------------------------------------
+
+function subscribeCommands(context: ExtensionContext) {
+    context.subscriptions.push(
+        commands.registerCommand('angelScript.debug.printGlobalScope', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                const uri = editor.document.uri.toString();
+                const result = await s_client.sendRequest("angelScript/printGlobalScope", {uri: uri});
+                vscode.window.showInformationMessage(`Print Global Scope: ${result}`);
+            } else {
+                vscode.window.showInformationMessage('No active editor');
+            }
+        })
+    );
 }

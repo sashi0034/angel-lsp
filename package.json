@@ -60,6 +60,30 @@
                 }
             }
         ],
+        "grammars": [
+            {
+                "language": "angelscript",
+                "scopeName": "source.angelscript",
+                "path": "./angelscript.tmLanguage.json"
+            },
+            {
+                "language": "angelscript-predefined",
+                "scopeName": "source.angelscript",
+                "path": "./angelscript.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "angelscript",
+                "path": "./snippets.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "angelScript.debug.printGlobalScope",
+                "title": "AngelScript: Print Global Scope in Current File"
+            }
+        ],
         "configurationDefaults": {
             "editor.semanticTokenColorCustomizations": {
                 "rules": {
@@ -71,12 +95,6 @@
                 "editor.formatOnType": true
             }
         },
-        "snippets": [
-            {
-                "language": "angelscript",
-                "path": "./snippets.json"
-            }
-        ],
         "configuration": {
             "type": "object",
             "title": "AngelScript configuration",
@@ -169,19 +187,7 @@
                     "description": "Traces the communication between VS Code and the language server."
                 }
             }
-        },
-        "grammars": [
-            {
-                "language": "angelscript",
-                "scopeName": "source.angelscript",
-                "path": "./angelscript.tmLanguage.json"
-            },
-            {
-                "language": "angelscript-predefined",
-                "scopeName": "source.angelscript",
-                "path": "./angelscript.tmLanguage.json"
-            }
-        ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
