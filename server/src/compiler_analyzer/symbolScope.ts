@@ -324,7 +324,7 @@ export class SymbolScope {
                     const thisChild = this.insertScope(key, otherChild.linkedNode);
                     // thisChild.includeExternalScopeInternal(externalChild, externalFilepath);
                 }
-            } else {
+            } else if (otherChild._symbolTable.size > 0 || otherChild._childScopeTable.size > 0) {
                 const thisChild = this.insertScope(key, canInsertNode ? otherChild.linkedNode : undefined);
                 thisChild.includeExternalScopeInternal(otherChild, externalFilepath);
             }

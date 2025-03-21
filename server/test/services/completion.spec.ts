@@ -1,4 +1,4 @@
-import {flushInspectedRecord, getInspectedRecord, inspectFile} from "../../src/inspector/inspector";
+import {flushInspectRecord, getInspectRecord, inspectFile} from "../../src/inspector/inspector";
 import {provideCompletion} from "../../src/services/completion";
 import {makeCaretListAndContent} from "./utils";
 
@@ -16,8 +16,8 @@ function testCompletion(rawContent: string, ...expectedList: string[][]) {
     it(`completion ${rawContent}`, () => {
         const uri = "/foo/bar.as";
         inspectFile(uri, content);
-        flushInspectedRecord();
-        const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
+        flushInspectRecord();
+        const globalScope = getInspectRecord(uri).analyzerScope.globalScope;
 
         // Iterate through each caret position and check if the completions are as expected.
         for (let i = 0; i < caretList.length; i++) {
