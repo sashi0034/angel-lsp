@@ -896,7 +896,6 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
     }
 
     if (literalValue.kind === TokenKind.String) {
-
         if (literalValue.text[0] === '\'' && getGlobalSettings().characterLiterals) {
             // TODO: verify utf8 validity
             return resolvedBuiltinInt;
