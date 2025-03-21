@@ -129,7 +129,7 @@ export class AnalysisResolver {
         logger.message(`[Analyzer]\n${record.uri}`);
 
         // Collect scopes in included files
-        const includedScopes = this.collectIncludedScope(record, predefinedUri);
+        const includeScopes = this.collectIncludeScope(record, predefinedUri);
 
         // -----------------------------------------------
         analyzerDiagnostic.reset();
@@ -137,7 +137,7 @@ export class AnalysisResolver {
         const profiler = new Profiler();
 
         // Execute the hoist
-        const hoistResult = hoistAfterParsed(record.ast, createGlobalScope(record.uri, includedScopes));
+        const hoistResult = hoistAfterParsed(record.ast, createGlobalScope(record.uri, includeScopes));
         profiler.mark('Hoist'.padEnd(profilerDescriptionLength));
 
         // Execute the analyzer
@@ -225,7 +225,7 @@ export class AnalysisResolver {
         }
     }
 
-    private collectIncludedScope(
+    private collectIncludeScope(
         record: PartialInspectRecord, predefinedUri: string | undefined
     ): AnalyzerScope[] {
         const preprocessOutput = record.preprocessedOutput;
