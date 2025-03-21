@@ -42,12 +42,12 @@ function testDefinition(rawContent: string, mapping?: [number, number][]) {
 
             const definitionToken = provideDefinitionAsToken(globalScope, allGlobalScopes, fromCaret);
             if (definitionToken === undefined) {
-                throw new Error(`Missing definition for ${fromCaret.formatWithColon()}`);
+                throw new Error(`Missing definition for ${fromCaret.simpleFormat()}`);
             }
 
             const definitionLocation = definitionToken.location;
             if (definitionLocation.positionInRange(toCaret) === false) {
-                throw new Error(`Expected definition ${toCaret.formatWithColon()}, but got ${definitionLocation.start.formatWithColon()} - ${definitionLocation.end.formatWithColon()}`);
+                throw new Error(`Expected definition ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`);
             }
         }
     });

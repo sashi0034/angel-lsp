@@ -81,29 +81,40 @@ export function printSymbolScope(scope: SymbolScope, indent: string = ''): strin
         result += `${indent}${scope.getContext().filepath}\n`;
     }
 
-    const symbolTable = Array.from(scope.symbolTable);
-    symbolTable.forEach(([key, symbol], index) => {
-        const head = index < symbolTable.length - 1 ? '├── ' : '└── ';
-        result += `${indent}${head}${key}\n`;
-    });
+    const elements: string[] = [];
 
-    const childScopeTable = Array.from(scope.childScopeTable);
-    childScopeTable.forEach(([key, childScope], index) => {
-        const head = index < childScopeTable.length - 1 ? '├── ' : '└── ';
+    const head = '├── ';
+    const last = '└── ';
 
-        let tail: string;
-        if (childScope.isFunctionScope()) {
-            assert(childScope.linkedNode?.nodeName === NodeName.Func);
+    for (const [key, symbolHolder] of scope.symbolTable) {
+        for (const symbol of symbolHolder.toList()) {
+            elements.push(`${indent}${head}${key} (${symbol.identifierToken.location.simpleFormat()})`);
+        }
+    }
 
-            const paramList = childScope.linkedNode.paramList.map(p => p.type.dataType.identifier.text).join(', ');
-            tail = `(${paramList})`;
-        } else {
-            tail = `::`;
+    for (const [key, childScope] of scope.childScopeTable) {
+        const locations: string[] = [];
+        if (childScope.linkedNode !== undefined) {
+            locations.push(childScope.linkedNode.nodeRange.getBoundingLocation().simpleFormat());
         }
 
-        result += `${indent}${head}${key}${tail}\n`;
-        result += printSymbolScope(childScope, indent + '│   ');
-    });
+        for (const node of childScope.namespaceNodes) {
+            locations.push(node.linkedToken.location.simpleFormat());
+        }
+
+        let childPrint = printSymbolScope(childScope, indent + '│   ');
+        if (childPrint.length > 0) childPrint = '\n' + childPrint;
+        elements.push(`${indent}${head}${key}::(${locations.join(', ')})` + childPrint);
+    }
+
+    elements.sort();
+
+    if (elements.length > 0) {
+        // Replace '├── ' with '└── ' for the last element.
+        elements[elements.length - 1] = elements[elements.length - 1].replace(head, last);
+    }
+
+    result += elements.join('\n');
 
     return result;
 }

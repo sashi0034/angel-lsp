@@ -49,7 +49,7 @@ export class TextPosition implements lsp.Position {
         return 0;
     }
 
-    public formatWithColon(): string {
+    public simpleFormat(): string {
         return `${this.line}:${this.character}`;
     }
 
@@ -170,5 +170,10 @@ export class TextLocation extends TextRange {
 
     public withEnd(newEnd: TextPosition): TextLocation {
         return new TextLocation(this.path, this.start, newEnd);
+    }
+
+    public simpleFormat(): string {
+        const filename = this.path.match(/[^\\/]+[/\\][^\\/]+$/) ?? this.path;
+        return `${filename}:${this.start.simpleFormat()}-${this.end.simpleFormat()}`;
     }
 }
