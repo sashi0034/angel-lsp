@@ -47,6 +47,8 @@ export class AnalysisResolver {
 
     private readonly _analysisQueue: AnalysisQueue<PartialInspectRecord> = new AnalysisQueue();
 
+    private readonly _resolvedPredefinedFilepaths: Set<string> = new Set();
+
     public constructor(
         public readonly recordList: Map<string, PartialInspectRecord>,
         private readonly diagnosticsCallback: DiagnosticsCallback,
@@ -194,17 +196,23 @@ export class AnalysisResolver {
         for (const dir of dirs) {
             const predefinedUri = dir + `/${predefinedFileName}`;
 
-            // Return the record if the file has already been analyzed
-            if (this.recordList.get(predefinedUri) !== undefined) return predefinedUri;
+            if (this.recordList.get(predefinedUri) !== undefined && this._resolvedPredefinedFilepaths.has(predefinedUri)) {
+                // Return the record if the file has already been analyzed
+                return predefinedUri;
+            }
 
-            const content = readFileContent(predefinedUri);
-            if (content === undefined) continue;
+            if (targetUri !== predefinedUri) {
+                const content = readFileContent(predefinedUri);
+                if (content === undefined) continue;
 
-            // If the file is found, inspect it
-            inspectFile(predefinedUri, content);
+                // If the file is found, inspect it
+                inspectFile(predefinedUri, content);
+            }
 
             // Inspect all files under the directory where 'as.predefined' is located
             this.inspectUnderDirectory(resolveUri(predefinedUri, '.'));
+
+            this._resolvedPredefinedFilepaths.add(predefinedUri);
 
             return predefinedUri;
         }
