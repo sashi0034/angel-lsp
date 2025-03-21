@@ -31,6 +31,8 @@ import {provideHover} from "./services/hover";
 import {provideDocumentSymbol} from "./services/documentSymbol";
 import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatting";
 import {SimpleProfiler} from "./utils/simpleProfiler";
+import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
+import {safeWriteFile} from "./utils/fileUtils";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -440,6 +442,23 @@ connection.onDocumentOnTypeFormatting((params) => {
 
     return result;
 });
+
+// -----------------------------------------------
+// Extended Features
+
+connection.onRequest('angelScript/printGlobalScope', params => {
+    const uri = params.uri as string;
+
+    const globalScope = getInspectedRecord(uri).analyzerScope.globalScope;
+    const content = printSymbolScope(globalScope);
+
+    const outputFilepath = uri + '.out';
+    const wrote = safeWriteFile(outputFilepath, content);
+
+    return wrote ? outputFilepath : undefined;
+});
+
+// -----------------------------------------------
 
 // Listen on the connection
 connection.listen();

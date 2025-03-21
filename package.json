@@ -78,6 +78,12 @@
                 "path": "./snippets.json"
             }
         ],
+        "commands": [
+            {
+                "command": "angelScript.debug.printGlobalScope",
+                "title": "AngelScript: Print Global Scope in Current File"
+            }
+        ],
         "configurationDefaults": {
             "editor.semanticTokenColorCustomizations": {
                 "rules": {

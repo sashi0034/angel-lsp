@@ -3,7 +3,7 @@ import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
-    SymbolAndScope,
+    SymbolAndScope, SymbolGlobalScope,
     SymbolScope
 } from "./symbolScope";
 import {ResolvedType} from "./resolvedType";
@@ -73,6 +73,42 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
 
     assert(false);
 }
+
+export function printSymbolScope(scope: SymbolScope, indent: string = ''): string {
+    let result = '';
+
+    if (scope.isGlobalScope()) {
+        result += `${indent}${scope.getContext().filepath}\n`;
+    }
+
+    const symbolTable = Array.from(scope.symbolTable);
+    symbolTable.forEach(([key, symbol], index) => {
+        const head = index < symbolTable.length - 1 ? '├── ' : '└── ';
+        result += `${indent}${head}${key}\n`;
+    });
+
+    const childScopeTable = Array.from(scope.childScopeTable);
+    childScopeTable.forEach(([key, childScope], index) => {
+        const head = index < childScopeTable.length - 1 ? '├── ' : '└── ';
+
+        let tail: string;
+        if (childScope.isFunctionScope()) {
+            assert(childScope.linkedNode?.nodeName === NodeName.Func);
+
+            const paramList = childScope.linkedNode.paramList.map(p => p.type.dataType.identifier.text).join(', ');
+            tail = `(${paramList})`;
+        } else {
+            tail = `::`;
+        }
+
+        result += `${indent}${head}${key}${tail}\n`;
+        result += printSymbolScope(childScope, indent + '│   ');
+    });
+
+    return result;
+}
+
+// -----------------------------------------------
 
 // obsolete
 export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {
