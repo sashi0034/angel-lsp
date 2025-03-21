@@ -42,8 +42,6 @@ const shortWaitTime = 100; // ms
 
 const veryShortWaitTime = 10; // ms
 
-// TODO: Fix memory leak
-
 export class AnalysisResolver {
     private readonly _analyzerTask: DelayedTask = new DelayedTask();
 
@@ -139,21 +137,7 @@ export class AnalysisResolver {
         const profiler = new Profiler();
 
         // Execute the hoist
-
-        // FIXME: (WIP) This still has a bug
-        // let newGlobalScope: SymbolGlobalScope;
-        // if (isDirectAnalyze) {
-        //     record.analyzerScope.cleanInFile();
-        //     newGlobalScope = record.analyzerScope.globalScope;
-        // } else {
-        //     newGlobalScope = createGlobalScope(record.uri, includedScopes);
-        // }
-
-        const newGlobalScope = createGlobalScope(record.uri, includedScopes);
-
-        newGlobalScope.activateContext();
-
-        const hoistResult = hoistAfterParsed(record.ast, newGlobalScope);
+        const hoistResult = hoistAfterParsed(record.ast, createGlobalScope(record.uri, includedScopes));
         profiler.mark('Hoist'.padEnd(profilerDescriptionLength));
 
         // Execute the analyzer
