@@ -151,6 +151,12 @@
                     "default": false,
                     "description": "Whether your codebase supports the foreach construct."
                 },
+                "angelScript.characterLiterals": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether your codebase uses the `asEP_USE_CHARACTER_LITERALS` option."
+                },
                 "angelScript.experimental.inlineHints": {
                     "scope": "window",
                     "type": "boolean",

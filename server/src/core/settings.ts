@@ -8,6 +8,7 @@ export interface LanguageServerSettings {
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
     supportsForEach: boolean;
+	characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
     experimental: {
         inlineHints: boolean;
@@ -30,6 +31,7 @@ const defaultSettings: LanguageServerSettings = {
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
     supportsForEach: false,
+	characterLiterals: false,
     supportsTypedEnumerations: false,
     experimental: {
         inlineHints: false
