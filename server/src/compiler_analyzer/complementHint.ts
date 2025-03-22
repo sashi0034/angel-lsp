@@ -3,7 +3,7 @@ import {SymbolType, SymbolFunctionHolder} from "./symbolObject";
 import {getActiveGlobalScope, SymbolScope} from "./symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {TemplateTranslator} from "./resolvedType";
+import {ResolvedType, TemplateTranslator} from "./resolvedType";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 /**
@@ -29,6 +29,11 @@ export enum ComplementKind {
      * Function call information that can be used when suggesting possible values when autocomplete an argument
      * */
     FunctionCall = 'FunctionCall',
+
+    /**
+     * Represents the type resolution hint for the auto keyword.
+     * */
+    AutoTypeResolution = 'AutoTypeResolution',
 }
 
 /**
@@ -86,11 +91,22 @@ export interface ComplementFunctionCall extends ComplementBase {
     calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 
+/**
+ * Represents the type resolution hint for the auto keyword.
+ * e.g., providing the resolved type for the auto keyword.
+ */
+export interface ComplementAutoTypeResolution extends ComplementBase {
+    complement: ComplementKind.AutoTypeResolution;
+    autoToken: TokenObject;
+    resolvedType: ResolvedType;
+}
+
 export type ComplementHint =
     ComplementScopeRegion
     | ComplementInstanceMember
     | ComplementNamespaceAccess
-    | ComplementFunctionCall;
+    | ComplementFunctionCall
+    | ComplementAutoTypeResolution;
 
 type AutocompleteHint = ComplementInstanceMember | ComplementNamespaceAccess;
 

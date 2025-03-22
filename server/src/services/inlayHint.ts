@@ -4,10 +4,12 @@ import {isNodeClassOrInterface} from "../compiler_analyzer/symbolObject";
 import * as lsp from "vscode-languageserver/node";
 import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeName} from '../compiler_parser/nodes';
+import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 
 export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextLocation): lsp.InlayHint[] {
     return [
         ...inlayHintOperatorOverloadDefinition(globalScope, location),
+        ...inlayHintAutoType(globalScope, location),
         ...inlayHintFunctionCall(globalScope, location)
     ];
 }
@@ -52,6 +54,22 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
                 label: paramIdentifier + ': '
             });
         }
+    }
+
+    return result;
+}
+
+// -----------------------------------------------
+
+function inlayHintAutoType(globalScope: SymbolGlobalScope, location: TextLocation) {
+    const result: lsp.InlayHint[] = [];
+    for (const hint of globalScope.completionHints) {
+        if (hint.complement !== ComplementKind.AutoTypeResolution) continue;
+
+        result.push({
+            position: hint.autoToken.location.end,
+            label: ': ' + stringifyResolvedType(hint.resolvedType)
+        });
     }
 
     return result;

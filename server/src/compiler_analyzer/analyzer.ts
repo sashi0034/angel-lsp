@@ -139,9 +139,18 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
-        // Resolve the auto type
         if (initType !== undefined && isResolvedAutoType(varType)) {
+            // Resolve the auto type
             varType = initType;
+
+            // TODO: Code cleanup
+            if (varType !== undefined) {
+                getActiveGlobalScope().pushCompletionHint({
+                    complement: ComplementKind.AutoTypeResolution,
+                    autoToken: declaredVar.identifier,
+                    resolvedType: initType,
+                });
+            }
         }
     }
 
