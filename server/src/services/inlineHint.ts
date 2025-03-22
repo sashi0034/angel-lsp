@@ -70,8 +70,8 @@ const operatorOverloads = new Map([
     ['opPostDec', '--'],
 
     // Comparison operators
-    ['opEquals', '==, !=, is, !is'],
-    ['opCmp', '<, <=, >, >='],
+    ['opEquals', '==, is'], // '==, !=, is, !is'
+    ['opCmp', '<=>'], // <, <=, >, >=
 
     // Assignment operators
     ['opAssign', '='],
@@ -115,12 +115,12 @@ const operatorOverloads = new Map([
     ['opUShr_r', '>>>'],
 
     // Index operators
-    ['opIndex', '[...]'],
-    ['get_opIndex', '[...]'],
-    ['set_opIndex', '[...]'],
+    ['opIndex', '[-]'],
+    ['get_opIndex', '[-]'],
+    ['set_opIndex', '[-]'],
 
     // Functor operator
-    ['opCall', '(...)'],
+    ['opCall', '(-)'],
 
     // Type conversion operators
     ['opConv', 'convert'],
