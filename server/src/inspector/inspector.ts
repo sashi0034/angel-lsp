@@ -13,6 +13,7 @@ import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {findScopeContainingPosition} from "../service/utils";
+import {moveDiagnosticsByChanges} from "../service/changeApplier";
 
 interface InspectRecord {
     content: string;
@@ -122,6 +123,10 @@ export function inspectFile(uri: string, content: string, option?: InspectOption
 
     record.diagnosticsInParser = diagnostic.endSession();
     // -----------------------------------------------
+
+    if (option?.changes !== undefined) {
+        moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
+    }
 
     // Send the diagnostics on the way to the client
     s_diagnosticsCallback({
