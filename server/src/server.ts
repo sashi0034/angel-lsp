@@ -33,6 +33,7 @@ import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatt
 import {SimpleProfiler} from "./utils/simpleProfiler";
 import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
 import {safeWriteFile} from "./utils/fileUtils";
+import {moveInlayHintByChanges} from "./service/contentChangeApplier";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -191,6 +192,11 @@ connection.onDidChangeTextDocument((params) => {
 
     inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
+    const inlayHints = s_inlineHintsCache.get(document.uri);
+    if (inlayHints !== undefined) {
+        moveInlayHintByChanges(inlayHints, params.contentChanges);
+    }
+
     // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this?');
 });
 
@@ -227,24 +233,32 @@ connection.languages.semanticTokens.on((params) => {
 
 // -----------------------------------------------
 // Inlay Hints Provider
+
+const s_inlineHintsCache: Map<string, lsp.InlayHint[]> = new Map();
+
 connection.languages.inlayHint.on((params) => {
     if (!getGlobalSettings().experimental.inlineHints) return []; // TODO: Delete after the preview ends.
 
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
+    const record = getInspectRecord(uri);
 
-    return provideInlineHint(
-        getInspectRecord(uri).analyzerScope.globalScope,
-        new TextLocation(uri, range.start, range.end)
-    );
+    if (record.isAnalyzerPending) {
+        return s_inlineHintsCache.get(uri);
+    }
+
+    const inlineHints =
+        provideInlineHint(record.analyzerScope.globalScope, new TextLocation(uri, range.start, range.end));
+
+    s_inlineHintsCache.set(uri, inlineHints);
+
+    return inlineHints;
 });
 
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
     const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
-    if (globalScope === undefined) return;
-
     const caret = TextPosition.create(params.position);
 
     const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
@@ -258,9 +272,8 @@ function getAllGlobalScopes() {
 // Search for references of a symbol
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
     flushInspectRecord(params.textDocument.uri);
-    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return [];
 
+    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
     const caret = TextPosition.create(params.position);
 
     const references = provideReferences(

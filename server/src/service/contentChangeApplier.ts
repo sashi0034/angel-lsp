@@ -3,9 +3,13 @@ import * as assert from "node:assert";
 
 export function moveDiagnosticsByChanges(diagnosticList: lsp.Diagnostic[], changes: lsp.TextDocumentContentChangeEvent[]) {
     for (const change of changes) {
-        moveDiagnosticByChange(diagnosticList, change);
+        moveElementsByChange(diagnosticList, change);
+    }
+}
 
-        // FIXME: 差分を配列にまとめる必要がありそう
+export function moveInlayHintByChanges(inlayHintList: lsp.InlayHint[], changes: lsp.TextDocumentContentChangeEvent[]) {
+    for (const change of changes) {
+        moveElementsByChange(inlayHintList, change);
     }
 }
 
@@ -41,16 +45,25 @@ function countLineBreaksAndLength(str: string) {
     return {lineBreaks, lastLineLength};
 }
 
-function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.TextDocumentContentChangeEvent) {
+type MoveElement = {
+    range: lsp.Range;
+} | {
+    position: lsp.Position;
+}
+
+function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocumentContentChangeEvent) {
     assert(lsp.TextDocumentContentChangeEvent.isIncremental(change));
 
     const changeRange = change.range;
     const changeText = countLineBreaksAndLength(change.text);
 
-    for (const diagnostic of diagnosticList) {
-        const diagnosticRange = diagnostic.range;
+    for (const element of elementList) {
+        // I hope this will be optimized :)
+        const elementRange = 'range' in element
+            ? element.range :
+            {start: element.position, end: {...element.position}};
 
-        if (changeRange.end.line < diagnosticRange.start.line) {
+        if (changeRange.end.line < elementRange.start.line) {
             // l1: ... <change begin> ...
             // l2: ... <change end> ...
             // l3: ... <diagnostic>
@@ -58,10 +71,10 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
             let lineDiff = -(changeRange.end.line - changeRange.start.line);
             lineDiff += changeText.lineBreaks;
 
-            diagnosticRange.start.line += lineDiff;
-            diagnosticRange.end.line += lineDiff;
-        } else if (changeRange.end.line === diagnosticRange.start.line &&
-            changeRange.end.character <= diagnosticRange.start.character
+            elementRange.start.line += lineDiff;
+            elementRange.end.line += lineDiff;
+        } else if (changeRange.end.line === elementRange.start.line &&
+            changeRange.end.character <= elementRange.start.character
         ) {
             // l1: ... <change begin> ...
             // l2: ... <change end> ... <diagnostic> ...
@@ -69,8 +82,8 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
             let lineDiff = changeRange.start.line - changeRange.end.line;
             lineDiff += changeText.lineBreaks;
 
-            diagnosticRange.start.line += lineDiff;
-            diagnosticRange.end.line += lineDiff;
+            elementRange.start.line += lineDiff;
+            elementRange.end.line += lineDiff;
 
             if (lineDiff != 0) {
                 // l1: ... <change begin> ...
@@ -87,7 +100,7 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
                 // l2: ...
                 // l3: ... <replaced end> ... <diagnostic> ...
 
-                let characterStart = diagnosticRange.start.character - changeRange.end.character;
+                let characterStart = elementRange.start.character - changeRange.end.character;
                 if (lineDiff < 0) {
                     // l1: ... ... <replaced last line> ... <diagnostic> ...
                     characterStart += changeRange.start.character + changeText.lastLineLength;
@@ -96,13 +109,13 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
                     characterStart += changeText.lastLineLength;
                 }
 
-                if (diagnosticRange.start.line === diagnosticRange.end.line) {
+                if (elementRange.start.line === elementRange.end.line) {
                     // If the diagnostic is on the same line, the end of the diagnostic should also be moved.
-                    const len = diagnosticRange.end.character - diagnosticRange.start.character;
-                    diagnosticRange.end.character = characterStart + len;
+                    const len = elementRange.end.character - elementRange.start.character;
+                    elementRange.end.character = characterStart + len;
                 }
 
-                diagnosticRange.start.character = characterStart;
+                elementRange.start.character = characterStart;
             } else { // lineDiff === 0
                 // l1: ... <change begin> ...
                 // l2: ... <change end> ... <diagnostic> ...
@@ -114,8 +127,8 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
                 let charactorDiff = -(changeRange.end.character - changeRange.start.character);
                 charactorDiff += changeText.lastLineLength;
 
-                diagnosticRange.start.character += charactorDiff;
-                diagnosticRange.end.character += charactorDiff;
+                elementRange.start.character += charactorDiff;
+                elementRange.end.character += charactorDiff;
             }
         }
     }

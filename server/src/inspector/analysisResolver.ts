@@ -18,14 +18,14 @@ import {AnalyzerScope, createGlobalScope} from "../compiler_analyzer/analyzerSco
 import {AnalysisQueue} from "./analysisQueue";
 
 interface PartialInspectRecord {
-    uri: string;
-    isOpen: boolean;
-    diagnosticsInParser: lsp.Diagnostic[];
+    readonly uri: string;
+    readonly isOpen: boolean;
+    readonly diagnosticsInParser: lsp.Diagnostic[];
     diagnosticsInAnalyzer: lsp.Diagnostic[];
-    rawTokens: TokenObject[];
-    preprocessedOutput: PreprocessedOutput;
-    ast: NodeScript;
-    analyzerTask: DelayedTask;
+    readonly rawTokens: TokenObject[];
+    readonly preprocessedOutput: PreprocessedOutput;
+    readonly ast: NodeScript;
+    isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }
 
@@ -150,6 +150,8 @@ export class AnalysisResolver {
 
         record.diagnosticsInAnalyzer = analyzerDiagnostic.endSession();
         // -----------------------------------------------
+
+        record.isAnalyzerPending = false;
 
         this.diagnosticsCallback({
             uri: record.uri,

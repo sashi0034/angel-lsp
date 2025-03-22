@@ -3,6 +3,7 @@ import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {InlayHint} from "vscode-languageserver-protocol";
 import {isNodeClassOrInterface} from "../compiler_analyzer/symbolObject";
 
+// TODO: Rename to inlayHint.ts
 export function provideInlineHint(globalScope: SymbolScope, location: TextLocation): InlayHint[] {
     // TODO: Implement more hints
 

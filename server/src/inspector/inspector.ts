@@ -13,7 +13,7 @@ import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {findScopeContainingPosition} from "../service/utils";
-import {moveDiagnosticsByChanges} from "../service/changeApplier";
+import {moveDiagnosticsByChanges} from "../service/contentChangeApplier";
 
 interface InspectRecord {
     content: string;
@@ -24,7 +24,7 @@ interface InspectRecord {
     rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
-    analyzerTask: DelayedTask;
+    isAnalyzerPending: boolean,
     analyzerScope: AnalyzerScope;
 }
 
@@ -53,7 +53,7 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
         rawTokens: [],
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
-        analyzerTask: new DelayedTask(),
+        isAnalyzerPending: false,
         analyzerScope: new AnalyzerScope(uri, new SymbolGlobalScope(uri)),
     };
 }
@@ -125,8 +125,11 @@ export function inspectFile(uri: string, content: string, option?: InspectOption
     // -----------------------------------------------
 
     if (option?.changes !== undefined) {
+        // Move diagnostics in the analyzer with the content changes for the editor view.
         moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
     }
+
+    record.isAnalyzerPending = true;
 
     // Send the diagnostics on the way to the client
     s_diagnosticsCallback({
