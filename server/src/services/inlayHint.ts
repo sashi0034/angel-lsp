@@ -1,18 +1,66 @@
-import {isAnonymousIdentifier, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {InlayHint} from "vscode-languageserver-protocol";
 import {isNodeClassOrInterface} from "../compiler_analyzer/symbolObject";
+import * as lsp from "vscode-languageserver/node";
+import {ComplementKind} from "../compiler_analyzer/complementHint";
+import {NodeName} from '../compiler_parser/nodes';
 
-export function provideInlayHint(globalScope: SymbolScope, location: TextLocation): InlayHint[] {
-    // TODO: Implement more hints
-
-    return hintOperatorOverloadDefinition(globalScope, location);
+export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextLocation): lsp.InlayHint[] {
+    return [
+        ...inlayHintOperatorOverloadDefinition(globalScope, location),
+        ...inlayHintFunctionCall(globalScope, location)
+    ];
 }
 
 // -----------------------------------------------
 
-function hintOperatorOverloadDefinition(scope: SymbolScope, location: TextLocation) {
-    const result: InlayHint[] = [];
+function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLocation) {
+    const result: lsp.InlayHint[] = [];
+    for (const hint of globalScope.completionHints) {
+        if (hint.complement !== ComplementKind.FunctionCall) continue;
+
+        const callerIdentifier = hint.callerIdentifier;
+        if (location.intersects(callerIdentifier.location) === false) continue;
+
+        // FIXME: Optimize the search
+        const callingReference = globalScope.referenceList.find(reference => reference.fromToken === hint.callerIdentifier);
+        if (callingReference === undefined) continue;
+
+        const calleeFunction = callingReference.toSymbol;
+        if (calleeFunction.isFunction() === false) continue;
+
+        const callerArgs = hint.callerArgumentsNode.argList;
+        for (let i = 0; i < callerArgs.length; i++) {
+            if (callerArgs[i].identifier !== undefined) {
+                // Skip if the argument is a named argument
+                continue;
+            }
+
+            if (callerArgs[i].assign.tail === undefined) {
+                const exprHead = callerArgs[i].assign.condition.expr.head;
+                if (exprHead.exprTerm === 2 && exprHead.value.nodeName !== NodeName.Literal) {
+                    // Skip if the argument may be a variable.
+                    continue;
+                }
+            }
+
+            const paramIdentifier = calleeFunction.linkedNode.paramList[i]?.identifier?.text;
+            if (paramIdentifier === undefined) continue;
+
+            result.push({
+                position: callerArgs[i].assign.nodeRange.start.location.start,
+                label: paramIdentifier + ': '
+            });
+        }
+    }
+
+    return result;
+}
+
+// -----------------------------------------------
+
+function inlayHintOperatorOverloadDefinition(scope: SymbolScope, location: TextLocation) {
+    const result: lsp.InlayHint[] = [];
     if (scope.linkedNode !== undefined && isNodeClassOrInterface(scope.linkedNode)) {
         if (scope.linkedNode.nodeRange.path !== location.path) {
             return [];
@@ -51,7 +99,7 @@ function hintOperatorOverloadDefinition(scope: SymbolScope, location: TextLocati
     for (const childScope of scope.childScopeTable.values()) {
         if (childScope.isAnonymousScope()) continue;
 
-        result.push(...hintOperatorOverloadDefinition(childScope, location));
+        result.push(...inlayHintOperatorOverloadDefinition(childScope, location));
     }
 
     return result;
