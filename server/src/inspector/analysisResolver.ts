@@ -130,7 +130,7 @@ export class AnalysisResolver {
         logger.message(`[Analyzer]\n${record.uri}`);
 
         // -----------------------------------------------
-        analyzerDiagnostic.reset();
+        analyzerDiagnostic.beginSession();
 
         // Collect scopes in included files
         const includeScopes = this.collectIncludeScope(record, predefinedUri);
@@ -145,7 +145,7 @@ export class AnalysisResolver {
         record.analyzerScope = analyzeAfterHoisted(record.uri, hoistResult);
         profiler.mark('Analyzer'.padEnd(profilerDescriptionLength));
 
-        record.diagnosticsInAnalyzer = analyzerDiagnostic.flush();
+        record.diagnosticsInAnalyzer = analyzerDiagnostic.endSession();
         // -----------------------------------------------
 
         this.diagnosticsCallback({
