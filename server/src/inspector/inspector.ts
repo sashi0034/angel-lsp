@@ -86,13 +86,19 @@ export function flushInspectRecord(uri?: string): void {
 
 const profilerDescriptionLength = 12;
 
-export function inspectFile(uri: string, content: string): void {
+interface InspectOption {
+    isOpen?: boolean;
+}
+
+export function inspectFile(uri: string, content: string, option?: InspectOption): void {
     logger.message(`[Tokenizer and Parser]\n${uri}`);
 
     const record = s_inspectorResults.get(uri) ?? insertNewRecord(uri, content);
 
     // Update the content
     record.content = content;
+
+    record.isOpen = option?.isOpen === true;
 
     // -----------------------------------------------
     diagnostic.beginSession();
@@ -126,13 +132,6 @@ export function inspectFile(uri: string, content: string): void {
     logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
 }
 
-export function activateInspectFile(uri: string): void {
-    const record = s_inspectorResults.get(uri);
-    if (record === undefined) return;
-
-    record.isOpen = true;
-}
-
 export function sleepInspectFile(uri: string): void {
     const record = s_inspectorResults.get(uri);
     if (record === undefined) return;
@@ -148,7 +147,4 @@ export function reinspectAllFiles() {
     for (const uri of s_inspectorResults.keys()) {
         inspectFile(uri, s_inspectorResults.get(uri)!.content);
     }
-}
-
-export class openInspectFile {
 }

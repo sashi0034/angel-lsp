@@ -9,7 +9,7 @@ import {
     inspectFile,
     reinspectAllFiles,
     registerDiagnosticsCallback,
-    flushInspectRecord, sleepInspectFile, activateInspectFile
+    flushInspectRecord, sleepInspectFile
 } from "./inspector/inspector";
 import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -175,8 +175,7 @@ connection.onDidOpenTextDocument(params => {
         return;
     }
 
-    activateInspectFile(document.uri);
-    inspectFile(document.uri, document.text);
+    inspectFile(document.uri, document.text, {isOpen: true});
 });
 
 connection.onDidChangeTextDocument((params) => {
@@ -190,11 +189,9 @@ connection.onDidChangeTextDocument((params) => {
 
     // profileInspect(document); // for debug
 
-    // TODO: We should implement incremental compilation.
-    activateInspectFile(document.uri);
-    inspectFile(document.uri, document.getText());
+    inspectFile(document.uri, document.getText(), {isOpen: true});
 
-    // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this!');
+    // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this?');
 });
 
 connection.onDidCloseTextDocument(params => {
