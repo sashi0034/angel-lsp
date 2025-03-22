@@ -11,7 +11,7 @@ export function moveDiagnosticsByChanges(diagnosticList: lsp.Diagnostic[], chang
 
 function countLineBreaksAndLength(str: string) {
     let lineBreaks = 0;
-    let firstLineLength = 0;
+    // let firstLineLength = 0;
     let lastLineLength = 0;
     let currentLineLength = 0;
 
@@ -19,13 +19,13 @@ function countLineBreaksAndLength(str: string) {
         const char = str[i];
 
         if (char === '\r') {
-            if (lineBreaks === 0) firstLineLength = currentLineLength;
+            // if (lineBreaks === 0) firstLineLength = currentLineLength;
 
             if (str[i + 1] === '\n') i++; // Handle CRLF as one line break
             lineBreaks++;
             currentLineLength = 0;
         } else if (char === '\n') {
-            if (lineBreaks === 0) firstLineLength = currentLineLength;
+            // if (lineBreaks === 0) firstLineLength = currentLineLength;
 
             lineBreaks++;
             currentLineLength = 0;
@@ -34,11 +34,11 @@ function countLineBreaksAndLength(str: string) {
         }
     }
 
-    if (lineBreaks === 0) firstLineLength = currentLineLength;
+    // if (lineBreaks === 0) firstLineLength = currentLineLength;
 
     lastLineLength = currentLineLength;
 
-    return {lineBreaks, firstLineLength, lastLineLength};
+    return {lineBreaks, lastLineLength};
 }
 
 function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.TextDocumentContentChangeEvent) {
@@ -72,23 +72,13 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
             diagnosticRange.start.line += lineDiff;
             diagnosticRange.end.line += lineDiff;
 
-            if (lineDiff < 0) {
+            if (lineDiff != 0) {
                 // l1: ... <change begin> ...
                 // l2: ... <change end> ... <diagnostic> ...
                 //   |
                 //   V
                 // l1: ... <replaced> ... <diagnostic> ...
-
-                let characterStart = changeRange.start.character - diagnosticRange.start.character;
-                characterStart += changeText.firstLineLength;
-
-                if (diagnosticRange.start.line === diagnosticRange.end.line) {
-                    const len = diagnosticRange.end.character - diagnosticRange.start.character;
-                    diagnosticRange.end.character = characterStart + len;
-                }
-
-                diagnosticRange.start.character = characterStart;
-            } else if (lineDiff > 0) {
+                //   or
                 // l1: ... <change begin> ...
                 // l2: ... <change end> ... <diagnostic> ...
                 //   |
