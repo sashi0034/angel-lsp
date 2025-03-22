@@ -57,13 +57,15 @@ export class AnalysisResolver {
     /**
      * Request to analyze the file specified by the URI at a later time.
      */
-    public request(record: PartialInspectRecord) {
-        this._analysisQueue.pushDirect({record: record!, shouldReanalyze: true});
+    public request(record: PartialInspectRecord, reanalyzeDependents: boolean) {
+        this._analysisQueue.pushDirect({record: record!, reanalyzeDependents: reanalyzeDependents});
 
-        this.rescheduleAnalyze();
+        this._analyzerTask.reschedule(() => {
+            this.handleAnalyze();
+        }, mediumWaitTime);
     }
 
-    private rescheduleAnalyze() {
+    private rescheduleAnalyzeRemaining() {
         let waitTime;
         if (this._analysisQueue.hasDirect()) {
             waitTime = veryShortWaitTime;
@@ -72,6 +74,7 @@ export class AnalysisResolver {
         } else if (this._analysisQueue.hasLazyIndirect()) {
             waitTime = mediumWaitTime;
         } else {
+            // No files to analyze
             return;
         }
 
@@ -87,7 +90,7 @@ export class AnalysisResolver {
 
         this.analyzeFile(element.record);
 
-        if (element.shouldReanalyze) {
+        if (element.reanalyzeDependents) {
             this.reanalyzeFilesWithDependency(element.record.uri);
         }
     }
@@ -111,7 +114,7 @@ export class AnalysisResolver {
             const frontRecord = this.recordList.get(uri);
             if (frontRecord === undefined) return;
 
-            this._analysisQueue.frontPushDirect({record: frontRecord, shouldReanalyze: false});
+            this._analysisQueue.frontPushDirect({record: frontRecord, reanalyzeDependents: false});
 
             this.popAndAnalyze();
         }
@@ -121,7 +124,7 @@ export class AnalysisResolver {
         // Analyze the file in the queue
         this.popAndAnalyze();
 
-        this.rescheduleAnalyze();
+        this.rescheduleAnalyzeRemaining();
     }
 
     private analyzeFile(record: PartialInspectRecord) {

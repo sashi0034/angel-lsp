@@ -25,8 +25,7 @@ export function provideCompletion(
 ): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
-    const uri = globalScope.getContext().filepath;
-    const caretScope = findScopeContainingPosition(globalScope, caret, uri);
+    const caretScope = findScopeContainingPosition(globalScope, caret).scope;
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.

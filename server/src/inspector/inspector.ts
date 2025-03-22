@@ -11,6 +11,8 @@ import {DelayedTask} from "../utils/delayedTask";
 import {diagnostic} from "../core/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {findScopeContainingPosition} from "../complement/utils";
 
 interface InspectRecord {
     content: string;
@@ -88,6 +90,7 @@ const profilerDescriptionLength = 12;
 
 interface InspectOption {
     isOpen?: boolean;
+    changes?: lsp.TextDocumentContentChangeEvent[];
 }
 
 export function inspectFile(uri: string, content: string, option?: InspectOption): void {
@@ -127,9 +130,32 @@ export function inspectFile(uri: string, content: string, option?: InspectOption
     });
 
     // Request delayed execution of the analyzer
-    s_analysisResolver.request(record);
+    s_analysisResolver.request(record, shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes));
 
     logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+}
+
+function shouldReanalyzeDependents(globalScope: SymbolGlobalScope, change?: lsp.TextDocumentContentChangeEvent[]): boolean {
+    if (change === undefined) return true;
+
+    for (const changeEvent of change) {
+        if (isChangeInAnonymousScope(globalScope, changeEvent) === false) {
+            // If the change is not in an anonymous scope, reanalyze the dependents.
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function isChangeInAnonymousScope(globalScope: SymbolGlobalScope, change: lsp.TextDocumentContentChangeEvent): boolean {
+    if (lsp.TextDocumentContentChangeEvent.isIncremental(change) === false) {
+        return false;
+    }
+
+    const changedStart = TextPosition.create(change.range.start);
+    const changedScope = findScopeContainingPosition(globalScope, changedStart);
+    return changedScope.scope.isAnonymousScope() && changedScope.location?.contains(change.range) === true;
 }
 
 export function sleepInspectFile(uri: string): void {

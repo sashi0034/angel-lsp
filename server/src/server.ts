@@ -189,7 +189,7 @@ connection.onDidChangeTextDocument((params) => {
 
     // profileInspect(document); // for debug
 
-    inspectFile(document.uri, document.getText(), {isOpen: true});
+    inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
     // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this?');
 });

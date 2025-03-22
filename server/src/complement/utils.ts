@@ -1,5 +1,5 @@
-import {SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {TextLocation, TextPosition, TextRange} from "../compiler_tokenizer/textLocation";
 import {ComplementKind, ComplementScopeRegion} from "../compiler_analyzer/complementHint";
 
 export function takeNarrowestScopeRegion(lhs: ComplementScopeRegion, rhs: ComplementScopeRegion): ComplementScopeRegion {
@@ -11,13 +11,18 @@ export function takeNarrowestScopeRegion(lhs: ComplementScopeRegion, rhs: Comple
     return lhsDiff.character < rhsDiff.character ? lhs : rhs;
 }
 
+interface ScopeAndLocation {
+    scope: SymbolScope;
+    location?: TextLocation;
+}
+
 /**
  * Find the scope that includes the specified position.
  */
-export function findScopeContainingPosition(scope: SymbolScope, caret: TextPosition, path: string): SymbolScope {
-    const globalScope = scope.getGlobalScope();
+export function findScopeContainingPosition(globalScope: SymbolGlobalScope, caret: TextPosition): ScopeAndLocation {
+    const path = globalScope.getContext().filepath;
 
-    let cursor: ComplementScopeRegion | undefined = undefined;
+    let found: ComplementScopeRegion | undefined = undefined;
     for (const hint of globalScope.completionHints) {
         if (hint.complement !== ComplementKind.ScopeRegion) continue;
 
@@ -25,11 +30,14 @@ export function findScopeContainingPosition(scope: SymbolScope, caret: TextPosit
         if (location.path !== path) continue;
 
         if (location.positionInRange(caret)) {
-            cursor = cursor === undefined
+            found = found === undefined
                 ? hint
-                : takeNarrowestScopeRegion(cursor, hint);
+                : takeNarrowestScopeRegion(found, hint);
         }
     }
 
-    return cursor?.targetScope ?? scope;
+    return {
+        scope: found?.targetScope ?? globalScope,
+        location: found?.boundingLocation,
+    };
 }
