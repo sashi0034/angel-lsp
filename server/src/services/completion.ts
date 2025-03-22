@@ -4,14 +4,13 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopeList,
-    isAnonymousIdentifier,
     SymbolGlobalScope,
     SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
-import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
+import {findScopeContainingPosition} from "../complement/utils";
 
 export interface CompletionItemWrapper {
     item: CompletionItem;

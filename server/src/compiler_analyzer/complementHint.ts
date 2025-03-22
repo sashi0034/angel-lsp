@@ -101,6 +101,7 @@ export function isAutocompleteHint(hint: ComplementHint): hint is AutocompleteHi
 
 // -----------------------------------------------
 
+/** @internal */
 export function complementScopeRegion(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().pushCompletionHint({
         complement: ComplementKind.ScopeRegion,
