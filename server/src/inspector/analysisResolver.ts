@@ -6,7 +6,6 @@ import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
 import {getParentDirectoryList, readFileContent, resolveUri} from "./fileUtils";
-import {diagnostic} from "../core/diagnostic";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
@@ -130,11 +129,11 @@ export class AnalysisResolver {
 
         logger.message(`[Analyzer]\n${record.uri}`);
 
-        // Collect scopes in included files
-        const includeScopes = this.collectIncludeScope(record, predefinedUri);
-
         // -----------------------------------------------
         analyzerDiagnostic.reset();
+
+        // Collect scopes in included files
+        const includeScopes = this.collectIncludeScope(record, predefinedUri);
 
         const profiler = new Profiler();
 
@@ -271,7 +270,7 @@ export class AnalysisResolver {
             // If the file is not found, notify the error
             const includePathToken =
                 preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute)!;
-            diagnostic.addError(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
+            analyzerDiagnostic.error(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
         }
 
         return includedScopes;
