@@ -20,7 +20,7 @@ import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
-import {provideInlineHint} from "./services/inlineHint";
+import {provideInlayHint} from "./services/inlayHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
@@ -192,7 +192,7 @@ connection.onDidChangeTextDocument((params) => {
 
     inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
-    const inlayHints = s_inlineHintsCache.get(document.uri);
+    const inlayHints = s_inlayHintsCache.get(document.uri);
     if (inlayHints !== undefined) {
         moveInlayHintByChanges(inlayHints, params.contentChanges);
     }
@@ -234,7 +234,7 @@ connection.languages.semanticTokens.on((params) => {
 // -----------------------------------------------
 // Inlay Hints Provider
 
-const s_inlineHintsCache: Map<string, lsp.InlayHint[]> = new Map();
+const s_inlayHintsCache: Map<string, lsp.InlayHint[]> = new Map();
 
 connection.languages.inlayHint.on((params) => {
     const uri = params.textDocument.uri;
@@ -242,13 +242,13 @@ connection.languages.inlayHint.on((params) => {
     const record = getInspectRecord(uri);
 
     if (record.isAnalyzerPending) {
-        return s_inlineHintsCache.get(uri);
+        return s_inlayHintsCache.get(uri);
     }
 
     const inlineHints =
-        provideInlineHint(record.analyzerScope.globalScope, new TextLocation(uri, range.start, range.end));
+        provideInlayHint(record.analyzerScope.globalScope, new TextLocation(uri, range.start, range.end));
 
-    s_inlineHintsCache.set(uri, inlineHints);
+    s_inlayHintsCache.set(uri, inlineHints);
 
     return inlineHints;
 });
