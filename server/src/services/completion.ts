@@ -10,7 +10,7 @@ import {
 import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
-import {findScopeContainingPosition} from "../complement/utils";
+import {findScopeContainingPosition} from "../service/utils";
 
 export interface CompletionItemWrapper {
     item: CompletionItem;

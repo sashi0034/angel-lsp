@@ -12,7 +12,7 @@ import {diagnostic} from "../core/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {findScopeContainingPosition} from "../complement/utils";
+import {findScopeContainingPosition} from "../service/utils";
 
 interface InspectRecord {
     content: string;

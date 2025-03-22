@@ -1,5 +1,5 @@
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TextLocation, TextPosition, TextRange} from "../compiler_tokenizer/textLocation";
+import {TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
 import {ComplementKind, ComplementScopeRegion} from "../compiler_analyzer/complementHint";
 
 export function takeNarrowestScopeRegion(lhs: ComplementScopeRegion, rhs: ComplementScopeRegion): ComplementScopeRegion {
