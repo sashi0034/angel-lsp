@@ -88,9 +88,16 @@ function moveDiagnosticByChange(diagnosticList: lsp.Diagnostic[], change: lsp.Te
                 // l3: ... <replaced end> ... <diagnostic> ...
 
                 let characterStart = diagnosticRange.start.character - changeRange.end.character;
-                characterStart += changeText.lastLineLength;
+                if (lineDiff < 0) {
+                    // l1: ... ... <replaced last line> ... <diagnostic> ...
+                    characterStart += changeRange.start.character + changeText.lastLineLength;
+                } else { // lineDiff > 0
+                    // l3: <replaced last line> ... <diagnostic> ...
+                    characterStart += changeText.lastLineLength;
+                }
 
                 if (diagnosticRange.start.line === diagnosticRange.end.line) {
+                    // If the diagnostic is on the same line, the end of the diagnostic should also be moved.
                     const len = diagnosticRange.end.character - diagnosticRange.start.character;
                     diagnosticRange.end.character = characterStart + len;
                 }
