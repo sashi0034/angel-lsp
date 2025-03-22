@@ -10,9 +10,6 @@ export interface LanguageServerSettings {
     supportsForEach: boolean;
     characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
-    experimental: {
-        inlineHints: boolean;
-    };
     builtinStringTypes: string[];
     builtinArrayType: string,
     formatter: {
@@ -33,9 +30,6 @@ const defaultSettings: LanguageServerSettings = {
     supportsForEach: false,
     characterLiterals: false,
     supportsTypedEnumerations: false,
-    experimental: {
-        inlineHints: false
-    },
     builtinStringTypes: ["string", "String"],
     builtinArrayType: "array",
     formatter: {

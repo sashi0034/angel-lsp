@@ -237,8 +237,6 @@ connection.languages.semanticTokens.on((params) => {
 const s_inlineHintsCache: Map<string, lsp.InlayHint[]> = new Map();
 
 connection.languages.inlayHint.on((params) => {
-    if (!getGlobalSettings().experimental.inlineHints) return []; // TODO: Delete after the preview ends.
-
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
     const record = getInspectRecord(uri);
