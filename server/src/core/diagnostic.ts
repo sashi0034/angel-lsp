@@ -1,9 +1,8 @@
-import {Range} from "vscode-languageserver";
-import {Diagnostic, DiagnosticSeverity} from "vscode-languageserver/node";
+import * as lsp from "vscode-languageserver";
 
-type DiagnosticList = Diagnostic[];
+type DiagnosticList = lsp.Diagnostic[];
 
-let s_diagnosticStack: DiagnosticList[] = [];
+const s_diagnosticStack: DiagnosticList[] = [];
 
 let s_currentDiagnostics: DiagnosticList = [];
 
@@ -19,7 +18,7 @@ function endSession(): DiagnosticList {
     return result;
 }
 
-function pushDiagnostic(range: Range, message: string, severity: DiagnosticSeverity): void {
+function pushDiagnostic(range: lsp.Range, message: string, severity: lsp.DiagnosticSeverity): void {
     s_currentDiagnostics.push({
         range: range,
         message: message,
@@ -28,8 +27,8 @@ function pushDiagnostic(range: Range, message: string, severity: DiagnosticSever
     });
 }
 
-function addError(range: Range, message: string): void {
-    pushDiagnostic(range, message, DiagnosticSeverity.Error);
+function addError(range: lsp.Range, message: string): void {
+    pushDiagnostic(range, message, lsp.DiagnosticSeverity.Error);
 }
 
 export const diagnostic = {

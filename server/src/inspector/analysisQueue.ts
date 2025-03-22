@@ -13,7 +13,7 @@ interface RecordElement {
 
 interface QueueElement<Record extends RecordElement> {
     record: Record;
-    shouldReanalyze?: boolean;
+    reanalyzeDependents?: boolean;
 }
 
 export class AnalysisQueue<Record extends RecordElement> {
@@ -106,19 +106,19 @@ export class AnalysisQueue<Record extends RecordElement> {
 
     public frontPop(): QueueElement<Record> | undefined {
         if (this._directQueue.length > 0) {
-            // console.log('pop directQueue: ' + this._directQueue[0].record.uri);
+            // console.log('*** pop directQueue: ' + this._directQueue[0].record.uri);
             return this._directQueue.shift()!;
         }
 
         this.refreshIndirectAndLazyIndirect();
 
         if (this._indirectQueue.length > 0) {
-            // console.log('pop indirectQueue: ' + this._indirectQueue[0].record.uri);
+            // console.log('**  pop indirectQueue: ' + this._indirectQueue[0].record.uri);
             return this._indirectQueue.shift()!;
         }
 
         if (this._lazyIndirectQueue.length > 0) {
-            // console.log('pop lazyIndirectQueue');
+            // console.log('*   pop lazyIndirectQueue');
             return this._lazyIndirectQueue.shift()!;
         }
 

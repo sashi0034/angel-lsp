@@ -21,13 +21,13 @@ function testAnalyzer(content: string, expectSuccess: boolean) {
 
         // -----------------------------------------------
 
-        analyzerDiagnostic.reset();
+        analyzerDiagnostic.beginSession();
 
         const hoistResult = hoistAfterParsed(ast, createGlobalScope(uri, []));
         analyzeAfterHoisted(uri, hoistResult);
 
         const diagnosticsInAnalyzer =
-            analyzerDiagnostic.flush().filter(
+            analyzerDiagnostic.endSession().filter(
                 diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
             );
 

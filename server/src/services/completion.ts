@@ -4,14 +4,13 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
 import {
     collectParentScopeList,
-    isAnonymousIdentifier,
     SymbolGlobalScope,
     SymbolScope
 } from "../compiler_analyzer/symbolScope";
 import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
-import {findScopeContainingPosition} from "./utils";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
+import {findScopeContainingPosition} from "../service/utils";
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -26,8 +25,7 @@ export function provideCompletion(
 ): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
-    const uri = globalScope.getContext().filepath;
-    const caretScope = findScopeContainingPosition(globalScope, caret, uri);
+    const caretScope = findScopeContainingPosition(globalScope, caret).scope;
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g. Methods of the instance object.

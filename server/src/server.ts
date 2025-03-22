@@ -9,7 +9,7 @@ import {
     inspectFile,
     reinspectAllFiles,
     registerDiagnosticsCallback,
-    flushInspectRecord, sleepInspectFile, activateInspectFile
+    flushInspectRecord, sleepInspectFile
 } from "./inspector/inspector";
 import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -20,7 +20,7 @@ import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
-import {provideInlineHint} from "./services/inlineHint";
+import {provideInlayHint} from "./services/inlayHint";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
 import {CodeAction} from "vscode-languageserver-protocol";
 import {provideCodeAction} from "./services/codeAction";
@@ -33,6 +33,7 @@ import {documentOnTypeFormattingProvider} from "./services/documentOnTypeFormatt
 import {SimpleProfiler} from "./utils/simpleProfiler";
 import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
 import {safeWriteFile} from "./utils/fileUtils";
+import {moveInlayHintByChanges} from "./service/contentChangeApplier";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -175,8 +176,7 @@ connection.onDidOpenTextDocument(params => {
         return;
     }
 
-    activateInspectFile(document.uri);
-    inspectFile(document.uri, document.text);
+    inspectFile(document.uri, document.text, {isOpen: true});
 });
 
 connection.onDidChangeTextDocument((params) => {
@@ -190,11 +190,14 @@ connection.onDidChangeTextDocument((params) => {
 
     // profileInspect(document); // for debug
 
-    // TODO: We should implement incremental compilation.
-    activateInspectFile(document.uri);
-    inspectFile(document.uri, document.getText());
+    inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
-    // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this!');
+    const inlayHints = s_inlayHintsCache.get(document.uri);
+    if (inlayHints !== undefined) {
+        moveInlayHintByChanges(inlayHints, params.contentChanges);
+    }
+
+    // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this?');
 });
 
 connection.onDidCloseTextDocument(params => {
@@ -230,24 +233,30 @@ connection.languages.semanticTokens.on((params) => {
 
 // -----------------------------------------------
 // Inlay Hints Provider
-connection.languages.inlayHint.on((params) => {
-    if (!getGlobalSettings().experimental.inlineHints) return []; // TODO: Delete after the preview ends.
 
+const s_inlayHintsCache: Map<string, lsp.InlayHint[]> = new Map();
+
+connection.languages.inlayHint.on((params) => {
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
+    const record = getInspectRecord(uri);
 
-    return provideInlineHint(
-        getInspectRecord(uri).analyzerScope.globalScope,
-        new TextLocation(uri, range.start, range.end)
-    );
+    if (record.isAnalyzerPending) {
+        return s_inlayHintsCache.get(uri);
+    }
+
+    const inlineHints =
+        provideInlayHint(record.analyzerScope.globalScope, new TextLocation(uri, range.start, range.end));
+
+    s_inlayHintsCache.set(uri, inlineHints);
+
+    return inlineHints;
 });
 
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
     const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
-    if (globalScope === undefined) return;
-
     const caret = TextPosition.create(params.position);
 
     const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
@@ -261,9 +270,8 @@ function getAllGlobalScopes() {
 // Search for references of a symbol
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
     flushInspectRecord(params.textDocument.uri);
-    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
-    if (analyzedScope === undefined) return [];
 
+    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
     const caret = TextPosition.create(params.position);
 
     const references = provideReferences(

@@ -99,12 +99,24 @@ export class TextRange implements lsp.Range {
         return new TextRange(TextPosition.create(range.start), TextPosition.create(range.end));
     }
 
+    /**
+     * Returns true if the specified position is within this range inclusively.
+     */
     public positionInRange(position: lsp.Position): boolean {
         if (position.line < this.start.line || position.line > this.end.line) return false;
         if (position.line === this.start.line && position.character < this.start.character) return false;
         if (position.line === this.end.line && position.character > this.end.character) return false;
 
         return true;
+    }
+
+    // create positionInRangeExclusive if needed
+
+    /**
+     * Returns true if the specified range is within this range inclusively.
+     */
+    public contains(other: lsp.Range): boolean {
+        return this.positionInRange(other.start) && this.positionInRange(other.end);
     }
 
     public intersects(other: TextRange): boolean {

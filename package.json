@@ -157,12 +157,6 @@
                     "default": false,
                     "description": "Whether your codebase uses the `asEP_USE_CHARACTER_LITERALS` option."
                 },
-                "angelScript.experimental.inlineHints": {
-                    "scope": "window",
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Provide inline hints (preview)"
-                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",

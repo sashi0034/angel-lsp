@@ -11,6 +11,9 @@ import {DelayedTask} from "../utils/delayedTask";
 import {diagnostic} from "../core/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
+import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {findScopeContainingPosition} from "../service/utils";
+import {moveDiagnosticsByChanges} from "../service/contentChangeApplier";
 
 interface InspectRecord {
     content: string;
@@ -21,7 +24,7 @@ interface InspectRecord {
     rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
-    analyzerTask: DelayedTask;
+    isAnalyzerPending: boolean,
     analyzerScope: AnalyzerScope;
 }
 
@@ -50,7 +53,7 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
         rawTokens: [],
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
-        analyzerTask: new DelayedTask(),
+        isAnalyzerPending: false,
         analyzerScope: new AnalyzerScope(uri, new SymbolGlobalScope(uri)),
     };
 }
@@ -86,13 +89,20 @@ export function flushInspectRecord(uri?: string): void {
 
 const profilerDescriptionLength = 12;
 
-export function inspectFile(uri: string, content: string): void {
+interface InspectOption {
+    isOpen?: boolean;
+    changes?: lsp.TextDocumentContentChangeEvent[];
+}
+
+export function inspectFile(uri: string, content: string, option?: InspectOption): void {
     logger.message(`[Tokenizer and Parser]\n${uri}`);
 
     const record = s_inspectorResults.get(uri) ?? insertNewRecord(uri, content);
 
     // Update the content
     record.content = content;
+
+    record.isOpen = option?.isOpen === true;
 
     // -----------------------------------------------
     diagnostic.beginSession();
@@ -114,6 +124,13 @@ export function inspectFile(uri: string, content: string): void {
     record.diagnosticsInParser = diagnostic.endSession();
     // -----------------------------------------------
 
+    if (option?.changes !== undefined) {
+        // Move diagnostics in the analyzer with the content changes for the editor view.
+        moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
+    }
+
+    record.isAnalyzerPending = true;
+
     // Send the diagnostics on the way to the client
     s_diagnosticsCallback({
         uri: uri,
@@ -121,16 +138,32 @@ export function inspectFile(uri: string, content: string): void {
     });
 
     // Request delayed execution of the analyzer
-    s_analysisResolver.request(record);
+    s_analysisResolver.request(record, shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes));
 
     logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
 }
 
-export function activateInspectFile(uri: string): void {
-    const record = s_inspectorResults.get(uri);
-    if (record === undefined) return;
+function shouldReanalyzeDependents(globalScope: SymbolGlobalScope, change?: lsp.TextDocumentContentChangeEvent[]): boolean {
+    if (change === undefined) return true;
 
-    record.isOpen = true;
+    for (const changeEvent of change) {
+        if (isChangeInAnonymousScope(globalScope, changeEvent) === false) {
+            // If the change is not in an anonymous scope, reanalyze the dependents.
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function isChangeInAnonymousScope(globalScope: SymbolGlobalScope, change: lsp.TextDocumentContentChangeEvent): boolean {
+    if (lsp.TextDocumentContentChangeEvent.isIncremental(change) === false) {
+        return false;
+    }
+
+    const changedStart = TextPosition.create(change.range.start);
+    const changedScope = findScopeContainingPosition(globalScope, changedStart);
+    return changedScope.scope.isAnonymousScope() && changedScope.location?.contains(change.range) === true;
 }
 
 export function sleepInspectFile(uri: string): void {
@@ -148,7 +181,4 @@ export function reinspectAllFiles() {
     for (const uri of s_inspectorResults.keys()) {
         inspectFile(uri, s_inspectorResults.get(uri)!.content);
     }
-}
-
-export class openInspectFile {
 }
