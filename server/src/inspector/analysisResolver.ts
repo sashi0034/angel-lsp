@@ -54,6 +54,11 @@ export class AnalysisResolver {
     ) {
     }
 
+    public reset() {
+        this._analysisQueue.clear();
+        this._resolvedPredefinedFilepaths.clear();
+    }
+
     /**
      * Request to analyze the file specified by the URI at a later time.
      */

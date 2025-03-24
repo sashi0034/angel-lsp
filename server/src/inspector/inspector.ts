@@ -182,3 +182,8 @@ export function reinspectAllFiles() {
         inspectFile(uri, s_inspectorResults.get(uri)!.content);
     }
 }
+
+export function resetInspect() {
+    s_inspectorResults.clear();
+    s_analysisResolver.reset();
+}

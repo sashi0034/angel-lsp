@@ -31,6 +31,12 @@ export class AnalysisQueue<Record extends RecordElement> {
     // Elements that are indirectly affected and not currently of interest to the user are added to this queue.
     private _lazyIndirectQueue: QueueElement<Record>[] = [];
 
+    public clear() {
+        this._directQueue = [];
+        this._indirectQueue = [];
+        this._lazyIndirectQueue = [];
+    }
+
     public hasDirect(): boolean {
         return this._directQueue.length > 0;
     }
