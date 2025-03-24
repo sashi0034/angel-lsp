@@ -237,7 +237,7 @@ export class AnalysisResolver {
     }
 
     private inspectUnderDirectory(dirUri: string) {
-        const entries = fs.readdirSync(fileURLToPath(dirUri), {withFileTypes: true});
+        const entries = this.getDirectoryEntries(dirUri);
         for (const entry of entries) {
             const fileUri = resolveUri(dirUri, entry.name);
             if (entry.isDirectory()) {
@@ -246,6 +246,14 @@ export class AnalysisResolver {
                 const content = readFileContent(fileUri);
                 if (content !== undefined) inspectFile(fileUri, content);
             }
+        }
+    }
+
+    private getDirectoryEntries(dirUri: string) {
+        try {
+            return fs.readdirSync(fileURLToPath(dirUri), {withFileTypes: true});
+        } catch (e) {
+            return [];
         }
     }
 

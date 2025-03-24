@@ -6,7 +6,18 @@ function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
 }
 
-export function testCompletion(rawContent: string, ...expectedList: string[][]) {
+interface FileContent {
+    uri: string;
+    content: string;
+}
+
+function isRawContent(fileContent: string | FileContent[]): fileContent is string {
+    return typeof fileContent === "string";
+}
+
+export function testCompletion(fileContents: string | FileContent[], ...expectedList: string[][]) {
+    const targetUri = isRawContent(fileContents) ? 'file:///path/to/file.as' : fileContents.at(-1)!.uri;
+    const rawContent = isRawContent(fileContents) ? fileContents : fileContents.at(-1)!.content;
     const {caretList, content} = makeCaretListAndContent(rawContent);
 
     if (caretList.length !== expectedList.length) {
@@ -16,10 +27,17 @@ export function testCompletion(rawContent: string, ...expectedList: string[][]) 
     it(`completion ${rawContent}`, () => {
         resetInspect();
 
-        const uri = "/foo/bar.as";
-        inspectFile(uri, content);
+        if (isRawContent(fileContents)) {
+            inspectFile(targetUri, content);
+        } else {
+            for (const content of fileContents) {
+                inspectFile(content.uri, content.content);
+            }
+        }
+
         flushInspectRecord();
-        const globalScope = getInspectRecord(uri).analyzerScope.globalScope;
+
+        const globalScope = getInspectRecord(targetUri).analyzerScope.globalScope;
 
         // Iterate through each caret position and check if the completions are as expected.
         for (let i = 0; i < caretList.length; i++) {

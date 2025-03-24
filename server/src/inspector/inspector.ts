@@ -28,6 +28,8 @@ interface InspectRecord {
     analyzerScope: AnalyzerScope;
 }
 
+// TODO: Should be a class?
+
 const s_inspectorResults: Map<string, InspectRecord> = new Map();
 
 let s_diagnosticsCallback: DiagnosticsCallback = () => {

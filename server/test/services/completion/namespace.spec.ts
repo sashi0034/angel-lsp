@@ -66,4 +66,39 @@ describe('completion/namespace', () => {
         , /* $C1$ */ ["beta_0", "beta_1", "C_0", "C_1"]
         , /* $C2$ */ ["apple"]
     );
+
+    testCompletion([{
+            uri: 'file:///path/to/as.predefined',
+            content: `
+            namespace A {
+                namespace B {
+                    void predefined_function();
+                }
+
+                namespace C_0 { void a(); }
+            }`
+        }, {
+            uri: 'file:///path/to/file_1.as',
+            content: `
+            namespace A {
+                namespace B {
+                    void other_file_function();
+                }
+
+                namespace C_1 { void a(); }
+            }\`
+        `
+        }, {
+            uri: 'file:///path/to/file_2.as',
+            content: `// Compression of other files is also possible
+            #include "file_1.as"
+            
+            void main() {
+                A::$C0$;
+                A::B::$C1$;
+            }
+        `
+        }], /* $C0$ */ ["B", "C_0", "C_1"]
+        , /* $C1$ */ ["predefined_function", "other_file_function"]
+    );
 });
