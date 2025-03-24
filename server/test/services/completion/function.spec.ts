@@ -1,7 +1,7 @@
 import {testCompletion} from "./utils";
 
 describe('completion/function', () => {
-    testCompletion(` // Basic function completion
+    testCompletion(`// Basic function completion
         void foo() { 
             int x = 1; 
         }
