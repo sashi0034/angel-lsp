@@ -28,6 +28,8 @@ interface InspectRecord {
     analyzerScope: AnalyzerScope;
 }
 
+// TODO: Should be a class?
+
 const s_inspectorResults: Map<string, InspectRecord> = new Map();
 
 let s_diagnosticsCallback: DiagnosticsCallback = () => {
@@ -181,4 +183,9 @@ export function reinspectAllFiles() {
     for (const uri of s_inspectorResults.keys()) {
         inspectFile(uri, s_inspectorResults.get(uri)!.content);
     }
+}
+
+export function resetInspect() {
+    s_inspectorResults.clear();
+    s_analysisResolver.reset();
 }
