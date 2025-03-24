@@ -66,6 +66,8 @@ function inlayHintAutoType(globalScope: SymbolGlobalScope, location: TextLocatio
     for (const hint of globalScope.completionHints) {
         if (hint.complement !== ComplementKind.AutoTypeResolution) continue;
 
+        // TODO: Intersect check
+
         result.push({
             position: hint.autoToken.location.end,
             label: ': ' + stringifyResolvedType(hint.resolvedType)
