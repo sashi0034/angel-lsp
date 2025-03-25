@@ -14,7 +14,7 @@ import {logger} from "../core/logger";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
 import {AnalyzerScope, createGlobalScope} from "../compiler_analyzer/analyzerScope";
-import {AnalysisQueue} from "./analysisQueue";
+import {AnalysisQueue, AnalysisQueuePriority} from "./analysisQueue";
 
 interface PartialInspectRecord {
     readonly uri: string;
@@ -78,8 +78,6 @@ export class AnalysisResolver {
             waitTime = veryShortWaitTime;
         } else if (this._analysisQueue.hasIndirect()) {
             waitTime = shortWaitTime;
-        } else if (this._analysisQueue.hasLazyIndirect()) {
-            waitTime = mediumWaitTime;
         } else {
             // No files to analyze
             return;
@@ -98,7 +96,12 @@ export class AnalysisResolver {
         this.analyzeFile(element.record);
 
         if (element.reanalyzeDependents) {
-            this.reanalyzeFilesWithDependency(element.record.uri);
+            // Add the dependent files to the indirect queue.
+            // If the current file is an element of the direct queue,
+            // schedule a reanalysis after processing the newly added elements.
+            // This is because those files may affect the current file.
+            const reanalyzeDependents = element.queue === AnalysisQueuePriority.Direct;
+            this.reanalyzeFilesWithDependency(element.record.uri, reanalyzeDependents);
         }
     }
 
@@ -113,7 +116,7 @@ export class AnalysisResolver {
 
         if (uri === undefined) {
             // If the uri is not specified, reanalyze all files in the reanalysis queue
-            while (this._analysisQueue.hasIndirect() && this._analysisQueue.hasLazyIndirect()) {
+            while (this._analysisQueue.hasIndirect()) {
                 this.popAndAnalyze();
             }
         } else if (this._analysisQueue.isInQueue(uri)) {
@@ -169,17 +172,13 @@ export class AnalysisResolver {
     }
 
     // We will reanalyze the files that include the file specified by the given URI.
-    private reanalyzeFilesWithDependency(targetUri: string) {
+    private reanalyzeFilesWithDependency(targetUri: string, reanalyzeDependents: boolean) {
         const dependedFiles = Array.from(this._inspectRecords.values()).filter(r =>
             this.resolveIncludePaths(r, this.findPredefinedUri(r.uri))
                 .some(relativePath => resolveUri(r.uri, relativePath) === targetUri));
 
         for (const dependedFile of dependedFiles) {
-            if (dependedFile.isOpen) {
-                this._analysisQueue.pushIndirect({record: dependedFile});
-            } else {
-                this._analysisQueue.pushLazyIndirect({record: dependedFile});
-            }
+            this._analysisQueue.pushIndirect({record: dependedFile, reanalyzeDependents: reanalyzeDependents});
         }
     }
 

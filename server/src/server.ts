@@ -266,7 +266,7 @@ function getAllGlobalScopes() {
 
 // Search for references of a symbol
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
-    s_inspector.flushRecord(params.textDocument.uri);
+    s_inspector.flushRecord(params.textDocument.uri); // FIXME: Should we flush all records?
 
     const analyzedScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
     const caret = TextPosition.create(params.position);
