@@ -11,7 +11,6 @@ import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
 import {analyzeAfterHoisted} from "../compiler_analyzer/analyzer";
 import {logger} from "../core/logger";
-import {inspectFile} from "./inspector";
 import {fileURLToPath} from "node:url";
 import * as fs from "fs";
 import {AnalyzerScope, createGlobalScope} from "../compiler_analyzer/analyzerScope";
@@ -28,6 +27,8 @@ interface PartialInspectRecord {
     isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }
+
+export type InspectRequest = (uri: string, content: string) => void;
 
 export type DiagnosticsCallback = (params: PublishDiagnosticsParams) => void;
 
@@ -49,8 +50,9 @@ export class AnalysisResolver {
     private readonly _resolvedPredefinedFilepaths: Set<string> = new Set();
 
     public constructor(
-        public readonly recordList: Map<string, PartialInspectRecord>,
-        private readonly diagnosticsCallback: DiagnosticsCallback,
+        public readonly _inspectRecords: Map<string, PartialInspectRecord>,
+        private readonly _inspectRequest: InspectRequest,
+        private readonly _diagnosticsCallback: DiagnosticsCallback,
     ) {
     }
 
@@ -116,7 +118,7 @@ export class AnalysisResolver {
             }
         } else if (this._analysisQueue.isInQueue(uri)) {
             // If the file is in the reanalysis queue, move it to the front of the direct queue and reanalyze it.
-            const frontRecord = this.recordList.get(uri);
+            const frontRecord = this._inspectRecords.get(uri);
             if (frontRecord === undefined) return;
 
             this._analysisQueue.frontPushDirect({record: frontRecord, reanalyzeDependents: false});
@@ -158,7 +160,7 @@ export class AnalysisResolver {
 
         record.isAnalyzerPending = false;
 
-        this.diagnosticsCallback({
+        this._diagnosticsCallback({
             uri: record.uri,
             diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
         });
@@ -168,7 +170,7 @@ export class AnalysisResolver {
 
     // We will reanalyze the files that include the file specified by the given URI.
     private reanalyzeFilesWithDependency(targetUri: string) {
-        const dependedFiles = Array.from(this.recordList.values()).filter(r =>
+        const dependedFiles = Array.from(this._inspectRecords.values()).filter(r =>
             this.resolveIncludePaths(r, this.findPredefinedUri(r.uri))
                 .some(relativePath => resolveUri(r.uri, relativePath) === targetUri));
 
@@ -191,7 +193,7 @@ export class AnalysisResolver {
             if (record.uri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
                 const predefinedDirectory = resolveUri(predefinedUri, '.');
                 includePaths =
-                    Array.from(this.recordList.keys())
+                    Array.from(this._inspectRecords.keys())
                         .filter(uri => uri.startsWith(predefinedDirectory))
                         .filter(uri => uri.endsWith('.as') && uri !== record.uri);
             }
@@ -212,7 +214,9 @@ export class AnalysisResolver {
         for (const dir of dirs) {
             const predefinedUri = dir + `/${predefinedFileName}`;
 
-            if (this.recordList.get(predefinedUri) !== undefined && this._resolvedPredefinedFilepaths.has(predefinedUri)) {
+            if (this._inspectRecords.get(predefinedUri) !== undefined &&
+                this._resolvedPredefinedFilepaths.has(predefinedUri)
+            ) {
                 // Return the record if the file has already been analyzed
                 return predefinedUri;
             }
@@ -222,7 +226,7 @@ export class AnalysisResolver {
                 if (content === undefined) continue;
 
                 // If the file is found, inspect it
-                inspectFile(predefinedUri, content);
+                this._inspectRequest(predefinedUri, content);
             }
 
             // Inspect all files under the directory where 'as.predefined' is located
@@ -244,7 +248,7 @@ export class AnalysisResolver {
                 this.inspectUnderDirectory(`${fileUri}/`);
             } else if (entry.isFile() && fileUri.endsWith('.as')) {
                 const content = readFileContent(fileUri);
-                if (content !== undefined) inspectFile(fileUri, content);
+                if (content !== undefined) this._inspectRequest(fileUri, content);
             }
         }
     }
@@ -272,7 +276,7 @@ export class AnalysisResolver {
         for (const relativeOrAbsolute of includePaths) {
             const uri = resolveUri(targetUri, relativeOrAbsolute);
 
-            const includedRecord = this.recordList.get(uri);
+            const includedRecord = this._inspectRecords.get(uri);
             if (includedRecord !== undefined) {
                 includedScopes.push(includedRecord.analyzerScope);
                 continue;
@@ -281,7 +285,7 @@ export class AnalysisResolver {
             // If the file has not been analyzed, start inspecting it
             const content = readFileContent(uri);
             if (content !== undefined) {
-                inspectFile(uri, content);
+                this._inspectRequest(uri, content);
                 continue;
             }
 

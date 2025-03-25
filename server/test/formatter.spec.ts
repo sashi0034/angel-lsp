@@ -1,6 +1,6 @@
-import {flushInspectRecord, getInspectRecord, inspectFile} from "../src/inspector/inspector";
 import {formatFile} from "../src/formatter/formatter";
 import {TextDocument} from "vscode-languageserver-textdocument";
+import {Inspector} from "../src/inspector/inspector";
 
 function makeVisible(content: string) {
     const lines = content.split(/\r?\n/);
@@ -24,11 +24,14 @@ function getDiffLineNumber(expected: string, actual: string) {
 
 function testFormatter(content: string, expectedContent: string) {
     it(`format ${content}`, () => {
-        const uri = "/foo/bar.as";
-        inspectFile(uri, content);
-        flushInspectRecord();
+        const inspector = new Inspector();
 
-        const record = getInspectRecord(uri);
+        const uri = "/foo/bar.as";
+        inspector.inspectFile(uri, content);
+
+        inspector.flushRecord();
+
+        const record = inspector.getRecord(uri);
 
         const textEdits = formatFile(record.content, record.rawTokens, record.ast);
         const document = TextDocument.create(uri, 'angelscript', 0, content);

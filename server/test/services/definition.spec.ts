@@ -1,9 +1,6 @@
 import {makeCaretListAndContent} from "./utils";
 import {
-    flushInspectRecord,
-    getInspectRecord,
-    getInspectRecordList,
-    inspectFile
+    Inspector
 } from "../../src/inspector/inspector";
 import {provideDefinitionAsToken} from "../../src/services/definition";
 
@@ -29,11 +26,15 @@ function testDefinition(rawContent: string, mapping?: [number, number][]) {
     }
 
     it(`definition ${rawContent}`, () => {
+        const inspector = new Inspector();
+
         const uri = "/foo/bar.as";
-        inspectFile(uri, content);
-        flushInspectRecord();
-        const globalScope = getInspectRecord(uri).analyzerScope.globalScope;
-        const allGlobalScopes = getInspectRecordList().map(record => record.analyzerScope.globalScope);
+        inspector.inspectFile(uri, content);
+
+        inspector.flushRecord();
+
+        const globalScope = inspector.getRecord(uri).analyzerScope.globalScope;
+        const allGlobalScopes = inspector.getAllRecords().map(record => record.analyzerScope.globalScope);
 
         // Iterate through the mapping and check if the definition is correct.
         for (let i = 0; i < mapping.length; i++) {

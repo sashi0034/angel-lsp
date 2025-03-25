@@ -7,7 +7,6 @@ import {Profiler} from "../core/profiler";
 import {tokenize} from "../compiler_tokenizer/tokenizer";
 import {preprocessAfterTokenized, PreprocessedOutput} from "../compiler_parser/parserPreprocess";
 import {parseAfterPreprocessed} from "../compiler_parser/parser";
-import {DelayedTask} from "../utils/delayedTask";
 import {diagnostic} from "../core/diagnostic";
 import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
 import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
@@ -28,23 +27,6 @@ interface InspectRecord {
     analyzerScope: AnalyzerScope;
 }
 
-// TODO: Should be a class?
-
-const s_inspectorResults: Map<string, InspectRecord> = new Map();
-
-let s_diagnosticsCallback: DiagnosticsCallback = () => {
-    return;
-};
-
-export function registerDiagnosticsCallback(callback: DiagnosticsCallback): void {
-    s_diagnosticsCallback = callback;
-}
-
-const s_analysisResolver: AnalysisResolver = new AnalysisResolver(
-    s_inspectorResults,
-    (params) => s_diagnosticsCallback(params)
-);
-
 function createEmptyRecord(uri: string, content: string): InspectRecord {
     return {
         content: content,
@@ -60,35 +42,6 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
     };
 }
 
-function insertNewRecord(uri: string, content: string): InspectRecord {
-    const record = createEmptyRecord(uri, content);
-    s_inspectorResults.set(uri, record);
-    return record;
-}
-
-/**
- * Get the inspected record of the specified file.
- */
-export function getInspectRecord(uri: string): Readonly<InspectRecord> {
-    const result = s_inspectorResults.get(uri);
-    if (result === undefined) return createEmptyRecord(uri, '');
-    return result;
-}
-
-/**
- * Get the list of all inspected records as a list.
- */
-export function getInspectRecordList(): Readonly<InspectRecord>[] {
-    return Array.from(s_inspectorResults.values());
-}
-
-/**
- * Flush the inspected record of the specified file since the analyzer runs asynchronously.
- */
-export function flushInspectRecord(uri?: string): void {
-    s_analysisResolver.flush(uri);
-}
-
 const profilerDescriptionLength = 12;
 
 interface InspectOption {
@@ -96,53 +49,125 @@ interface InspectOption {
     changes?: lsp.TextDocumentContentChangeEvent[];
 }
 
-export function inspectFile(uri: string, content: string, option?: InspectOption): void {
-    logger.message(`[Tokenizer and Parser]\n${uri}`);
+export class Inspector {
 
-    const record = s_inspectorResults.get(uri) ?? insertNewRecord(uri, content);
+    private readonly _inspectRecords: Map<string, InspectRecord> = new Map();
 
-    // Update the content
-    record.content = content;
+    private _diagnosticsCallback: DiagnosticsCallback = () => {
+        return;
+    };
 
-    record.isOpen = option?.isOpen === true;
+    private readonly _analysisResolver: AnalysisResolver = new AnalysisResolver(
+        this._inspectRecords,
+        (uri, content) => this.inspectFile(uri, content),
+        (params) => this._diagnosticsCallback(params)
+    );
 
-    // -----------------------------------------------
-    diagnostic.beginSession();
-
-    const profiler = new Profiler();
-
-    // Execute the tokenizer
-    record.rawTokens = tokenize(uri, content);
-    profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
-
-    // Execute the preprocessor
-    record.preprocessedOutput = preprocessAfterTokenized(record.rawTokens);
-    profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
-
-    // Execute the parser
-    record.ast = parseAfterPreprocessed(record.preprocessedOutput.preprocessedTokens);
-    profiler.mark('Parser'.padEnd(profilerDescriptionLength));
-
-    record.diagnosticsInParser = diagnostic.endSession();
-    // -----------------------------------------------
-
-    if (option?.changes !== undefined) {
-        // Move diagnostics in the analyzer with the content changes for the editor view.
-        moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
+    public registerDiagnosticsCallback(callback: DiagnosticsCallback): void {
+        this._diagnosticsCallback = callback;
     }
 
-    record.isAnalyzerPending = true;
+    private createRecordAndInsert(uri: string, content: string): InspectRecord {
+        const record = createEmptyRecord(uri, content);
+        this._inspectRecords.set(uri, record);
+        return record;
+    }
 
-    // Send the diagnostics on the way to the client
-    s_diagnosticsCallback({
-        uri: uri,
-        diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer],
-    });
+    /**
+     * Get the inspected record of the specified file.
+     */
+    public getRecord(uri: string): Readonly<InspectRecord> {
+        const result = this._inspectRecords.get(uri);
+        if (result === undefined) return createEmptyRecord(uri, '');
+        return result;
+    }
 
-    // Request delayed execution of the analyzer
-    s_analysisResolver.request(record, shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes));
+    /**
+     * Get the list of all inspected records as a list.
+     */
+    public getAllRecords(): Readonly<InspectRecord>[] {
+        return Array.from(this._inspectRecords.values());
+    }
 
-    logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+    /**
+     * Flush the inspected record of the specified file since the analyzer runs asynchronously.
+     */
+    public flushRecord(uri?: string): void {
+        this._analysisResolver.flush(uri);
+    }
+
+    public inspectFile(uri: string, content: string, option?: InspectOption): void {
+        logger.message(`[Tokenizer and Parser]\n${uri}`);
+
+        const record = this._inspectRecords.get(uri) ?? this.createRecordAndInsert(uri, content);
+
+        // Update the content
+        record.content = content;
+
+        record.isOpen = option?.isOpen === true;
+
+        // -----------------------------------------------
+        diagnostic.beginSession();
+
+        const profiler = new Profiler();
+
+        // Execute the tokenizer
+        record.rawTokens = tokenize(uri, content);
+        profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
+
+        // Execute the preprocessor
+        record.preprocessedOutput = preprocessAfterTokenized(record.rawTokens);
+        profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
+
+        // Execute the parser
+        record.ast = parseAfterPreprocessed(record.preprocessedOutput.preprocessedTokens);
+        profiler.mark('Parser'.padEnd(profilerDescriptionLength));
+
+        record.diagnosticsInParser = diagnostic.endSession();
+        // -----------------------------------------------
+
+        if (option?.changes !== undefined) {
+            // Move diagnostics in the analyzer with the content changes for the editor view.
+            moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
+        }
+
+        record.isAnalyzerPending = true;
+
+        // Send the diagnostics on the way to the client
+        this._diagnosticsCallback({
+            uri: uri,
+            diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer],
+        });
+
+        // Request delayed execution of the analyzer
+        this._analysisResolver.request(
+            record,
+            shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes));
+
+        logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
+    }
+
+    public sleepRecord(uri: string): void {
+        const record = this._inspectRecords.get(uri);
+        if (record === undefined) return;
+
+        record.isOpen = false;
+    }
+
+    /**
+     * Re-inspect all files that have already been inspected.
+     * This method is used to fully apply the configuration settings.
+     */
+    public reinspectAllFiles() {
+        for (const uri of this._inspectRecords.keys()) {
+            this.inspectFile(uri, this._inspectRecords.get(uri)!.content);
+        }
+    }
+
+    public reset() {
+        this._inspectRecords.clear();
+        this._analysisResolver.reset();
+    }
 }
 
 function shouldReanalyzeDependents(globalScope: SymbolGlobalScope, change?: lsp.TextDocumentContentChangeEvent[]): boolean {
@@ -166,26 +191,4 @@ function isChangeInAnonymousScope(globalScope: SymbolGlobalScope, change: lsp.Te
     const changedStart = TextPosition.create(change.range.start);
     const changedScope = findScopeContainingPosition(globalScope, changedStart);
     return changedScope.scope.isAnonymousScope() && changedScope.location?.contains(change.range) === true;
-}
-
-export function sleepInspectFile(uri: string): void {
-    const record = s_inspectorResults.get(uri);
-    if (record === undefined) return;
-
-    record.isOpen = false;
-}
-
-/**
- * Re-inspect all files that have already been inspected.
- * This method is used to fully apply the configuration settings.
- */
-export function reinspectAllFiles() {
-    for (const uri of s_inspectorResults.keys()) {
-        inspectFile(uri, s_inspectorResults.get(uri)!.content);
-    }
-}
-
-export function resetInspect() {
-    s_inspectorResults.clear();
-    s_analysisResolver.reset();
 }
