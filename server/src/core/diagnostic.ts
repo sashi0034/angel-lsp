@@ -20,7 +20,7 @@ function endSession(): DiagnosticList {
 
 function pushDiagnostic(range: lsp.Range, message: string, severity: lsp.DiagnosticSeverity): void {
     s_currentDiagnostics.push({
-        range: range,
+        range: structuredClone(range),
         message: message,
         severity: severity,
         source: "AngelScript",
