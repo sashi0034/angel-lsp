@@ -173,37 +173,76 @@ export class AnalysisResolver {
 
     // We will reanalyze the files that include the file specified by the given URI.
     private reanalyzeFilesWithDependency(targetUri: string, reanalyzeDependents: boolean) {
-        const dependedFiles = Array.from(this._inspectRecords.values()).filter(r =>
-            this.resolveIncludePaths(r, this.findPredefinedUri(r.uri))
-                .some(relativePath => resolveUri(r.uri, relativePath) === targetUri));
+        const resolvedSet = new Set<string>();
+        this.reanalyzeFilesWithDependencyInternal(resolvedSet, targetUri, reanalyzeDependents);
+    }
 
-        for (const dependedFile of dependedFiles) {
-            this._analysisQueue.pushIndirect({record: dependedFile, reanalyzeDependents: reanalyzeDependents});
+    private reanalyzeFilesWithDependencyInternal(resolvedSet: Set<string>, targetUri: string, reanalyzeDependents: boolean) {
+        if (resolvedSet.has(targetUri)) return;
+
+        const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
+            .filter(r => this.resolveIncludePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
+                .some(relativePath => resolveUri(r.uri, relativePath) === targetUri) // Check if the target file is included
+            );
+
+        for (const dependent of dependentFiles) {
+            this._analysisQueue.pushIndirect({record: dependent, reanalyzeDependents: reanalyzeDependents});
+            resolvedSet.add(dependent.uri);
+        }
+
+        // Recursively reanalyze the files that include the dependent files
+        for (const dependent of dependentFiles) {
+            this.reanalyzeFilesWithDependencyInternal(resolvedSet, dependent.uri, reanalyzeDependents);
         }
     }
 
     private resolveIncludePaths(record: PartialInspectRecord, predefinedUri: string | undefined): string[] {
-        // Add include paths from include directives
-        let includePaths =
-            record.preprocessedOutput.includePathTokens.map(token => token.getStringContent());
+        const includeSet = new Set<string>();
+
+        if (record.uri !== predefinedUri && predefinedUri !== undefined) {
+            // Add 'as.predefined' to the include path
+            includeSet.add(predefinedUri);
+        }
+
+        // Recursively resolve include paths
+        this.resolveIncludePathsInternal(includeSet, record);
+
+        // Remove the current file from the include paths
+        includeSet.delete(record.uri);
 
         if (getGlobalSettings().implicitMutualInclusion) {
             // If implicit mutual inclusion is enabled, include all files under the directory where 'as.predefined' is located.
             if (record.uri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
                 const predefinedDirectory = resolveUri(predefinedUri, '.');
-                includePaths =
-                    Array.from(this._inspectRecords.keys())
+                return [...Array.from(includeSet),
+                    ...Array.from(this._inspectRecords.keys())
                         .filter(uri => uri.startsWith(predefinedDirectory))
-                        .filter(uri => uri.endsWith('.as') && uri !== record.uri);
+                        .filter(uri => uri.endsWith('.as') && uri !== record.uri)];
             }
         }
 
-        if (record.uri !== predefinedUri && predefinedUri !== undefined) {
-            // Add 'as.predefined' to the include path
-            includePaths.push(predefinedUri);
-        }
+        return Array.from(includeSet);
+    }
 
-        return includePaths;
+    private resolveIncludePathsInternal(includeSet: Set<string>, record: PartialInspectRecord) {
+        if (includeSet.has(record.uri)) return;
+        includeSet.add(record.uri);
+
+        // Add include paths from include directives
+        const includePaths =
+            record.preprocessedOutput.includePathTokens.map(token => token.getStringContent());
+
+        includePaths.forEach(path => includeSet.add(path));
+
+        // Recursively resolve include paths
+        for (const relativeOrAbsolute of includePaths) {
+            const uri = resolveUri(record.uri, relativeOrAbsolute);
+
+            const includeRecord = this._inspectRecords.get(uri);
+            if (includeRecord !== undefined) {
+                this.resolveIncludePathsInternal(includeSet, includeRecord);
+            }
+        }
     }
 
     private findPredefinedUri(targetUri: string): string | undefined {
@@ -275,9 +314,9 @@ export class AnalysisResolver {
         for (const relativeOrAbsolute of includePaths) {
             const uri = resolveUri(targetUri, relativeOrAbsolute);
 
-            const includedRecord = this._inspectRecords.get(uri);
-            if (includedRecord !== undefined) {
-                includedScopes.push(includedRecord.analyzerScope);
+            const includeRecord = this._inspectRecords.get(uri);
+            if (includeRecord !== undefined) {
+                includedScopes.push(includeRecord.analyzerScope);
                 continue;
             }
 
