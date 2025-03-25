@@ -86,7 +86,7 @@ describe('completion/namespace', () => {
                 }
 
                 namespace C_1 { void a(); }
-            }\`
+            }
         `
         }, {
             uri: 'file:///path/to/file_2.as',

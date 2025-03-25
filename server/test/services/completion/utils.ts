@@ -1,5 +1,5 @@
 import {makeCaretListAndContent} from "../utils";
-import {flushInspectRecord, getInspectRecord, inspectFile, resetInspect} from "../../../src/inspector/inspector";
+import {Inspector} from "../../../src/inspector/inspector";
 import {provideCompletion} from "../../../src/services/completion";
 
 function concatIndexAndItem(item: string, index: number) {
@@ -25,19 +25,19 @@ export function testCompletion(fileContents: string | FileContent[], ...expected
     }
 
     it(`completion ${rawContent}`, () => {
-        resetInspect();
+        const inspector = new Inspector();
 
         if (isRawContent(fileContents)) {
-            inspectFile(targetUri, content);
+            inspector.inspectFile(targetUri, content);
         } else {
             for (const content of fileContents) {
-                inspectFile(content.uri, content.content);
+                inspector.inspectFile(content.uri, content.content);
             }
         }
 
-        flushInspectRecord();
+        inspector.flushRecord();
 
-        const globalScope = getInspectRecord(targetUri).analyzerScope.globalScope;
+        const globalScope = inspector.getRecord(targetUri).analyzerScope.globalScope;
 
         // Iterate through each caret position and check if the completions are as expected.
         for (let i = 0; i < caretList.length; i++) {

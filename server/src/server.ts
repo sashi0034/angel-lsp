@@ -4,12 +4,7 @@ import * as lsp_textDocument from 'vscode-languageserver-textdocument';
 import {highlightForModifierList, highlightForTokenList} from "./core/highlight";
 import {provideDefinitionAsToken} from "./services/definition";
 import {
-    getInspectRecord,
-    getInspectRecordList,
-    inspectFile,
-    reinspectAllFiles,
-    registerDiagnosticsCallback,
-    flushInspectRecord, sleepInspectFile
+    Inspector
 } from "./inspector/inspector";
 import {CompletionItemWrapper, provideCompletion} from "./services/completion";
 import {provideSemanticTokens} from "./services/semanticTokens";
@@ -119,7 +114,7 @@ connection.onInitialize((params: lsp.InitializeParams) => {
 function reloadSettings() {
     connection.workspace.getConfiguration('angelScript').then((config) => {
         changeGlobalSettings(config);
-        reinspectAllFiles();
+        s_inspector.reinspectAllFiles();
         connection.languages.diagnostics.refresh();
     });
 }
@@ -164,6 +159,8 @@ connection.onDidChangeConfiguration(change => {
 
 const s_documentMap = new Map<string, lsp_textDocument.TextDocument>();
 
+const s_inspector = new Inspector();
+
 connection.onDidOpenTextDocument(params => {
     const document = params.textDocument;
     s_documentMap.set(
@@ -171,12 +168,12 @@ connection.onDidOpenTextDocument(params => {
         lsp_textDocument.TextDocument.create(document.uri, document.languageId, document.version, document.text)
     );
 
-    if (getInspectRecord(document.uri).content === document.text) {
+    if (s_inspector.getRecord(document.uri).content === document.text) {
         // No need to re-inspect because the contents of the file are identical.
         return;
     }
 
-    inspectFile(document.uri, document.text, {isOpen: true});
+    s_inspector.inspectFile(document.uri, document.text, {isOpen: true});
 });
 
 connection.onDidChangeTextDocument((params) => {
@@ -190,7 +187,7 @@ connection.onDidChangeTextDocument((params) => {
 
     // profileInspect(document); // for debug
 
-    inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
+    s_inspector.inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
     const inlayHints = s_inlayHintsCache.get(document.uri);
     if (inlayHints !== undefined) {
@@ -201,7 +198,7 @@ connection.onDidChangeTextDocument((params) => {
 });
 
 connection.onDidCloseTextDocument(params => {
-    sleepInspectFile(params.textDocument.uri);
+    s_inspector.sleepRecord(params.textDocument.uri);
 });
 
 // TODO: We want to observe the deletion of a file, but it seems that the LSP doesn't provide such an event?
@@ -217,8 +214,8 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
     const profiler = new SimpleProfiler('inspect');
     for (let i = 0; i < 100; i++) {
         profiler.beginSession();
-        inspectFile(document.uri, document.getText());
-        flushInspectRecord(document.uri);
+        s_inspector.inspectFile(document.uri, document.getText());
+        s_inspector.flushRecord(document.uri);
         profiler.endSession();
     }
 
@@ -228,7 +225,7 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
 // -----------------------------------------------
 // Semantic Tokens Provider
 connection.languages.semanticTokens.on((params) => {
-    return provideSemanticTokens(getInspectRecord(params.textDocument.uri).rawTokens);
+    return provideSemanticTokens(s_inspector.getRecord(params.textDocument.uri).rawTokens);
 });
 
 // -----------------------------------------------
@@ -239,7 +236,7 @@ const s_inlayHintsCache: Map<string, lsp.InlayHint[]> = new Map();
 connection.languages.inlayHint.on((params) => {
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
-    const record = getInspectRecord(uri);
+    const record = s_inspector.getRecord(uri);
 
     if (record.isAnalyzerPending) {
         return s_inlayHintsCache.get(uri);
@@ -256,7 +253,7 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
+    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
     const caret = TextPosition.create(params.position);
 
     const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
@@ -264,19 +261,19 @@ connection.onDefinition((params) => {
 });
 
 function getAllGlobalScopes() {
-    return getInspectRecordList().map(result => result.analyzerScope.globalScope);
+    return s_inspector.getAllRecords().map(result => result.analyzerScope.globalScope);
 }
 
 // Search for references of a symbol
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
-    flushInspectRecord(params.textDocument.uri);
+    s_inspector.flushRecord(params.textDocument.uri); // FIXME: Should we flush all records?
 
-    const analyzedScope = getInspectRecord(params.textDocument.uri).analyzerScope;
+    const analyzedScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
     const caret = TextPosition.create(params.position);
 
     const references = provideReferences(
         analyzedScope.globalScope,
-        getInspectRecordList().map(result => result.analyzerScope.globalScope),
+        s_inspector.getAllRecords().map(result => result.analyzerScope.globalScope),
         caret);
     return references.map(ref => ref.location.toServerLocation());
 }
@@ -288,7 +285,7 @@ connection.onReferences((params) => {
 // -----------------------------------------------
 // Selection Range Provider
 connection.onDocumentSymbol(params => {
-    return provideDocumentSymbol(getInspectRecord(params.textDocument.uri).analyzerScope.globalScope);
+    return provideDocumentSymbol(s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope);
 });
 
 // -----------------------------------------------
@@ -324,7 +321,7 @@ connection.onCodeActionResolve((action) => {
     const range = TextRange.create(action.diagnostics[0].range);
 
     const edits = provideCodeAction(
-        getInspectRecord(uri).analyzerScope.globalScope,
+        s_inspector.getRecord(uri).analyzerScope.globalScope,
         getAllGlobalScopes(),
         new TextLocation(uri, range.start, range.end),
         action.diagnostics[0].data
@@ -356,9 +353,9 @@ connection.onRenameRequest((params) => {
 // -----------------------------------------------
 // Hover Provider
 connection.onHover((params) => {
-    flushInspectRecord(params.textDocument.uri);
+    s_inspector.flushRecord(params.textDocument.uri);
 
-    const globalScope = getInspectRecord(params.textDocument.uri).analyzerScope;
+    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
     if (globalScope === undefined) return;
 
     const caret = TextPosition.create(params.position);
@@ -375,12 +372,12 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
     const caret = TextPosition.create(params.position);
 
     // See if we can autocomplete file paths, etc.
-    const completionsOfToken = provideCompletionOfToken(getInspectRecord(uri).rawTokens, caret);
+    const completionsOfToken = provideCompletionOfToken(s_inspector.getRecord(uri).rawTokens, caret);
     if (completionsOfToken !== undefined) return completionsOfToken;
 
-    flushInspectRecord(uri);
+    s_inspector.flushRecord(uri);
 
-    const globalScope = getInspectRecord(uri).analyzerScope;
+    const globalScope = s_inspector.getRecord(uri).analyzerScope;
     if (globalScope === undefined) return [];
 
     // Collect completion candidates for symbols.
@@ -400,7 +397,7 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
 
 // This handler resolves additional information for the item selected in the completion list.
 connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
-    const globalScope = getInspectRecord(s_lastCompletion.uri).analyzerScope;
+    const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope;
     if (globalScope === undefined) return item;
 
     if (typeof item.data !== 'number') return item;
@@ -418,9 +415,9 @@ connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem =>
 connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
-    flushInspectRecord(uri);
+    s_inspector.flushRecord(uri);
 
-    const diagnosedScope = getInspectRecord(uri).analyzerScope;
+    const diagnosedScope = s_inspector.getRecord(uri).analyzerScope;
     if (diagnosedScope === undefined) return null;
 
     return provideSignatureHelp(diagnosedScope.globalScope, params.position, uri);
@@ -429,8 +426,8 @@ connection.onSignatureHelp((params) => {
 // -----------------------------------------------
 // Document Formatting Provider
 connection.onDocumentFormatting((params) => {
-    flushInspectRecord();
-    const record = getInspectRecord(params.textDocument.uri);
+    s_inspector.flushRecord();
+    const record = s_inspector.getRecord(params.textDocument.uri);
     return formatFile(record.content, record.rawTokens, record.ast);
 });
 
@@ -441,7 +438,7 @@ connection.onExecuteCommand((params) => {
 // -----------------------------------------------
 // Document on Type Formatting Provider
 connection.onDocumentOnTypeFormatting((params) => {
-    const record = getInspectRecord(params.textDocument.uri);
+    const record = s_inspector.getRecord(params.textDocument.uri);
 
     const result = documentOnTypeFormattingProvider(
         record.rawTokens,
@@ -459,7 +456,7 @@ connection.onDocumentOnTypeFormatting((params) => {
 connection.onRequest('angelScript/printGlobalScope', params => {
     const uri = params.uri as string;
 
-    const globalScope = getInspectRecord(uri).analyzerScope.globalScope;
+    const globalScope = s_inspector.getRecord(uri).analyzerScope.globalScope;
     const content = printSymbolScope(globalScope);
 
     const outputFilepath = uri + '.out';
@@ -473,4 +470,4 @@ connection.onRequest('angelScript/printGlobalScope', params => {
 // Listen on the connection
 connection.listen();
 
-registerDiagnosticsCallback(connection.sendDiagnostics);
+s_inspector.registerDiagnosticsCallback(connection.sendDiagnostics);
