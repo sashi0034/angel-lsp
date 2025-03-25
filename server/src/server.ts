@@ -29,6 +29,7 @@ import {SimpleProfiler} from "./utils/simpleProfiler";
 import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
 import {safeWriteFile} from "./utils/fileUtils";
 import {moveInlayHintByChanges} from "./service/contentChangeApplier";
+import {provideWeakDefinition} from "./services/definitionExtension";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -253,11 +254,15 @@ connection.languages.inlayHint.on((params) => {
 // -----------------------------------------------
 // Definition Provider
 connection.onDefinition((params) => {
-    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
+    const record = s_inspector.getRecord(params.textDocument.uri);
+    const globalScope = record.analyzerScope.globalScope;
+
     const caret = TextPosition.create(params.position);
 
-    const definition = provideDefinitionAsToken(globalScope.globalScope, getAllGlobalScopes(), caret);
-    return definition?.location.toServerLocation();
+    const definition = provideDefinitionAsToken(globalScope, getAllGlobalScopes(), caret);
+    if (definition !== undefined) return definition.location.toServerLocation();
+
+    return provideWeakDefinition(record.rawTokens, globalScope, caret);
 });
 
 function getAllGlobalScopes() {
@@ -268,12 +273,13 @@ function getAllGlobalScopes() {
 function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location[] {
     s_inspector.flushRecord(params.textDocument.uri); // FIXME: Should we flush all records?
 
-    const analyzedScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
+    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope;
+
     const caret = TextPosition.create(params.position);
 
     const references = provideReferences(
-        analyzedScope.globalScope,
-        s_inspector.getAllRecords().map(result => result.analyzerScope.globalScope),
+        globalScope,
+        getAllGlobalScopes(),
         caret);
     return references.map(ref => ref.location.toServerLocation());
 }
@@ -355,12 +361,11 @@ connection.onRenameRequest((params) => {
 connection.onHover((params) => {
     s_inspector.flushRecord(params.textDocument.uri);
 
-    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope;
-    if (globalScope === undefined) return;
+    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope;
 
     const caret = TextPosition.create(params.position);
 
-    return provideHover(globalScope.globalScope, caret);
+    return provideHover(globalScope, caret);
 });
 
 // -----------------------------------------------
@@ -397,8 +402,7 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
 
 // This handler resolves additional information for the item selected in the completion list.
 connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
-    const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope;
-    if (globalScope === undefined) return item;
+    const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope.globalScope;
 
     if (typeof item.data !== 'number') return item;
 
@@ -407,7 +411,7 @@ connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem =>
         logger.error('Received an invalid completion item.');
     }
 
-    return provideCompletionResolve(globalScope.globalScope, itemWrapper);
+    return provideCompletionResolve(globalScope, itemWrapper);
 });
 
 // -----------------------------------------------

@@ -5,7 +5,7 @@ import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {getParentDirectoryList, readFileContent, resolveUri} from "./fileUtils";
+import {getParentDirectoryList, readFileContent, resolveUri} from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";

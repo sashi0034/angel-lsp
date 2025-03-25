@@ -3,9 +3,18 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 
-export function resolveUri(dir: string, relativeUri: string): string {
-    const u = new URL(dir);
-    return url.format(new URL(relativeUri, u));
+export function resolveUri(dirOrFile: string, relativeOrAbsolute: string): string {
+    const u = new URL(dirOrFile);
+    return url.format(new URL(relativeOrAbsolute, u));
+}
+
+export function isFileUri(uri: string): boolean {
+    try {
+        const path = fileURLToPath(uri);
+        return fs.statSync(path).isFile();
+    } catch (error) {
+        return false;
+    }
 }
 
 export function readFileContent(uri: string): string | undefined {
