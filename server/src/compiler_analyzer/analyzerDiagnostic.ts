@@ -16,7 +16,7 @@ function error(location: TextLocation, message: string) {
 
     s_diagnostics.push({
         severity: severity,
-        range: location,
+        range: location.clone(),
         message: message,
         source: sourceName,
     });
@@ -25,7 +25,7 @@ function error(location: TextLocation, message: string) {
 function hint(location: TextLocation, hint: ActionHint, message: string) {
     s_diagnostics.push({
         severity: lsp.DiagnosticSeverity.Hint,
-        range: location,
+        range: location.clone(),
         message: message,
         source: sourceName,
         data: hint

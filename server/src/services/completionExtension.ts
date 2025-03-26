@@ -5,6 +5,7 @@ import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import {fileURLToPath} from "node:url";
+import {getIncludeUriList} from "../service/fileUtils";
 
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
@@ -17,14 +18,34 @@ export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPo
 
     if (tokenOnCaret.token.isStringToken()) {
         if (canAutocompleteFilepath(rawTokens, tokenOnCaret.index)) {
-            const start = tokenOnCaret.token.getStringContent();
-            return autocompleteFilepath(uri, start).map(name => {
-                return {label: name, kind: CompletionItemKind.File,};
-            });
+            return provideFilepathCompletion(tokenOnCaret.token.getStringContent(), uri);
         }
     }
 
     return undefined;
+}
+
+// -----------------------------------------------
+
+function provideFilepathCompletion(currentInput: string, uri: string): CompletionItem[] {
+    const result: CompletionItem[] = [];
+
+    result.push(...autocompleteFilepath(uri, currentInput).map(name => {
+        return {label: name, kind: CompletionItemKind.File,};
+    }));
+
+    for (const includeUri of getIncludeUriList()) {
+        result.push(...autocompleteFilepath(includeUri.uri, currentInput).map(name => {
+            return {
+                label: name,
+                kind: CompletionItemKind.File,
+                detail: '(include path) ' + includeUri.path,
+                sortText: '|' + name // '|' is a lower priority than normal characters
+            };
+        }));
+    }
+
+    return result;
 }
 
 function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: number): boolean {
@@ -46,7 +67,7 @@ function autocompleteFilepath(uri: string, start: string): string[] {
     const filePath = fileURLToPath(uri);
 
     // Extract the base directory from the URI.
-    const baseDir = path.dirname(filePath);
+    const baseDir = fs.statSync(filePath).isFile() ? path.dirname(filePath) : filePath;
 
     // Trim off the trailing incomplete segment from the 'start' input.
     // If 'start' ends with a slash, we assume it's already a complete relative path.

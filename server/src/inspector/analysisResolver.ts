@@ -5,7 +5,7 @@ import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {getParentDirectoryList, readFileContent, resolveUri} from "./fileUtils";
+import {getParentDirectoryList, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
@@ -18,7 +18,6 @@ import {AnalysisQueue, AnalysisQueuePriority} from "./analysisQueue";
 
 interface PartialInspectRecord {
     readonly uri: string;
-    readonly isOpen: boolean;
     readonly diagnosticsInParser: lsp.Diagnostic[];
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     readonly rawTokens: TokenObject[];
@@ -182,7 +181,7 @@ export class AnalysisResolver {
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
             .filter(r => this.resolveIncludePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
-                .some(relativePath => resolveUri(r.uri, relativePath) === targetUri) // Check if the target file is included
+                .some(relativeOrAbsolute => resolveIncludeUri(r.uri, relativeOrAbsolute) === targetUri) // Check if the target file is included
             );
 
         for (const dependent of dependentFiles) {
@@ -235,8 +234,8 @@ export class AnalysisResolver {
         includePaths.forEach(path => includeSet.add(path));
 
         // Recursively resolve include paths
-        for (const relativeOrAbsolute of includePaths) {
-            const uri = resolveUri(record.uri, relativeOrAbsolute);
+        for (const relativePath of includePaths) {
+            const uri = resolveUri(record.uri, relativePath);
 
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
@@ -312,7 +311,7 @@ export class AnalysisResolver {
 
         // Get the analyzed scope of included files
         for (const relativeOrAbsolute of includePaths) {
-            const uri = resolveUri(targetUri, relativeOrAbsolute);
+            const uri = resolveIncludeUri(targetUri, relativeOrAbsolute);
 
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {

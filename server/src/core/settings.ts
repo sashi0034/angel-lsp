@@ -4,14 +4,15 @@
  */
 export interface LanguageServerSettings {
     suppressAnalyzerErrors: boolean;
+    includePath: string[];
     implicitMutualInclusion: boolean;
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
     supportsForEach: boolean;
     characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
-    builtinStringTypes: string[];
-    builtinArrayType: string,
+    builtinStringType: string;
+    builtinArrayType: string;
     formatter: {
         maxBlankLines: number;
         indentSpaces: number;
@@ -24,13 +25,14 @@ export interface LanguageServerSettings {
 
 const defaultSettings: LanguageServerSettings = {
     suppressAnalyzerErrors: true,
+    includePath: [],
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
     supportsForEach: false,
     characterLiterals: false,
     supportsTypedEnumerations: false,
-    builtinStringTypes: ["string", "String"],
+    builtinStringType: "string",
     builtinArrayType: "array",
     formatter: {
         maxBlankLines: 1,

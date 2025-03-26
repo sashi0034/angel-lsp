@@ -466,7 +466,7 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     }
 
     // Check whether the class name is a built-in string type with global settings.
-    return getGlobalSettings().builtinStringTypes.includes(source.identifier.text);
+    return getGlobalSettings().builtinStringType === source.identifier.text;
 }
 
 // function excludeSymbolTableByFilepath(table: SymbolTable, filepath: string) {
