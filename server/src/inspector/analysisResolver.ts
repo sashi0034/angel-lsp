@@ -182,7 +182,7 @@ export class AnalysisResolver {
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
             .filter(r => this.resolveIncludePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
-                .some(relativePath => resolveIncludeUri(r.uri, relativePath) === targetUri) // Check if the target file is included
+                .some(relativeOrAbsolute => resolveIncludeUri(r.uri, relativeOrAbsolute) === targetUri) // Check if the target file is included
             );
 
         for (const dependent of dependentFiles) {
@@ -311,8 +311,8 @@ export class AnalysisResolver {
         const includedScopes = [];
 
         // Get the analyzed scope of included files
-        for (const relativePath of includePaths) {
-            const uri = resolveIncludeUri(targetUri, relativePath);
+        for (const relativeOrAbsolute of includePaths) {
+            const uri = resolveIncludeUri(targetUri, relativeOrAbsolute);
 
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
@@ -329,8 +329,8 @@ export class AnalysisResolver {
 
             // If the file is not found, notify the error
             const includePathToken =
-                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativePath)!;
-            analyzerDiagnostic.error(includePathToken.location, `File not found: ${relativePath}`);
+                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute)!;
+            analyzerDiagnostic.error(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
         }
 
         return includedScopes;

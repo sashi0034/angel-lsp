@@ -33,6 +33,16 @@ export function resolveIncludeUri(baseUri: string, relativePath: string): string
     return primaryUri;
 }
 
+export function getIncludeUriList(): { path: string, uri: string }[] {
+    const list: { path: string, uri: string }[] = [];
+    for (const includePath of getGlobalSettings().includePath) {
+        const includeUri = pathToFileURL(toAbsolutePath(includePath)).toString() + '/';
+        list.push({path: includePath, uri: includeUri});
+    }
+
+    return list;
+}
+
 function toAbsolutePath(inputPath: string, baseDir: string = process.cwd()): string {
     return path.isAbsolute(inputPath)
         ? inputPath
