@@ -1,6 +1,12 @@
 # Change Log
 
-# [0.3.31] 2025/03/19
+## [0.3.35] 2025/03/26
+
+- Deprecated the `buitinStringTypes: string[]` setting. Use `buitinStringType: string` instead.
+- Added support for include path setting.
+- Various other minor changes and improvements.
+
+## [0.3.31] 2025/03/19
 
 - #149
 
