@@ -33,29 +33,28 @@ import {provideWeakDefinition} from "./services/definitionExtension";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
-const connection = lsp.createConnection(lsp.ProposedFeatures.all);
+const s_connection = lsp.createConnection(lsp.ProposedFeatures.all);
 
-// Create a simple text document manager.
-let hasConfigurationCapability = false;
-let hasWorkspaceFolderCapability = false;
-let hasDiagnosticRelatedInformationCapability = false;
+let s_hasConfigurationCapability = false;
 
-connection.onInitialize((params: lsp.InitializeParams) => {
+let s_hasWorkspaceFolderCapability = false;
+
+let s_hasDiagnosticRelatedInformationCapability = false;
+
+s_connection.onInitialize((params: lsp.InitializeParams) => {
     const capabilities = params.capabilities;
 
     // Does the client support the `workspace/configuration` request?
     // If not, we fall back using global settings.
-    hasConfigurationCapability = !!(
-        capabilities.workspace && !!capabilities.workspace.configuration
-    );
-    hasWorkspaceFolderCapability = !!(
-        capabilities.workspace && !!capabilities.workspace.workspaceFolders
-    );
-    hasDiagnosticRelatedInformationCapability = !!(
-        capabilities.textDocument &&
-        capabilities.textDocument.publishDiagnostics &&
-        capabilities.textDocument.publishDiagnostics.relatedInformation
-    );
+
+    s_hasConfigurationCapability =
+        capabilities.workspace?.configuration !== undefined;
+
+    s_hasWorkspaceFolderCapability =
+        capabilities.workspace?.workspaceFolders !== undefined;
+
+    s_hasDiagnosticRelatedInformationCapability =
+        capabilities.textDocument?.publishDiagnostics?.relatedInformation !== undefined;
 
     const result: lsp.InitializeResult = {
         capabilities: {
@@ -103,7 +102,7 @@ connection.onInitialize((params: lsp.InitializeParams) => {
         }
     };
 
-    if (hasWorkspaceFolderCapability) {
+    if (s_hasWorkspaceFolderCapability) {
         const filters = {
             scheme: 'file',
             pattern: {glob: '**/{as.predefined,*.as}',}
@@ -128,21 +127,22 @@ connection.onInitialize((params: lsp.InitializeParams) => {
 });
 
 function reloadSettings() {
-    connection.workspace.getConfiguration('angelScript').then((config) => {
+    s_connection.workspace.getConfiguration('angelScript').then((config) => {
         changeGlobalSettings(config);
         s_inspector.reinspectAllFiles();
-        connection.languages.diagnostics.refresh();
+        s_connection.languages.diagnostics.refresh();
     });
 }
 
-connection.onInitialized(() => {
-    if (hasConfigurationCapability) {
+s_connection.onInitialized(() => {
+    if (s_hasConfigurationCapability) {
         // Register for all configuration changes.
-        connection.client.register(lsp.DidChangeConfigurationNotification.type, undefined);
+        s_connection.client.register(lsp.DidChangeConfigurationNotification.type, undefined);
     }
-    if (hasWorkspaceFolderCapability) {
-        connection.workspace.onDidChangeWorkspaceFolders(_event => {
-            connection.console.log('Workspace folder change event received.');
+
+    if (s_hasWorkspaceFolderCapability) {
+        s_connection.workspace.onDidChangeWorkspaceFolders(_event => {
+            s_connection.console.log('Workspace folder change event received.');
         });
     }
 
@@ -154,7 +154,7 @@ connection.onInitialized(() => {
 // Please note that this is not the case when using this server with the client provided in this example
 // but could happen with other clients.
 
-connection.onDidChangeConfiguration(change => {
+s_connection.onDidChangeConfiguration(change => {
     reloadSettings();
 });
 
@@ -177,7 +177,7 @@ const s_documentMap = new Map<string, lsp_textDocument.TextDocument>();
 
 const s_inspector = new Inspector();
 
-connection.onDidOpenTextDocument(params => {
+s_connection.onDidOpenTextDocument(params => {
     const document = params.textDocument;
     s_documentMap.set(
         params.textDocument.uri,
@@ -192,10 +192,10 @@ connection.onDidOpenTextDocument(params => {
     s_inspector.inspectFile(document.uri, document.text, {isOpen: true});
 });
 
-connection.onDidChangeTextDocument((params) => {
+s_connection.onDidChangeTextDocument((params) => {
     const document = s_documentMap.get(params.textDocument.uri);
     if (document === undefined) {
-        connection.console.error('Missing a document: ' + params.textDocument.uri);
+        s_connection.console.error('Missing a document: ' + params.textDocument.uri);
         return;
     }
 
@@ -213,17 +213,18 @@ connection.onDidChangeTextDocument((params) => {
     // connection.sendRequest('angelScript/smartBackspace', 'TODO! Implement this?');
 });
 
-connection.onDidCloseTextDocument(params => {
+s_connection.onDidCloseTextDocument(params => {
     // s_inspector.sleepRecord(params.textDocument.uri);
 });
 
-connection.workspace.onDidRenameFiles(params => {
+s_connection.workspace.onDidRenameFiles(params => {
     for (const renamed of params.files) {
         s_inspector.deleteRecord(renamed.oldUri);
+        // FIXME: Handle for the new name?
     }
 });
 
-connection.workspace.onDidDeleteFiles(params => {
+s_connection.workspace.onDidDeleteFiles(params => {
     for (const deleted of params.files) {
         s_inspector.deleteRecord(deleted.uri);
     }
@@ -231,7 +232,7 @@ connection.workspace.onDidDeleteFiles(params => {
 
 // FIXME: Should we also handle `onWillSaveTextDocument`, `onWillSaveTextDocumentWaitUntil` and `onDidSaveTextDocument`?
 
-connection.onDidChangeWatchedFiles(params => {
+s_connection.onDidChangeWatchedFiles(params => {
     // Maybe we don't need to do anything here, right?
     // https://github.com/microsoft/vscode-discussions/discussions/511
 });
@@ -250,7 +251,7 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
 
 // -----------------------------------------------
 // Semantic Tokens Provider
-connection.languages.semanticTokens.on((params) => {
+s_connection.languages.semanticTokens.on((params) => {
     return provideSemanticTokens(s_inspector.getRecord(params.textDocument.uri).rawTokens);
 });
 
@@ -259,7 +260,7 @@ connection.languages.semanticTokens.on((params) => {
 
 const s_inlayHintsCache: Map<string, lsp.InlayHint[]> = new Map();
 
-connection.languages.inlayHint.on((params) => {
+s_connection.languages.inlayHint.on((params) => {
     const uri = params.textDocument.uri;
     const range = TextRange.create(params.range);
     const record = s_inspector.getRecord(uri);
@@ -278,7 +279,7 @@ connection.languages.inlayHint.on((params) => {
 
 // -----------------------------------------------
 // Definition Provider
-connection.onDefinition((params) => {
+s_connection.onDefinition((params) => {
     const record = s_inspector.getRecord(params.textDocument.uri);
     const globalScope = record.analyzerScope.globalScope;
 
@@ -309,13 +310,13 @@ function getReferenceLocations(params: lsp.TextDocumentPositionParams): Location
     return references.map(ref => ref.location.toServerLocation());
 }
 
-connection.onReferences((params) => {
+s_connection.onReferences((params) => {
     return getReferenceLocations(params);
 });
 
 // -----------------------------------------------
 // Selection Range Provider
-connection.onDocumentSymbol(params => {
+s_connection.onDocumentSymbol(params => {
     return provideDocumentSymbol(s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope);
 });
 
@@ -326,7 +327,7 @@ interface CodeActionContext {
     uri: string;
 }
 
-connection.onCodeAction((params) => {
+s_connection.onCodeAction((params) => {
     const result: CodeAction[] = [];
     const context: CodeActionContext = {uri: params.textDocument.uri};
 
@@ -343,7 +344,7 @@ connection.onCodeAction((params) => {
     return result;
 });
 
-connection.onCodeActionResolve((action) => {
+s_connection.onCodeActionResolve((action) => {
     const context = action.data as CodeActionContext;
     const uri = context.uri;
 
@@ -365,7 +366,7 @@ connection.onCodeActionResolve((action) => {
 
 // -----------------------------------------------
 // Rename Provider
-connection.onRenameRequest((params) => {
+s_connection.onRenameRequest((params) => {
     const locations = getReferenceLocations(params);
 
     const changes: { [uri: string]: TextEdit[] } = {};
@@ -383,7 +384,7 @@ connection.onRenameRequest((params) => {
 
 // -----------------------------------------------
 // Hover Provider
-connection.onHover((params) => {
+s_connection.onHover((params) => {
     s_inspector.flushRecord(params.textDocument.uri);
 
     const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope;
@@ -397,7 +398,7 @@ connection.onHover((params) => {
 // Completion Provider
 const s_lastCompletion: { uri: string; items: CompletionItemWrapper[] } = {uri: '', items: [],};
 
-connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.CompletionItem[] => {
+s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.CompletionItem[] => {
     const uri = params.textDocument.uri;
     const caret = TextPosition.create(params.position);
 
@@ -426,7 +427,7 @@ connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completion
 });
 
 // This handler resolves additional information for the item selected in the completion list.
-connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
+s_connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
     const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope.globalScope;
 
     if (typeof item.data !== 'number') return item;
@@ -441,7 +442,7 @@ connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem =>
 
 // -----------------------------------------------
 // Signature Help Provider
-connection.onSignatureHelp((params) => {
+s_connection.onSignatureHelp((params) => {
     const uri = params.textDocument.uri;
 
     s_inspector.flushRecord(uri);
@@ -454,19 +455,19 @@ connection.onSignatureHelp((params) => {
 
 // -----------------------------------------------
 // Document Formatting Provider
-connection.onDocumentFormatting((params) => {
+s_connection.onDocumentFormatting((params) => {
     s_inspector.flushRecord();
     const record = s_inspector.getRecord(params.textDocument.uri);
     return formatFile(record.content, record.rawTokens, record.ast);
 });
 
-connection.onExecuteCommand((params) => {
+s_connection.onExecuteCommand((params) => {
 
 });
 
 // -----------------------------------------------
 // Document on Type Formatting Provider
-connection.onDocumentOnTypeFormatting((params) => {
+s_connection.onDocumentOnTypeFormatting((params) => {
     const record = s_inspector.getRecord(params.textDocument.uri);
 
     const result = documentOnTypeFormattingProvider(
@@ -482,7 +483,7 @@ connection.onDocumentOnTypeFormatting((params) => {
 // -----------------------------------------------
 // Extended Features
 
-connection.onRequest('angelScript/printGlobalScope', params => {
+s_connection.onRequest('angelScript/printGlobalScope', params => {
     const uri = params.uri as string;
 
     const globalScope = s_inspector.getRecord(uri).analyzerScope.globalScope;
@@ -497,6 +498,6 @@ connection.onRequest('angelScript/printGlobalScope', params => {
 // -----------------------------------------------
 
 // Listen on the connection
-connection.listen();
+s_connection.listen();
 
-s_inspector.registerDiagnosticsCallback(connection.sendDiagnostics);
+s_inspector.registerDiagnosticsCallback(s_connection.sendDiagnostics);
