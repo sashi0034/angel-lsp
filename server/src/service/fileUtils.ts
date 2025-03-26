@@ -3,9 +3,9 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 
-export function resolveUri(dirOrFile: string, relativeOrAbsolute: string): string {
+export function resolveUri(dirOrFile: string, relativePath: string): string {
     const u = new URL(dirOrFile);
-    return url.format(new URL(relativeOrAbsolute, u));
+    return url.format(new URL(relativePath, u));
 }
 
 export function isFileUri(uri: string): boolean {
