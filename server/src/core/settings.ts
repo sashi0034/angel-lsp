@@ -10,7 +10,7 @@ export interface LanguageServerSettings {
     supportsForEach: boolean;
     characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
-    builtinStringTypes: string[];
+    builtinStringType: string,
     builtinArrayType: string,
     formatter: {
         maxBlankLines: number;
@@ -30,7 +30,7 @@ const defaultSettings: LanguageServerSettings = {
     supportsForEach: false,
     characterLiterals: false,
     supportsTypedEnumerations: false,
-    builtinStringTypes: ["string", "String"],
+    builtinStringType: "string",
     builtinArrayType: "array",
     formatter: {
         maxBlankLines: 1,
