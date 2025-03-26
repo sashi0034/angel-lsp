@@ -18,7 +18,6 @@ import {AnalysisQueue, AnalysisQueuePriority} from "./analysisQueue";
 
 interface PartialInspectRecord {
     readonly uri: string;
-    readonly isOpen: boolean;
     readonly diagnosticsInParser: lsp.Diagnostic[];
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     readonly rawTokens: TokenObject[];

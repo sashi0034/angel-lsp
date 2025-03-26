@@ -17,7 +17,7 @@ import {moveDiagnosticsByChanges} from "../service/contentChangeApplier";
 interface InspectRecord {
     content: string;
     uri: string;
-    isOpen: boolean;
+    // isOpen: boolean;
     diagnosticsInParser: lsp.Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     rawTokens: TokenObject[];
@@ -31,7 +31,7 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
     return {
         content: content,
         uri: uri,
-        isOpen: false,
+        // isOpen: false,
         diagnosticsInParser: [],
         diagnosticsInAnalyzer: [],
         rawTokens: [],
@@ -104,7 +104,7 @@ export class Inspector {
         // Update the content
         record.content = content;
 
-        record.isOpen = option?.isOpen === true;
+        // record.isOpen = option?.isOpen === true;
 
         // -----------------------------------------------
         diagnostic.beginSession();
@@ -147,11 +147,15 @@ export class Inspector {
         logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
     }
 
-    public sleepRecord(uri: string): void {
-        const record = this._inspectRecords.get(uri);
-        if (record === undefined) return;
+    // public sleepRecord(uri: string): void {
+    //     const record = this._inspectRecords.get(uri);
+    //     if (record === undefined) return;
+    //
+    //     record.isOpen = false;
+    // }
 
-        record.isOpen = false;
+    public deleteRecord(uri: string): void {
+        this._inspectRecords.delete(uri);
     }
 
     /**

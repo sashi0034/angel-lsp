@@ -102,13 +102,28 @@ connection.onInitialize((params: lsp.InitializeParams) => {
             }
         }
     };
+
     if (hasWorkspaceFolderCapability) {
+        const filters = {
+            scheme: 'file',
+            pattern: {glob: '**/{as.predefined,*.as}',}
+        };
+
         result.capabilities.workspace = {
             workspaceFolders: {
                 supported: true
+            },
+            fileOperations: {
+                didRename: {
+                    filters: [filters]
+                },
+                didDelete: {
+                    filters: [filters]
+                }
             }
         };
     }
+
     return result;
 });
 
@@ -199,10 +214,20 @@ connection.onDidChangeTextDocument((params) => {
 });
 
 connection.onDidCloseTextDocument(params => {
-    s_inspector.sleepRecord(params.textDocument.uri);
+    // s_inspector.sleepRecord(params.textDocument.uri);
 });
 
-// TODO: We want to observe the deletion of a file, but it seems that the LSP doesn't provide such an event?
+connection.workspace.onDidRenameFiles(params => {
+    for (const renamed of params.files) {
+        s_inspector.deleteRecord(renamed.oldUri);
+    }
+});
+
+connection.workspace.onDidDeleteFiles(params => {
+    for (const deleted of params.files) {
+        s_inspector.deleteRecord(deleted.uri);
+    }
+});
 
 // FIXME: Should we also handle `onWillSaveTextDocument`, `onWillSaveTextDocumentWaitUntil` and `onDidSaveTextDocument`?
 
