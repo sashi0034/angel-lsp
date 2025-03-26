@@ -5,7 +5,7 @@ import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {getParentDirectoryList, readFileContent, resolveUri} from "../service/fileUtils";
+import {getParentDirectoryList, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
@@ -182,7 +182,7 @@ export class AnalysisResolver {
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
             .filter(r => this.resolveIncludePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
-                .some(relativePath => resolveUri(r.uri, relativePath) === targetUri) // Check if the target file is included
+                .some(relativePath => resolveIncludeUri(r.uri, relativePath) === targetUri) // Check if the target file is included
             );
 
         for (const dependent of dependentFiles) {
@@ -312,7 +312,7 @@ export class AnalysisResolver {
 
         // Get the analyzed scope of included files
         for (const relativePath of includePaths) {
-            const uri = resolveUri(targetUri, relativePath);
+            const uri = resolveIncludeUri(targetUri, relativePath);
 
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {

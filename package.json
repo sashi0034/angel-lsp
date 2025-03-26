@@ -117,6 +117,15 @@
                     "default": "array",
                     "description": "The built-in array type used in your application. This will handle `Type[]` as `array<Type>`."
                 },
+                "angelScript.includePath": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "The include paths used to resolve #include."
+                },
                 "angelScript.implicitMutualInclusion": {
                     "scope": "window",
                     "type": "boolean",

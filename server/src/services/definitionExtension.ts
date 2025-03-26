@@ -2,7 +2,7 @@ import {TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {findTokenContainingPosition} from "./utils";
 import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {isFileUri, resolveUri} from "../service/fileUtils";
+import {isFileUri, resolveIncludeUri} from "../service/fileUtils";
 import * as lsp from "vscode-languageserver";
 
 /**
@@ -27,7 +27,7 @@ export function provideWeakDefinition(
 // -----------------------------------------------
 
 function provideFileDefinition(uri: string, token: TokenString): lsp.Definition | undefined {
-    const definitionUri = resolveUri(uri, token.getStringContent());
+    const definitionUri = resolveIncludeUri(uri, token.getStringContent());
     if (isFileUri(definitionUri) === false) return undefined;
 
     return {
