@@ -1,6 +1,5 @@
 import {
     ScopePath,
-    SymbolFunctionHolder,
     SymbolObject,
     SymbolObjectHolder,
     SymbolType,
@@ -23,13 +22,12 @@ import {
     NodeWhile
 } from "../compiler_parser/nodes";
 import {
-    ComplementAutoTypeResolution,
-    ComplementFunctionCall,
-    ComplementHint,
-    ComplementInstanceMember,
-    ComplementNamespaceAccess,
-    ComplementScopeRegion, ReferenceInformation
-} from "./complementHint";
+    AutoTypeResolutionInfo,
+    FunctionCallInfo,
+    AutocompleteInstanceMemberInfo,
+    AutocompleteNamespaceAccessInfo,
+    ScopeRegionInfo, ReferenceInfo
+} from "./info";
 import {getGlobalSettings} from "../core/settings";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
@@ -44,12 +42,12 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
 interface ScopeDetailInformation {
-    referenceList: ReferenceInformation[];
-    scopeRegionList: ComplementScopeRegion[];
-    autocompleteInstanceMember: ComplementInstanceMember[];
-    autocompleteNamespaceAccess: ComplementNamespaceAccess[];
-    functionCallList: ComplementFunctionCall[];
-    autoTypeResolutionList: ComplementAutoTypeResolution[];
+    referenceList: ReferenceInfo[];
+    scopeRegionList: ScopeRegionInfo[];
+    autocompleteInstanceMember: AutocompleteInstanceMemberInfo[];
+    autocompleteNamespaceAccess: AutocompleteNamespaceAccessInfo[];
+    functionCallList: FunctionCallInfo[];
+    autoTypeResolutionList: AutoTypeResolutionInfo[];
 }
 
 interface GlobalScopeContext {

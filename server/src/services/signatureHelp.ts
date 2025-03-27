@@ -1,7 +1,7 @@
 import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {ComplementFunctionCall} from "../compiler_analyzer/complementHint";
+import {FunctionCallInfo} from "../compiler_analyzer/info";
 import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
@@ -39,7 +39,7 @@ export function provideSignatureHelp(
     };
 }
 
-function getFunctionSignature(hint: ComplementFunctionCall, expectedCallee: SymbolFunction, caret: TextPosition) {
+function getFunctionSignature(hint: FunctionCallInfo, expectedCallee: SymbolFunction, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;

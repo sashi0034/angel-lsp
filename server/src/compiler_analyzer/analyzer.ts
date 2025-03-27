@@ -39,15 +39,8 @@ import {
     NodeVarAccess,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {
-    isNodeClassOrInterface,
-    SymbolFunction,
-    SymbolFunctionHolder,
-    SymbolObjectHolder,
-    SymbolType,
-    SymbolVariable
-} from "./symbolObject";
-import {NumberLiteral, TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
+import {isNodeClassOrInterface, SymbolFunction, SymbolFunctionHolder, SymbolType, SymbolVariable} from "./symbolObject";
+import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
@@ -66,7 +59,6 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {complementScopeRegion} from "./complementHint";
 import {
     canAccessInstanceMember,
     findSymbolWithParent,
@@ -83,12 +75,20 @@ import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 import {ActionHint} from "./actionHint";
-import assert = require("node:assert");
 import {checkDefaultConstructorCall, findConstructorOfType} from "./constrcutorCall";
+import assert = require("node:assert");
 
 export type HoistQueue = (() => void)[];
 
 export type AnalyzeQueue = (() => void)[];
+
+/** @internal */
+export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenRange) {
+    getActiveGlobalScope().info.scopeRegionList.push({
+        boundingLocation: tokenRange.getBoundingLocation(),
+        targetScope: targetScope
+    });
+}
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 
@@ -214,7 +214,7 @@ export function analyzeVarInitializer(
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
-    complementScopeRegion(scope, statBlock.nodeRange);
+    pushScopeRegionInfo(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {

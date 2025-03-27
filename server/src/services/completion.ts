@@ -7,7 +7,7 @@ import {
     SymbolGlobalScope,
     SymbolScope
 } from "../compiler_analyzer/symbolScope";
-import {ComplementInstanceMember} from "../compiler_analyzer/complementHint";
+import {AutocompleteInstanceMemberInfo} from "../compiler_analyzer/info";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 import {findScopeContainingPosition} from "../service/utils";
@@ -115,7 +115,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 function autocompleteInstanceMember(
     globalScope: SymbolScope,
     caretScope: SymbolScope,
-    completion: ComplementInstanceMember
+    completion: AutocompleteInstanceMemberInfo
 ) {
     // Find the scope to which the type to be completed belongs.
     if (completion.targetType.membersScope === undefined) return [];
