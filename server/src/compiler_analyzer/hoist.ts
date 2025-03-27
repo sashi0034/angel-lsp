@@ -214,7 +214,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
             // Found the base class
             baseList.push(new ResolvedType(baseType.symbol));
 
-            getActiveGlobalScope().pushReference({
+            getActiveGlobalScope().info.referenceList.push({
                 toSymbol: baseType.symbol,
                 fromToken: baseIdentifier
             });

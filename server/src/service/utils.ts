@@ -1,6 +1,6 @@
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
-import {ComplementKind, ComplementScopeRegion} from "../compiler_analyzer/complementHint";
+import {ComplementScopeRegion} from "../compiler_analyzer/complementHint";
 
 export function takeNarrowestScopeRegion(lhs: ComplementScopeRegion, rhs: ComplementScopeRegion): ComplementScopeRegion {
     const lhsDiff = lhs.boundingLocation.getDifference();
@@ -23,9 +23,7 @@ export function findScopeContainingPosition(globalScope: SymbolGlobalScope, care
     const path = globalScope.getContext().filepath;
 
     let found: ComplementScopeRegion | undefined = undefined;
-    for (const hint of globalScope.completionHints) {
-        if (hint.complement !== ComplementKind.ScopeRegion) continue;
-
+    for (const hint of globalScope.info.scopeRegionList) {
         const location = hint.boundingLocation;
         if (location.path !== path) continue;
 

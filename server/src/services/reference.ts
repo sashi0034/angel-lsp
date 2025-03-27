@@ -2,7 +2,6 @@ import {provideDefinitionAsToken} from "./definition";
 import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {ComplementKind} from "../compiler_analyzer/complementHint";
 
 export function provideReferences(globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, allGlobalScopes, caret);
@@ -23,7 +22,7 @@ export function provideReferences(globalScope: SymbolGlobalScope, allGlobalScope
 function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken: TokenObject): TokenObject[] {
     const references = [];
 
-    for (const reference of globalScope.referenceList) {
+    for (const reference of globalScope.info.referenceList) {
         // If the reference points to the target definition, add it to the result.
         if (reference.toSymbol.identifierToken.equals(toToken)) {
             references.push(reference.fromToken);
@@ -40,9 +39,7 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
 
     if (scope.isGlobalScope()) {
         // Append namespace access references from the completion hints.
-        for (const hint of scope.completionHints) {
-            if (hint.complement !== ComplementKind.AutocompleteNamespaceAccess) continue;
-
+        for (const hint of scope.info.autocompleteNamespaceAccess) {
             // It's a bit rough, but we'll reuse autocomplete hint here
             if (hint.namespaceToken.text === toToken.text) {
                 references.push(hint.namespaceToken);

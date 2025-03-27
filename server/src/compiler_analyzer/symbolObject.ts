@@ -336,12 +336,4 @@ export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHol
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 
-/**
- * Information about a symbol that references a symbol declared elsewhere.
- */
-export interface ReferenceInformation {
-    readonly toSymbol: SymbolObject;
-    readonly fromToken: TokenObject;
-}
-
 

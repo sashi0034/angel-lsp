@@ -66,7 +66,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {ComplementKind, complementScopeRegion} from "./complementHint";
+import {complementScopeRegion} from "./complementHint";
 import {
     canAccessInstanceMember,
     findSymbolWithParent,
@@ -145,8 +145,7 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
             // TODO: Code cleanup
             if (varType !== undefined) {
-                getActiveGlobalScope().pushCompletionHint({
-                    complement: ComplementKind.AutoTypeResolution,
+                getActiveGlobalScope().info.autoTypeResolutionList.push({
                     autoToken: declaredVar.identifier,
                     resolvedType: initType,
                 });
@@ -293,7 +292,7 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    getActiveGlobalScope().pushReference({
+    getActiveGlobalScope().info.referenceList.push({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -386,8 +385,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         scopeIterator = found;
 
         // Append a hint for completion of the namespace to the scope.
-        getActiveGlobalScope().pushCompletionHint({
-            complement: ComplementKind.AutocompleteNamespaceAccess,
+        getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
             autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
@@ -792,8 +790,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
     const complementRange = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
-    getActiveGlobalScope().pushCompletionHint({
-        complement: ComplementKind.AutocompleteInstanceMember,
+    getActiveGlobalScope().info.autocompleteInstanceMember.push({
         autocompleteLocation: complementRange,
         targetType: exprValue.typeOrFunc
     });
@@ -1001,8 +998,7 @@ function analyzeFunctionCall(
         analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
     }
 
-    getActiveGlobalScope().pushCompletionHint({
-        complement: ComplementKind.FunctionCall,
+    getActiveGlobalScope().info.functionCallList.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,
@@ -1066,7 +1062,7 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        getActiveGlobalScope().pushReference({
+        getActiveGlobalScope().info.referenceList.push({
             toSymbol: declared.symbol.toList()[0],
             fromToken: varIdentifier
         });

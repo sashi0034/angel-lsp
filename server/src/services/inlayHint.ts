@@ -2,7 +2,6 @@ import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation} from "../compiler_tokenizer/textLocation";
 import {isNodeClassOrInterface} from "../compiler_analyzer/symbolObject";
 import * as lsp from "vscode-languageserver/node";
-import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeName} from '../compiler_parser/nodes';
 import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 
@@ -18,14 +17,12 @@ export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextL
 
 function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const hint of globalScope.completionHints) {
-        if (hint.complement !== ComplementKind.FunctionCall) continue;
-
+    for (const hint of globalScope.info.functionCallList) {
         const callerIdentifier = hint.callerIdentifier;
         if (location.intersects(callerIdentifier.location) === false) continue;
 
         // FIXME: Optimize the search
-        const callingReference = globalScope.referenceList.find(reference => reference.fromToken === hint.callerIdentifier);
+        const callingReference = globalScope.info.referenceList.find(reference => reference.fromToken === hint.callerIdentifier);
         if (callingReference === undefined) continue;
 
         const calleeFunction = callingReference.toSymbol;
@@ -63,10 +60,8 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
 
 function inlayHintAutoType(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const hint of globalScope.completionHints) {
-        if (hint.complement !== ComplementKind.AutoTypeResolution) continue;
-
-        // TODO: Intersect check
+    for (const hint of globalScope.info.autoTypeResolutionList) {
+        // TODO: Check with location?
 
         result.push({
             position: hint.autoToken.location.end,

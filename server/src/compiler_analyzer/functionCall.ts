@@ -149,9 +149,9 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().pushReference({
+                getActiveGlobalScope().info.referenceList.push(({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
-                });
+                }));
 
                 pushReferenceToNamedArguments(args.callerArgs, bestMatching.function);
             }
@@ -166,9 +166,9 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
-                getActiveGlobalScope().pushReference({
+                getActiveGlobalScope().info.referenceList.push(({
                     toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
-                });
+                }));
 
                 pushReferenceToNamedArguments(args.callerArgs, fallbackCallee);
             }
@@ -191,7 +191,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
         if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
 
         // Add a reference to the named argument in the callee function scope.
-        getActiveGlobalScope().pushReference({toSymbol: toSymbol, fromToken: args.name});
+        getActiveGlobalScope().info.referenceList.push(({toSymbol: toSymbol, fromToken: args.name}));
     }
 }
 
@@ -212,9 +212,9 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
             returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().pushReference({
+                getActiveGlobalScope().info.referenceList.push(({
                     toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
-                });
+                }));
 
                 // Probably we do not need to add references to named arguments for delegates.
             }

@@ -4,7 +4,6 @@ import {ActionHint} from "../compiler_analyzer/actionHint";
 import * as lsp from 'vscode-languageserver';
 import * as assert from "node:assert";
 import {SymbolFunction} from "../compiler_analyzer/symbolObject";
-import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {NodeArgList} from "../compiler_parser/nodes";
 
 export function provideCodeAction(
@@ -21,7 +20,7 @@ export function provideCodeAction(
 // -----------------------------------------------
 function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocation) {
     let calleeFunction: SymbolFunction | undefined = undefined;
-    for (const reference of globalScope.referenceList) {
+    for (const reference of globalScope.info.referenceList) {
         if (reference.toSymbol.isFunction() === false) continue;
 
         if (reference.fromToken.location.intersects(location)) {
@@ -34,9 +33,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
     // -----------------------------------------------
 
     let callerNode: NodeArgList | undefined;
-    for (const completion of globalScope.completionHints) {
-        if (completion.complement !== ComplementKind.FunctionCall) continue;
-
+    for (const completion of globalScope.info.functionCallList) {
         if (completion.callerIdentifier.location.intersects(location) === false) continue;
 
         callerNode = completion.callerArgumentsNode;

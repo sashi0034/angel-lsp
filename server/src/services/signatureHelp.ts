@@ -1,7 +1,7 @@
 import {SymbolFunction} from "../compiler_analyzer/symbolObject";
 import {Position, SignatureHelp, URI} from "vscode-languageserver";
 import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {ComplementKind, ComplementFunctionCall} from "../compiler_analyzer/complementHint";
+import {ComplementFunctionCall} from "../compiler_analyzer/complementHint";
 import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
@@ -13,9 +13,8 @@ export function provideSignatureHelp(
 ): SignatureHelp {
     const signatures: SignatureInformation[] = [];
 
-    for (let i = 0; i < globalScope.completionHints.length; i++) {
-        const hint = globalScope.completionHints[i];
-        if (hint.complement !== ComplementKind.FunctionCall) continue;
+    for (let i = 0; i < globalScope.info.functionCallList.length; i++) {
+        const hint = globalScope.info.functionCallList[i];
 
         // Check if the caller location is at the cursor position in the scope.
         const shouldExtend = hint.callerArgumentsNode.nodeRange.end.location.end.character > caret.character;

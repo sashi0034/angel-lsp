@@ -1,5 +1,4 @@
 import {
-    ReferenceInformation,
     ScopePath,
     SymbolFunctionHolder,
     SymbolObject,
@@ -23,7 +22,14 @@ import {
     NodeVirtualProp,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {ComplementHint} from "./complementHint";
+import {
+    ComplementAutoTypeResolution,
+    ComplementFunctionCall,
+    ComplementHint,
+    ComplementInstanceMember,
+    ComplementNamespaceAccess,
+    ComplementScopeRegion, ReferenceInformation
+} from "./complementHint";
 import {getGlobalSettings} from "../core/settings";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
@@ -37,19 +43,33 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
+interface ScopeDetailInformation {
+    referenceList: ReferenceInformation[];
+    scopeRegionList: ComplementScopeRegion[];
+    autocompleteInstanceMember: ComplementInstanceMember[];
+    autocompleteNamespaceAccess: ComplementNamespaceAccess[];
+    functionCallList: ComplementFunctionCall[];
+    autoTypeResolutionList: ComplementAutoTypeResolution[];
+}
+
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: SymbolType | undefined;
-    completionHints: ComplementHint[];
-    referenceList: ReferenceInformation[];
+    info: ScopeDetailInformation;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
     return {
         filepath: '',
         builtinStringType: undefined,
-        completionHints: [],
-        referenceList: [],
+        info: {
+            referenceList: [],
+            scopeRegionList: [],
+            autocompleteInstanceMember: [],
+            autocompleteNamespaceAccess: [],
+            functionCallList: [],
+            autoTypeResolutionList: [],
+        }
     };
 }
 
@@ -410,20 +430,8 @@ export class SymbolGlobalScope extends SymbolScope {
     //     this.commitContext();
     // }
 
-    public pushCompletionHint(hint: ComplementHint) {
-        this._context.completionHints.push(hint);
-    }
-
-    public get completionHints(): ReadonlyArray<ComplementHint> {
-        return this._context.completionHints;
-    }
-
-    public pushReference(reference: ReferenceInformation) {
-        this._context.referenceList.push(reference);
-    }
-
-    public get referenceList(): ReadonlyArray<ReferenceInformation> {
-        return this._context.referenceList;
+    public get info(): Readonly<ScopeDetailInformation> {
+        return this._context.info;
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {
