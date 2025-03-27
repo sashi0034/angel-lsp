@@ -6,7 +6,7 @@ export function createGlobalScope(filepath: string, includeScopes: AnalyzerScope
     globalScope.activateContext();
 
     for (const include of includeScopes) {
-        globalScope.includeExternalScope(include.getUniqueGlobalScope());
+        globalScope.includeExternalScope(include.getPureGlobalScope());
     }
 
     return globalScope;
@@ -29,18 +29,18 @@ export class AnalyzerScope {
      */
     public readonly globalScope: SymbolGlobalScope;
 
-    private _fileGlobalScope: SymbolGlobalScope | undefined;
+    private _pureGlobalScope: SymbolGlobalScope | undefined;
 
     /**
      * The scope that contains only symbols in the file.
      */
-    public getUniqueGlobalScope(): SymbolScope {
-        if (this._fileGlobalScope === undefined) {
-            this._fileGlobalScope = new SymbolGlobalScope(this.globalScope.getContext());
-            this._fileGlobalScope.includeExternalScope(this.globalScope);
+    public getPureGlobalScope(): SymbolScope {
+        if (this._pureGlobalScope === undefined) {
+            this._pureGlobalScope = new SymbolGlobalScope(this.globalScope.getContext());
+            this._pureGlobalScope.includeExternalScope(this.globalScope);
         }
 
-        return this._fileGlobalScope;
+        return this._pureGlobalScope;
     }
 
     public constructor(path: string, result: SymbolGlobalScope) {

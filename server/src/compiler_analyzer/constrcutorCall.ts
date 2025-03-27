@@ -33,7 +33,7 @@ export function checkDefaultConstructorCall(
 ) {
     const constructorIdentifier = calleeConstructorType.typeOrFunc.identifierToken;
     if (constructorIdentifier?.isVirtual() === false) {
-        getActiveGlobalScope().pushReference({toSymbol: calleeConstructorType.typeOrFunc, fromToken: callerIdentifier});
+        getActiveGlobalScope().info.reference.push({toSymbol: calleeConstructorType.typeOrFunc, fromToken: callerIdentifier});
     }
 
     // -----------------------------------------------

@@ -39,15 +39,8 @@ import {
     NodeVarAccess,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {
-    isNodeClassOrInterface,
-    SymbolFunction,
-    SymbolFunctionHolder,
-    SymbolObjectHolder,
-    SymbolType,
-    SymbolVariable
-} from "./symbolObject";
-import {NumberLiteral, TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
+import {isNodeClassOrInterface, SymbolFunction, SymbolFunctionHolder, SymbolType, SymbolVariable} from "./symbolObject";
+import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
@@ -66,7 +59,6 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from "./builtinType";
-import {ComplementKind, complementScopeRegion} from "./complementHint";
 import {
     canAccessInstanceMember,
     findSymbolWithParent,
@@ -83,12 +75,20 @@ import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 import {ActionHint} from "./actionHint";
-import assert = require("node:assert");
 import {checkDefaultConstructorCall, findConstructorOfType} from "./constrcutorCall";
+import assert = require("node:assert");
 
 export type HoistQueue = (() => void)[];
 
 export type AnalyzeQueue = (() => void)[];
+
+/** @internal */
+export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenRange) {
+    getActiveGlobalScope().info.scopeRegion.push({
+        boundingLocation: tokenRange.getBoundingLocation(),
+        targetScope: targetScope
+    });
+}
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
 
@@ -145,8 +145,7 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
             // TODO: Code cleanup
             if (varType !== undefined) {
-                getActiveGlobalScope().pushCompletionHint({
-                    complement: ComplementKind.AutoTypeResolution,
+                getActiveGlobalScope().info.autoTypeResolution.push({
                     autoToken: declaredVar.identifier,
                     resolvedType: initType,
                 });
@@ -215,7 +214,7 @@ export function analyzeVarInitializer(
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
-    complementScopeRegion(scope, statBlock.nodeRange);
+    pushScopeRegionInfo(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -293,7 +292,7 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    getActiveGlobalScope().pushReference({
+    getActiveGlobalScope().info.reference.push({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -311,7 +310,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        // This may seem like redundant processing, but it is invoked to add complement hints.
+        // This may seem like redundant processing, but it is invoked to add infos.
         analyzeScope(scope, nodeType.scope);
 
         analyzerDiagnostic.error(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
@@ -385,9 +384,8 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Update the scope iterator.
         scopeIterator = found;
 
-        // Append a hint for completion of the namespace to the scope.
-        getActiveGlobalScope().pushCompletionHint({
-            complement: ComplementKind.AutocompleteNamespaceAccess,
+        // Append an information for completion of the namespace to the scope.
+        getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
             autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
             namespaceToken: scopeToken,
@@ -788,13 +786,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    // Append a hint for complement of class members.
-    const complementRange = getBoundingLocationBetween(
+    // Append an information for autocomplete of class members.
+    const autocompleteLocation = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
-    getActiveGlobalScope().pushCompletionHint({
-        complement: ComplementKind.AutocompleteInstanceMember,
-        autocompleteLocation: complementRange,
+    getActiveGlobalScope().info.autocompleteInstanceMember.push({
+        autocompleteLocation: autocompleteLocation,
         targetType: exprValue.typeOrFunc
     });
 
@@ -997,12 +994,7 @@ function analyzeFunctionCall(
     calleeTemplateTranslator: TemplateTranslator | undefined,
     calleeDelegateVariable?: SymbolVariable
 ) {
-    if (callerArgList.argList[0]?.identifier === undefined) {
-        analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
-    }
-
-    getActiveGlobalScope().pushCompletionHint({
-        complement: ComplementKind.FunctionCall,
+    getActiveGlobalScope().info.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,
@@ -1066,7 +1058,7 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        getActiveGlobalScope().pushReference({
+        getActiveGlobalScope().info.reference.push({
             toSymbol: declared.symbol.toList()[0],
             fromToken: varIdentifier
         });

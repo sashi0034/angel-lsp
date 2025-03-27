@@ -8,7 +8,7 @@ import * as lsp from "vscode-languageserver";
 /**
  * Returns the definition of the tokens like string literals at the specified position.
  */
-export function provideWeakDefinition(
+export function provideDefinitionFallback(
     rawTokens: TokenObject[],
     globalScope: SymbolGlobalScope,
     caret: TextPosition

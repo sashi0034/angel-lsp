@@ -1,7 +1,7 @@
 import {Position} from "vscode-languageserver";
 import {FormatterState, stepCursorAlongLines} from "./formatterState";
 import {TokenObject, TokenKind} from "../compiler_tokenizer/tokenObject";
-import {NodesBase} from "../compiler_parser/nodes";
+import {NodeBase} from "../compiler_parser/nodes";
 import {logger} from "../core/logger";
 import {getGlobalSettings} from "../core/settings";
 
@@ -61,7 +61,7 @@ export interface FormatTargetOption {
     connectTail?: boolean;
 }
 
-export function formatMoveUntilNodeStart(format: FormatterState, node: NodesBase) {
+export function formatMoveUntilNodeStart(format: FormatterState, node: NodeBase) {
     formatMoveUntil(format, node.nodeRange.start.location.start);
 }
 

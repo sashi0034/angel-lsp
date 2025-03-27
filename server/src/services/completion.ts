@@ -7,7 +7,7 @@ import {
     SymbolGlobalScope,
     SymbolScope
 } from "../compiler_analyzer/symbolScope";
-import {ComplementHint, ComplementKind, isAutocompleteHint} from "../compiler_analyzer/complementHint";
+import {AutocompleteInstanceMemberInfo} from "../compiler_analyzer/info";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 import {findScopeContainingPosition} from "../service/utils";
@@ -89,16 +89,22 @@ function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: Symbo
 }
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
-    if (globalScope.completionHints.length === 0) return;
-
-    for (const hint of globalScope.completionHints) {
-        if (isAutocompleteHint(hint) === false) continue;
-
+    for (const info of globalScope.info.autocompleteInstanceMember) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.autocompleteLocation;
+        const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
-            const result = searchMissingCompletion(globalScope, caretScope, hint);
+            const result = autocompleteInstanceMember(globalScope, caretScope, info);
+            if (result !== undefined && result.length > 0) return result;
+        }
+    }
+
+    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+        // Check if the completion target to be prioritized is at the cursor position in the scope.
+        const location = info.autocompleteLocation;
+        if (location.positionInRange(caret)) {
+            // Return the completion target to be prioritized.
+            const result = getCompletionSymbolsInScope(info.accessScope, false);
             if (result !== undefined && result.length > 0) return result;
         }
     }
@@ -106,23 +112,20 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
     return undefined;
 }
 
-function searchMissingCompletion(globalScope: SymbolScope, caretScope: SymbolScope, completion: ComplementHint) {
-    if (completion.complement === ComplementKind.AutocompleteInstanceMember) {
-        // Find the scope to which the type to be completed belongs.
-        if (completion.targetType.membersScope === undefined) return [];
+function autocompleteInstanceMember(
+    globalScope: SymbolScope,
+    caretScope: SymbolScope,
+    completion: AutocompleteInstanceMemberInfo
+) {
+    // Find the scope to which the type to be completed belongs.
+    if (completion.targetType.membersScope === undefined) return [];
 
-        const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
-            completion.targetType.identifierToken.text);
-        if (typeScope === undefined) return [];
+    const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
+        completion.targetType.identifierToken.text);
+    if (typeScope === undefined) return [];
 
-        // Return the completion candidates in the scope.
-        return getCompletionMembersInScope(globalScope, caretScope, typeScope);
-    } else if (completion.complement === ComplementKind.AutocompleteNamespaceAccess) {
-        // Return the completion candidates in the scope.
-        return getCompletionSymbolsInScope(completion.accessScope, false);
-    }
-
-    return undefined;
+    // Return the completion candidates in the scope.
+    return getCompletionMembersInScope(globalScope, caretScope, typeScope);
 }
 
 function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {

@@ -6,7 +6,6 @@ import {
 import {Position} from "vscode-languageserver";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {ComplementKind} from "../compiler_analyzer/complementHint";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 
 /**
@@ -34,7 +33,7 @@ function provideDefinitionInternal(globalScope: SymbolGlobalScope, caret: TextPo
     const filepath = globalScope.getContext().filepath;
 
     // Find the symbol that the caret is on in the reference list
-    for (const reference of globalScope.referenceList) {
+    for (const reference of globalScope.info.reference) {
         const referencedLocation = reference.fromToken.location;
         if (referencedLocation.positionInRange(caret)) {
             // If the reference location is on the cursor, return the declaration
@@ -139,16 +138,13 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let accessScope: SymbolScope | undefined;
     let tokenOnCaret: TokenObject | undefined;
     let tokenAfterNamespace: TokenObject | undefined;
-    for (const hint of globalScope.completionHints) {
-        // It's a bit rough, but we'll reuse autocomplete hint here
-        if (hint.complement !== ComplementKind.AutocompleteNamespaceAccess) {
-            continue;
-        }
 
-        if (hint.namespaceToken.location.positionInRange(caret)) {
-            accessScope = hint.accessScope;
-            tokenOnCaret = hint.namespaceToken;
-            tokenAfterNamespace = hint.tokenAfterNamespaces;
+    // It's a bit rough, but we'll reuse autocomplete info here
+    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+        if (info.namespaceToken.location.positionInRange(caret)) {
+            accessScope = info.accessScope;
+            tokenOnCaret = info.namespaceToken;
+            tokenAfterNamespace = info.tokenAfterNamespaces;
             break;
         }
     }

@@ -1,8 +1,8 @@
 import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
-import {ComplementKind, ComplementScopeRegion} from "../compiler_analyzer/complementHint";
+import {ScopeRegionInfo} from "../compiler_analyzer/info";
 
-export function takeNarrowestScopeRegion(lhs: ComplementScopeRegion, rhs: ComplementScopeRegion): ComplementScopeRegion {
+export function takeNarrowestScopeRegion(lhs: ScopeRegionInfo, rhs: ScopeRegionInfo): ScopeRegionInfo {
     const lhsDiff = lhs.boundingLocation.getDifference();
     const rhsDiff = rhs.boundingLocation.getDifference();
 
@@ -22,17 +22,15 @@ interface ScopeAndLocation {
 export function findScopeContainingPosition(globalScope: SymbolGlobalScope, caret: TextPosition): ScopeAndLocation {
     const path = globalScope.getContext().filepath;
 
-    let found: ComplementScopeRegion | undefined = undefined;
-    for (const hint of globalScope.completionHints) {
-        if (hint.complement !== ComplementKind.ScopeRegion) continue;
-
-        const location = hint.boundingLocation;
+    let found: ScopeRegionInfo | undefined = undefined;
+    for (const info of globalScope.info.scopeRegion) {
+        const location = info.boundingLocation;
         if (location.path !== path) continue;
 
         if (location.positionInRange(caret)) {
             found = found === undefined
-                ? hint
-                : takeNarrowestScopeRegion(found, hint);
+                ? info
+                : takeNarrowestScopeRegion(found, info);
         }
     }
 
