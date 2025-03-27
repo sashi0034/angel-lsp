@@ -29,7 +29,7 @@ import {SimpleProfiler} from "./utils/simpleProfiler";
 import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
 import {safeWriteFile} from "./utils/fileUtils";
 import {moveInlayHintByChanges} from "./service/contentChangeApplier";
-import {provideWeakDefinition} from "./services/definitionExtension";
+import {provideDefinitionFallback} from "./services/definitionExtension";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -288,7 +288,7 @@ s_connection.onDefinition((params) => {
     const definition = provideDefinitionAsToken(globalScope, getAllGlobalScopes(), caret);
     if (definition !== undefined) return definition.location.toServerLocation();
 
-    return provideWeakDefinition(record.rawTokens, globalScope, caret);
+    return provideDefinitionFallback(record.rawTokens, globalScope, caret);
 });
 
 function getAllGlobalScopes() {
