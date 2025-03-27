@@ -139,12 +139,12 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenOnCaret: TokenObject | undefined;
     let tokenAfterNamespace: TokenObject | undefined;
 
-    // It's a bit rough, but we'll reuse autocomplete hint here
-    for (const hint of globalScope.info.autocompleteNamespaceAccess) {
-        if (hint.namespaceToken.location.positionInRange(caret)) {
-            accessScope = hint.accessScope;
-            tokenOnCaret = hint.namespaceToken;
-            tokenAfterNamespace = hint.tokenAfterNamespaces;
+    // It's a bit rough, but we'll reuse autocomplete info here
+    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+        if (info.namespaceToken.location.positionInRange(caret)) {
+            accessScope = info.accessScope;
+            tokenOnCaret = info.namespaceToken;
+            tokenAfterNamespace = info.tokenAfterNamespaces;
             break;
         }
     }

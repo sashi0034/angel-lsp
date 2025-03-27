@@ -33,7 +33,7 @@ export interface AutocompleteInstanceMemberInfo {
 
 /**
  * Represents an autocomplete target for namespace symbols.
- * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two hints.
+ * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two infos.
  * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
  */
 export interface AutocompleteNamespaceAccessInfo {
@@ -55,7 +55,7 @@ export interface FunctionCallInfo {
 }
 
 /**
- * Represents the type resolution hint for the auto keyword.
+ * Represents the type resolution information for the auto keyword.
  * e.g., providing the resolved type for the auto keyword.
  */
 export interface AutoTypeResolutionInfo {

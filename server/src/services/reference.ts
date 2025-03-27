@@ -38,11 +38,11 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
     // FIXME: This is not considered a nested namespace, i.e., we treat 'B' and 'A::B' as the same namespace.
 
     if (scope.isGlobalScope()) {
-        // Append namespace access references from the completion hints.
-        for (const hint of scope.info.autocompleteNamespaceAccess) {
-            // It's a bit rough, but we'll reuse autocomplete hint here
-            if (hint.namespaceToken.text === toToken.text) {
-                references.push(hint.namespaceToken);
+        // Append namespace access references from the completion infos.
+        for (const info of scope.info.autocompleteNamespaceAccess) {
+            // It's a bit rough, but we'll reuse autocomplete info here
+            if (info.namespaceToken.text === toToken.text) {
+                references.push(info.namespaceToken);
             }
         }
     }

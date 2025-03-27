@@ -310,7 +310,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        // This may seem like redundant processing, but it is invoked to add complement hints.
+        // This may seem like redundant processing, but it is invoked to add infos.
         analyzeScope(scope, nodeType.scope);
 
         analyzerDiagnostic.error(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
@@ -384,7 +384,7 @@ function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolSco
         // Update the scope iterator.
         scopeIterator = found;
 
-        // Append a hint for completion of the namespace to the scope.
+        // Append an information for completion of the namespace to the scope.
         getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
             autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
             accessScope: scopeIterator,
@@ -786,12 +786,12 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    // Append a hint for complement of class members.
-    const complementRange = getBoundingLocationBetween(
+    // Append an information for autocomplete of class members.
+    const autocompleteLocation = getBoundingLocationBetween(
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf());
     getActiveGlobalScope().info.autocompleteInstanceMember.push({
-        autocompleteLocation: complementRange,
+        autocompleteLocation: autocompleteLocation,
         targetType: exprValue.typeOrFunc
     });
 

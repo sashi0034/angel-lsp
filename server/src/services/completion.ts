@@ -89,22 +89,22 @@ function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: Symbo
 }
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
-    for (const hint of globalScope.info.autocompleteInstanceMember) {
+    for (const info of globalScope.info.autocompleteInstanceMember) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.autocompleteLocation;
+        const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
-            const result = autocompleteInstanceMember(globalScope, caretScope, hint);
+            const result = autocompleteInstanceMember(globalScope, caretScope, info);
             if (result !== undefined && result.length > 0) return result;
         }
     }
 
-    for (const hint of globalScope.info.autocompleteNamespaceAccess) {
+    for (const info of globalScope.info.autocompleteNamespaceAccess) {
         // Check if the completion target to be prioritized is at the cursor position in the scope.
-        const location = hint.autocompleteLocation;
+        const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
-            const result = getCompletionSymbolsInScope(hint.accessScope, false);
+            const result = getCompletionSymbolsInScope(info.accessScope, false);
             if (result !== undefined && result.length > 0) return result;
         }
     }

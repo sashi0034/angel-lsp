@@ -23,14 +23,14 @@ export function findScopeContainingPosition(globalScope: SymbolGlobalScope, care
     const path = globalScope.getContext().filepath;
 
     let found: ScopeRegionInfo | undefined = undefined;
-    for (const hint of globalScope.info.scopeRegion) {
-        const location = hint.boundingLocation;
+    for (const info of globalScope.info.scopeRegion) {
+        const location = info.boundingLocation;
         if (location.path !== path) continue;
 
         if (location.positionInRange(caret)) {
             found = found === undefined
-                ? hint
-                : takeNarrowestScopeRegion(found, hint);
+                ? info
+                : takeNarrowestScopeRegion(found, info);
         }
     }
 

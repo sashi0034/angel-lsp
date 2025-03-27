@@ -17,18 +17,18 @@ export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextL
 
 function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const hint of globalScope.info.functionCall) {
-        const callerIdentifier = hint.callerIdentifier;
+    for (const info of globalScope.info.functionCall) {
+        const callerIdentifier = info.callerIdentifier;
         if (location.intersects(callerIdentifier.location) === false) continue;
 
         // FIXME: Optimize the search
-        const callingReference = globalScope.info.reference.find(reference => reference.fromToken === hint.callerIdentifier);
+        const callingReference = globalScope.info.reference.find(reference => reference.fromToken === info.callerIdentifier);
         if (callingReference === undefined) continue;
 
         const calleeFunction = callingReference.toSymbol;
         if (calleeFunction.isFunction() === false) continue;
 
-        const callerArgs = hint.callerArgumentsNode.argList;
+        const callerArgs = info.callerArgumentsNode.argList;
         for (let i = 0; i < callerArgs.length; i++) {
             if (callerArgs[i].identifier !== undefined) {
                 // Skip if the argument is a named argument
@@ -60,12 +60,12 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
 
 function inlayHintAutoType(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const hint of globalScope.info.autoTypeResolution) {
+    for (const info of globalScope.info.autoTypeResolution) {
         // TODO: Check with location?
 
         result.push({
-            position: hint.autoToken.location.end,
-            label: ': ' + stringifyResolvedType(hint.resolvedType)
+            position: info.autoToken.location.end,
+            label: ': ' + stringifyResolvedType(info.resolvedType)
         });
     }
 
@@ -101,7 +101,7 @@ function inlayHintOperatorOverloadDefinition(scope: SymbolScope, location: TextL
                     continue;
                 }
 
-                // Push the operator overload hint, e.g., "int opAdd() 'operator +'"
+                // Push the operator overload info, e.g., "int opAdd() 'operator +'"
                 const identifier = symbol.linkedNode.identifier;
                 result.push({
                     position: identifier.location.end,
