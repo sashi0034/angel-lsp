@@ -84,7 +84,7 @@ export type AnalyzeQueue = (() => void)[];
 
 /** @internal */
 export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenRange) {
-    getActiveGlobalScope().info.scopeRegionList.push({
+    getActiveGlobalScope().info.scopeRegion.push({
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
@@ -145,7 +145,7 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
             // TODO: Code cleanup
             if (varType !== undefined) {
-                getActiveGlobalScope().info.autoTypeResolutionList.push({
+                getActiveGlobalScope().info.autoTypeResolution.push({
                     autoToken: declaredVar.identifier,
                     resolvedType: initType,
                 });
@@ -292,7 +292,7 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    getActiveGlobalScope().info.referenceList.push({
+    getActiveGlobalScope().info.reference.push({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -998,7 +998,7 @@ function analyzeFunctionCall(
         analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
     }
 
-    getActiveGlobalScope().info.functionCallList.push({
+    getActiveGlobalScope().info.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,
@@ -1062,7 +1062,7 @@ function analyzeVariableAccess(
 
     if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        getActiveGlobalScope().info.referenceList.push({
+        getActiveGlobalScope().info.reference.push({
             toSymbol: declared.symbol.toList()[0],
             fromToken: varIdentifier
         });

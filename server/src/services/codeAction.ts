@@ -20,7 +20,7 @@ export function provideCodeAction(
 // -----------------------------------------------
 function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocation) {
     let calleeFunction: SymbolFunction | undefined = undefined;
-    for (const reference of globalScope.info.referenceList) {
+    for (const reference of globalScope.info.reference) {
         if (reference.toSymbol.isFunction() === false) continue;
 
         if (reference.fromToken.location.intersects(location)) {
@@ -33,7 +33,7 @@ function insertNamedArgument(globalScope: SymbolGlobalScope, location: TextLocat
     // -----------------------------------------------
 
     let callerNode: NodeArgList | undefined;
-    for (const completion of globalScope.info.functionCallList) {
+    for (const completion of globalScope.info.functionCall) {
         if (completion.callerIdentifier.location.intersects(location) === false) continue;
 
         callerNode = completion.callerArgumentsNode;

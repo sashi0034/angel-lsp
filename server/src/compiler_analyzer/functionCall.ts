@@ -149,7 +149,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().info.referenceList.push(({
+                getActiveGlobalScope().info.reference.push(({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
                 }));
 
@@ -166,7 +166,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
-                getActiveGlobalScope().info.referenceList.push(({
+                getActiveGlobalScope().info.reference.push(({
                     toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
                 }));
 
@@ -191,7 +191,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
         if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
 
         // Add a reference to the named argument in the callee function scope.
-        getActiveGlobalScope().info.referenceList.push(({toSymbol: toSymbol, fromToken: args.name}));
+        getActiveGlobalScope().info.reference.push(({toSymbol: toSymbol, fromToken: args.name}));
     }
 }
 
@@ -212,7 +212,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
             returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
             sideEffect: () => {
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().info.referenceList.push(({
+                getActiveGlobalScope().info.reference.push(({
                     toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
                 }));
 

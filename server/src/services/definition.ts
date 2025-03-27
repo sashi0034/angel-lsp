@@ -33,7 +33,7 @@ function provideDefinitionInternal(globalScope: SymbolGlobalScope, caret: TextPo
     const filepath = globalScope.getContext().filepath;
 
     // Find the symbol that the caret is on in the reference list
-    for (const reference of globalScope.info.referenceList) {
+    for (const reference of globalScope.info.reference) {
         const referencedLocation = reference.fromToken.location;
         if (referencedLocation.positionInRange(caret)) {
             // If the reference location is on the cursor, return the declaration

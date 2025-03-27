@@ -13,8 +13,8 @@ export function provideSignatureHelp(
 ): SignatureHelp {
     const signatures: SignatureInformation[] = [];
 
-    for (let i = 0; i < globalScope.info.functionCallList.length; i++) {
-        const hint = globalScope.info.functionCallList[i];
+    for (let i = 0; i < globalScope.info.functionCall.length; i++) {
+        const hint = globalScope.info.functionCall[i];
 
         // Check if the caller location is at the cursor position in the scope.
         const shouldExtend = hint.callerArgumentsNode.nodeRange.end.location.end.character > caret.character;

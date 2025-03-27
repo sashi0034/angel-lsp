@@ -42,12 +42,12 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
 interface ScopeDetailInformation {
-    referenceList: ReferenceInfo[];
-    scopeRegionList: ScopeRegionInfo[];
+    reference: ReferenceInfo[];
+    scopeRegion: ScopeRegionInfo[];
     autocompleteInstanceMember: AutocompleteInstanceMemberInfo[];
     autocompleteNamespaceAccess: AutocompleteNamespaceAccessInfo[];
-    functionCallList: FunctionCallInfo[];
-    autoTypeResolutionList: AutoTypeResolutionInfo[];
+    functionCall: FunctionCallInfo[];
+    autoTypeResolution: AutoTypeResolutionInfo[];
 }
 
 interface GlobalScopeContext {
@@ -61,12 +61,12 @@ function createGlobalScopeContext(): GlobalScopeContext {
         filepath: '',
         builtinStringType: undefined,
         info: {
-            referenceList: [],
-            scopeRegionList: [],
+            reference: [],
+            scopeRegion: [],
             autocompleteInstanceMember: [],
             autocompleteNamespaceAccess: [],
-            functionCallList: [],
-            autoTypeResolutionList: [],
+            functionCall: [],
+            autoTypeResolution: [],
         }
     };
 }
