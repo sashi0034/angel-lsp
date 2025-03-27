@@ -30,6 +30,7 @@ import {printSymbolScope} from "./compiler_analyzer/symbolUtils";
 import {safeWriteFile} from "./utils/fileUtils";
 import {moveInlayHintByChanges} from "./service/contentChangeApplier";
 import {provideDefinitionFallback} from "./services/definitionExtension";
+import {CodeActionWrapper} from "./actions/utils";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -323,43 +324,30 @@ s_connection.onDocumentSymbol(params => {
 // -----------------------------------------------
 // Code Action Provider
 
-interface CodeActionContext {
-    uri: string;
-}
+let s_lastCodeAction: CodeActionWrapper [] = [];
 
 s_connection.onCodeAction((params) => {
-    const result: CodeAction[] = [];
-    const context: CodeActionContext = {uri: params.textDocument.uri};
+    const globalScope = s_inspector.getRecord(params.textDocument.uri).analyzerScope.globalScope;
 
-    for (const diagnostic of params.context.diagnostics) {
-        if (diagnostic.severity == DiagnosticSeverity.Hint) {
-            result.push({
-                title: diagnostic.message, // FIXME?
-                diagnostics: [diagnostic],
-                data: context
-            });
-        }
-    }
+    const range = TextRange.create(params.range);
 
-    return result;
+    s_lastCodeAction = provideCodeAction(globalScope, getAllGlobalScopes(), range);
+
+    s_lastCodeAction.forEach((action, i) => action.action.data = i);
+
+    return s_lastCodeAction.map(action => action.action);
 });
 
 s_connection.onCodeActionResolve((action) => {
-    const context = action.data as CodeActionContext;
-    const uri = context.uri;
+    const index = action.data as number;
 
-    if (action.diagnostics === undefined || action.diagnostics.length === 0) return action;
+    const resolvedAction = s_lastCodeAction[index];
+    if (resolvedAction === undefined) {
+        logger.error('Received an invalid code action.');
+        return action;
+    }
 
-    const range = TextRange.create(action.diagnostics[0].range);
-
-    const edits = provideCodeAction(
-        s_inspector.getRecord(uri).analyzerScope.globalScope,
-        getAllGlobalScopes(),
-        new TextLocation(uri, range.start, range.end),
-        action.diagnostics[0].data
-    );
-
-    action.edit = {changes: {[uri]: edits}};
+    resolvedAction.resolver(action);
 
     return action;
 });

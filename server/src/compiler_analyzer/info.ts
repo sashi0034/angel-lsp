@@ -48,10 +48,10 @@ export interface AutocompleteNamespaceAccessInfo {
  * e.g., providing argument suggestions when typing inside a function call `fn($C$)`, where `$C$` is the caret.
  */
 export interface FunctionCallInfo {
-    readonly  callerIdentifier: TokenObject;
-    readonly  callerArgumentsNode: NodeArgList;
-    readonly  calleeFuncHolder: SymbolFunctionHolder;
-    readonly  calleeTemplateTranslator: TemplateTranslator | undefined;
+    readonly callerIdentifier: TokenObject;
+    readonly callerArgumentsNode: NodeArgList;
+    readonly calleeFuncHolder: SymbolFunctionHolder;
+    readonly calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 
 /**

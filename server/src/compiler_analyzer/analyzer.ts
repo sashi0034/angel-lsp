@@ -994,10 +994,6 @@ function analyzeFunctionCall(
     calleeTemplateTranslator: TemplateTranslator | undefined,
     calleeDelegateVariable?: SymbolVariable
 ) {
-    if (callerArgList.argList[0]?.identifier === undefined) {
-        analyzerDiagnostic.hint(callerIdentifier.location, ActionHint.InsertNamedArgument, 'Insert named arguments.'); // FIXME: Fix the hint message?
-    }
-
     getActiveGlobalScope().info.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,

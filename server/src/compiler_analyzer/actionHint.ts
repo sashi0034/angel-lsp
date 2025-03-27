@@ -4,5 +4,5 @@
  * This is number-based to transfer quickly between server and client.
  */
 export enum ActionHint {
-    InsertNamedArgument,
+    // TODO Remove?
 }
