@@ -124,7 +124,7 @@
                         "type": "string"
                     },
                     "default": [],
-                    "description": "The include paths used to resolve #include."
+                    "description": "The include paths used to resolve #include. Specify as relative or absolute paths."
                 },
                 "angelScript.implicitMutualInclusion": {
                     "scope": "window",
