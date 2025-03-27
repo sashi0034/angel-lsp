@@ -50,7 +50,7 @@ import {
     NodeNamespace,
     NodeParamList,
     NodeReturn,
-    NodesBase,
+    NodeBase,
     NodeScope,
     NodeScript,
     NodeStatBlock,
@@ -1788,7 +1788,7 @@ function parseIf(parser: ParserState): ParseResult<NodeIf> {
     return appliedNodeEnd(parser, result);
 }
 
-function appliedNodeEnd<T extends NodesBase>(parser: ParserState, node: Mutable<T>): T {
+function appliedNodeEnd<T extends NodeBase>(parser: ParserState, node: Mutable<T>): T {
     node.nodeRange = new TokenRange(node.nodeRange.start, parser.prev());
     return node;
 }
