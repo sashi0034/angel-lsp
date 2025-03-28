@@ -60,3 +60,7 @@ export function resetGlobalSettings(config: any) {
 export function getGlobalSettings(): Readonly<LanguageServerSettings> {
     return globalSettings;
 }
+
+export function copyGlobalSettings(): LanguageServerSettings {
+    return structuredClone(globalSettings);
+}

@@ -10,11 +10,29 @@ function isRawContent(fileContent: string | FileContent[]): fileContent is strin
     return typeof fileContent === "string";
 }
 
-function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boolean) {
+class TestAnalyzerEvent {
+    private _onBegin: () => void = () => {
+    };
+
+    public onBegin(callback: () => void): TestAnalyzerEvent {
+        this._onBegin = callback;
+        return this;
+    }
+
+    public begin() {
+        this._onBegin();
+    }
+}
+
+function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boolean): TestAnalyzerEvent {
     const targetUri = isRawContent(fileContents) ? 'file:///path/to/file.as' : fileContents.at(-1)!.uri;
     const rawContent = isRawContent(fileContents) ? fileContents : fileContents.at(-1)!.content;
 
+    const event = new TestAnalyzerEvent();
+
     it(`[analyze] ${rawContent}`, () => {
+        event.begin();
+
         const inspector = new Inspector();
 
         if (isRawContent(fileContents)) {
@@ -33,7 +51,7 @@ function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boole
             );
 
         const hasError = diagnosticsInAnalyzer.length > 0;
-        if ((expectSuccess && hasError)) {
+        if (expectSuccess && hasError) {
             const diagnostic = diagnosticsInAnalyzer[0];
             const message = diagnostic.message;
             const line = diagnostic.range.start.line;
@@ -43,13 +61,15 @@ function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boole
             throw new Error("Expecting error but got none.");
         }
     });
+
+    return event;
 }
 
 export function expectSuccess(fileContents: string | FileContent[]) {
-    testAnalyzer(fileContents, true);
+    return testAnalyzer(fileContents, true);
 }
 
 export function expectError(fileContents: string | FileContent[]) {
-    testAnalyzer(fileContents, false);
+    return testAnalyzer(fileContents, false);
 }
 
