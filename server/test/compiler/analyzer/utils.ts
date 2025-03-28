@@ -1,33 +1,34 @@
-import {diagnostic} from "../../../src/core/diagnostic";
-import {tokenize} from "../../../src/compiler_tokenizer/tokenizer";
-import {preprocessAfterTokenized} from "../../../src/compiler_parser/parserPreprocess";
-import {parseAfterPreprocessed} from "../../../src/compiler_parser/parser";
-import {analyzerDiagnostic} from "../../../src/compiler_analyzer/analyzerDiagnostic";
-import {hoistAfterParsed} from "../../../src/compiler_analyzer/hoist";
-import {createGlobalScope} from "../../../src/compiler_analyzer/analyzerScope";
-import {analyzeAfterHoisted} from "../../../src/compiler_analyzer/analyzer";
 import {DiagnosticSeverity} from "vscode-languageserver-types";
+import {Inspector} from "../../../src/inspector/inspector";
 
-function testAnalyzer(content: string, expectSuccess: boolean) {
-    it(`[analyze] ${content}`, () => {
-        diagnostic.beginSession();
+interface FileContent {
+    uri: string;
+    content: string;
+}
 
-        const uri = "/foo/bar.as";
-        const rawTokens = tokenize(uri, content);
-        const preprocessedOutput = preprocessAfterTokenized(rawTokens);
-        const ast = parseAfterPreprocessed(preprocessedOutput.preprocessedTokens);
+function isRawContent(fileContent: string | FileContent[]): fileContent is string {
+    return typeof fileContent === "string";
+}
 
-        const diagnosticsInParser = diagnostic.endSession();
+function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boolean) {
+    const targetUri = isRawContent(fileContents) ? 'file:///path/to/file.as' : fileContents.at(-1)!.uri;
+    const rawContent = isRawContent(fileContents) ? fileContents : fileContents.at(-1)!.content;
 
-        // -----------------------------------------------
+    it(`[analyze] ${rawContent}`, () => {
+        const inspector = new Inspector();
 
-        analyzerDiagnostic.beginSession();
+        if (isRawContent(fileContents)) {
+            inspector.inspectFile(targetUri, rawContent);
+        } else {
+            for (const content of fileContents) {
+                inspector.inspectFile(content.uri, content.content);
+            }
+        }
 
-        const hoistResult = hoistAfterParsed(ast, createGlobalScope(uri, []));
-        analyzeAfterHoisted(uri, hoistResult);
+        inspector.flushRecord();
 
         const diagnosticsInAnalyzer =
-            analyzerDiagnostic.endSession().filter(
+            inspector.getRecord(targetUri).diagnosticsInAnalyzer.filter(
                 diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
             );
 
@@ -44,11 +45,11 @@ function testAnalyzer(content: string, expectSuccess: boolean) {
     });
 }
 
-export function expectSuccess(content: string) {
-    testAnalyzer(content, true);
+export function expectSuccess(fileContents: string | FileContent[]) {
+    testAnalyzer(fileContents, true);
 }
 
-export function expectError(content: string) {
-    testAnalyzer(content, false);
+export function expectError(fileContents: string | FileContent[]) {
+    testAnalyzer(fileContents, false);
 }
 
