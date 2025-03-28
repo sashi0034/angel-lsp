@@ -2,7 +2,7 @@
  * LanguageServer settings.
  * See package.json because the settings in VSCode are defined in it.
  */
-export interface LanguageServerSettings {
+interface LanguageServerSettings {
     suppressAnalyzerErrors: boolean;
     includePath: string[];
     implicitMutualInclusion: boolean;
@@ -47,10 +47,10 @@ const defaultSettings: LanguageServerSettings = {
 let globalSettings: LanguageServerSettings = defaultSettings;
 
 /**
- * Change the instance of global settings.
+ * Reset the instance of global settings.
  */
-export function changeGlobalSettings(config: any) {
-    globalSettings = globalSettings = <LanguageServerSettings>(config || defaultSettings);
+export function resetGlobalSettings(config: any) {
+    globalSettings = <LanguageServerSettings>(config ?? defaultSettings);
 }
 
 /**
@@ -59,4 +59,8 @@ export function changeGlobalSettings(config: any) {
  */
 export function getGlobalSettings(): Readonly<LanguageServerSettings> {
     return globalSettings;
+}
+
+export function copyGlobalSettings(): LanguageServerSettings {
+    return structuredClone(globalSettings);
 }

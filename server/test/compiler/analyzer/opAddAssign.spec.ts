@@ -1,8 +1,7 @@
 import {expectError, expectSuccess} from "./utils";
 
 describe("analyzer/opAddAssign", () => {
-    // opAddAssign is defined
-    expectSuccess(`
+    expectSuccess(`// opAddAssign is defined
         class Foo {
             int opAddAssign(Foo foo) { return 0; }
         }
@@ -13,8 +12,7 @@ describe("analyzer/opAddAssign", () => {
         }
     `);
 
-    // opAddAssign is not defined
-    expectError(`
+    expectError(`// opAddAssign is not defined
         class Foo {
             int bar;
         }

@@ -233,7 +233,10 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
 
     // Caller arguments must be at least as many as the callee parameters.
     if (callee.parameterTypes.length < callerArgs.length) {
-        return {reason: MismatchKind.TooManyArguments};
+        if (callee.linkedNode.paramList.at(-1)?.isVariadic === false) {
+            // The number of arguments is too many.
+            return {reason: MismatchKind.TooManyArguments};
+        }
     }
 
     // The order of the caller arguments is expected to be as follows:
@@ -339,6 +342,19 @@ function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: Symbo
         }
 
         totalCost += cost;
+    }
+
+    if (callee.linkedNode.paramList.at(-1)?.isVariadic) {
+        // Check the rest of the caller's variadic arguments.
+        // e.g. 'arg1', 'arg2' in 'format(fmt, arg0, arg1, arg2)' (arg0 has already been checked above);
+        for (let paramId = callee.parameterTypes.length; paramId < callerArgs.length; paramId++) {
+            const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1));
+            if (hasMismatchReason(cost)) {
+                return cost;
+            }
+
+            totalCost += cost;
+        }
     }
 
     return totalCost;
