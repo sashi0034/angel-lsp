@@ -50,7 +50,7 @@ let globalSettings: LanguageServerSettings = defaultSettings;
  * Change the instance of global settings.
  */
 export function changeGlobalSettings(config: any) {
-    globalSettings = globalSettings = <LanguageServerSettings>(config || defaultSettings);
+    globalSettings = <LanguageServerSettings>(config ?? defaultSettings);
 }
 
 /**
