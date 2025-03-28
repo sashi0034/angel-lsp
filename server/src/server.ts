@@ -11,7 +11,7 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {changeGlobalSettings, getGlobalSettings} from "./core/settings";
+import {resetGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
@@ -129,7 +129,7 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
 
 function reloadSettings() {
     s_connection.workspace.getConfiguration('angelScript').then((config) => {
-        changeGlobalSettings(config);
+        resetGlobalSettings(config);
         s_inspector.reinspectAllFiles();
         s_connection.languages.diagnostics.refresh();
     });
