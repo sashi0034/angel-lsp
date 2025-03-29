@@ -28,7 +28,7 @@ export function makeCaretAndContent(rawContent: string): CaretAndContent {
 
 interface CaretListAndContent {
     caretList: TextPosition[];
-    content: string;
+    actualContent: string;
 }
 
 /**
@@ -60,6 +60,6 @@ export function makeCaretListAndContent(rawContent: string): CaretListAndContent
 
     return {
         caretList,
-        content: newLines.join("\n")
+        actualContent: newLines.join("\n")
     };
 }

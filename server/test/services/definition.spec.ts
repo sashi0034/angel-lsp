@@ -1,11 +1,11 @@
-import {makeCaretListAndContent} from "./utils";
+import {makeCaretListAndContent} from "./caretUtils";
 import {
     Inspector
 } from "../../src/inspector/inspector";
 import {provideDefinitionAsToken} from "../../src/services/definition";
 
 function testDefinition(rawContent: string, mapping?: [number, number][]) {
-    const {caretList, content} = makeCaretListAndContent(rawContent);
+    const {caretList, actualContent} = makeCaretListAndContent(rawContent);
     if (caretList.length < 2) {
         throw new Error("Expected at least 2 caret positions");
     }
@@ -29,7 +29,7 @@ function testDefinition(rawContent: string, mapping?: [number, number][]) {
         const inspector = new Inspector();
 
         const uri = "/foo/bar.as";
-        inspector.inspectFile(uri, content);
+        inspector.inspectFile(uri, actualContent);
 
         inspector.flushRecord();
 

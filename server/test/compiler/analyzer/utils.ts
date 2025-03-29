@@ -1,49 +1,21 @@
 import {DiagnosticSeverity} from "vscode-languageserver-types";
-import {Inspector} from "../../../src/inspector/inspector";
+import {
+    FileContents,
+    inspectFileContents,
+    InspectorTestEvent, makeFileContentList
+} from "../../inspectorUtils";
 
-interface FileContent {
-    uri: string;
-    content: string;
-}
+function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): InspectorTestEvent {
+    const fileContentList = makeFileContentList(fileContents);
+    const targetUri = fileContentList.at(-1)!.uri;
+    const targetContent = fileContentList.at(-1)!.content;
 
-function isRawContent(fileContent: string | FileContent[]): fileContent is string {
-    return typeof fileContent === "string";
-}
+    const event = new InspectorTestEvent();
 
-class TestAnalyzerEvent {
-    private _onBegin: () => void = () => {
-    };
-
-    public onBegin(callback: () => void): TestAnalyzerEvent {
-        this._onBegin = callback;
-        return this;
-    }
-
-    public begin() {
-        this._onBegin();
-    }
-}
-
-function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boolean): TestAnalyzerEvent {
-    const targetUri = isRawContent(fileContents) ? 'file:///path/to/file.as' : fileContents.at(-1)!.uri;
-    const rawContent = isRawContent(fileContents) ? fileContents : fileContents.at(-1)!.content;
-
-    const event = new TestAnalyzerEvent();
-
-    it(`[analyze] ${rawContent}`, () => {
+    it(`[analyze] ${targetContent}`, () => {
         event.begin();
 
-        const inspector = new Inspector();
-
-        if (isRawContent(fileContents)) {
-            inspector.inspectFile(targetUri, rawContent);
-        } else {
-            for (const content of fileContents) {
-                inspector.inspectFile(content.uri, content.content);
-            }
-        }
-
-        inspector.flushRecord();
+        const inspector = inspectFileContents(fileContentList);
 
         const diagnosticsInAnalyzer =
             inspector.getRecord(targetUri).diagnosticsInAnalyzer.filter(
@@ -65,11 +37,11 @@ function testAnalyzer(fileContents: string | FileContent[], expectSuccess: boole
     return event;
 }
 
-export function expectSuccess(fileContents: string | FileContent[]) {
+export function expectSuccess(fileContents: FileContents) {
     return testAnalyzer(fileContents, true);
 }
 
-export function expectError(fileContents: string | FileContent[]) {
+export function expectError(fileContents: FileContents) {
     return testAnalyzer(fileContents, false);
 }
 
