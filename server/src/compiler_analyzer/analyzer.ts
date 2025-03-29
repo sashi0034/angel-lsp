@@ -2,6 +2,7 @@
 
 import {
     funcHeadDestructor,
+    isFuncHeadReturnValue,
     isMemberMethodInPostOp,
     NodeArgList,
     NodeAssign,
@@ -39,13 +40,19 @@ import {
     NodeVarAccess,
     NodeWhile
 } from "../compiler_parser/nodes";
-import {isNodeClassOrInterface, SymbolFunction, SymbolFunctionHolder, SymbolType, SymbolVariable} from "./symbolObject";
+import {
+    isNodeClassOrInterface,
+    SymbolFunction,
+    SymbolFunctionHolder,
+    SymbolHolder,
+    SymbolType,
+    SymbolVariable
+} from "./symbolObject";
 import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
-    isSymbolConstructorInScope,
-    resolveActiveScope,
+    resolveActiveScope, SymbolAndScope,
     SymbolGlobalScope,
     SymbolScope
 } from "./symbolScope";
@@ -258,9 +265,9 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     }
 
     let symbolAndScope = findSymbolWithParent(searchScope, givenIdentifier);
-    if (symbolAndScope !== undefined
-        && isSymbolConstructorInScope(symbolAndScope)
-        && symbolAndScope.scope.parentScope !== undefined
+    if (symbolAndScope !== undefined &&
+        isSymbolConstructorOrDestructor(symbolAndScope.symbol) &&
+        symbolAndScope.scope.parentScope !== undefined
     ) {
         // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
         // in which case search further up the hierarchy.
@@ -282,6 +289,15 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
         const typeTemplates = analyzeTemplateTypes(scope, givenTypeTemplates, foundSymbol.templateTypes);
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined, typeTemplates);
     }
+}
+
+function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
+    if (symbol.isFunctionHolder() === false) return false;
+
+    const linkedNode = symbol.first.linkedNode;
+    if (linkedNode.nodeName !== NodeName.Func) return false;
+
+    return isFuncHeadReturnValue(linkedNode.head) === false;
 }
 
 function completeAnalyzingType(
@@ -629,8 +645,8 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     const outputList: (Term | Op)[] = [];
 
     while (inputList.length > 0 || stackList.length > 0) {
-        const inputToStack: boolean = stackList.length === 0
-            || (inputList.length > 0 && precedence(inputList[0]) > precedence(stackList[stackList.length - 1]));
+        const inputToStack: boolean = stackList.length === 0 ||
+            (inputList.length > 0 && precedence(inputList[0]) > precedence(stackList[stackList.length - 1]));
 
         if (inputToStack) {
             stackList.push(inputList.shift()!);
