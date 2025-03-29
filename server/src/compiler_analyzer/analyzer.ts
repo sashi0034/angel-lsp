@@ -52,7 +52,7 @@ import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/token
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
-    resolveActiveScope, SymbolAndScope,
+    resolveActiveScope,
     SymbolGlobalScope,
     SymbolScope
 } from "./symbolScope";
@@ -81,7 +81,6 @@ import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/toke
 import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
-import {ActionHint} from "./actionHint";
 import {checkDefaultConstructorCall, findConstructorOfType} from "./constrcutorCall";
 import assert = require("node:assert");
 
@@ -375,41 +374,65 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
     let scopeIterator =
         nodeScope.isGlobal ? parentScope.getGlobalScope() : parentScope;
+
+    let bestMatch = analyzeScopeInternal(scopeIterator, nodeScope);
+    for (; ;) {
+        if (bestMatch.ok) break;
+
+        if (scopeIterator.parentScope === undefined) break;
+        scopeIterator = scopeIterator.parentScope;
+
+        const candidate = analyzeScopeInternal(scopeIterator, nodeScope);
+        if (candidate.ok || candidate.accessIndex > bestMatch.accessIndex) {
+            // If the candidate is valid or has a higher access index, update the best match.
+            bestMatch = candidate;
+        }
+    }
+
+    bestMatch.sideEffects.forEach(sideEffect => sideEffect());
+
+    return bestMatch.accessScope;
+}
+
+function analyzeScopeInternal(parentScope: SymbolScope, nodeScope: NodeScope) {
+    const sideEffect: (() => void)[] = [];
+
     const tokenAfterNamespaces = nodeScope.nodeRange.end.next;
 
-    for (let i = 0; i < nodeScope.scopeList.length; i++) {
-        const scopeToken = nodeScope.scopeList[i];
+    let accessScope: SymbolScope = parentScope;
+    let accessIndex: number;
+    for (accessIndex = 0; accessIndex < nodeScope.scopeList.length; ++accessIndex) {
+        const scopeToken = nodeScope.scopeList[accessIndex];
+        const found = accessScope.lookupScope(scopeToken.text);
+        if (found === undefined || found.isFunctionHolderScope()) {
+            sideEffect.push(() => {
+                analyzerDiagnostic.error(
+                    nodeScope.scopeList[accessIndex].location,
+                    `Undefined scope: ${nodeScope.scopeList[accessIndex].text}`
+                );
+            });
 
-        // Search for the scope corresponding to the name.
-        let found: SymbolScope | undefined = undefined;
-        for (; ;) {
-            found = scopeIterator.lookupScope(scopeToken.text);
-            if (found?.isFunctionHolderScope()) found = undefined;
-            if (found !== undefined) break;
-            // -----------------------------------------------
-
-            if (i == 0 && scopeIterator.parentScope !== undefined) {
-                // If it is not a global scope, search higher in the hierarchy.
-                scopeIterator = scopeIterator.parentScope;
-            } else {
-                analyzerDiagnostic.error(scopeToken.location, `Undefined scope: ${scopeToken.text}`);
-                return undefined;
-            }
+            break;
         }
 
-        // Update the scope iterator.
-        scopeIterator = found;
+        accessScope = found;
 
         // Append an information for completion of the namespace to the scope.
-        getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
-            autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
-            accessScope: scopeIterator,
-            namespaceToken: scopeToken,
-            tokenAfterNamespaces: tokenAfterNamespaces,
+        sideEffect.push(() => {
+            getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
+                autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+                accessScope: found,
+                namespaceToken: scopeToken,
+                tokenAfterNamespaces: tokenAfterNamespaces,
+            });
         });
     }
 
-    return scopeIterator;
+    const ok: boolean = accessIndex === nodeScope.scopeList.length &&
+        // Can the identifier after the qualifiers be accessed?
+        accessScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
+
+    return {ok, accessScope, accessIndex, sideEffects: sideEffect};
 }
 
 // BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -1037,12 +1060,14 @@ function analyzeFunctionCall(
 
 // BNF: VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): ResolvedType | undefined {
-    let accessedScope = scope;
+    let accessScope = scope;
 
     if (varAccess.scope !== undefined) {
-        const namespaceScope = analyzeScope(scope, varAccess.scope);
+        const fromScope = scope.takeParentByNode([NodeName.Class]) ?? scope;
+
+        const namespaceScope = analyzeScope(fromScope, varAccess.scope);
         if (namespaceScope === undefined) return undefined;
-        accessedScope = namespaceScope;
+        accessScope = namespaceScope;
     }
 
     if (varAccess.identifier === undefined) {
@@ -1050,40 +1075,40 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Resolve
     }
 
     const varIdentifier = varAccess.identifier;
-    return analyzeVariableAccess(scope, accessedScope, varIdentifier);
+    return analyzeVariableAccess(scope, accessScope, varIdentifier);
 }
 
 function analyzeVariableAccess(
     checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: TokenObject
 ): ResolvedType | undefined {
-    const declared = findSymbolWithParent(accessedScope, varIdentifier.text);
-    if (declared === undefined) {
+    const found = findSymbolWithParent(accessedScope, varIdentifier.text);
+    if (found === undefined) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is not defined.`);
         return undefined;
     }
 
-    if (declared.symbol instanceof SymbolType) {
+    if (found.symbol instanceof SymbolType) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is type.`);
         return undefined;
     }
 
-    if (canAccessInstanceMember(checkingScope, declared.symbol) === false) {
+    if (canAccessInstanceMember(checkingScope, found.symbol) === false) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is not public member.`);
         return undefined;
     }
 
-    if (declared.symbol.toList()[0].identifierToken.location.path !== '') {
+    if (found.symbol.toList()[0].identifierToken.location.path !== '') {
         // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
         getActiveGlobalScope().info.reference.push({
-            toSymbol: declared.symbol.toList()[0],
+            toSymbol: found.symbol.toList()[0],
             fromToken: varIdentifier
         });
     }
 
-    if (declared.symbol instanceof SymbolVariable) {
-        return declared.symbol.type;
+    if (found.symbol instanceof SymbolVariable) {
+        return found.symbol.type;
     } else {
-        return new ResolvedType(declared.symbol.first);
+        return new ResolvedType(found.symbol.first);
     }
 }
 
