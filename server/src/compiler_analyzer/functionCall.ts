@@ -233,7 +233,7 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
 
     // Caller arguments must be at least as many as the callee parameters.
     if (callee.parameterTypes.length < callerArgs.length) {
-        if (callee.linkedNode.paramList.at(-1)?.isVariadic === false) {
+        if (!callee.linkedNode.paramList.at(-1)?.isVariadic) {
             // The number of arguments is too many.
             return {reason: MismatchKind.TooManyArguments};
         }
