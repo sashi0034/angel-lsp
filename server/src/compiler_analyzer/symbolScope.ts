@@ -542,21 +542,6 @@ export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope 
 
 // -----------------------------------------------
 
-/**
- * Determines whether the given symbol in the scope is a constructor.
- * @param pair A pair consisting of a symbol and the scope that contains it.
- */
-// FIXME: deprecated
-export function isSymbolConstructorInScope(pair: SymbolAndScope): boolean {
-    const symbol = pair.symbol;
-    const scope = pair.scope;
-    return symbol !== undefined
-        && symbol.isFunctionHolder()
-        && scope.linkedNode !== undefined
-        && scope.linkedNode.nodeName === NodeName.Class
-        && scope.linkedNode.identifier.text === symbol.first.identifierToken.text;
-}
-
 export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {
     if (parentScope === childScope) return true;
     if (childScope.parentScope === undefined) return false;

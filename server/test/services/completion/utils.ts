@@ -1,41 +1,29 @@
-import {makeCaretListAndContent} from "../utils";
-import {Inspector} from "../../../src/inspector/inspector";
+import {makeCaretListAndContent} from "../caretUtils";
 import {provideCompletion} from "../../../src/services/completion";
+import {
+    FileContents,
+    makeFileContentList,
+    inspectFileContents,
+} from "../../inspectorUtils";
 
 function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
 }
 
-interface FileContent {
-    uri: string;
-    content: string;
-}
+export function testCompletion(fileContents: FileContents, ...expectedList: string[][]) {
+    const fileContentList = makeFileContentList(fileContents);
+    const targetUri = fileContentList.at(-1)!.uri;
+    const targetContent = fileContentList.at(-1)!.content;
 
-function isRawContent(fileContent: string | FileContent[]): fileContent is string {
-    return typeof fileContent === "string";
-}
-
-export function testCompletion(fileContents: string | FileContent[], ...expectedList: string[][]) {
-    const targetUri = isRawContent(fileContents) ? 'file:///path/to/file.as' : fileContents.at(-1)!.uri;
-    const rawContent = isRawContent(fileContents) ? fileContents : fileContents.at(-1)!.content;
-    const {caretList, content} = makeCaretListAndContent(rawContent);
+    const {caretList, actualContent} = makeCaretListAndContent(targetContent);
+    fileContentList.at(-1)!.content = actualContent;
 
     if (caretList.length !== expectedList.length) {
         throw new Error(`Expected ${expectedList.length} caret positions, but got ${caretList.length}`);
     }
 
-    it(`completion ${rawContent}`, () => {
-        const inspector = new Inspector();
-
-        if (isRawContent(fileContents)) {
-            inspector.inspectFile(targetUri, content);
-        } else {
-            for (const content of fileContents) {
-                inspector.inspectFile(content.uri, content.content);
-            }
-        }
-
-        inspector.flushRecord();
+    it(`completion ${targetContent}`, () => {
+        const inspector = inspectFileContents(fileContentList);
 
         const globalScope = inspector.getRecord(targetUri).analyzerScope.globalScope;
 
