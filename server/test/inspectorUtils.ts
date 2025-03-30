@@ -14,7 +14,7 @@ export class InspectorTestEvent {
     }
 }
 
-interface FileContentUnit {
+export interface FileContentUnit {
     uri: string;
     content: string;
 }

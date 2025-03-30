@@ -1,7 +1,49 @@
 import {testDefinition} from "./utils";
 
 describe('definition/multipleNamespaces', () => {
-    testDefinition(`
+    testDefinition([{
+        uri: 'file:///path/to/file_0.as',
+        content: `
+            namespace A$C0$ {
+                void fn_0() { }
+            }
+        `
+    }, {
+        uri: 'file:///path/to/file_1.as',
+        content: `// Jump to the most appropriate namespace
+            #include "file_0.as"
+            namespace A {
+                void fn_1() { }
+            }
+            
+            void main() {
+                A$C1$::fn_0();
+            }
+        `
+    }]);
+
+    testDefinition([{
+        uri: 'file:///path/to/file_0.as',
+        content: `// Jump to the most appropriate namespace
+            namespace A {
+                void fn_0() { }
+            }
+        `
+    }, {
+        uri: 'file:///path/to/file_1.as',
+        content: `
+            #include "file_0.as"
+            namespace A$C0$ {
+                void fn_1() { }
+            }
+            
+            void main() {
+                A$C1$::fn_1();
+            }
+        `
+    }]);
+
+    testDefinition(`// Jump to the most appropriate namespace
         namespace A$C0$ {
             namespace B$C1$ {
                 namespace C_0$C2$ { int c_0$C3$; }

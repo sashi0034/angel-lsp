@@ -27,7 +27,7 @@ export function makeCaretAndContent(rawContent: string): CaretAndContent {
 }
 
 interface CaretListAndContent {
-    caretList: TextPosition[];
+    caretList: Map<number, TextPosition>;
     actualContent: string;
 }
 
@@ -37,7 +37,7 @@ interface CaretListAndContent {
  */
 export function makeCaretListAndContent(rawContent: string): CaretListAndContent {
     const lines = rawContent.split(/\r?\n/);
-    const caretList: TextPosition[] = [];
+    const caretList: Map<number, TextPosition> = new Map();
     // Regex to match markers like $C0$, $C1$, $C2$, etc.
     const markerRegex = /\$C(\d+)\$/;
     const newLines = lines.map((line, lineNumber) => {
@@ -45,11 +45,11 @@ export function makeCaretListAndContent(rawContent: string): CaretListAndContent
         let match: RegExpExecArray | null;
         while ((match = markerRegex.exec(line)) !== null) {
             const markerNumber = parseInt(match[1], 10);
-            if (markerNumber !== caretList.length) {
-                throw new Error(`Invalid marker number: ${markerNumber}`);
+            if (caretList.has(markerNumber)) {
+                throw new Error(`Duplicated marker number: ${markerNumber}`);
             }
 
-            caretList.push(new TextPosition(lineNumber, match.index));
+            caretList.set(markerNumber, new TextPosition(lineNumber, match.index));
 
             line = line.replace(markerRegex, '');
         }
