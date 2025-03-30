@@ -58,7 +58,7 @@ import {
     SymbolScope
 } from "./symbolScope";
 import {checkFunctionCall} from "./functionCall";
-import {canTypeCast, checkTypeCast} from "./typeCast";
+import {checkTypeCast, assertTypeCast} from "./typeCast";
 import {
     builtinBoolType,
     resolvedBuiltinBool,
@@ -200,7 +200,7 @@ export function analyzeVarInitializer(
         return analyzeInitList(scope, initializer);
     } else if (initializer.nodeName === NodeName.Assign) {
         const exprType = analyzeAssign(scope, initializer);
-        checkTypeCast(exprType, varType, initializer.nodeRange);
+        assertTypeCast(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
         if (varType === undefined || varType.typeOrFunc.isFunction()) return undefined;
@@ -535,7 +535,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
-    checkTypeCast(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
+    assertTypeCast(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
 
     if (nodeWhile.statement !== undefined) analyzeStatement(scope, nodeWhile.statement);
 }
@@ -546,13 +546,13 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
 
     if (doWhile.assign === undefined) return;
     const assignType = analyzeAssign(scope, doWhile.assign);
-    checkTypeCast(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
+    assertTypeCast(assignType, new ResolvedType(builtinBoolType), doWhile.assign.nodeRange);
 }
 
 // BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
-    checkTypeCast(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
+    assertTypeCast(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
 
     if (nodeIf.thenStat !== undefined) analyzeStatement(scope, nodeIf.thenStat);
     if (nodeIf.elseStat !== undefined) analyzeStatement(scope, nodeIf.elseStat);
@@ -610,7 +610,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
             if (nodeReturn.assign === undefined) return;
             analyzerDiagnostic.error(nodeReturn.nodeRange.getBoundingLocation(), `Function does not return a value.`);
         } else {
-            checkTypeCast(returnType, functionSymbol.returnType, nodeReturn.nodeRange);
+            assertTypeCast(returnType, functionSymbol.returnType, nodeReturn.nodeRange);
         }
     } else if (functionScope.linkedNode.nodeName === NodeName.VirtualProp) {
         const key = functionScope.key;
@@ -627,7 +627,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
         const functionReturn = functionScope.parentScope?.symbolTable.get(varName);
         if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) return;
 
-        checkTypeCast(returnType, functionReturn.type, nodeReturn.nodeRange);
+        assertTypeCast(returnType, functionReturn.type, nodeReturn.nodeRange);
     } else if (functionScope.linkedNode.nodeName === NodeName.Lambda) {
         // TODO: Support for lambda
     }
@@ -1155,16 +1155,15 @@ function analyzeEnumMemberAccess(currentScope: SymbolScope, accessScope: SymbolS
     // enumCandidates.length >= 2
 
     // Create a virtual type for the ambiguous enum member access.
-    const virtualIdentifier = TokenIdentifier.createVirtual(varIdentifier.text);
     const virtualType = SymbolType.create({
-        identifierToken: virtualIdentifier,
+        identifierToken: varIdentifier,
         scopePath: [],
         linkedNode: {
             nodeName: NodeName.Enum,
-            nodeRange: new TokenRange(virtualIdentifier, virtualIdentifier),
-            scopeRange: new TokenRange(virtualIdentifier, virtualIdentifier),
+            nodeRange: new TokenRange(varIdentifier, varIdentifier),
+            scopeRange: new TokenRange(varIdentifier, varIdentifier),
             entity: undefined,
-            identifier: virtualIdentifier,
+            identifier: varIdentifier,
             memberList: [],
             enumType: undefined
         } satisfies NodeEnum,
@@ -1209,7 +1208,7 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) return exprType;
 
-    checkTypeCast(exprType, new ResolvedType(builtinBoolType), condition.expr.nodeRange);
+    assertTypeCast(exprType, new ResolvedType(builtinBoolType), condition.expr.nodeRange);
 
     const trueAssign = analyzeAssign(scope, condition.ternary.trueAssign);
     const falseAssign = analyzeAssign(scope, condition.ternary.falseAssign);
@@ -1218,8 +1217,8 @@ export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): 
     if (trueAssign !== undefined && falseAssign === undefined) return trueAssign;
     if (trueAssign === undefined || falseAssign === undefined) return undefined;
 
-    if (canTypeCast(trueAssign, falseAssign)) return falseAssign;
-    if (canTypeCast(falseAssign, trueAssign)) return trueAssign;
+    if (checkTypeCast(trueAssign, falseAssign)) return falseAssign;
+    if (checkTypeCast(falseAssign, trueAssign)) return trueAssign;
 
     analyzerDiagnostic.error(
         getBoundingLocationBetween(
@@ -1337,8 +1336,8 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
-    const lhsOk = checkTypeCast(lhs, resolvedBuiltinBool, leftRange);
-    const rhsOk = checkTypeCast(rhs, resolvedBuiltinBool, rightRange);
+    const lhsOk = assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
+    const rhsOk = assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
 
     if (lhsOk && rhsOk) {
         if (lhs.identifierText !== 'bool' && rhs.identifierText !== 'bool') {
@@ -1361,7 +1360,7 @@ function analyzeAssignOp(
     if (lhs === undefined || rhs === undefined) return undefined;
 
     if (callerOperator.text === '=') {
-        if (canTypeCast(rhs, lhs)) return lhs;
+        if (checkTypeCast(rhs, lhs)) return lhs;
     }
 
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);

@@ -108,9 +108,8 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         super();
 
         if (this.multipleEnumCandidates !== undefined) {
-            // If this is an ambiguous enum value and have multiple candidates,
-            // the identifier token must be virtual.
-            assert(this.multipleEnumCandidates.length > 1 && identifierToken.isVirtual());
+            // This is an ambiguous enum value and have multiple candidates.
+            assert(this.multipleEnumCandidates.length > 1);
         }
     }
 

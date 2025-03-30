@@ -9,7 +9,8 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateConversionCost} from "./typeConversion";
 import {NodeName} from "../compiler_parser/nodes";
-import {canTypeCast} from "./typeCast";
+import {checkTypeCast} from "./typeCast";
+import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
 
 interface CallerArgument {
     name: TokenObject | undefined; // Support for named arguments
@@ -63,9 +64,12 @@ export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefi
 
 // -----------------------------------------------
 
-interface FunctionAndCost {
+type TypeConversionSideEffect = (() => void);
+
+interface BestMatching {
     function: SymbolFunction;
     cost: number;
+    sideEffects: TypeConversionSideEffect[];
 }
 
 enum MismatchKind {
@@ -119,14 +123,15 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         return delegateCast;
     }
 
-    let bestMatching: FunctionAndCost | undefined = undefined;
+    let bestMatching: BestMatching | undefined = undefined;
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
     // TODO: Output error messages for the overloads that are most closest to the caller arguments.
 
     // Find the best matching function.
     for (const callee of calleeFuncHolder.toList()) {
-        const evaluated = evaluateFunctionMatch(args, callee);
+        const sideEffectBuffer: TypeConversionSideEffect[] = [];
+        const evaluated = evaluateFunctionMatch(args, callee, sideEffectBuffer);
         if (hasMismatchReason(evaluated)) {
             // Handle mismatch errors.
             if (mismatchPriority.get(evaluated.reason)! >= mismatchPriority.get(mismatchReason.reason)!) {
@@ -138,7 +143,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
         if (bestMatching === undefined || evaluated < bestMatching.cost) {
             // Update the best matching function.
-            bestMatching = {function: callee, cost: evaluated};
+            bestMatching = {function: callee, cost: evaluated, sideEffects: sideEffectBuffer};
         }
     }
 
@@ -148,6 +153,8 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             bestMatching: bestMatching.function,
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
+                bestMatching?.sideEffects.forEach(sideEffect => sideEffect());
+
                 // Add the reference to the function that was called.
                 getActiveGlobalScope().info.reference.push(({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
@@ -206,7 +213,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
         templateTranslator: calleeTemplateTranslator
     });
 
-    if (callerArgs.length === 1 && canTypeCast(callerArgs[0].type, delegateType)) {
+    if (callerArgs.length === 1 && checkTypeCast(callerArgs[0].type, delegateType)) {
         return {
             bestMatching: calleeFuncHolder.first,
             returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
@@ -226,7 +233,9 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
 
 // -----------------------------------------------
 
-function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+function evaluateFunctionMatch(
+    args: FunctionCallArgs, callee: SymbolFunction, sideEffects: TypeConversionSideEffect[]
+): number | MismatchReason {
     const {callerArgs} = args;
 
     let totalCost = 0;
@@ -244,7 +253,7 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
 
     // -----------------------------------------------
     // Evaluate the named arguments in the caller
-    const namedArgumentCost = evaluatePassingNamedArgument(args, callee);
+    const namedArgumentCost = evaluatePassingNamedArgument(args, callee, sideEffects);
     if (hasMismatchReason(namedArgumentCost)) {
         return namedArgumentCost;
     }
@@ -253,7 +262,7 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
 
     // -----------------------------------------------
     // Evaluate the positional arguments in the caller
-    const positionalArgumentCost = evaluatePassingPositionalArgument(args, callee);
+    const positionalArgumentCost = evaluatePassingPositionalArgument(args, callee, sideEffects);
     if (hasMismatchReason(positionalArgumentCost)) {
         return positionalArgumentCost;
     }
@@ -263,7 +272,9 @@ function evaluateFunctionMatch(args: FunctionCallArgs, callee: SymbolFunction): 
     return totalCost;
 }
 
-function evaluatePassingNamedArgument(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+function evaluatePassingNamedArgument(
+    args: FunctionCallArgs, callee: SymbolFunction, sideEffectBuffer: TypeConversionSideEffect[]
+): number | MismatchReason {
     const {callerArgs} = args;
 
     let totalCost = 0;
@@ -296,7 +307,8 @@ function evaluatePassingNamedArgument(args: FunctionCallArgs, callee: SymbolFunc
                 // Found a matching parameter name between the caller and callee
 
                 // Check the type of the passing argument
-                const cost = evaluatePassingArgument(args, argId, callee.parameterTypes[paramId]);
+                const cost =
+                    evaluatePassingArgument(args, argId, callee.parameterTypes[paramId], sideEffectBuffer);
                 if (hasMismatchReason(cost)) {
                     return cost;
                 }
@@ -314,7 +326,9 @@ function evaluatePassingNamedArgument(args: FunctionCallArgs, callee: SymbolFunc
     return totalCost;
 }
 
-function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: SymbolFunction): number | MismatchReason {
+function evaluatePassingPositionalArgument(
+    args: FunctionCallArgs, callee: SymbolFunction, sideEffectBuffer: TypeConversionSideEffect[]
+): number | MismatchReason {
     const {callerArgs} = args;
     let totalCost = 0;
 
@@ -336,7 +350,8 @@ function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: Symbo
         }
 
         // Check the type of the passing argument
-        const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId]);
+        const cost =
+            evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId], sideEffectBuffer);
         if (hasMismatchReason(cost)) {
             return cost;
         }
@@ -348,7 +363,8 @@ function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: Symbo
         // Check the rest of the caller's variadic arguments.
         // e.g. 'arg1', 'arg2' in 'format(fmt, arg0, arg1, arg2)' (arg0 has already been checked above);
         for (let paramId = callee.parameterTypes.length; paramId < callerArgs.length; paramId++) {
-            const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1));
+            const cost =
+                evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1), sideEffectBuffer);
             if (hasMismatchReason(cost)) {
                 return cost;
             }
@@ -361,7 +377,10 @@ function evaluatePassingPositionalArgument(args: FunctionCallArgs, callee: Symbo
 }
 
 function evaluatePassingArgument(
-    args: FunctionCallArgs, callerArgId: number, calleeParam: ResolvedType | undefined
+    args: FunctionCallArgs,
+    callerArgId: number,
+    calleeParam: ResolvedType | undefined,
+    sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs, calleeTemplateTranslator} = args;
     const expectedType =
@@ -378,6 +397,10 @@ function evaluatePassingArgument(
             actualType: actualType
         };
     }
+
+    sideEffectBuffer.push(() => {
+        causeTypeConversionSideEffect(actualType, expectedType, callerArgs[callerArgId].range);
+    });
 
     return cost;
 }

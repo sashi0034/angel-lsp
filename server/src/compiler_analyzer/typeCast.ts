@@ -3,20 +3,18 @@ import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateConversionCost} from "./typeConversion";
+import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
 
 /**
  * Check if the source type can be converted to the destination type.
  * If it cannot be converted, an error message is added to the diagnostic.
- * @param src
- * @param dest
- * @param nodeRange
  */
-export function checkTypeCast(
+export function assertTypeCast(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     nodeRange: TokenRange,
 ): boolean {
-    if (canTypeCast(src, dest)) return true;
+    if (checkTypeCast(src, dest, nodeRange)) return true;
 
     analyzerDiagnostic.error(
         nodeRange.getBoundingLocation(),
@@ -28,15 +26,19 @@ export function checkTypeCast(
 
 /**
  * Check if the source type can be converted to the destination type.
- * @param src
- * @param dest
+ * If it can be converted, it will cause the side effect of the conversion.
  */
-export function canTypeCast(
-    src: ResolvedType | undefined, dest: ResolvedType | undefined
+export function checkTypeCast(
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
+    nodeRange?: TokenRange
 ): boolean {
     if (src === undefined || dest === undefined) return true;
 
     const cost = evaluateConversionCost(src, dest);
-    return cost !== undefined;
+    if (cost === undefined) return false;
+
+    causeTypeConversionSideEffect(src, dest, nodeRange);
+    return true;
 }
 
