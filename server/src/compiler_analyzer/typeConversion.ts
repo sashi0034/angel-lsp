@@ -146,9 +146,15 @@ function evaluateConvPrimitiveToPrimitive(
     if (srcType.equals(destType)) {
         return ConversionConst.NoConv;
     } else if (srcType.isEnumType() && destType.isEnumType()) {
-        // FIXME: Handle different enum types but same identifier such as 'enum A::Red' and 'enum B::Red'
+        assert(srcType.multipleEnumCandidates !== undefined);
 
-        // Mismatches enum types
+        // Resolve ambiguous enum members
+        for (const candidate of srcType.multipleEnumCandidates) {
+            if (candidate.type?.typeOrFunc.equals(destType)) {
+                return ConversionConst.NoConv;
+            }
+        }
+
         return undefined;
     }
 

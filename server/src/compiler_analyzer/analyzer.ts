@@ -10,6 +10,7 @@ import {
     NodeCast,
     NodeCondition,
     NodeDoWhile,
+    NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprPostOp1,
@@ -48,7 +49,7 @@ import {
     SymbolType,
     SymbolVariable
 } from "./symbolObject";
-import {NumberLiteral, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {NumberLiteral, TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
@@ -946,7 +947,7 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
             return resolvedBuiltinInt;
         }
 
-        const stringType = scope.getBuiltinStringType();
+        const stringType = getActiveGlobalScope().getContext().builtinStringType;
         return stringType === undefined ? undefined : new ResolvedType(stringType);
     }
 
@@ -1079,20 +1080,23 @@ function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): Resolve
 }
 
 function analyzeVariableAccess(
-    checkingScope: SymbolScope, accessedScope: SymbolScope, varIdentifier: TokenObject
+    currentScope: SymbolScope, accessScope: SymbolScope, varIdentifier: TokenObject
 ): ResolvedType | undefined {
-    const found = findSymbolWithParent(accessedScope, varIdentifier.text);
+    const found = findSymbolWithParent(accessScope, varIdentifier.text);
     if (found === undefined) {
+        const enumMemberAccess = analyzeEnumMemberAccess(currentScope, accessScope, varIdentifier);
+        if (enumMemberAccess !== undefined) return enumMemberAccess;
+
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is not defined.`);
         return undefined;
     }
 
-    if (found.symbol instanceof SymbolType) {
+    if (found.symbol.isType()) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is type.`);
         return undefined;
     }
 
-    if (canAccessInstanceMember(checkingScope, found.symbol) === false) {
+    if (canAccessInstanceMember(currentScope, found.symbol) === false) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is not public member.`);
         return undefined;
     }
@@ -1110,6 +1114,65 @@ function analyzeVariableAccess(
     } else {
         return new ResolvedType(found.symbol.first);
     }
+}
+
+// AngelScript allows ambiguous enum member access.
+function analyzeEnumMemberAccess(currentScope: SymbolScope, accessScope: SymbolScope, varIdentifier: TokenObject): ResolvedType | undefined {
+    // If no access scope is specified, start with a global.
+    accessScope = currentScope === accessScope ? getActiveGlobalScope() : accessScope;
+
+    const accessScopePath = accessScope.scopePath;
+    // accessScopePath:
+    //   ...
+    //     |-- Access::
+    //         |-- ...
+
+    const enumCandidates: SymbolVariable[] = [];
+    for (const enumScope of getActiveGlobalScope().getContext().enumScopeList) {
+        // enumScope.scopePath:
+        //   Outer::
+        //     |-- Access::
+        //         |-- Color
+
+        const ok = accessScopePath.length === 0 || // Access to the global scope or
+            // the access scope is a parent of the enum scope.
+            accessScopePath.every((key, i) => key === enumScope.scopePath[i]);
+
+        if (ok) {
+            const found = enumScope.lookupSymbol(varIdentifier.text);
+            if (found !== undefined && found.isVariable()) {
+                enumCandidates.push(found);
+            }
+        }
+    }
+
+    if (enumCandidates.length === 0) {
+        return undefined;
+    } else if (enumCandidates.length == 1) {
+        // Resolve the implicit enum member access.
+        return enumCandidates[0].type;
+    }
+    // enumCandidates.length >= 2
+
+    // Create a virtual type for the ambiguous enum member access.
+    const virtualIdentifier = TokenIdentifier.createVirtual(varIdentifier.text);
+    const virtualType = SymbolType.create({
+        identifierToken: virtualIdentifier,
+        scopePath: [],
+        linkedNode: {
+            nodeName: NodeName.Enum,
+            nodeRange: new TokenRange(virtualIdentifier, virtualIdentifier),
+            scopeRange: new TokenRange(virtualIdentifier, virtualIdentifier),
+            entity: undefined,
+            identifier: virtualIdentifier,
+            memberList: [],
+            enumType: undefined
+        } satisfies NodeEnum,
+        membersScope: undefined,
+        multipleEnumCandidates: enumCandidates
+    });
+
+    return new ResolvedType(virtualType);
 }
 
 // BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
