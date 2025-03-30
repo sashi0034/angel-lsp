@@ -22,7 +22,7 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
         throw new Error(`Expected ${expectedList.length} caret positions, but got ${caretList.length}`);
     }
 
-    it(`completion ${targetContent}`, () => {
+    it(`[completion] ${targetContent}`, () => {
         const inspector = inspectFileContents(fileContentList);
 
         const globalScope = inspector.getRecord(targetUri).analyzerScope.globalScope;

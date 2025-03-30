@@ -12,7 +12,7 @@ function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): Inspe
 
     const event = new InspectorTestEvent();
 
-    it(`[analyze] ${targetContent}`, () => {
+    it(`[analyzer] ${targetContent}`, () => {
         event.begin();
 
         const inspector = inspectFileContents(fileContentList);
