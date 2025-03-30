@@ -136,7 +136,7 @@
                     "scope": "window",
                     "type": "boolean",
                     "default": false,
-                    "description": "Hoist enums to their parents scope."
+                    "description": "Hoist enum members to their parents scope for auto-completion."
                 },
                 "angelScript.explicitPropertyAccessor": {
                     "scope": "window",

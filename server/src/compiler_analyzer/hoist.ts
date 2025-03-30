@@ -107,9 +107,6 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     symbol.mutate().membersScope = scope.scopePath;
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
-
-    if (getGlobalSettings().hoistEnumParentScope) // FIXME
-        hoistEnumMembers(parentScope, nodeEnum.memberList, new ResolvedType(symbol));
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
