@@ -2,7 +2,7 @@ import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolSco
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {checkTypeCast} from "./typeCast";
+import {assertTypeCast} from "./typeCast";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {SymbolObjectHolder} from "./symbolObject";
 import {stringifyResolvedType} from "./symbolUtils";
@@ -48,7 +48,7 @@ export function checkDefaultConstructorCall(
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         } else {
-            checkTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
         }
 
         return calleeConstructorType;

@@ -243,7 +243,7 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const identifier = expectIdentifier(parser, HighlightForToken.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
 
-    let enumType = TokenReserved.createVirtual('int32');
+    let enumType: TokenReserved | undefined;
     if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         const typeIdentifier = parsePrimeType(parser);

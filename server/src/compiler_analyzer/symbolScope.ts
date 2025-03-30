@@ -41,7 +41,7 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface ScopeDetailInformation {
+interface DetailScopeInformation {
     reference: ReferenceInfo[];
     scopeRegion: ScopeRegionInfo[];
     autocompleteInstanceMember: AutocompleteInstanceMemberInfo[];
@@ -53,13 +53,15 @@ interface ScopeDetailInformation {
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: SymbolType | undefined;
-    info: ScopeDetailInformation;
+    enumScopeList: SymbolScope[];
+    info: DetailScopeInformation;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
     return {
         filepath: '',
         builtinStringType: undefined,
+        enumScopeList: [],
         info: {
             reference: [],
             scopeRegion: [],
@@ -171,6 +173,7 @@ export class SymbolScope {
         //   |-- Function holder scope (with no node)
         //       |-- The function scope for one of the overloads (with NodeFunc)
         //           |-- ...
+        // FIXME: What happens if the namespace and function name are the same?
         return this._childScopeTable.values().next().value?.isFunctionScope() === true;
     }
 
@@ -197,10 +200,6 @@ export class SymbolScope {
     public getContext(): Readonly<GlobalScopeContext> {
         const globalScope = this.getGlobalScope();
         return globalScope.getContext();
-    }
-
-    public getBuiltinStringType(): SymbolType | undefined {
-        return this.getContext().builtinStringType;
     }
 
     /**
@@ -404,6 +403,7 @@ export class SymbolGlobalScope extends SymbolScope {
      */
     public commitContext() {
         this._context.builtinStringType = findBuiltinStringType(this);
+        this._context.enumScopeList = collectEnumScopeList(this);
     }
 
     /**
@@ -428,7 +428,7 @@ export class SymbolGlobalScope extends SymbolScope {
     //     this.commitContext();
     // }
 
-    public get info(): Readonly<ScopeDetailInformation> {
+    public get info(): Readonly<DetailScopeInformation> {
         return this._context.info;
     }
 
@@ -457,6 +457,24 @@ function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
     }
 
     return undefined;
+}
+
+function collectEnumScopeList(scope: SymbolScope): SymbolScope[] {
+    const result: SymbolScope[] = [];
+
+    for (const child of scope.childScopeTable.values()) {
+        if (child.isAnonymousScope()) {
+            continue;
+        }
+
+        if (child.linkedNode?.nodeName === NodeName.Enum) {
+            result.push(child);
+        }
+
+        result.push(...collectEnumScopeList(child));
+    }
+
+    return result;
 }
 
 // Judge if the class has a metadata that indicates it is a built-in string type.

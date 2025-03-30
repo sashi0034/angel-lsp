@@ -103,8 +103,14 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         public readonly templateTypes?: TokenObject[],
         public readonly baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
+        public readonly multipleEnumCandidates?: SymbolVariable[],
     ) {
         super();
+
+        if (this.multipleEnumCandidates !== undefined) {
+            // This is an ambiguous enum value and have multiple candidates.
+            assert(this.multipleEnumCandidates.length > 1);
+        }
     }
 
     public static create(args: {
@@ -115,7 +121,8 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
         baseList?: (ResolvedType | undefined)[]
-        isHandler?: boolean
+        isHandler?: boolean,
+        multipleEnumCandidates?: SymbolVariable[],
     }) {
         return new SymbolType(
             args.identifierToken,
@@ -125,7 +132,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
             args.isTypeParameter,
             args.templateTypes,
             args.baseList,
-            args.isHandler);
+            args.isHandler,
+            args.multipleEnumCandidates
+        );
     }
 
     public mutate(): Mutable<this> {
@@ -189,14 +198,15 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         scopePath: ScopePath
         type: ResolvedType | undefined
         isInstanceMember: boolean
-        accessRestriction: AccessModifier | undefined
+        accessRestriction: AccessModifier | undefined,
     }) {
         return new SymbolVariable(
             args.identifierToken,
             args.scopePath,
             args.type,
             args.isInstanceMember,
-            args.accessRestriction);
+            args.accessRestriction
+        );
     }
 
     public get identifierText(): string {

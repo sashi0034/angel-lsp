@@ -107,21 +107,19 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     symbol.mutate().membersScope = scope.scopePath;
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
-
-    if (getGlobalSettings().hoistEnumParentScope)
-        hoistEnumMembers(parentScope, nodeEnum.memberList, new ResolvedType(symbol));
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
-        const symbol: SymbolVariable = SymbolVariable.create({
-            identifierToken: member.identifier,
-            scopePath: parentScope.scopePath,
-            type: type,
-            isInstanceMember: false,
-            accessRestriction: undefined,
-        });
-        parentScope.insertSymbolAndCheck(symbol);
+        parentScope.insertSymbolAndCheck(
+            SymbolVariable.create({
+                identifierToken: member.identifier,
+                scopePath: parentScope.scopePath,
+                type: type,
+                isInstanceMember: false,
+                accessRestriction: undefined,
+            })
+        );
     }
 }
 

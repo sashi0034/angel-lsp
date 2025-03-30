@@ -1,16 +1,13 @@
 import {Position} from "vscode-languageserver";
-import {isSymbolInstanceMember, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
+import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
-import {
-    collectParentScopeList,
-    SymbolGlobalScope,
-    SymbolScope
-} from "../compiler_analyzer/symbolScope";
+import {collectParentScopeList, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
 import {AutocompleteInstanceMemberInfo} from "../compiler_analyzer/info";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
 import {findScopeContainingPosition} from "../service/utils";
+import {getGlobalSettings} from "../core/settings";
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -37,6 +34,8 @@ export function provideCompletion(
     for (const scope of [...collectParentScopeList(caretScope), caretScope]) {
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
+
+    items.push(...hoistEnumParentScope(globalScope, []));
 
     return items;
 }
@@ -74,6 +73,22 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
     return items;
 }
 
+function hoistEnumParentScope(globalScope: SymbolGlobalScope, filter: ScopePath) {
+    if (getGlobalSettings().hoistEnumParentScope === false) return [];
+
+    const items: CompletionItemWrapper[] = [];
+
+    for (const enumScope of globalScope.getContext().enumScopeList) {
+        if (filter.every((key, i) => key === enumScope.scopePath[i]) === false) continue;
+
+        for (const [key, symbol] of enumScope.symbolTable) {
+            items.push(makeCompletionItem(key, symbol));
+        }
+    }
+
+    return items;
+}
+
 function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
@@ -95,7 +110,9 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             const result = autocompleteInstanceMember(globalScope, caretScope, info);
-            if (result !== undefined && result.length > 0) return result;
+            if (result !== undefined && result.length > 0) {
+                return result;
+            }
         }
     }
 
@@ -105,7 +122,13 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         if (location.positionInRange(caret)) {
             // Return the completion target to be prioritized.
             const result = getCompletionSymbolsInScope(info.accessScope, false);
-            if (result !== undefined && result.length > 0) return result;
+            if (result !== undefined && result.length > 0) {
+                if (info.accessScope.linkedNode?.nodeName !== NodeName.Enum) {
+                    result.push(...hoistEnumParentScope(globalScope, info.accessScope.scopePath));
+                }
+
+                return result;
+            }
         }
     }
 

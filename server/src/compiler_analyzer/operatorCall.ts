@@ -6,7 +6,7 @@ import {evaluateFunctionCall} from "./functionCall";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import assert = require("node:assert");
-import {canTypeCast} from "./typeCast";
+import {checkTypeCast} from "./typeCast";
 import {resolvedBuiltinInt} from "./builtinType";
 import {normalizeType} from "./typeConversion";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
@@ -58,9 +58,9 @@ export function evaluateNumberOperatorCall(lhs: ResolvedType, rhs: ResolvedType)
     }
 
     if (lhs.typeOrFunc.isNumberType()) {
-        if (canTypeCast(rhs, lhs)) return lhs;
+        if (checkTypeCast(rhs, lhs)) return lhs;
     } else if (rhs.typeOrFunc.isNumberType()) {
-        if (canTypeCast(lhs, rhs)) return rhs;
+        if (checkTypeCast(lhs, rhs)) return rhs;
     }
 
     return undefined;
@@ -71,8 +71,8 @@ export function evaluateNumberOperatorCall(lhs: ResolvedType, rhs: ResolvedType)
  */
 export function canComparisonOperatorCall(lhs: ResolvedType, rhs: ResolvedType): ResolvedType | undefined {
     // FIXME: Probably it is wrong.
-    if (canTypeCast(lhs, rhs)) return lhs;
-    if (canTypeCast(rhs, lhs)) return rhs;
+    if (checkTypeCast(lhs, rhs)) return lhs;
+    if (checkTypeCast(rhs, lhs)) return rhs;
     return undefined;
 }
 

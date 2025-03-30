@@ -5,6 +5,7 @@ import {
     makeFileContentList,
     inspectFileContents,
 } from "../../inspectorUtils";
+import {CaretMap} from "../caretMap";
 
 function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
@@ -12,28 +13,31 @@ function concatIndexAndItem(item: string, index: number) {
 
 export function testCompletion(fileContents: FileContents, ...expectedList: string[][]) {
     const fileContentList = makeFileContentList(fileContents);
-    const targetUri = fileContentList.at(-1)!.uri;
-    const targetContent = fileContentList.at(-1)!.content;
+    const lastContent = fileContentList.at(-1)!.content;
 
-    const {caretList, actualContent} = makeCaretListAndContent(targetContent);
-    fileContentList.at(-1)!.content = actualContent;
+    const caretMap = new CaretMap();
+    caretMap.processFiles(fileContentList);
 
-    if (caretList.length !== expectedList.length) {
-        throw new Error(`Expected ${expectedList.length} caret positions, but got ${caretList.length}`);
+    if (caretMap.length !== expectedList.length) {
+        throw new Error(`Expected ${expectedList.length} caret positions, but got ${caretMap.length}`);
     }
 
-    it(`completion ${targetContent}`, () => {
+    it(`[completion] ${lastContent}`, () => {
         const inspector = inspectFileContents(fileContentList);
 
-        const globalScope = inspector.getRecord(targetUri).analyzerScope.globalScope;
-
         // Iterate through each caret position and check if the completions are as expected.
-        for (let i = 0; i < caretList.length; i++) {
-            const caret = caretList[i];
+        for (let i = 0; i < caretMap.length; i++) {
+            const target = caretMap.get(i);
+            const globalScope = inspector.getRecord(target.uri).analyzerScope.globalScope;
+
             const expected =
-                expectedList[i].sort().map(concatIndexAndItem).join(", ");
+                expectedList[i]
+                    .sort().map(concatIndexAndItem).join(", ");
+
             const completions =
-                provideCompletion(globalScope, caret).map(c => c.item.label).sort().map(concatIndexAndItem).join(", ");
+                provideCompletion(globalScope, target.position).map(c => c.item.label)
+                    .sort().map(concatIndexAndItem).join(", ");
+
             if (completions !== expected) {
                 throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);
             }
