@@ -52,7 +52,7 @@ export function testDefinition(fileContents: FileContents, mapping?: [number, nu
 
             const definitionLocation = definitionToken.location;
             if (definitionLocation.positionInRange(toCaret) === false || definitionLocation.path !== toUri) {
-                throw new Error(`Expected definition ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`);
+                throw new Error(`Expected definition of $C${fromId}$ to be ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`);
             }
         }
     });
