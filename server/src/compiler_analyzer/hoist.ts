@@ -159,17 +159,19 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             // Copy the members of the base class
             copyBaseMembers(scope, symbol.baseList);
 
-            // Check to insert the super constructor
+            // Insert the super constructor
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
-            const superConstructor = findConstructorOfType(primeBase);
-            if (superConstructor?.isFunctionHolder()) {
-                for (const superSymbol of superConstructor.toList()) {
-                    superSymbol.mutate().identifierToken = TokenIdentifier.createVirtual(
+            const baseConstructorHolder = findConstructorOfType(primeBase);
+            if (baseConstructorHolder?.isFunctionHolder()) {
+                for (const baseConstructor of baseConstructorHolder.toList()) {
+                    const superConstructor = baseConstructor.clone();
+                    superConstructor.mutate().accessRestriction = AccessModifier.Private;
+                    superConstructor.mutate().identifierToken = TokenIdentifier.createVirtual(
                         'super',
-                        new TokenRange(superSymbol.identifierToken, superSymbol.identifierToken)
+                        new TokenRange(superConstructor.identifierToken, superConstructor.identifierToken)
                     );
 
-                    scope.insertSymbolAndCheck(superSymbol);
+                    scope.insertSymbol(superConstructor);
                 }
             }
         });

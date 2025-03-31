@@ -126,8 +126,6 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     let bestMatching: BestMatching | undefined = undefined;
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
-    // TODO: Output error messages for the overloads that are most closest to the caller arguments.
-
     // Find the best matching function.
     for (const callee of calleeFuncHolder.toList()) {
         const sideEffectBuffer: TypeConversionSideEffect[] = [];
