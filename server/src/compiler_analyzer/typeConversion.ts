@@ -146,10 +146,8 @@ function evaluateConvPrimitiveToPrimitive(
     if (srcType.equals(destType)) {
         return ConversionConst.NoConv;
     } else if (srcType.isEnumType() && destType.isEnumType()) {
-        assert(srcType.multipleEnumCandidates !== undefined);
-
         // Resolve ambiguous enum members
-        for (const candidate of srcType.multipleEnumCandidates) {
+        for (const candidate of srcType.multipleEnumCandidates ?? []) {
             if (candidate.type?.typeOrFunc.equals(destType)) {
                 return ConversionConst.NoConv;
             }
