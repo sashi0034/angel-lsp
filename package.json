@@ -132,7 +132,7 @@
                     "scope": "window",
                     "type": "boolean",
                     "default": false,
-                    "description": "Project files implicitly include each other (like C# or Java)"
+                    "description": "Project files implicitly include each other (like C# or Java). This works with `as.predefined` as the root."
                 },
                 "angelScript.hoistEnumParentScope": {
                     "scope": "window",

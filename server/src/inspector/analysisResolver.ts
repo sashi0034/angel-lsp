@@ -328,7 +328,12 @@ export class AnalysisResolver {
 
             // If the file is not found, notify the error
             const includePathToken =
-                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute)!;
+                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute);
+            if (includePathToken === undefined) {
+                // This happens when implicitMutualInclusion is enabled.
+                continue;
+            }
+
             analyzerDiagnostic.error(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
         }
 
