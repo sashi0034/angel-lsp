@@ -82,7 +82,7 @@ import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/toke
 import {AnalyzerScope} from "./analyzerScope";
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from "./operatorCall";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
-import {checkDefaultConstructorCall, findConstructorOfType} from "./constrcutorCall";
+import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findConstructorOfType} from "./constrcutorCall";
 import assert = require("node:assert");
 
 export type HoistQueue = (() => void)[];
@@ -970,7 +970,12 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
     const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
     if (calleeFunc?.symbol === undefined) {
-        analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined.`);
+        if (funcCall.identifier.text === 'super') {
+            assertDefaultSuperConstructorCall(scope, funcCall);
+        } else {
+            analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined.`);
+        }
+
         return undefined;
     }
 

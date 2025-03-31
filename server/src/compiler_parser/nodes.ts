@@ -190,6 +190,14 @@ export type FuncHeadConstructor = typeof funcHeadConstructor;
 
 export type FuncHead = FuncHeadReturnValue | FuncHeadDestructor | FuncHeadConstructor;
 
+export function isFuncHeadConstructor(head: FuncHead): head is FuncHeadConstructor {
+    return head === funcHeadConstructor;
+}
+
+export function isFuncHeadDestructor(head: FuncHead): head is FuncHeadDestructor {
+    return head === funcHeadDestructor;
+}
+
 export function isFuncHeadReturnValue(head: FuncHead): head is FuncHeadReturnValue {
     return head !== funcHeadDestructor && head !== funcHeadConstructor;
 }

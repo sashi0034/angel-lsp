@@ -22,8 +22,8 @@ export function provideSignatureHelp(
         if (location.getBoundingLocation().positionInRange(caret)) {
             const callee = info.calleeFuncHolder.first; // FIXME?
             const expectedCallee =
-                globalScope.resolveScope(callee.scopePath)?.lookupSymbolWithParent(callee.identifierToken.text);
-            if (expectedCallee?.isFunctionHolder() === false) continue;
+                globalScope.resolveScope(callee.scopePath)?.lookupSymbolWithParent(callee.actualIdentifierToken.text);
+            if (!expectedCallee?.isFunctionHolder()) continue;
 
             for (const callee of expectedCallee.overloadList) {
                 signatures.push(getFunctionSignature(info, callee, new TextPosition(caret.line, caret.character)));
