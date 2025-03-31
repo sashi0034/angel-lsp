@@ -11,7 +11,8 @@
     },
     "publisher": "sashi0034",
     "categories": [
-        "Programming Languages"
+        "Programming Languages",
+        "Debuggers"
     ],
     "keywords": [
         "angelscript"
@@ -26,7 +27,8 @@
     "activationEvents": [
         "onLanguage:angelscript",
         "onLanguage:angelscript-predefined",
-        "workspaceContains:**/*.as"
+        "workspaceContains:**/*.as",
+		"onDebug"
     ],
     "main": "./client/out/extension",
     "contributes": {
@@ -192,7 +194,61 @@
                     "description": "Traces the communication between VS Code and the language server."
                 }
             }
-        }
+        },
+        "breakpoints": [
+            {
+                "language": "angelscript"
+            }
+        ],
+        "debuggers": [
+            {
+                "type": "angel-lsp-dap",
+                "languages": [
+                    "angelscript"
+                ],
+                "label": "AngelScript Debugger (DAP)",
+                "configurationAttributes": {
+                    "attach": {
+                        "properties": {
+                            "address": {
+                                "type": "string",
+                                "description": "IP address of the DAP server to connect to"
+                            },
+                            "port": {
+                                "type": "number",
+                                "description": "Port of the DAP debugger to connect to"
+                            }
+                        },
+                        "required": [
+                            "address",
+                            "port"
+                        ]
+                    }
+                },
+                "initialConfigurations": [
+                    {
+                        "type": "angel-lsp-dap",
+                        "request": "attach",
+                        "name": "Attach to AngelScript DAP server",
+                        "address": "localhost",
+                        "port": 27979
+                    }
+                ],
+                "configurationSnippets": [
+                    {
+                        "label": "AngelScript Debug: Attach",
+                        "description": "Configuration for attaching to a DAP server",
+                        "body": {
+                            "type": "angel-lsp-dap",
+                            "request": "attach",
+                            "name": "Attach to AngelScript DAP server",
+                            "address": "localhost",
+                            "port": 27979
+                        }
+                    }
+                ]
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
@@ -211,5 +267,9 @@
         "mocha": "^10.3.0",
         "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
-    }
+    },
+	"dependencies": {
+        "@vscode/debugadapter": "^1.61.0",
+        "@vscode/debugprotocol": "^1.61.0"
+	}
 }
