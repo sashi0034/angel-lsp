@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.39] 2025/03/31
+
+- Debugger support #171 (Thanks Paril)
+
 ## [0.3.35] 2025/03/26
 
 - Deprecated the `buitinStringTypes: string[]` setting. Use `buitinStringType: string` instead.

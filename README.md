@@ -32,7 +32,9 @@ The Language Server analyzes AngelScript files within your project and offers th
 - Find References
 - Symbol Renaming
 - Snippets
+- Code Actions
 - Formatter
+- Debugger
 
 > Note: As this project is still under development, there may be bugs or incomplete support for some of these features. Future updates will continue to improve functionality.
 
@@ -67,16 +69,14 @@ The Language Server analyzes AngelScript files within your project and offers th
 
 - [User Settings](./docs/user_settings.md)
 
+> Note: Documentation for the Debugger, Code Actions, and other features is currently missing and will be added in a future update.
 
 # Unimplemented Features
 
 The following features are currently under development:
 
 - Detailed AngelScript features: Support for `import` is still incomplete.
-- More User Configuration Options
-- Enhanced Type Checking: Current support for handlers and arrays is limited.
-- Code Actions: Considering features like method signature changes.
-- Debugger: While the approach is still undecided, adding a debugger is being explored.
+- Enhanced Type Checking: Current support for handlers and const is limited.
 
 
 # Other Clients
