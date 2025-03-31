@@ -279,6 +279,14 @@ export class SymbolFunction extends SymbolBase {
         return this.identifierToken.text;
     }
 
+    /**
+     * The actual identifier token linked to the function.
+     * e.g., actualIdentifierToken: 'BaseObject', identifierToken: 'super'
+     */
+    public get actualIdentifierToken(): TokenObject {
+        return this.linkedNode.identifier;
+    }
+
     public toHolder(): SymbolFunctionHolder {
         return new SymbolFunctionHolder(this);
     }
