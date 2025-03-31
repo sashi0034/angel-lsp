@@ -1,5 +1,5 @@
 import * as path from 'path';
-import {workspace, ExtensionContext, commands, window, WorkspaceEdit, Range, Position} from 'vscode';
+import {workspace, ExtensionContext, commands, debug, window, WorkspaceEdit, Range, Position, DebugConfigurationProvider, WorkspaceFolder, DebugConfiguration, CancellationToken, ProviderResult} from 'vscode';
 
 import {
     LanguageClient,
@@ -68,6 +68,28 @@ export function deactivate(): Thenable<void> | undefined {
 
 // -----------------------------------------------
 
+class AngelScriptConfigurationProvider implements DebugConfigurationProvider {
+    resolveDebugConfiguration(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+        return config;
+    }
+
+    resolveDebugConfigurationWithSubstitutedVariables(folder: WorkspaceFolder | undefined, config: DebugConfiguration, token?: CancellationToken): ProviderResult<DebugConfiguration> {
+        return config;
+    }
+}
+
+class AngelScriptDebugAdapterServerDescriptorFactory implements vscode.DebugAdapterDescriptorFactory {
+    async createDebugAdapterDescriptor(session: vscode.DebugSession, executable: vscode.DebugAdapterExecutable | undefined): Promise<vscode.DebugAdapterDescriptor> {
+        return new vscode.DebugAdapterServer(session.configuration.port, session.configuration.address);
+    }
+}
+
+class AngelScriptDebugAdapterTrackerFactory implements vscode.DebugAdapterTrackerFactory {
+	createDebugAdapterTracker(session: vscode.DebugSession): ProviderResult<vscode.DebugAdapterTracker> {
+		return {};
+	}
+}
+
 function subscribeCommands(context: ExtensionContext) {
     context.subscriptions.push(
         commands.registerCommand('angelScript.debug.printGlobalScope', async () => {
@@ -81,4 +103,7 @@ function subscribeCommands(context: ExtensionContext) {
             }
         })
     );
+    context.subscriptions.push(debug.registerDebugConfigurationProvider("angel-lsp-dap", new AngelScriptConfigurationProvider()));
+    context.subscriptions.push(debug.registerDebugAdapterDescriptorFactory("angel-lsp-dap", new AngelScriptDebugAdapterServerDescriptorFactory()));
+    context.subscriptions.push(debug.registerDebugAdapterTrackerFactory("angel-lsp-dap", new AngelScriptDebugAdapterTrackerFactory()));
 }
