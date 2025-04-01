@@ -347,30 +347,6 @@ export class SymbolScope {
             }
         }
     }
-
-    // protected cleanByFilepath(filepath: string) {
-    //     this._namespaceNodes.length = 0;
-    //
-    //     if (this._linkedNode?.nodeRange.path === filepath) {
-    //         this._linkedNode = undefined;
-    //     }
-    //
-    //     // Exclude symbols declared in this file
-    //     excludeSymbolTableByFilepath(this._symbolTable, filepath);
-    //
-    //     // Iterate child scopes recursively
-    //     for (const [key, child] of this._childScopeTable) {
-    //         if (isAnonymousIdentifier(key) && child.linkedNode?.nodeRange.path === filepath) {
-    //             // Anonymous scopes are deleted because they are defined in this file.
-    //             this._childScopeTable.delete(key);
-    //         } else {
-    //             child.cleanByFilepath(filepath);
-    //             if (child._childScopeTable.size === 0 && child._symbolTable.size === 0) {
-    //                 this._childScopeTable.delete(key);
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 export class SymbolGlobalScope extends SymbolScope {
@@ -414,19 +390,6 @@ export class SymbolGlobalScope extends SymbolScope {
         const externalFilepath = externalScope.getContext().filepath;
         this.includeExternalScopeInternal(externalScope, externalFilepath);
     }
-
-    /**
-     * Remove the information created in this file
-     */
-    // public cleanInFile() {
-    //     this.cleanByFilepath(this._context.filepath);
-    //
-    //     this._context.completionHints.length = 0;
-    //
-    //     this._context.referenceList.length = 0;
-    //
-    //     this.commitContext();
-    // }
 
     public get info(): Readonly<DetailScopeInformation> {
         return this._context.info;

@@ -76,12 +76,12 @@ function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: Tok
         // Check the include directive.
         const fileName = directiveTokens[2];
         if (fileName === undefined) {
-            diagnostic.addError(directiveTokens[1].location, 'Expected file name for include directive.');
+            diagnostic.error(directiveTokens[1].location, 'Expected file name for include directive.');
             return;
         }
 
         if (fileName.isStringToken() === false) {
-            diagnostic.addError(directiveTokens[2].location, 'Expected string literal for include directive.');
+            diagnostic.error(directiveTokens[2].location, 'Expected string literal for include directive.');
             return;
         }
 

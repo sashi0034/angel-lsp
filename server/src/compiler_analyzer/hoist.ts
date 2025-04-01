@@ -46,7 +46,7 @@ import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {findConstructorOfType} from "./constrcutorCall";
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
-function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Enum) {
@@ -54,21 +54,21 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzing: Analy
         } else if (nodeName === NodeName.TypeDef) {
             hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
-            hoistClass(parentScope, statement, analyzing, hoisting);
+            hoistClass(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Mixin) {
-            hoistMixin(parentScope, statement, analyzing, hoisting);
+            hoistMixin(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Interface) {
-            hoistInterface(parentScope, statement, analyzing, hoisting);
+            hoistInterface(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.FuncDef) {
-            hoistFuncDef(parentScope, statement, analyzing, hoisting);
+            hoistFuncDef(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.VirtualProp) {
-            hoistVirtualProp(parentScope, statement, analyzing, hoisting, false);
+            hoistVirtualProp(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Var) {
-            hoistVar(parentScope, statement, analyzing, false);
+            hoistVar(parentScope, statement, analyzeQueue, false);
         } else if (nodeName === NodeName.Func) {
-            hoistFunc(parentScope, statement, analyzing, hoisting, false);
+            hoistFunc(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Namespace) {
-            hoistNamespace(parentScope, statement, analyzing);
+            hoistNamespace(parentScope, statement, analyzeQueue);
         }
     }
 }
@@ -104,7 +104,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope = parentScope.insertScopeAndCheck(nodeEnum.identifier, nodeEnum);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
 }
@@ -124,7 +124,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
 }
 
 // BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         identifierToken: nodeClass.identifier,
         scopePath: parentScope.scopePath,
@@ -134,7 +134,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeClass.identifier, nodeClass);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
         identifierToken: builtinThisToken,
@@ -146,14 +146,14 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     scope.insertSymbolAndCheck(thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
-    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
-    symbol.mutate().baseList = hoistBaseList(scope, nodeClass);
+    symbol.assignBaseList(hoistBaseList(scope, nodeClass));
 
-    hoisting.push(() => {
-        hoistClassMembers(scope, nodeClass, analyzing, hoisting);
+    hoistQueue.push(() => {
+        hoistClassMembers(scope, nodeClass, analyzeQueue, hoistQueue);
 
-        hoisting.push(() => {
+        hoistQueue.push(() => {
             if (symbol.baseList === undefined) return;
 
             // Copy the members of the base class
@@ -164,12 +164,13 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             const baseConstructorHolder = findConstructorOfType(primeBase);
             if (baseConstructorHolder?.isFunctionHolder()) {
                 for (const baseConstructor of baseConstructorHolder.toList()) {
-                    const superConstructor = baseConstructor.clone();
-                    superConstructor.mutate().accessRestriction = AccessModifier.Private;
-                    superConstructor.mutate().identifierToken = TokenIdentifier.createVirtual(
-                        'super',
-                        new TokenRange(superConstructor.identifierToken, superConstructor.identifierToken)
-                    );
+                    const superConstructor = baseConstructor.clone({
+                        identifierToken: TokenIdentifier.createVirtual(
+                            'super',
+                            new TokenRange(baseConstructor.identifierToken, baseConstructor.identifierToken)
+                        ),
+                        accessRestriction: AccessModifier.Private,
+                    });
 
                     scope.insertSymbol(superConstructor);
                 }
@@ -253,16 +254,16 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
 }
 
 // '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
-function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const member of nodeClass.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
-            hoistVirtualProp(scope, member, analyzing, hoisting, true);
+            hoistVirtualProp(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.Func) {
-            hoistFunc(scope, member, analyzing, hoisting, true);
+            hoistFunc(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.Var) {
-            hoistVar(scope, member, analyzing, true);
+            hoistVar(scope, member, analyzeQueue, true);
         } else if (member.nodeName === NodeName.FuncDef) {
-            hoistFuncDef(scope, member, analyzing, hoisting);
+            hoistFuncDef(scope, member, analyzeQueue, hoistQueue);
         }
     }
 }
@@ -283,7 +284,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
 
 // BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
-    parentScope: SymbolScope, nodeFunc: NodeFunc, analyzing: AnalyzeQueue, hoisting: HoistQueue, isInstanceMember: boolean
+    parentScope: SymbolScope, nodeFunc: NodeFunc, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue, isInstanceMember: boolean
 ) {
     if (nodeFunc.head === funcHeadDestructor) return;
 
@@ -309,12 +310,13 @@ function hoistFunc(
     });
 
     const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
-    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
     const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
         functionScope,
         nodeFunc.head.returnType) : undefined;
-    symbol.mutate().returnType = returnType;
+    symbol.assignReturnType(returnType);
+
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
@@ -338,17 +340,17 @@ function hoistFunc(
         analyzerDiagnostic.error(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 
-    hoisting.push(() => {
-        symbol.mutate().parameterTypes = hoistParamList(functionScope, nodeFunc.paramList);
+    hoistQueue.push(() => {
+        symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
     });
 
-    analyzing.push(() => {
+    analyzeQueue.push(() => {
         analyzeFunc(functionScope, nodeFunc);
     });
 }
 
 // BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
-function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         identifierToken: nodeInterface.identifier,
         scopePath: parentScope.scopePath,
@@ -358,23 +360,23 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeInterface.identifier, nodeInterface);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     const baseList = hoistBaseList(scope, nodeInterface);
-    if (baseList !== undefined) symbol.mutate().baseList = baseList;
+    if (baseList !== undefined) symbol.assignBaseList(baseList);
 
-    hoisting.push(() => {
-        hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
+    hoistQueue.push(() => {
+        hoistInterfaceMembers(scope, nodeInterface, analyzeQueue, hoistQueue);
         if (baseList !== undefined) copyBaseMembers(scope, baseList);
     });
 
     pushScopeRegionInfo(scope, nodeInterface.nodeRange);
 }
 
-function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const member of nodeInterface.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
-            hoistVirtualProp(scope, member, analyzing, hoisting, true);
+            hoistVirtualProp(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.IntfMethod) {
             hoistIntfMethod(scope, member);
         }
@@ -382,10 +384,10 @@ function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface,
 }
 
 // BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue, isInstanceMember: boolean) {
+function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzeQueue: AnalyzeQueue, isInstanceMember: boolean) {
     const varType = analyzeType(scope, nodeVar.type);
 
-    analyzing.push(() => {
+    analyzeQueue.push(() => {
         for (const declaredVar of nodeVar.variables) {
             const initializer = declaredVar.initializer;
             if (initializer === undefined) continue;
@@ -399,7 +401,7 @@ function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzing: AnalyzeQueue,
 // BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 
 // BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
+function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: funcDef.identifier,
         scopePath: parentScope.scopePath,
@@ -412,18 +414,18 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    hoisting.push(() => {
-        symbol.mutate().returnType = analyzeType(parentScope, funcDef.returnType);
+    hoistQueue.push(() => {
+        symbol.assignReturnType(analyzeType(parentScope, funcDef.returnType));
     });
 
-    hoisting.push(() => {
-        symbol.mutate().parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
+    hoistQueue.push(() => {
+        symbol.assignParameterTypes(funcDef.paramList.map(param => analyzeType(parentScope, param.type)));
     });
 }
 
 // BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function hoistVirtualProp(
-    parentScope: SymbolScope, virtualProp: NodeVirtualProp, analyzing: AnalyzeQueue, hoisting: HoistQueue, isInstanceMember: boolean
+    parentScope: SymbolScope, virtualProp: NodeVirtualProp, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue, isInstanceMember: boolean
 ) {
     const type = analyzeType(parentScope, virtualProp.type);
 
@@ -442,7 +444,7 @@ function hoistVirtualProp(
         const getterScope = parentScope.insertScope(`get_${identifier.text}`, virtualProp);
 
         const statBlock = getter.statBlock;
-        analyzing.push(() => {
+        analyzeQueue.push(() => {
             analyzeStatBlock(getterScope, statBlock);
         });
     }
@@ -463,15 +465,15 @@ function hoistVirtualProp(
         }
 
         const statBlock = setter.statBlock;
-        analyzing.push(() => {
+        analyzeQueue.push(() => {
             analyzeStatBlock(setterScope, statBlock);
         });
     }
 }
 
 // BNF: MIXIN         ::= 'mixin' CLASS
-function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzing: AnalyzeQueue, hoisting: HoistQueue) {
-    hoistClass(parentScope, mixin.mixinClass, analyzing, hoisting);
+function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
+    hoistClass(parentScope, mixin.mixinClass, analyzeQueue, hoistQueue);
 }
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'

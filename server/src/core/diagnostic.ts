@@ -1,20 +1,18 @@
 import * as lsp from "vscode-languageserver";
 
-type DiagnosticList = lsp.Diagnostic[];
-
-const s_diagnosticStack: DiagnosticList[] = [];
-
-let s_currentDiagnostics: DiagnosticList = [];
+let s_currentDiagnostics: lsp.Diagnostic[] = [];
 
 function beginSession(): void {
+    if (s_currentDiagnostics.length > 0) {
+        console.error("diagnostic.endSession() was not called before diagnostic.beginSession()");
+    }
+
     s_currentDiagnostics = [];
-    s_diagnosticStack.push(s_currentDiagnostics);
 }
 
-function endSession(): DiagnosticList {
+function endSession(): lsp.Diagnostic[] {
     const result = s_currentDiagnostics;
-    s_diagnosticStack.pop();
-    if (s_diagnosticStack.length > 0) s_currentDiagnostics = s_diagnosticStack[s_diagnosticStack.length - 1];
+    s_currentDiagnostics = [];
     return result;
 }
 
@@ -27,12 +25,12 @@ function pushDiagnostic(range: lsp.Range, message: string, severity: lsp.Diagnos
     });
 }
 
-function addError(range: lsp.Range, message: string): void {
+function error(range: lsp.Range, message: string): void {
     pushDiagnostic(range, message, lsp.DiagnosticSeverity.Error);
 }
 
 export const diagnostic = {
     beginSession: beginSession,
     endSession: endSession,
-    addError,
+    error: error,
 } as const;
