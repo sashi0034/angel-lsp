@@ -104,7 +104,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope = parentScope.insertScopeAndCheck(nodeEnum.identifier, nodeEnum);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
 }
@@ -134,7 +134,7 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeClass.identifier, nodeClass);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
         identifierToken: builtinThisToken,
@@ -146,9 +146,9 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
     scope.insertSymbolAndCheck(thisVariable);
 
     const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
-    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
-    symbol.mutate().baseList = hoistBaseList(scope, nodeClass);
+    symbol.assignBaseList(hoistBaseList(scope, nodeClass));
 
     hoisting.push(() => {
         hoistClassMembers(scope, nodeClass, analyzing, hoisting);
@@ -164,12 +164,13 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzing: A
             const baseConstructorHolder = findConstructorOfType(primeBase);
             if (baseConstructorHolder?.isFunctionHolder()) {
                 for (const baseConstructor of baseConstructorHolder.toList()) {
-                    const superConstructor = baseConstructor.clone();
-                    superConstructor.mutate().accessRestriction = AccessModifier.Private;
-                    superConstructor.mutate().identifierToken = TokenIdentifier.createVirtual(
-                        'super',
-                        new TokenRange(superConstructor.identifierToken, superConstructor.identifierToken)
-                    );
+                    const superConstructor = baseConstructor.clone({
+                        identifierToken: TokenIdentifier.createVirtual(
+                            'super',
+                            new TokenRange(baseConstructor.identifierToken, baseConstructor.identifierToken)
+                        ),
+                        accessRestriction: AccessModifier.Private,
+                    });
 
                     scope.insertSymbol(superConstructor);
                 }
@@ -309,12 +310,13 @@ function hoistFunc(
     });
 
     const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
-    if (templateTypes.length > 0) symbol.mutate().templateTypes = templateTypes;
+    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
     const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
         functionScope,
         nodeFunc.head.returnType) : undefined;
-    symbol.mutate().returnType = returnType;
+    symbol.assignReturnType(returnType);
+
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
@@ -339,7 +341,7 @@ function hoistFunc(
     }
 
     hoisting.push(() => {
-        symbol.mutate().parameterTypes = hoistParamList(functionScope, nodeFunc.paramList);
+        symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
     });
 
     analyzing.push(() => {
@@ -358,10 +360,10 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeInterface.identifier, nodeInterface);
-    symbol.mutate().membersScope = scope.scopePath;
+    symbol.assignMembersScope(scope.scopePath);
 
     const baseList = hoistBaseList(scope, nodeInterface);
-    if (baseList !== undefined) symbol.mutate().baseList = baseList;
+    if (baseList !== undefined) symbol.assignBaseList(baseList);
 
     hoisting.push(() => {
         hoistInterfaceMembers(scope, nodeInterface, analyzing, hoisting);
@@ -413,11 +415,11 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzing:
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     hoisting.push(() => {
-        symbol.mutate().returnType = analyzeType(parentScope, funcDef.returnType);
+        symbol.assignReturnType(analyzeType(parentScope, funcDef.returnType));
     });
 
     hoisting.push(() => {
-        symbol.mutate().parameterTypes = funcDef.paramList.map(param => analyzeType(parentScope, param.type));
+        symbol.assignParameterTypes(funcDef.paramList.map(param => analyzeType(parentScope, param.type)));
     });
 }
 

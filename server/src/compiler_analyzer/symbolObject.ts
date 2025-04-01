@@ -9,7 +9,6 @@ import {
     NodeName,
     NodeBase
 } from "../compiler_parser/nodes";
-import {Mutable} from "../utils/utilities";
 import {ResolvedType} from "./resolvedType";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import assert = require("node:assert");
@@ -96,12 +95,12 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
         public readonly linkedNode: TypeDefinitionNode | undefined,
-        public readonly membersScope: ScopePath | undefined,
+        private _membersScope: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        public readonly templateTypes?: TokenObject[],
-        public readonly baseList?: (ResolvedType | undefined)[],
+        private _templateTypes?: TokenObject[],
+        private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
         public readonly multipleEnumCandidates?: SymbolVariable[],
     ) {
@@ -137,9 +136,36 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         );
     }
 
-    public mutate(): Mutable<this> {
-        return this;
+    public get membersScope(): ScopePath | undefined {
+        return this._membersScope;
     }
+
+    public assignMembersScope(scope: ScopePath | undefined) {
+        assert(this._membersScope === undefined);
+        this._membersScope = scope;
+    }
+
+    public get templateTypes(): TokenObject[] {
+        return this._templateTypes ?? [];
+    }
+
+    public assignTemplateTypes(templateTypes: TokenObject[]) {
+        assert(this._templateTypes === undefined);
+        this._templateTypes = templateTypes;
+    }
+
+    public get baseList(): (ResolvedType | undefined)[] {
+        return this._baseList ?? [];
+    }
+
+    public assignBaseList(baseList: (ResolvedType | undefined)[] | undefined) {
+        assert(this._baseList === undefined);
+        this._baseList = baseList;
+    }
+
+    // public mutate(): Mutable<this> {
+    //     return this;
+    // }
 
     public get identifierText(): string {
         return this.identifierToken.text;
@@ -236,12 +262,12 @@ export class SymbolFunction extends SymbolBase {
         public readonly scopePath: ScopePath,
         public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
         public readonly functionScope: ScopePath | undefined,
-        public readonly returnType: ResolvedType | undefined,
-        public readonly parameterTypes: (ResolvedType | undefined)[],
+        private _returnType: ResolvedType | undefined,
+        private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        public readonly templateTypes?: TokenObject[],
+        private _templateTypes?: TokenObject[],
     ) {
         super();
     }
@@ -267,13 +293,46 @@ export class SymbolFunction extends SymbolBase {
             args.accessRestriction);
     }
 
-    public clone(): this {
-        return Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    public clone(option?: {
+        identifierToken?: TokenObject,
+        accessRestriction?: AccessModifier,
+    }): this {
+        const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+        if (option?.identifierToken !== undefined) clone.identifierToken = option.identifierToken;
+        if (option?.accessRestriction !== undefined) clone.accessRestriction = option.accessRestriction;
+        return clone;
     }
 
-    public mutate(): Mutable<this> {
-        return this;
+    public get returnType(): ResolvedType | undefined {
+        return this._returnType;
     }
+
+    public assignReturnType(returnType: ResolvedType | undefined) {
+        assert(this._returnType === undefined);
+        this._returnType = returnType;
+    }
+
+    public get parameterTypes(): (ResolvedType | undefined)[] {
+        return this._parameterTypes;
+    }
+
+    public assignParameterTypes(parameterTypes: (ResolvedType | undefined)[]) {
+        assert(this._parameterTypes.length === 0);
+        this._parameterTypes = parameterTypes;
+    }
+
+    public get templateTypes(): TokenObject[] | undefined {
+        return this._templateTypes;
+    }
+
+    public assignTemplateTypes(templateTypes: TokenObject[]) {
+        assert(this._templateTypes === undefined);
+        this._templateTypes = templateTypes;
+    }
+
+    // public mutate(): Mutable<this> {
+    //     return this;
+    // }
 
     public get identifierText(): string {
         return this.identifierToken.text;
