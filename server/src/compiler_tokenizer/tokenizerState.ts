@@ -106,7 +106,7 @@ export class UnknownWordBuffer {
         if (this._bufferLocation === null) return;
 
         this._bufferLocation.end.character_++;
-        diagnostic.addError(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
+        diagnostic.error(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
         this._bufferText = "";
     }
 }

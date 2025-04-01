@@ -166,7 +166,7 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
         if (tokenizer.isEnd()) break;
 
         if (startQuote !== '"""' && tokenizer.isNextWrap()) {
-            diagnostic.addError({
+            diagnostic.error({
                 start: tokenizer.getCursorPosition(),
                 end: tokenizer.getCursorPosition(),
             }, 'Missing end quote ' + startQuote);
