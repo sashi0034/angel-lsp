@@ -754,13 +754,16 @@ function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | 
 
 // {EXPRPREOP} EXPRVALUE {EXPRPOSTOP}
 function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
-    // TODO Handle for EXPRPREOP
-
     let exprValue = analyzeExprValue(scope, exprTerm.value);
 
     for (const postOp of exprTerm.postOps) {
         if (exprValue === undefined) break;
         exprValue = analyzeExprPostOp(scope, postOp, exprValue, exprTerm.nodeRange);
+    }
+
+    for (const preOp of exprTerm.preOps) {
+        if (exprValue === undefined) break;
+        exprValue = analyzeExprPreOp(scope, preOp, exprValue);
     }
 
     return exprValue;
@@ -811,6 +814,10 @@ export function analyzeConstructorCall(
 }
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue: ResolvedType) {
+    // TODO: Implement like opNeg
+    return exprValue;
+}
 
 // BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: TokenRange) {
