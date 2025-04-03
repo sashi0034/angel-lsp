@@ -141,7 +141,7 @@ function autocompleteInstanceMember(
     completion: AutocompleteInstanceMemberInfo
 ) {
     // Find the scope to which the type to be completed belongs.
-    if (completion.targetType.membersScope === undefined) return [];
+    if (completion.targetType.membersScopePath === undefined) return [];
 
     const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
         completion.targetType.identifierToken.text);

@@ -95,7 +95,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
         public readonly linkedNode: TypeDefinitionNode | undefined,
-        private _membersScope: ScopePath | undefined,
+        private _membersScopePath: ScopePath | undefined,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
@@ -116,7 +116,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         identifierToken: TokenObject
         scopePath: ScopePath
         linkedNode: TypeDefinitionNode | undefined
-        membersScope: ScopePath | undefined
+        membersScopePath: ScopePath | undefined
         isTypeParameter?: boolean
         templateTypes?: TokenObject[]
         baseList?: (ResolvedType | undefined)[]
@@ -127,7 +127,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
             args.identifierToken,
             args.scopePath,
             args.linkedNode,
-            args.membersScope,
+            args.membersScopePath,
             args.isTypeParameter,
             args.templateTypes,
             args.baseList,
@@ -136,13 +136,13 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         );
     }
 
-    public get membersScope(): ScopePath | undefined {
-        return this._membersScope;
+    public get membersScopePath(): ScopePath | undefined {
+        return this._membersScopePath;
     }
 
-    public assignMembersScope(scope: ScopePath | undefined) {
-        assert(this._membersScope === undefined);
-        this._membersScope = scope;
+    public assignMembersScopePath(scope: ScopePath | undefined) {
+        assert(this._membersScopePath === undefined);
+        this._membersScopePath = scope;
     }
 
     public get templateTypes(): TokenObject[] | undefined {
@@ -261,7 +261,7 @@ export class SymbolFunction extends SymbolBase {
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
         public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
-        public readonly functionScope: ScopePath | undefined,
+        public readonly functionScopePath: ScopePath | undefined,
         private _returnType: ResolvedType | undefined,
         private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
@@ -276,7 +276,7 @@ export class SymbolFunction extends SymbolBase {
         identifierToken: TokenObject
         scopePath: ScopePath
         linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod
-        functionScope: ScopePath | undefined,
+        functionScopePath: ScopePath | undefined,
         returnType: ResolvedType | undefined
         parameterTypes: (ResolvedType | undefined)[]
         isInstanceMember: boolean
@@ -286,7 +286,7 @@ export class SymbolFunction extends SymbolBase {
             args.identifierToken,
             args.scopePath,
             args.linkedNode,
-            args.functionScope,
+            args.functionScopePath,
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,

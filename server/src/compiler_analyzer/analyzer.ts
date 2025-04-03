@@ -848,7 +848,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    const classScope = exprValue.typeOrFunc.membersScope;
+    const classScope = exprValue.typeOrFunc.membersScopePath;
     if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
@@ -1174,7 +1174,7 @@ function analyzeEnumMemberAccess(currentScope: SymbolScope, accessScope: SymbolS
             memberList: [],
             enumType: undefined
         } satisfies NodeEnum,
-        membersScope: undefined,
+        membersScopePath: undefined,
         multipleEnumCandidates: enumCandidates
     });
 

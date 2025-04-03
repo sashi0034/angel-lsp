@@ -98,13 +98,13 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         identifierToken: nodeEnum.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeEnum,
-        membersScope: undefined,
+        membersScopePath: undefined,
     });
 
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope = parentScope.insertScopeAndCheck(nodeEnum.identifier, nodeEnum);
-    symbol.assignMembersScope(scope.scopePath);
+    symbol.assignMembersScopePath(scope.scopePath);
 
     hoistEnumMembers(scope, nodeEnum.memberList, new ResolvedType(symbol));
 }
@@ -129,12 +129,12 @@ function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzeQueue
         identifierToken: nodeClass.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeClass,
-        membersScope: undefined,
+        membersScopePath: undefined,
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeClass.identifier, nodeClass);
-    symbol.assignMembersScope(scope.scopePath);
+    symbol.assignMembersScopePath(scope.scopePath);
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
         identifierToken: builtinThisToken,
@@ -188,7 +188,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
             identifierToken: getIdentifierInNodeType(type),
             scopePath: scope.scopePath,
             linkedNode: undefined,
-            membersScope: undefined,
+            membersScopePath: undefined,
             isTypeParameter: true,
         }));
 
@@ -229,7 +229,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
         if (baseType === undefined) continue;
         if (baseType.typeOrFunc.isFunction()) continue;
 
-        const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScope);
+        const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScopePath);
         if (baseScope === undefined) continue;
 
         // Insert each base class member if possible
@@ -277,7 +277,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
         identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: builtInType.linkedNode,
-        membersScope: undefined,
+        membersScopePath: undefined,
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
@@ -304,7 +304,7 @@ function hoistFunc(
         returnType: undefined, // set below
         parameterTypes: [],
         linkedNode: nodeFunc,
-        functionScope: functionScope.scopePath,
+        functionScopePath: functionScope.scopePath,
         isInstanceMember: isInstanceMember,
         accessRestriction: nodeFunc.accessor
     });
@@ -355,12 +355,12 @@ function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, 
         identifierToken: nodeInterface.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeInterface,
-        membersScope: undefined,
+        membersScopePath: undefined,
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeInterface.identifier, nodeInterface);
-    symbol.assignMembersScope(scope.scopePath);
+    symbol.assignMembersScopePath(scope.scopePath);
 
     const baseList = hoistBaseList(scope, nodeInterface);
     if (baseList !== undefined) symbol.assignBaseList(baseList);
@@ -408,7 +408,7 @@ function hoistFuncDef(parentScope: SymbolScope, funcDef: NodeFuncDef, analyzeQue
         returnType: undefined,
         parameterTypes: [],
         linkedNode: funcDef,
-        functionScope: undefined,
+        functionScopePath: undefined,
         isInstanceMember: false,
         accessRestriction: undefined,
     });
@@ -484,7 +484,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         returnType: analyzeType(parentScope, intfMethod.returnType),
         parameterTypes: [],
         linkedNode: intfMethod,
-        functionScope: undefined, // TODO: Create a dummy function scope for the interface method because named arguments give reference
+        functionScopePath: undefined, // TODO: Create a dummy function scope for the interface method because named arguments give reference
         isInstanceMember: true,
         accessRestriction: undefined,
     });
