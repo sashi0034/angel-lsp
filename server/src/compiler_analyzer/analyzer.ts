@@ -754,6 +754,8 @@ function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | 
 
 // {EXPRPREOP} EXPRVALUE {EXPRPOSTOP}
 function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
+    // TODO Handle for EXPRPREOP
+
     let exprValue = analyzeExprValue(scope, exprTerm.value);
 
     for (const postOp of exprTerm.postOps) {
@@ -1341,17 +1343,8 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
-    const lhsOk = assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
-    const rhsOk = assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
-
-    if (lhsOk && rhsOk) {
-        if (lhs.identifierText !== 'bool' && rhs.identifierText !== 'bool') {
-            analyzerDiagnostic.error(
-                extendTokenLocation(operator, 1, 1),
-                `One of the operands must be explicitly type 'bool'`
-            );
-        }
-    }
+    assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
+    assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
 
     return new ResolvedType(builtinBoolType);
 }
