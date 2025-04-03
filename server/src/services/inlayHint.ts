@@ -132,7 +132,7 @@ const operatorOverloads = new Map([
     ['opPostDec', '--'],
 
     // Comparison operators
-    ['opEquals', '==, is'], // '==, !=, is, !is'
+    ['opEquals', '=='], // '==, !=, is, !is'
     ['opCmp', '<=>'], // <, <=, >, >=
 
     // Assignment operators

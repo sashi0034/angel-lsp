@@ -10,7 +10,7 @@ function createBuiltinType(virtualToken: TokenObject): SymbolType {
         identifierToken: virtualToken, // The built-in type uses a virtual token
         scopePath: [],
         linkedNode: undefined,
-        membersScope: undefined,
+        membersScopePath: undefined,
     });
 }
 

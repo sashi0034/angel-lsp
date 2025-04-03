@@ -761,6 +761,11 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
         exprValue = analyzeExprPostOp(scope, postOp, exprValue, exprTerm.nodeRange);
     }
 
+    for (const preOp of exprTerm.preOps) {
+        if (exprValue === undefined) break;
+        exprValue = analyzeExprPreOp(scope, preOp, exprValue);
+    }
+
     return exprValue;
 }
 
@@ -809,6 +814,10 @@ export function analyzeConstructorCall(
 }
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue: ResolvedType) {
+    // TODO: Implement like opNeg
+    return exprValue;
+}
 
 // BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(scope: SymbolScope, exprPostOp: NodeExprPostOp, exprValue: ResolvedType, exprRange: TokenRange) {
@@ -846,7 +855,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    const classScope = exprValue.typeOrFunc.membersScope;
+    const classScope = exprValue.typeOrFunc.membersScopePath;
     if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
@@ -1172,7 +1181,7 @@ function analyzeEnumMemberAccess(currentScope: SymbolScope, accessScope: SymbolS
             memberList: [],
             enumType: undefined
         } satisfies NodeEnum,
-        membersScope: undefined,
+        membersScopePath: undefined,
         multipleEnumCandidates: enumCandidates
     });
 
@@ -1341,17 +1350,8 @@ function analyzeLogicOp(
     lhs: ResolvedType, rhs: ResolvedType,
     leftRange: TokenRange, rightRange: TokenRange
 ): ResolvedType | undefined {
-    const lhsOk = assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
-    const rhsOk = assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
-
-    if (lhsOk && rhsOk) {
-        if (lhs.identifierText !== 'bool' && rhs.identifierText !== 'bool') {
-            analyzerDiagnostic.error(
-                extendTokenLocation(operator, 1, 1),
-                `One of the operands must be explicitly type 'bool'`
-            );
-        }
-    }
+    assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
+    assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
 
     return new ResolvedType(builtinBoolType);
 }
