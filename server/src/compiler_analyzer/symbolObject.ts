@@ -145,8 +145,8 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         this._membersScope = scope;
     }
 
-    public get templateTypes(): TokenObject[] {
-        return this._templateTypes ?? [];
+    public get templateTypes(): TokenObject[] | undefined {
+        return this._templateTypes;
     }
 
     public assignTemplateTypes(templateTypes: TokenObject[]) {
