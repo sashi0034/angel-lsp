@@ -11,6 +11,7 @@ interface LanguageServerSettings {
     supportsForEach: boolean;
     characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
+    supportsDigitSeparators: boolean;
     builtinStringType: string;
     builtinArrayType: string;
     formatter: {
@@ -32,6 +33,7 @@ const defaultSettings: LanguageServerSettings = {
     supportsForEach: false,
     characterLiterals: false,
     supportsTypedEnumerations: false,
+    supportsDigitSeparators: false,
     builtinStringType: "string",
     builtinArrayType: "array",
     formatter: {

@@ -11,25 +11,34 @@ import {diagnostic} from "../core/diagnostic";
 import {TokenizerState, UnknownWordBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
+import { getGlobalSettings } from '../core/settings';
 
-function isDigit(c: string): boolean {
-    return /^[0-9]$/.test(c);
+function isDigitOfRadix(regex: RegExp, tokenizer: TokenizerState, offset = 0): boolean {
+    const next = tokenizer.next(offset);
+
+    if (regex.test(next))
+        return true;
+    // separators are OK if the next digit is valid
+    else if (getGlobalSettings().supportsDigitSeparators && /^'$/.test(next))
+        return regex.test(tokenizer.next(offset + 1));
+
+    return false;
 }
 
-function isBinChara(c: string): boolean {
-    return /^[01]$/.test(c);
+function isDigit(tokenizer: TokenizerState, offset = 0): boolean {
+    return isDigitOfRadix(/^[0-9]$/, tokenizer, offset);
 }
 
-function isOctChara(c: string): boolean {
-    return /^[0-7]$/.test(c);
+function isBinChara(tokenizer: TokenizerState, offset = 0): boolean {
+    return isDigitOfRadix(/^[01]$/, tokenizer, offset);
 }
 
-function isHexChar(c: string): boolean {
-    return /^[A-Fa-f0-9]$/.test(c);
+function isOctChara(tokenizer: TokenizerState, offset = 0): boolean {
+    return isDigitOfRadix(/^[0-7]$/, tokenizer, offset);
 }
 
-function isAlphanumeric(c: string): boolean {
-    return /^[A-Za-z0-9_]$/.test(c);
+function isHexChar(tokenizer: TokenizerState, offset = 0): boolean {
+    return isDigitOfRadix(/^[A-Fa-f0-9]$/, tokenizer, offset);
 }
 
 // Check if the next token is a comment and tokenize it.
@@ -96,25 +105,25 @@ function consumeNumber(tokenizer: TokenizerState) {
     if (tokenizer.next(0) === '0') {
         if (/^[bB]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isBinChara(tokenizer.next())) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isBinChara(tokenizer)) tokenizer.stepNext();
             return NumberLiteral.Integer;
         } else if (/^[oO]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isOctChara(tokenizer.next())) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isOctChara(tokenizer)) tokenizer.stepNext();
             return NumberLiteral.Integer;
         } else if (/^[dD]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isDigit(tokenizer)) tokenizer.stepNext();
             return NumberLiteral.Integer;
         } else if (/^[xX]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isHexChar(tokenizer.next())) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isHexChar(tokenizer)) tokenizer.stepNext();
             return NumberLiteral.Integer;
         }
     }
 
     // Read until it is 0-9.
-    while (tokenizer.isEnd() === false && isDigit(tokenizer.next())) tokenizer.stepNext();
+    while (tokenizer.isEnd() === false && isDigit(tokenizer)) tokenizer.stepNext();
 
     let numberLiteral = NumberLiteral.Integer;
 
@@ -122,15 +131,15 @@ function consumeNumber(tokenizer: TokenizerState) {
     let f = 0;
     if (tokenizer.next() === '.') {
         f++;
-        while (isDigit(tokenizer.next(f))) f++;
+        while (isDigit(tokenizer, f)) f++;
         numberLiteral = NumberLiteral.Double;
     }
 
     // Check if it has an exponent
     // e.g. 1e+3, 1E-3
-    if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer.next(f + 2))) {
+    if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2)) {
         f += 3;
-        while (isDigit(tokenizer.next(f))) f++;
+        while (isDigit(tokenizer, f)) f++;
         numberLiteral = NumberLiteral.Double;
     }
 
@@ -201,10 +210,14 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
     return new TokenReserved(text, location, property);
 }
 
+function isAlphanumeric(tokenizer: TokenizerState, offset = 0): boolean {
+    return /^[A-Za-z0-9_]$/.test(tokenizer.next(offset));
+}
+
 // Check if the next token is an identifier and tokenize it.
 function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | TokenIdentifier | undefined {
     const start = tokenizer.getCursorOffset();
-    while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer.next())) {
+    while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer)) {
         tokenizer.stepFor(1);
     }
 
