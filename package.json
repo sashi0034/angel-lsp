@@ -158,6 +158,12 @@
                     "default": false,
                     "description": "Whether your codebase supports the foreach construct."
                 },
+                "angelScript.supportsDigitSeparators": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether your codebase supports C++14-style digit separators."
+                },
                 "angelScript.characterLiterals": {
                     "scope": "window",
                     "type": "boolean",
