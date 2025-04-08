@@ -1,6 +1,9 @@
 import {
-    createAnonymousIdentifier, getActiveGlobalScope, SymbolGlobalScope,
-    SymbolScope, tryResolveActiveScope
+    createAnonymousIdentifier,
+    getActiveGlobalScope,
+    SymbolGlobalScope,
+    SymbolScope,
+    tryResolveActiveScope
 } from "./symbolScope";
 import {
     AccessModifier,
@@ -38,10 +41,10 @@ import {
     analyzeVarInitializer,
     HoistQueue,
     HoistResult,
-    insertVariables, pushScopeRegionInfo
+    insertVariables,
+    pushScopeRegionInfo
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {AnalyzerScope} from "./analyzerScope";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {findConstructorOfType} from "./constrcutorCall";
 
@@ -320,25 +323,7 @@ function hoistFunc(
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
     // Check if the function is a virtual property setter or getter
-    if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
-        if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            const identifier: TokenObject = TokenIdentifier.createVirtual(
-                nodeFunc.identifier.text.substring(4),
-                new TokenRange(nodeFunc.identifier, nodeFunc.identifier)
-            );
-
-            const symbol: SymbolVariable = SymbolVariable.create({
-                identifierToken: identifier, // FIXME?
-                scopePath: parentScope.scopePath,
-                type: returnType,
-                isInstanceMember: isInstanceMember,
-                accessRestriction: nodeFunc.accessor,
-            });
-            parentScope.insertSymbol(symbol);
-        }
-    } else if (nodeFunc.funcAttr?.isProperty === true) {
-        analyzerDiagnostic.error(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
-    }
+    tryInsertVirtualSetterOrGetter(parentScope, nodeFunc, returnType, isInstanceMember);
 
     hoistQueue.push(() => {
         symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
@@ -347,6 +332,36 @@ function hoistFunc(
     analyzeQueue.push(() => {
         analyzeFunc(functionScope, nodeFunc);
     });
+}
+
+// Check if the function is a virtual property setter or getter
+function tryInsertVirtualSetterOrGetter(
+    scope: SymbolScope,
+    node: NodeFunc | NodeIntfMethod,
+    returnType: ResolvedType | undefined,
+    isInstanceMember: boolean
+) {
+    if (node.identifier.text.startsWith('get_') || node.identifier.text.startsWith('set_')) {
+        if (node.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
+            // FIXME?
+            const identifier: TokenObject = TokenIdentifier.createVirtual(
+                node.identifier.text.substring(4),
+                new TokenRange(node.identifier, node.identifier)
+            );
+
+            const symbol: SymbolVariable = SymbolVariable.create({
+                identifierToken: identifier,
+                scopePath: scope.scopePath,
+                type: returnType,
+                isInstanceMember: isInstanceMember,
+                accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
+            });
+
+            scope.insertSymbol(symbol);
+        }
+    } else if (node.funcAttr?.isProperty === true) {
+        analyzerDiagnostic.error(node.identifier.location, 'Property accessor must start with "get_" or "set_"');
+    }
 }
 
 // BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -488,7 +503,11 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         isInstanceMember: true,
         accessRestriction: undefined,
     });
+
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+
+    // FIXME: Check for the use of 'property' in 'as.predefined'?
+    tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
 }
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
