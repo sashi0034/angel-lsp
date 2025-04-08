@@ -162,7 +162,7 @@ export interface NodeTypeDef extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export interface NodeFunc extends NodeBase {
     readonly nodeName: NodeName.Func;
     readonly entity: EntityAttribute | undefined;
@@ -268,7 +268,7 @@ export interface NodeMixin extends NodeBase {
     readonly mixinClass: NodeClass;
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 export interface NodeIntfMethod extends NodeBase {
     readonly nodeName: NodeName.IntfMethod;
     readonly returnType: NodeType;
@@ -276,6 +276,7 @@ export interface NodeIntfMethod extends NodeBase {
     readonly identifier: TokenObject;
     readonly paramList: NodeParamList;
     readonly isConst: boolean;
+    readonly funcAttr: FunctionAttribute | undefined;
 }
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
@@ -324,14 +325,14 @@ export type NodeListValidOperators =
     | NodeListOperatorEndList
     | NodeListOperatorStartList;
 
-// BNF: LISTENTRY     ::= (['repeat' | 'repeat_same'] (('{' LISTENTRY '}') | TYPE)) | TYPE {',' TYPE}
+// BNF: LISTENTRY     ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 // BNF: LISTPATTERN   ::= '{' LISTENTRY {',' LISTENTRY} '}'
 export interface NodeListPattern extends NodeBase {
     readonly nodeName: NodeName.ListPattern;
     readonly operators: NodeListValidOperators[];
 }
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export type NodeParamList = ParsedTypeIdentifier[];
 
 export interface ParsedTypeIdentifier {
@@ -539,7 +540,7 @@ export interface NodeConstructCall extends NodeBase {
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 export type NodeExprPostOp = NodeExprPostOp1 | NodeExprPostOp2 | NodeExprPostOp3 | NodeExprPostOp4;
 
 // ('.' (FUNCCALL | IDENTIFIER))

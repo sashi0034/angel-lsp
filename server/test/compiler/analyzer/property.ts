@@ -75,4 +75,47 @@ describe('analyzer/property', () => {
         settings.explicitPropertyAccessor = false;
         resetGlobalSettings(settings);
     });
+
+    expectSuccess(`// Virtual properties can be overloaded
+        class Base {
+            int get_size() property {
+                return 0;
+            }
+        }
+        
+        class Derived : Base {
+            private int _size = 10;
+
+            int size = 5;
+
+            int get_size() property override {
+                return _size;
+            }
+        }
+
+        void main(){
+            Base@ box = Derived();
+            int size = box.size; // 10
+        }
+    `);
+
+    expectSuccess([{
+        uri: 'file:///path/to/as.predefined',
+        content: `
+            interface IValue {
+                int get_value() const property;
+            }`
+    }, {
+        uri: 'file:///path/to/file.as',
+        content: `// Interface properties are available.
+            class Value : IValue {
+                private int m_value;
+                int get_value() const property { return m_value; }
+            }
+            
+            void main() {
+                IValue@ v = Value();
+                const int value = v.value;
+            }`
+    }]);
 });

@@ -561,7 +561,7 @@ function parseListPattern(parser: ParserState): NodeListPattern | undefined {
     parser.commit(HighlightForToken.Operator);
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER [PARAMLIST | LISTEXPR] ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): NodeFunc | undefined {
     const rangeStart = parser.next();
 
@@ -790,6 +790,7 @@ function expectInterfaceMembers(parser: ParserState): (NodeIntfMethod | NodeVirt
         parser.error("Expected interface member.");
         parser.step();
     }
+
     return members;
 }
 
@@ -1022,7 +1023,7 @@ function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     };
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
     const rangeStart = parser.next();
 
@@ -1039,6 +1040,8 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
 
     const isConst = parseConst(parser);
 
+    const funcAttr = parseFuncAttr(parser);
+
     parser.expect(';', HighlightForToken.Operator);
 
     return {
@@ -1048,6 +1051,7 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
         isRef: isRef,
         identifier: identifier,
         paramList: paramList,
+        funcAttr: funcAttr,
         isConst: isConst
     };
 }
@@ -1094,7 +1098,7 @@ function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     return statBlock;
 }
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function parseParamList(parser: ParserState): NodeParamList | undefined {
     if (parser.next().text !== '(') return undefined;
     parser.commit(HighlightForToken.Operator);
@@ -2108,7 +2112,7 @@ function parseConstructCall(parser: ParserState): NodeConstructCall | undefined 
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function parseExprPostOp(parser: ParserState): NodeExprPostOp | undefined {
     const rangeStart = parser.next();
 

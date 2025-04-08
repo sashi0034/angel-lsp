@@ -1,6 +1,9 @@
 import {
-    createAnonymousIdentifier, getActiveGlobalScope, SymbolGlobalScope,
-    SymbolScope, tryResolveActiveScope
+    createAnonymousIdentifier,
+    getActiveGlobalScope,
+    SymbolGlobalScope,
+    SymbolScope,
+    tryResolveActiveScope
 } from "./symbolScope";
 import {
     AccessModifier,
@@ -38,10 +41,10 @@ import {
     analyzeVarInitializer,
     HoistQueue,
     HoistResult,
-    insertVariables, pushScopeRegionInfo
+    insertVariables,
+    pushScopeRegionInfo
 } from "./analyzer";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {AnalyzerScope} from "./analyzerScope";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {findConstructorOfType} from "./constrcutorCall";
 
@@ -242,7 +245,10 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
                 }
 
                 const alreadyExists = scope.insertSymbol(symbol);
-                if (alreadyExists !== undefined) {
+                if (alreadyExists === undefined) continue;
+
+                const isVirtualProperty = symbol.isVariable() && symbol.isVirtualProperty;
+                if (isVirtualProperty === false) {
                     analyzerDiagnostic.error(
                         alreadyExists.toList()[0].identifierToken.location,
                         `Duplicated symbol '${key}'`
@@ -282,7 +288,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     parentScope.insertSymbolAndCheck(symbol);
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
     parentScope: SymbolScope, nodeFunc: NodeFunc, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue, isInstanceMember: boolean
 ) {
@@ -312,41 +318,54 @@ function hoistFunc(
     const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
     if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
-    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
-        functionScope,
-        nodeFunc.head.returnType) : undefined;
-    symbol.assignReturnType(returnType);
-
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    // Check if the function is a virtual property setter or getter
-    if (nodeFunc.identifier.text.startsWith('get_') || nodeFunc.identifier.text.startsWith('set_')) {
-        if (nodeFunc.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            const identifier: TokenObject = TokenIdentifier.createVirtual(
-                nodeFunc.identifier.text.substring(4),
-                new TokenRange(nodeFunc.identifier, nodeFunc.identifier)
-            );
-
-            const symbol: SymbolVariable = SymbolVariable.create({
-                identifierToken: identifier, // FIXME?
-                scopePath: parentScope.scopePath,
-                type: returnType,
-                isInstanceMember: isInstanceMember,
-                accessRestriction: nodeFunc.accessor,
-            });
-            parentScope.insertSymbol(symbol);
-        }
-    } else if (nodeFunc.funcAttr?.isProperty === true) {
-        analyzerDiagnostic.error(nodeFunc.identifier.location, 'Property accessor must start with "get_" or "set_"');
-    }
-
     hoistQueue.push(() => {
+        const returnType = isFuncHeadReturnValue(nodeFunc.head)
+            ? analyzeType(functionScope, nodeFunc.head.returnType)
+            : undefined;
+        symbol.assignReturnType(returnType);
+
+        // Check if the function is a virtual property setter or getter
+        tryInsertVirtualSetterOrGetter(parentScope, nodeFunc, returnType, isInstanceMember);
+
         symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
     });
 
     analyzeQueue.push(() => {
         analyzeFunc(functionScope, nodeFunc);
     });
+}
+
+// Check if the function is a virtual property setter or getter
+function tryInsertVirtualSetterOrGetter(
+    scope: SymbolScope,
+    node: NodeFunc | NodeIntfMethod,
+    returnType: ResolvedType | undefined,
+    isInstanceMember: boolean
+) {
+    if (node.identifier.text.startsWith('get_') || node.identifier.text.startsWith('set_')) {
+        if (node.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
+            // FIXME?A
+            const identifier: TokenObject = TokenIdentifier.createVirtual(
+                node.identifier.text.substring(4),
+                new TokenRange(node.identifier, node.identifier)
+            );
+
+            const symbol: SymbolVariable = SymbolVariable.create({
+                identifierToken: identifier,
+                scopePath: scope.scopePath,
+                type: returnType,
+                isInstanceMember: isInstanceMember,
+                accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
+                isVirtualProperty: true
+            });
+
+            scope.insertSymbol(symbol);
+        }
+    } else if (node.funcAttr?.isProperty === true) {
+        analyzerDiagnostic.error(node.identifier.location, 'Property accessor must start with "get_" or "set_"');
+    }
 }
 
 // BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -476,7 +495,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: An
     hoistClass(parentScope, mixin.mixinClass, analyzeQueue, hoistQueue);
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: intfMethod.identifier,
@@ -488,12 +507,16 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
         isInstanceMember: true,
         accessRestriction: undefined,
     });
+
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+
+    // FIXME: Check for the use of 'property' in 'as.predefined'?
+    tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
 }
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
@@ -537,7 +560,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 // BNF: CONSTRUCTCALL ::= TYPE ARGLIST
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 // BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
