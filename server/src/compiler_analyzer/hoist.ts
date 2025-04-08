@@ -245,7 +245,10 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
                 }
 
                 const alreadyExists = scope.insertSymbol(symbol);
-                if (alreadyExists !== undefined) {
+                if (alreadyExists === undefined) continue;
+
+                const isVirtualProperty = symbol.isVariable() && symbol.isVirtualProperty;
+                if (isVirtualProperty === false) {
                     analyzerDiagnostic.error(
                         alreadyExists.toList()[0].identifierToken.location,
                         `Duplicated symbol '${key}'`
@@ -343,7 +346,7 @@ function tryInsertVirtualSetterOrGetter(
 ) {
     if (node.identifier.text.startsWith('get_') || node.identifier.text.startsWith('set_')) {
         if (node.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            // FIXME?
+            // FIXME?A
             const identifier: TokenObject = TokenIdentifier.createVirtual(
                 node.identifier.text.substring(4),
                 new TokenRange(node.identifier, node.identifier)
@@ -355,6 +358,7 @@ function tryInsertVirtualSetterOrGetter(
                 type: returnType,
                 isInstanceMember: isInstanceMember,
                 accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
+                isVirtualProperty: true
             });
 
             scope.insertSymbol(symbol);

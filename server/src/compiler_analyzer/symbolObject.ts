@@ -215,6 +215,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         public readonly type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
+        public readonly isVirtualProperty?: boolean,
     ) {
         super();
     }
@@ -225,13 +226,15 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         type: ResolvedType | undefined
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined,
+        isVirtualProperty?: boolean,
     }) {
         return new SymbolVariable(
             args.identifierToken,
             args.scopePath,
             args.type,
             args.isInstanceMember,
-            args.accessRestriction
+            args.accessRestriction,
+            args.isVirtualProperty,
         );
     }
 
