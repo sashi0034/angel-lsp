@@ -75,4 +75,27 @@ describe('analyzer/property', () => {
         settings.explicitPropertyAccessor = false;
         resetGlobalSettings(settings);
     });
+
+    expectSuccess(`// Virtual properties can be overloaded
+        class Base {
+            int get_size() property {
+                return 0;
+            }
+        }
+        
+        class Derived : Base {
+            private int _size = 10;
+
+            int size = 5;
+
+            int get_size() property override {
+                return _size;
+            }
+        }
+
+        void main(){
+            Base@ box = Derived();
+            int size = box.size; // 10
+        }
+    `);
 });
