@@ -98,4 +98,24 @@ describe('analyzer/property', () => {
             int size = box.size; // 10
         }
     `);
+
+    expectSuccess([{
+        uri: 'file:///path/to/as.predefined',
+        content: `
+            interface IValue {
+                int get_value() const property;
+            }`
+    }, {
+        uri: 'file:///path/to/file.as',
+        content: `// Interface properties are available.
+            class Value : IValue {
+                private int m_value;
+                int get_value() const property { return m_value; }
+            }
+            
+            void main() {
+                IValue@ v = Value();
+                const int value = v.value;
+            }`
+    }]);
 });
