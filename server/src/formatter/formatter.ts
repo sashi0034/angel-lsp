@@ -173,7 +173,7 @@ function formatTypeDef(format: FormatterState, typeDef: NodeTypeDef) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
     formatMoveUntilNodeStart(format, nodeFunc);
     format.pushWrap(); // TODO: Move to the caller?
@@ -380,7 +380,7 @@ function formatMixin(format: FormatterState, mixin: NodeMixin) {
     formatClass(format, mixin.mixinClass);
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
     formatMoveUntilNodeStart(format, intfMethod);
     format.pushWrap();
@@ -394,6 +394,8 @@ function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
     formatParamList(format, intfMethod.paramList);
 
     if (intfMethod.isConst) formatTargetBy(format, 'const', {});
+
+    if (intfMethod.funcAttr) formatFuncAttr(format);
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
@@ -417,7 +419,7 @@ function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
     });
 }
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function formatParamList(format: FormatterState, paramList: NodeParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -852,7 +854,7 @@ function formatConstructCall(format: FormatterState, constructCall: NodeConstruc
 
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function formatExprPostOp(format: FormatterState, postOp: NodeExprPostOp) {
     formatMoveUntilNodeStart(format, postOp);
 

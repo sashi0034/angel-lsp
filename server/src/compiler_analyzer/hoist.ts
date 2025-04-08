@@ -282,7 +282,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     parentScope.insertSymbolAndCheck(symbol);
 }
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST ['const'] FUNCATTR (';' | STATBLOCK)
+// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
     parentScope: SymbolScope, nodeFunc: NodeFunc, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue, isInstanceMember: boolean
 ) {
@@ -476,7 +476,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: An
     hoistClass(parentScope, mixin.mixinClass, analyzeQueue, hoistQueue);
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] ';'
+// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: intfMethod.identifier,
@@ -493,7 +493,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void']])})] ')'
+// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
@@ -537,7 +537,7 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 // BNF: CONSTRUCTCALL ::= TYPE ARGLIST
 // BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']') | ARGLIST | '++' | '--'
+// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 // BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 // BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 // BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
