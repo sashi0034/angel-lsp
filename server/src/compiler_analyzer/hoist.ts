@@ -318,17 +318,17 @@ function hoistFunc(
     const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
     if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
 
-    const returnType = isFuncHeadReturnValue(nodeFunc.head) ? analyzeType(
-        functionScope,
-        nodeFunc.head.returnType) : undefined;
-    symbol.assignReturnType(returnType);
-
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    // Check if the function is a virtual property setter or getter
-    tryInsertVirtualSetterOrGetter(parentScope, nodeFunc, returnType, isInstanceMember);
-
     hoistQueue.push(() => {
+        const returnType = isFuncHeadReturnValue(nodeFunc.head)
+            ? analyzeType(functionScope, nodeFunc.head.returnType)
+            : undefined;
+        symbol.assignReturnType(returnType);
+
+        // Check if the function is a virtual property setter or getter
+        tryInsertVirtualSetterOrGetter(parentScope, nodeFunc, returnType, isInstanceMember);
+
         symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
     });
 
