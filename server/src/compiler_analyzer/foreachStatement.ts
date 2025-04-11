@@ -2,6 +2,7 @@ import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {resolveActiveScope} from "./symbolScope";
+import {SymbolObjectHolder} from "./symbolObject";
 
 export function checkForEachIterator(
     iteratorType: ResolvedType | undefined,
@@ -45,7 +46,15 @@ export function checkForEachIterator(
 
     const forValueTypes: (ResolvedType | undefined)[] = [];
     for (let i = 0; ; ++i) {
-        const opForValue = memberScope.lookupSymbol('opForValue' + i);
+        let opForValue: SymbolObjectHolder | undefined;
+        if (i == 0) {
+            // Special case for only one item; try the opForValue without an index suffix at first
+            opForValue = memberScope.lookupSymbol('opForValue')
+                ?? memberScope.lookupSymbol('opForValue0');
+        } else {
+            opForValue = memberScope.lookupSymbol('opForValue' + i);
+        }
+
         if (opForValue === undefined) break;
 
         let type = opForValue.isFunctionHolder() ? opForValue.first.returnType : undefined;
@@ -54,6 +63,10 @@ export function checkForEachIterator(
         }
 
         forValueTypes.push(type);
+
+        if (opForValue.identifierText === 'opForValue') {
+            break;
+        }
     }
 
     if (forValueTypes.length === 0) {
