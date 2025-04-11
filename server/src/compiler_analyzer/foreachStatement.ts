@@ -48,7 +48,11 @@ export function checkForEachIterator(
         const opForValue = memberScope.lookupSymbol('opForValue' + i);
         if (opForValue === undefined) break;
 
-        const type = opForValue.isFunctionHolder() ? opForValue.first.returnType : undefined;
+        let type = opForValue.isFunctionHolder() ? opForValue.first.returnType : undefined;
+        if (type?.identifierToken !== undefined && iteratorType.templateTranslator !== undefined) {
+            type = iteratorType.templateTranslator?.get(type.identifierToken) ?? type;
+        }
+
         forValueTypes.push(type);
     }
 
@@ -62,4 +66,3 @@ export function checkForEachIterator(
 
     return forValueTypes;
 }
-
