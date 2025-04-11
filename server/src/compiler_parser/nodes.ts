@@ -423,7 +423,7 @@ export interface NodeForEachVar extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 export interface NodeForEach extends NodeBase {
     readonly nodeName: NodeName.ForEach
     readonly variables: NodeForEachVar[],

@@ -520,7 +520,7 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
     if (nodeFor.statement !== undefined) analyzeStatement(scope, nodeFor.statement);
 }
 
-// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
     // analyze assign first, since vars may need it
     analyzeAssign(scope, nodeForEach.assign as NodeAssign);

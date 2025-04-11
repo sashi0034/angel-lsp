@@ -1669,7 +1669,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
     return appliedNodeEnd(parser, result);
 }
 
-// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     if (parser.next().text !== 'foreach') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
