@@ -30,7 +30,7 @@ const defaultSettings: LanguageServerSettings = {
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
-    supportsForEach: false,
+    supportsForEach: true,
     characterLiterals: false,
     supportsTypedEnumerations: false,
     supportsDigitSeparators: false,
