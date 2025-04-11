@@ -67,7 +67,7 @@ import {
     ParsedEnumMember,
     ParsedGetterSetter,
     ParsedPostIndexing,
-    ParsedVariableInit,
+    VariableInitializer,
     ReferenceModifier,
     TypeModifier
 } from "./nodes";
@@ -813,7 +813,7 @@ function parseVar(parser: ParserState): NodeVar | undefined {
         return undefined;
     }
 
-    const variables: ParsedVariableInit[] = [];
+    const variables: VariableInitializer[] = [];
     while (parser.isEnd() === false) {
         const identifier = expectIdentifier(parser, HighlightForToken.Variable);
         if (identifier === undefined) break;
@@ -1669,7 +1669,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
     return appliedNodeEnd(parser, result);
 }
 
-// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     if (parser.next().text !== 'foreach') return ParseFailure.Mismatch;
     const rangeStart = parser.next();

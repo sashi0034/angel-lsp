@@ -26,6 +26,7 @@ STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CON
 SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 BREAK         ::= 'break' ';'
 FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]

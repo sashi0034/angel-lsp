@@ -112,4 +112,8 @@ export class ResolvedType {
 
         return true;
     }
+
+    public isAutoType(): boolean {
+        return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === 'auto';
+    }
 }

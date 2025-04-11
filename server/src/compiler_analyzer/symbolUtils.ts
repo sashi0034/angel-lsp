@@ -11,10 +11,6 @@ import {AccessModifier, NodeName} from "../compiler_parser/nodes";
 import {canDownCast} from "./typeConversion";
 import assert = require("node:assert");
 
-export function isResolvedAutoType(type: ResolvedType | undefined): boolean {
-    return type !== undefined && type.typeOrFunc instanceof SymbolType && type.typeOrFunc.identifierText === 'auto';
-}
-
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     let suffix = '';
     let scopeIterator: SymbolScope | undefined = scope;

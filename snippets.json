@@ -17,6 +17,15 @@
         ],
         "description": "For loop"
     },
+    "Foreach loop": {
+        "prefix": "foreach",
+        "body": [
+            "foreach (const auto ${2:VALUE0} : ${1:COLLECTION}) {",
+            "\t$3",
+            "}"
+        ],
+        "description": "Foreach loop (available in preview version)"
+    },
     "While loop": {
         "prefix": "while",
         "body": [

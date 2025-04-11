@@ -216,10 +216,12 @@ export interface NodeVar extends NodeBase {
     readonly nodeName: NodeName.Var
     readonly accessor: AccessModifier | undefined,
     readonly type: NodeType,
-    readonly variables: ParsedVariableInit[];
+    readonly variables: VariableInitializer[];
 }
 
-export interface ParsedVariableInit {
+// IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]}
+/** @internal */
+export interface VariableInitializer {
     readonly identifier: TokenObject;
     readonly initializer: NodeInitList | NodeAssign | NodeArgList | undefined;
 }
@@ -423,7 +425,7 @@ export interface NodeForEachVar extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 export interface NodeForEach extends NodeBase {
     readonly nodeName: NodeName.ForEach
     readonly variables: NodeForEachVar[],
