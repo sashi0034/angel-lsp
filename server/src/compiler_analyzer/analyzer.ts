@@ -71,7 +71,6 @@ import {
     canAccessInstanceMember,
     findSymbolWithParent,
     getSymbolAndScopeIfExist,
-    isResolvedAutoType,
     stringifyResolvedType
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
@@ -84,6 +83,7 @@ import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOp
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findConstructorOfType} from "./constrcutorCall";
 import assert = require("node:assert");
+import {checkForEachIterator} from "./foreachStatement";
 
 export type HoistQueue = (() => void)[];
 
@@ -146,41 +146,24 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
-        if (initType !== undefined && isResolvedAutoType(varType)) {
-            // Resolve the auto type
+        if (initType !== undefined && varType?.isAutoType()) {
+            // Resolved the auto type
             varType = initType;
-
-            // TODO: Code cleanup
-            if (varType !== undefined) {
-                getActiveGlobalScope().info.autoTypeResolution.push({
-                    autoToken: declaredVar.identifier,
-                    resolvedType: initType,
-                });
-            }
+            pushAutoTypeResolutionInfo(declaredVar.identifier, varType);
         }
     }
 
     insertVariables(scope, varType, nodeVar, isInstanceMember);
 }
 
-// TYPE IDENTIFIER
-export function analyzeForEachVar(scope: SymbolScope, nodeForEachVar: NodeForEachVar, nodeAssign: NodeAssign) {
-    // TODO: figure out how to resolve `opForValue{N}`
-    // when `auto` is used
-    const variable: SymbolVariable = SymbolVariable.create({
-        identifierToken: nodeForEachVar.identifier,
-        scopePath: scope.scopePath,
-        type: analyzeType(scope, nodeForEachVar.type),
-        isInstanceMember: false,
-        accessRestriction: undefined,
-    });
-    scope.insertSymbolAndCheck(variable);
+function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedType) {
+    getActiveGlobalScope().info.autoTypeResolution.push({autoToken: identifier, resolvedType: initType,});
 }
 
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
-    for (const declaredVar of nodeVar.variables) {
+    for (const variableInitializer of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
-            identifierToken: declaredVar.identifier,
+            identifierToken: variableInitializer.identifier,
             scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
@@ -522,14 +505,48 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 
 // BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
-    // analyze assign first, since vars may need it
-    analyzeAssign(scope, nodeForEach.assign as NodeAssign);
+    const nodeAssign = nodeForEach.assign;
+    const iteratorType =
+        nodeAssign !== undefined ? analyzeAssign(scope, nodeAssign) : undefined;
+    const forValueTypes =
+        nodeAssign !== undefined ? checkForEachIterator(iteratorType, nodeAssign.nodeRange) : undefined;
 
-    for (const v of nodeForEach.variables) {
-        analyzeForEachVar(scope, v, nodeForEach.assign as NodeAssign);
+    if (nodeAssign !== undefined && forValueTypes !== undefined && forValueTypes.length !== nodeForEach.variables.length) {
+        analyzerDiagnostic.error(
+            nodeForEach.nodeRange.getBoundingLocation().withEnd(nodeAssign.nodeRange.start.location.start),
+            `Expected ${forValueTypes.length} variable declarations, but got ${nodeForEach.variables.length}.`
+        );
     }
 
-    if (nodeForEach.statement !== undefined) analyzeStatement(scope, nodeForEach.statement);
+    // Iterate through the variables and add them to the scope
+    for (let i = 0; i < nodeForEach.variables.length; i++) {
+        const forValueType = forValueTypes?.[i];
+        const variableDeclaration = nodeForEach.variables[i];
+        let variableType =
+            variableDeclaration.type !== undefined ? analyzeType(scope, variableDeclaration.type) : undefined;
+        if (forValueType !== undefined) {
+            if (variableType?.isAutoType()) {
+                // Resolved the auto type
+                variableType = forValueType;
+                pushAutoTypeResolutionInfo(variableDeclaration.identifier, variableType);
+            } else {
+                assertTypeCast(forValueType, variableType, variableDeclaration.nodeRange);
+            }
+        }
+
+        const variable: SymbolVariable = SymbolVariable.create({
+            identifierToken: variableDeclaration.identifier,
+            scopePath: scope.scopePath,
+            type: variableType,
+            isInstanceMember: false,
+            accessRestriction: undefined,
+        });
+        scope.insertSymbolAndCheck(variable);
+    }
+
+    if (nodeForEach.statement !== undefined) {
+        analyzeStatement(scope, nodeForEach.statement);
+    }
 }
 
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
