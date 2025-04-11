@@ -194,6 +194,7 @@ const operatorOverloads = new Map([
     ['opForBegin', 'foreach'],
     ['opForNext', 'foreach'],
     ['opForEnd', 'foreach'],
+    ['opForValue', 'foreach'],
     ['opForValue0', 'foreach'],
     ['opForValue1', 'foreach'],
     ['opForValue2', 'foreach'],
