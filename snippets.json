@@ -20,8 +20,8 @@
     "Foreach loop": {
         "prefix": "foreach",
         "body": [
-            "foreach (const auto ${1:VALUE0} : ${3:COLLECTION}) {",
-            "\t$0",
+            "foreach (const auto ${2:VALUE0} : ${1:COLLECTION}) {",
+            "\t$3",
             "}"
         ],
         "description": "Foreach loop (available in preview version)"
