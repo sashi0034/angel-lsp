@@ -67,7 +67,7 @@ import {
     ParsedEnumMember,
     ParsedGetterSetter,
     ParsedPostIndexing,
-    VariableInitializer,
+    ParsedVariableInitializer,
     ReferenceModifier,
     TypeModifier
 } from "./nodes";
@@ -813,7 +813,7 @@ function parseVar(parser: ParserState): NodeVar | undefined {
         return undefined;
     }
 
-    const variables: VariableInitializer[] = [];
+    const variables: ParsedVariableInitializer[] = [];
     while (parser.isEnd() === false) {
         const identifier = expectIdentifier(parser, HighlightForToken.Variable);
         if (identifier === undefined) break;
