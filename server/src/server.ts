@@ -77,7 +77,7 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
             completionProvider: {
                 resolveProvider: true,
                 triggerCharacters: [
-                    ' ', '.', ':', // for autocomplete symbol
+                    '.', ':', // for autocomplete symbol
                     '/' // for autocomplete file path
                 ]
             },
