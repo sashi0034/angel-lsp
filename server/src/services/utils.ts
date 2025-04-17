@@ -125,10 +125,13 @@ export function getDocumentCommentOfToken(token: TokenObject) {
         if (commentText.startsWith('//')) {
             commentText = commentText.replace(/^\/+/, ''); // Remove the '/' characters
         } else if (commentText.startsWith('/*')) {
-            commentText = commentText.substring(2, commentText.length - 2);
+            commentText = commentText.substring(2, commentText.length - 2)
+                .split("\n")
+                .map(line => line.replace(/^\s*\*? ?/, ""))
+                .join("\n\n")
+                .trim();
         }
 
-        // CHECK: Is the following expression optimized by V8?
         documentComment = documentComment.length > 0
             ? commentText + '\n\n' + documentComment
             : commentText;

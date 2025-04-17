@@ -216,12 +216,11 @@ export interface NodeVar extends NodeBase {
     readonly nodeName: NodeName.Var
     readonly accessor: AccessModifier | undefined,
     readonly type: NodeType,
-    readonly variables: VariableInitializer[];
+    readonly variables: ParsedVariableInitializer[];
 }
 
 // IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]}
-/** @internal */
-export interface VariableInitializer {
+export interface ParsedVariableInitializer {
     readonly identifier: TokenObject;
     readonly initializer: NodeInitList | NodeAssign | NodeArgList | undefined;
 }
