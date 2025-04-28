@@ -511,7 +511,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
     const forValueTypes =
         nodeAssign !== undefined ? checkForEachIterator(iteratorType, nodeAssign.nodeRange) : undefined;
 
-    if (nodeAssign !== undefined && forValueTypes !== undefined && forValueTypes.length !== nodeForEach.variables.length) {
+    if (nodeAssign !== undefined && forValueTypes !== undefined && forValueTypes.length < nodeForEach.variables.length) {
         analyzerDiagnostic.error(
             nodeForEach.nodeRange.getBoundingLocation().withEnd(nodeAssign.nodeRange.start.location.start),
             `Expected ${forValueTypes.length} variable declarations, but got ${nodeForEach.variables.length}.`

@@ -19,6 +19,11 @@ describe('analyzer/foreachStatement', () => {
                 foreach (const auto f, const auto i : arr) {
                     sum += f ? i : 0;
                 }
+
+                foreach (const auto f : arr) {
+                    sum += f ? 1 : 0;
+                }
+
                 return sum;
             }`
     }]);
