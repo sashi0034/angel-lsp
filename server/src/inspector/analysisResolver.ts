@@ -1,5 +1,5 @@
 import * as lsp from "vscode-languageserver/node";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {NodeScript} from "../compiler_parser/nodes";
 import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
@@ -40,6 +40,10 @@ const mediumWaitTime = 500; // ms
 const shortWaitTime = 100; // ms
 
 const veryShortWaitTime = 10; // ms
+
+function getAbsolutePathFromIncludeToken(baseUri: string, token: TokenString) {
+    return resolveIncludeUri(baseUri, token.getStringContent());
+}
 
 export class AnalysisResolver {
     private readonly _analyzerTask: DelayedTask = new DelayedTask();
@@ -180,8 +184,9 @@ export class AnalysisResolver {
         if (resolvedSet.has(targetUri)) return;
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
-            .filter(r => this.resolveIncludePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
-                .some(relativeOrAbsolute => resolveIncludeUri(r.uri, relativeOrAbsolute) === targetUri) // Check if the target file is included
+            .filter(r =>
+                this.resolveIncludeAbsolutePaths(r, this.findPredefinedUri(r.uri)) // Get include paths of each record
+                    .some(uri => uri === targetUri) // Check if the target file is included
             );
 
         for (const dependent of dependentFiles) {
@@ -195,7 +200,7 @@ export class AnalysisResolver {
         }
     }
 
-    private resolveIncludePaths(record: PartialInspectRecord, predefinedUri: string | undefined): string[] {
+    private resolveIncludeAbsolutePaths(record: PartialInspectRecord, predefinedUri: string | undefined): string[] {
         const includeSet = new Set<string>();
 
         if (record.uri !== predefinedUri && predefinedUri !== undefined) {
@@ -203,11 +208,8 @@ export class AnalysisResolver {
             includeSet.add(predefinedUri);
         }
 
-        // Recursively resolve include paths
-        this.resolveIncludePathsInternal(includeSet, record);
-
-        // Remove the current file from the include paths
-        includeSet.delete(record.uri);
+        // Recursively resolve the include-paths
+        this.resolveIncludeAbsolutePathsInternal(includeSet, record);
 
         if (getGlobalSettings().implicitMutualInclusion) {
             // If implicit mutual inclusion is enabled, include all files under the directory where 'as.predefined' is located.
@@ -220,26 +222,28 @@ export class AnalysisResolver {
             }
         }
 
+        // Remove the current file from the include paths
+        includeSet.delete(record.uri);
+
         return Array.from(includeSet);
     }
 
-    private resolveIncludePathsInternal(includeSet: Set<string>, record: PartialInspectRecord) {
+    private resolveIncludeAbsolutePathsInternal(includeSet: Set<string>, record: PartialInspectRecord) {
         if (includeSet.has(record.uri)) return;
         includeSet.add(record.uri);
 
         // Add include paths from include directives
         const includePaths =
-            record.preprocessedOutput.includePathTokens.map(token => token.getStringContent());
+            record.preprocessedOutput.includePathTokens.map(
+                token => getAbsolutePathFromIncludeToken(record.uri, token));
 
-        includePaths.forEach(path => includeSet.add(path));
-
-        // Recursively resolve include paths
+        // Recursively resolve the include-paths
         for (const relativePath of includePaths) {
             const uri = resolveUri(record.uri, relativePath);
 
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
-                this.resolveIncludePathsInternal(includeSet, includeRecord);
+                this.resolveIncludeAbsolutePathsInternal(includeSet, includeRecord);
             }
         }
     }
@@ -305,14 +309,12 @@ export class AnalysisResolver {
         const targetUri = record.uri;
 
         // Collect scopes in included files
-        const includePaths = this.resolveIncludePaths(record, predefinedUri);
+        const includePaths = this.resolveIncludeAbsolutePaths(record, predefinedUri);
 
         const includedScopes = [];
 
         // Get the analyzed scope of included files
-        for (const relativeOrAbsolute of includePaths) {
-            const uri = resolveIncludeUri(targetUri, relativeOrAbsolute);
-
+        for (const uri of includePaths) {
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
                 includedScopes.push(includeRecord.analyzerScope);
@@ -328,13 +330,14 @@ export class AnalysisResolver {
 
             // If the file is not found, notify the error
             const includePathToken =
-                preprocessOutput.includePathTokens.find(token => token.getStringContent() === relativeOrAbsolute);
+                preprocessOutput.includePathTokens.find(
+                    token => getAbsolutePathFromIncludeToken(targetUri, token) === uri);
             if (includePathToken === undefined) {
                 // This happens when implicitMutualInclusion is enabled.
                 continue;
             }
 
-            analyzerDiagnostic.error(includePathToken.location, `File not found: ${relativeOrAbsolute}`);
+            analyzerDiagnostic.error(includePathToken.location, `File not found: ${includePathToken.text}`);
         }
 
         return includedScopes;
