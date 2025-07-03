@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.46] 2025/07/03
+
+- Fixed circular include bug reported in #192
+
 ## [0.3.39] 2025/03/31
 
 - Debugger support #171 (Thanks Paril)
