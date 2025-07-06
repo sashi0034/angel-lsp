@@ -40,6 +40,8 @@ let s_hasConfigurationCapability = false;
 
 let s_hasWorkspaceFolderCapability = false;
 
+let s_hasWorkspaceDiagnosticsRefreshCapability = false;
+
 let s_hasDiagnosticRelatedInformationCapability = false;
 
 s_connection.onInitialize((params: lsp.InitializeParams) => {
@@ -53,6 +55,9 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
 
     s_hasWorkspaceFolderCapability =
         capabilities.workspace?.workspaceFolders ?? false;
+
+    s_hasWorkspaceDiagnosticsRefreshCapability =
+        capabilities.workspace?.diagnostics?.refreshSupport ?? false;
 
     s_hasDiagnosticRelatedInformationCapability =
         capabilities.textDocument?.publishDiagnostics?.relatedInformation ?? false;
@@ -131,7 +136,9 @@ function reloadSettings() {
     s_connection.workspace.getConfiguration('angelScript').then((config) => {
         resetGlobalSettings(config);
         s_inspector.reinspectAllFiles();
-        s_connection.languages.diagnostics.refresh();
+        if (s_hasWorkspaceDiagnosticsRefreshCapability) {
+            s_connection.languages.diagnostics.refresh();
+        }
     });
 }
 
