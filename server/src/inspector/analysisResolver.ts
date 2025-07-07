@@ -211,6 +211,9 @@ export class AnalysisResolver {
         // Recursively resolve the include-paths
         this.resolveIncludeAbsolutePathsInternal(includeSet, record);
 
+        // Remove the current file from the include paths
+        includeSet.delete(record.uri);
+
         if (getGlobalSettings().implicitMutualInclusion) {
             // If implicit mutual inclusion is enabled, include all files under the directory where 'as.predefined' is located.
             if (record.uri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
@@ -221,9 +224,6 @@ export class AnalysisResolver {
                         .filter(uri => uri.endsWith('.as') && uri !== record.uri)];
             }
         }
-
-        // Remove the current file from the include paths
-        includeSet.delete(record.uri);
 
         return Array.from(includeSet);
     }
