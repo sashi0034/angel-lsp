@@ -49,13 +49,13 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
     // If not, we fall back using global settings.
 
     s_hasConfigurationCapability =
-        capabilities.workspace?.configuration !== undefined;
+        capabilities.workspace?.configuration ?? false;
 
     s_hasWorkspaceFolderCapability =
-        capabilities.workspace?.workspaceFolders !== undefined;
+        capabilities.workspace?.workspaceFolders ?? false;
 
     s_hasDiagnosticRelatedInformationCapability =
-        capabilities.textDocument?.publishDiagnostics?.relatedInformation !== undefined;
+        capabilities.textDocument?.publishDiagnostics?.relatedInformation ?? false;
 
     const result: lsp.InitializeResult = {
         capabilities: {
