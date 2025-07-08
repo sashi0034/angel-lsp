@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.47] 2025/07/08
+
+- `workspace/diagnostics/refresh` [#195](https://github.com/sashi0034/angel-lsp/pull/195) (Thnaks AlexMorson)
+
 ## [0.3.46] 2025/07/03
 
 - Fixed circular include bug reported in #192
