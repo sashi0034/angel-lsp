@@ -11,34 +11,40 @@ import {diagnostic} from "../core/diagnostic";
 import {TokenizerState, UnknownWordBuffer} from "./tokenizerState";
 import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from "./reservedWord";
 import {TextLocation} from "./textLocation";
-import { getGlobalSettings } from '../core/settings';
+import {getGlobalSettings} from '../core/settings';
 
-function isDigitOfRadix(regex: RegExp, tokenizer: TokenizerState, offset = 0): boolean {
-    const next = tokenizer.next(offset);
+// Tokenizer satisfies this interface.
+interface CharReader {
+    next(offset?: number): string;
+}
 
-    if (regex.test(next))
+function isDigitOfRadix(regex: RegExp, reader: CharReader, offset = 0): boolean {
+    const next = reader.next(offset);
+
+    if (regex.test(next)) {
         return true;
-    // separators are OK if the next digit is valid
-    else if (getGlobalSettings().supportsDigitSeparators && /^'$/.test(next))
-        return regex.test(tokenizer.next(offset + 1));
+    } else if (getGlobalSettings().supportsDigitSeparators && /^'$/.test(next)) {
+        // separators are OK if the next digit is valid
+        return regex.test(reader.next(offset + 1));
+    }
 
     return false;
 }
 
-function isDigit(tokenizer: TokenizerState, offset = 0): boolean {
-    return isDigitOfRadix(/^[0-9]$/, tokenizer, offset);
+function isDigit(reader: CharReader, offset = 0): boolean {
+    return isDigitOfRadix(/^[0-9]$/, reader, offset);
 }
 
-function isBinChara(tokenizer: TokenizerState, offset = 0): boolean {
-    return isDigitOfRadix(/^[01]$/, tokenizer, offset);
+function isBinChara(reader: CharReader, offset = 0): boolean {
+    return isDigitOfRadix(/^[01]$/, reader, offset);
 }
 
-function isOctChara(tokenizer: TokenizerState, offset = 0): boolean {
-    return isDigitOfRadix(/^[0-7]$/, tokenizer, offset);
+function isOctChara(reader: CharReader, offset = 0): boolean {
+    return isDigitOfRadix(/^[0-7]$/, reader, offset);
 }
 
-function isHexChar(tokenizer: TokenizerState, offset = 0): boolean {
-    return isDigitOfRadix(/^[A-Fa-f0-9]$/, tokenizer, offset);
+function isHexChar(reader: CharReader, offset = 0): boolean {
+    return isDigitOfRadix(/^[A-Fa-f0-9]$/, reader, offset);
 }
 
 // Check if the next token is a comment and tokenize it.
@@ -210,8 +216,8 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
     return new TokenReserved(text, location, property);
 }
 
-function isAlphanumeric(tokenizer: TokenizerState, offset = 0): boolean {
-    return /^[A-Za-z0-9_]$/.test(tokenizer.next(offset));
+function isAlphanumeric(reader: CharReader, offset = 0): boolean {
+    return /^[A-Za-z0-9_]$/.test(reader.next(offset));
 }
 
 // Check if the next token is an identifier and tokenize it.
@@ -228,6 +234,7 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
 
     const reserved = findReservedKeywordProperty(identifier);
     if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
+
     return new TokenIdentifier(identifier, tokenLocation);
 }
 
