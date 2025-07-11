@@ -146,6 +146,12 @@
                     "default": true,
                     "description": "Controls whether the 'property' keyword is required for virtual property accessors. When set to true, functions must explicitly use the 'property' keyword to be treated as property accessors. When false, compatibility mode for AngelScript prior to v2.33.1 is enabled, and functions with 'get_' or 'set_' prefixes are automatically treated as property accessors."
                 },
+                "angelScript.allowUnicodeIdentifiers": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Controls the use of international characters in the identifiers"
+                },
                 "angelScript.supportsTypedEnumerations": {
                     "scope": "window",
                     "type": "boolean",

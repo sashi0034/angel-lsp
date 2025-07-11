@@ -220,10 +220,28 @@ function isAlphanumeric(reader: CharReader, offset = 0): boolean {
     return /^[A-Za-z0-9_]$/.test(reader.next(offset));
 }
 
+function isUnicodeCharacter(reader: CharReader, offset = 0): boolean {
+    // AngelScript accept identifiers that contain characters with byte value higher than 127.
+    const code = reader.next(offset).charCodeAt(0);
+    return code >= 0x80;
+}
+
+function isIdentifierCharacter(reader: CharReader, offset = 0): boolean {
+    if (isAlphanumeric(reader, offset)) {
+        return true;
+    }
+
+    if (getGlobalSettings().allowUnicodeIdentifiers && isUnicodeCharacter(reader, offset)) {
+        return true;
+    }
+
+    return false;
+}
+
 // Check if the next token is an identifier and tokenize it.
 function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | TokenIdentifier | undefined {
     const start = tokenizer.getCursorOffset();
-    while (tokenizer.isEnd() === false && isAlphanumeric(tokenizer)) {
+    while (tokenizer.isEnd() === false && isIdentifierCharacter(tokenizer)) {
         tokenizer.stepFor(1);
     }
 
