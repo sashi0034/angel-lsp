@@ -8,6 +8,7 @@ interface LanguageServerSettings {
     implicitMutualInclusion: boolean;
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
+    allowUnicodeIdentifiers: boolean;
     supportsForEach: boolean;
     characterLiterals: boolean;
     supportsTypedEnumerations: boolean;
@@ -30,6 +31,7 @@ const defaultSettings: LanguageServerSettings = {
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
+    allowUnicodeIdentifiers: false,
     supportsForEach: true,
     characterLiterals: false,
     supportsTypedEnumerations: false,

@@ -17,14 +17,18 @@ function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): Inspe
 
         const inspector = inspectFileContents(fileContentList);
 
-        const diagnosticsInAnalyzer =
-            inspector.getRecord(targetUri).diagnosticsInAnalyzer.filter(
+        const diagnostics = [
+            ...inspector.getRecord(targetUri).diagnosticsInParser.filter(
                 diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
-            );
+            ),
+            ...inspector.getRecord(targetUri).diagnosticsInAnalyzer.filter(
+                diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
+            )
+        ];
 
-        const hasError = diagnosticsInAnalyzer.length > 0;
+        const hasError = diagnostics.length > 0;
         if (expectSuccess && hasError) {
-            const diagnostic = diagnosticsInAnalyzer[0];
+            const diagnostic = diagnostics[0];
             const message = diagnostic.message;
             const line = diagnostic.range.start.line;
             const character = diagnostic.range.start.character;
