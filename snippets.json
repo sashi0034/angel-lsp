@@ -103,6 +103,13 @@
         ],
         "description": "Namespace definition"
     },
+    "Using namespace": {
+        "prefix": "using",
+        "body": [
+            "using namespace ${1:IDENTIFIER};"
+        ],
+        "description": "Using namespace"
+    },
     "Interface definition": {
         "prefix": "interface",
         "body": [
