@@ -97,7 +97,9 @@ export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenR
     });
 }
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 
@@ -201,7 +203,7 @@ export function analyzeVarInitializer(
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
     pushScopeRegionInfo(scope, statBlock.nodeRange);

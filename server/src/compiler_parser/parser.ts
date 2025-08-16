@@ -80,7 +80,7 @@ import {Mutable} from "../utils/utilities";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {getGlobalSettings} from '../core/settings';
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function parseScript(parser: ParserState): NodeScript {
     const script: NodeScript = [];
     while (parser.isEnd() === false) {
@@ -169,6 +169,8 @@ function parseScript(parser: ParserState): NodeScript {
 
     return script;
 }
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
@@ -1056,7 +1058,7 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
     };
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
     if (parser.next().text !== '{') return undefined;
     const rangeStart = parser.next();

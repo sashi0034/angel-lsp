@@ -36,7 +36,7 @@ import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, nodeScript: NodeScript) {
     for (const node of nodeScript) {
         const name = node.nodeName;
@@ -66,6 +66,8 @@ function formatScript(format: FormatterState, nodeScript: NodeScript) {
         }
     }
 }
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatterState, nodeNamespace: NodeNamespace) {
@@ -400,7 +402,7 @@ function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
     formatMoveUntilNodeStart(format, statBlock);
 
