@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.3.50] 2025/08/16
+
+- Support for `using namespace` in AngelScript 2.38.0
+
 ## [0.3.47] 2025/07/08
 
 - `workspace/diagnostics/refresh` [#195](https://github.com/sashi0034/angel-lsp/pull/195) (Thnaks AlexMorson)
