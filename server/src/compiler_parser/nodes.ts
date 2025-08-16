@@ -35,6 +35,7 @@ export interface FunctionAttribute {
 
 export enum NodeName {
     NodeName = 'NodeName',
+    Using = 'Using',
     Namespace = 'Namespace',
     Enum = 'Enum',
     Class = 'Class',
@@ -105,7 +106,7 @@ export interface NodeBase {
     readonly nodeRange: TokenRange;
 }
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 export type NodeScript = NodeScriptMember[];
 
 export type NodeScriptMember =
@@ -119,7 +120,14 @@ export type NodeScriptMember =
     | NodeVirtualProp
     | NodeVar
     | NodeFunc
-    | NodeNamespace;
+    | NodeNamespace
+    | NodeUsing;
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+export interface NodeUsing extends NodeBase {
+    readonly nodeName: NodeName.Using;
+    readonly namespaceList: TokenObject[];
+}
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodeBase {
@@ -280,10 +288,10 @@ export interface NodeIntfMethod extends NodeBase {
     readonly funcAttr: FunctionAttribute | undefined;
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 export interface NodeStatBlock extends NodeBase {
     readonly nodeName: NodeName.StatBlock;
-    readonly statementList: (NodeVar | NodeStatement)[];
+    readonly statementList: (NodeVar | NodeStatement | NodeUsing)[];
 }
 
 export enum NodeListOp {

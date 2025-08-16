@@ -37,7 +37,7 @@ import {
     analyzeFunc,
     AnalyzeQueue,
     analyzeStatBlock,
-    analyzeType,
+    analyzeType, analyzeUsingNamespace,
     analyzeVarInitializer,
     HoistQueue,
     HoistResult,
@@ -48,7 +48,7 @@ import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {findConstructorOfType} from "./constrcutorCall";
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -72,9 +72,13 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
             hoistFunc(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Namespace) {
             hoistNamespace(parentScope, statement, analyzeQueue);
+        } else if (nodeName === NodeName.Using) {
+            analyzeUsingNamespace(parentScope, statement);
         }
     }
 }
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, queue: AnalyzeQueue) {
@@ -514,7 +518,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
     tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 
 // BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {

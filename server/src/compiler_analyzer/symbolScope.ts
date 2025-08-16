@@ -1,4 +1,5 @@
 import {
+    isScopePathEquals,
     ScopePath,
     SymbolObject,
     SymbolObjectHolder,
@@ -18,6 +19,7 @@ import {
     NodeName, NodeNamespace,
     NodeStatBlock,
     NodeTry,
+    NodeUsing,
     NodeVirtualProp,
     NodeWhile
 } from "../compiler_parser/nodes";
@@ -102,6 +104,11 @@ interface ScopeLinkedNamespaceNode {
     linkedToken: TokenObject;
 }
 
+interface ScopeUsingNamespace {
+    scopePath: ScopePath;
+    linkedNodes: NodeUsing[];
+}
+
 /**
  * Represents a scope that contains symbols.
  */
@@ -115,9 +122,11 @@ export class SymbolScope {
     // The symbol table that contains the symbols declared in this scope
     private readonly _symbolTable: SymbolTable = new Map();
 
-    // The node list that represents this scope.
-    // Unlike linkedNode, this namespaceNode always contains elements
-    // that are defined in the same file as this scope.
+    // List of using namespaces in this scope
+    private readonly _usingNamespaces: ScopeUsingNamespace[] = [];
+
+    // List of namespace nodes that belong to this scope and are defined in the same source file.
+    // Unlike linkedNode, this list excludes nodes coming from other files.
     private readonly _namespaceNodes: ScopeLinkedNamespaceNode[] = [];
 
     /**
@@ -222,6 +231,25 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
+    public pushUsingNamespace(node: NodeUsing) {
+        const scopePath: ScopePath = node.namespaceList.map(ns => ns.text);
+
+        const alreadyExists = this._usingNamespaces.find(exist => isScopePathEquals(exist.scopePath, scopePath));
+        if (alreadyExists !== undefined) {
+            // If the using namespace already exists, add the node to the existing one.
+            alreadyExists.linkedNodes.push(node);
+        } else {
+            // If the using namespace does not exist, create a new one.
+            this._usingNamespaces.push({scopePath, linkedNodes: [node]});
+        }
+    }
+
+    public getUsingNamespacesWithParent(): ReadonlyArray<ScopeUsingNamespace> {
+        return this._parentScope === undefined
+            ? this._usingNamespaces
+            : [...this._parentScope.getUsingNamespacesWithParent(), ...this._usingNamespaces];
+    }
+
     public pushNamespaceNode(node: NodeNamespace, linkedToken: TokenObject) {
         this._namespaceNodes.push({node, linkedToken});
     }
@@ -268,11 +296,11 @@ export class SymbolScope {
         return this._childScopeTable.get(identifier);
     }
 
-    protected resolveScope(path: ScopePath): SymbolScope | undefined {
+    public resolveRelativeScope(path: ScopePath): SymbolScope | undefined {
         if (path.length === 0) return this;
         const child = this._childScopeTable.get(path[0]);
         if (child === undefined) return undefined;
-        return child.resolveScope(path.slice(1));
+        return child.resolveRelativeScope(path.slice(1));
     }
 
     /**
@@ -319,13 +347,25 @@ export class SymbolScope {
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
     }
 
-    protected includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
+    protected includeExternalScope_internal(externalScope: SymbolScope, externalFilepath: string) {
         // Copy symbols from the external scope.
         for (const [key, symbolHolder] of externalScope._symbolTable) {
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.identifierToken.location.path === externalFilepath) {
                     this.insertSymbol(symbol);
                 }
+            }
+        }
+
+        // Copy using namespaces from the external scope.
+        for (const usingNamespace of externalScope._usingNamespaces) {
+            const filteredNodes = usingNamespace.linkedNodes.filter(
+                node => node.namespaceList.some(ns => ns.location.path === externalFilepath));
+            if (filteredNodes.length > 0) {
+                this._usingNamespaces.push({
+                    scopePath: usingNamespace.scopePath,
+                    linkedNodes: filteredNodes
+                });
             }
         }
 
@@ -338,14 +378,17 @@ export class SymbolScope {
                 // The scope name of function overloads is represented by an anonymous identifier.
                 // This checks whether it can be inserted.
                 if (canInsertNode && otherChild.isFunctionScope()) {
-                    const thisChild = this.insertScope(key, otherChild.linkedNode);
-                    // thisChild.includeExternalScopeInternal(externalChild, externalFilepath);
+                    this.insertScope(key, otherChild.linkedNode);
                 }
-            } else if (otherChild._symbolTable.size > 0 || otherChild._childScopeTable.size > 0) {
+            } else if (otherChild._symbolTable.size > 0 ||
+                otherChild._childScopeTable.size > 0 ||
+                otherChild._usingNamespaces.length > 0
+            ) {
                 const thisChild = this.insertScope(key, canInsertNode ? otherChild.linkedNode : undefined);
-                thisChild.includeExternalScopeInternal(otherChild, externalFilepath);
+                thisChild.includeExternalScope_internal(otherChild, externalFilepath);
             }
         }
+
     }
 }
 
@@ -388,7 +431,7 @@ export class SymbolGlobalScope extends SymbolScope {
      */
     public includeExternalScope(externalScope: SymbolScope) {
         const externalFilepath = externalScope.getContext().filepath;
-        this.includeExternalScopeInternal(externalScope, externalFilepath);
+        this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
     public get info(): Readonly<DetailScopeInformation> {
@@ -396,7 +439,7 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {
-        return super.resolveScope(path);
+        return super.resolveRelativeScope(path);
     }
 }
 
@@ -482,15 +525,25 @@ export interface SymbolAndScope {
     readonly scope: SymbolScope;
 }
 
-export function collectParentScopeList(scope: SymbolScope): SymbolScope[] {
-    const result: SymbolScope[] = [];
-    let current = scope;
-    while (current.parentScope !== undefined) {
-        result.push(current.parentScope);
-        current = current.parentScope;
+export function collectScopeListWithParentAndUsingNamespace(scope: SymbolScope): SymbolScope[] {
+    const usingNamespaces = scope.getUsingNamespacesWithParent();
+    return collectScopeListWithParentAndUsingNamespace_internal(scope, usingNamespaces);
+}
+
+function collectScopeListWithParentAndUsingNamespace_internal(scope: SymbolScope, usingNamespaces: ReadonlyArray<ScopeUsingNamespace>): SymbolScope[] {
+    const result: SymbolScope[] = [scope];
+
+    // Add using namespaces to the end of the list.
+    for (const usingNamespace of usingNamespaces) {
+        const namespaceScope = scope?.resolveRelativeScope(usingNamespace.scopePath);
+        if (namespaceScope !== undefined) {
+            result.push(namespaceScope);
+        }
     }
 
-    return result;
+    return scope.parentScope === undefined
+        ? result
+        : [...result, ...collectScopeListWithParentAndUsingNamespace_internal(scope.parentScope, usingNamespaces)];
 }
 
 // -----------------------------------------------

@@ -37,6 +37,7 @@ import {
     NodeSwitch,
     NodeTry,
     NodeType,
+    NodeUsing,
     NodeVar,
     NodeVarAccess,
     NodeWhile
@@ -97,7 +98,12 @@ export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenR
     });
 }
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: NodeUsing) {
+    parentScope.pushUsingNamespace(nodeUsing);
+}
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 
@@ -201,7 +207,7 @@ export function analyzeVarInitializer(
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     // Append completion information to the scope
     pushScopeRegionInfo(scope, statBlock.nodeRange);
@@ -209,6 +215,8 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
             analyzeVar(scope, statement, false);
+        } else if (statement.nodeName === NodeName.Using) {
+            analyzeUsingNamespace(scope, statement);
         } else {
             analyzeStatement(scope, statement as NodeStatement);
         }
@@ -233,7 +241,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     const typeIdentifier = nodeType.dataType.identifier;
 
     const searchScope = nodeType.scope !== undefined
-        ? (analyzeScope(scope, nodeType.scope) ?? scope)
+        ? (findOptimalScope(scope, nodeType.scope, typeIdentifier) ?? scope)
         : scope;
 
     let givenTypeTemplates = nodeType.typeTemplates;
@@ -309,8 +317,8 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     if (typeIdentifier.kind !== TokenKind.Reserved) return;
 
     if (nodeType.scope !== undefined) {
-        // This may seem like redundant processing, but it is invoked to add infos.
-        analyzeScope(scope, nodeType.scope);
+        // This may seem like redundant processing, but it is invoked to add infos, which are used for autocompletion.
+        findOptimalScope(scope, nodeType.scope, typeIdentifier);
 
         analyzerDiagnostic.error(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
     }
@@ -355,33 +363,73 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 }
 
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function analyzeScope(parentScope: SymbolScope, nodeScope: NodeScope): SymbolScope | undefined {
-    let scopeIterator =
-        nodeScope.isGlobal ? parentScope.getGlobalScope() : parentScope;
+function findOptimalScope(
+    parentScope: SymbolScope,
+    nodeScope: NodeScope | undefined,
+    tokenAfterNamespaces: TokenObject | undefined
+): SymbolScope | undefined {
+    let bestMatch = undefined;
 
-    let bestMatch = analyzeScopeInternal(scopeIterator, nodeScope);
-    for (; ;) {
-        if (bestMatch.ok) break;
+    if (nodeScope?.isGlobal) {
+        bestMatch = evaluateScope(parentScope.getGlobalScope(), nodeScope, tokenAfterNamespaces);
+    } else {
+        // Iterate through all using namespaces
+        for (const usingScope of [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)]) {
+            if (bestMatch?.ok) {
+                break;
+            }
 
-        if (scopeIterator.parentScope === undefined) break;
-        scopeIterator = scopeIterator.parentScope;
+            let scopeIterator = parentScope;
 
-        const candidate = analyzeScopeInternal(scopeIterator, nodeScope);
-        if (candidate.ok || candidate.accessIndex > bestMatch.accessIndex) {
-            // If the candidate is valid or has a higher access index, update the best match.
-            bestMatch = candidate;
+            // Iterate through current scope and its parent scopes
+            for (; ;) {
+                if (bestMatch?.ok) {
+                    break;
+                }
+
+                const relativeScope = scopeIterator.resolveRelativeScope(usingScope);
+                if (relativeScope !== undefined) {
+                    const candidate = evaluateScope(relativeScope, nodeScope, tokenAfterNamespaces);
+                    if (bestMatch === undefined || candidate.ok || candidate.accessIndex > bestMatch.accessIndex) {
+                        // If the candidate is valid or has a higher access index, update the best match.
+                        bestMatch = candidate;
+                    }
+                }
+
+                if (scopeIterator.parentScope === undefined) {
+                    break;
+                }
+
+                scopeIterator = scopeIterator.parentScope;
+            }
+
         }
     }
 
-    bestMatch.sideEffects.forEach(sideEffect => sideEffect());
+    if (!bestMatch?.ok && nodeScope === undefined) {
+        return undefined;
+    }
 
-    return bestMatch.accessScope;
+    bestMatch?.sideEffects.forEach(sideEffect => sideEffect());
+
+    return bestMatch?.accessScope;
 }
 
-function analyzeScopeInternal(parentScope: SymbolScope, nodeScope: NodeScope) {
-    const sideEffect: (() => void)[] = [];
+function evaluateScope(parentScope: SymbolScope, nodeScope: NodeScope | undefined, tokenAfterNamespaces: TokenObject | undefined) {
+    if (nodeScope === undefined) {
+        const ok = parentScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
 
-    const tokenAfterNamespaces = nodeScope.nodeRange.end.next;
+        return {
+            ok,
+            accessScope: parentScope,
+            accessIndex: -1,
+            sideEffects: []
+        };
+    }
+
+    // assert(nodeScope.nodeRange.end.next === identifierAfterNamespaces);
+
+    const sideEffect: (() => void)[] = [];
 
     let accessScope: SymbolScope = parentScope;
     let accessIndex: number;
@@ -987,11 +1035,11 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
 
 // BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedType | undefined {
-    let searchScope = scope;
-    if (funcCall.scope !== undefined) {
-        const namespaceScope = analyzeScope(scope, funcCall.scope);
-        if (namespaceScope === undefined) return undefined;
-        searchScope = namespaceScope;
+    let searchScope = findOptimalScope(scope, funcCall.scope, funcCall.identifier);
+    if (funcCall.scope !== undefined && searchScope === undefined) {
+        return undefined;
+    } else {
+        searchScope = searchScope ?? scope;
     }
 
     const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
@@ -1092,21 +1140,23 @@ function analyzeFunctionCall(
 
 // BNF: VARACCESS     ::= SCOPE IDENTIFIER
 function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): ResolvedType | undefined {
-    let accessScope = scope;
-
+    let accessScope: SymbolScope | undefined = undefined;
+    const varIdentifier = varAccess.identifier;
     if (varAccess.scope !== undefined) {
-        const fromScope = scope.takeParentByNode([NodeName.Class]) ?? scope;
-
-        const namespaceScope = analyzeScope(fromScope, varAccess.scope);
-        if (namespaceScope === undefined) return undefined;
-        accessScope = namespaceScope;
+        const fromScope = scope.takeParentByNode([NodeName.Class]) ?? scope; // FXIME?
+        accessScope = findOptimalScope(fromScope, varAccess.scope, varIdentifier);
+    } else {
+        accessScope = findOptimalScope(scope, undefined, varIdentifier) ?? scope;
     }
 
-    if (varAccess.identifier === undefined) {
+    if (varIdentifier === undefined) {
         return undefined;
     }
 
-    const varIdentifier = varAccess.identifier;
+    if (!accessScope) {
+        return undefined;
+    }
+
     return analyzeVariableAccess(scope, accessScope, varIdentifier);
 }
 

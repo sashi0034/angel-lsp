@@ -69,7 +69,7 @@ import {
     ParsedPostIndexing,
     ParsedVariableInitializer,
     ReferenceModifier,
-    TypeModifier
+    TypeModifier, NodeUsing
 } from "./nodes";
 import {HighlightForToken} from "../core/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
@@ -80,7 +80,7 @@ import {Mutable} from "../utils/utilities";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {getGlobalSettings} from '../core/settings';
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | ';'}
+// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function parseScript(parser: ParserState): NodeScript {
     const script: NodeScript = [];
     while (parser.isEnd() === false) {
@@ -114,6 +114,13 @@ function parseScript(parser: ParserState): NodeScript {
         if (parsedNamespace === ParseFailure.Pending) continue;
         if (parsedNamespace !== ParseFailure.Mismatch) {
             script.push(parsedNamespace);
+            continue;
+        }
+
+        const parsedUsing = parseUsing(parser);
+        if (parsedUsing === ParseFailure.Pending) continue;
+        if (parsedUsing !== ParseFailure.Mismatch) {
+            script.push(parsedUsing);
             continue;
         }
 
@@ -168,6 +175,46 @@ function parseScript(parser: ParserState): NodeScript {
     }
 
     return script;
+}
+
+// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+function parseUsing(parser: ParserState): ParseResult<NodeUsing> {
+    if (parser.next().text !== 'using') {
+        return ParseFailure.Mismatch;
+    }
+
+    const rangeStart = parser.next();
+    parser.commit(HighlightForToken.Builtin);
+
+    parser.expect('namespace', HighlightForToken.Builtin);
+
+    const namespaceList: TokenObject[] = [];
+    while (parser.isEnd() === false) {
+        const loopStart = parser.next();
+
+        const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
+        if (identifier !== undefined) {
+            namespaceList.push(identifier);
+        }
+
+        if (expectSeparatorOrClose(parser, '::', ';', true) === BreakOrThrough.Break) {
+            break;
+        }
+
+        if (parser.next() === loopStart) {
+            parser.step();
+        }
+    }
+
+    if (namespaceList.length === 0) {
+        return ParseFailure.Pending;
+    }
+
+    return {
+        nodeName: NodeName.Using,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        namespaceList: namespaceList
+    };
 }
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
@@ -1056,19 +1103,26 @@ function parseIntfMethod(parser: ParserState): NodeIntfMethod | undefined {
     };
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT} '}'
+// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
     if (parser.next().text !== '{') return undefined;
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Operator);
 
-    const statementList: (NodeVar | NodeStatement)[] = [];
+    const statementList: (NodeVar | NodeStatement | NodeUsing)[] = [];
     while (parser.isEnd() === false) {
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) break;
 
         const parsedVar = parseVar(parser);
         if (parsedVar !== undefined) {
             statementList.push(parsedVar);
+            continue;
+        }
+
+        const using = parseUsing(parser);
+        if (using === ParseFailure.Pending) continue;
+        if (using !== ParseFailure.Mismatch) {
+            statementList.push(using);
             continue;
         }
 

@@ -2,7 +2,11 @@ import {Position} from "vscode-languageserver";
 import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
 import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
 import {NodeName} from "../compiler_parser/nodes";
-import {collectParentScopeList, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
+import {
+    collectScopeListWithParentAndUsingNamespace,
+    SymbolGlobalScope,
+    SymbolScope
+} from "../compiler_analyzer/symbolScope";
 import {AutocompleteInstanceMemberInfo} from "../compiler_analyzer/info";
 import {TextPosition} from "../compiler_tokenizer/textLocation";
 import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
@@ -31,7 +35,7 @@ export function provideCompletion(
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g. Defined classes or functions in the scope.
-    for (const scope of [...collectParentScopeList(caretScope), caretScope]) {
+    for (const scope of collectScopeListWithParentAndUsingNamespace(caretScope)) {
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
 
