@@ -19,6 +19,7 @@ import {
     NodeName, NodeNamespace,
     NodeStatBlock,
     NodeTry,
+    NodeUsing,
     NodeVirtualProp,
     NodeWhile
 } from "../compiler_parser/nodes";
@@ -103,6 +104,11 @@ interface ScopeLinkedNamespaceNode {
     linkedToken: TokenObject;
 }
 
+interface ScopeUsingNamespace {
+    scopePath: ScopePath;
+    linkedNodes: NodeUsing[];
+}
+
 /**
  * Represents a scope that contains symbols.
  */
@@ -117,7 +123,7 @@ export class SymbolScope {
     private readonly _symbolTable: SymbolTable = new Map();
 
     // List of using namespaces in this scope
-    private readonly _usingNamespaces: ScopePath[] = [];
+    private readonly _usingNamespaces: ScopeUsingNamespace[] = [];
 
     // List of namespace nodes that belong to this scope and are defined in the same source file.
     // Unlike linkedNode, this list excludes nodes coming from other files.
@@ -225,15 +231,20 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
-    public pushUsingNamespace(path: ScopePath) {
-        if (path.length > 0 &&
-            !this._usingNamespaces.some(existingPath => isScopePathEquals(existingPath, path))
-        ) {
-            this._usingNamespaces.push(path);
+    public pushUsingNamespace(node: NodeUsing) {
+        const scopePath: ScopePath = node.namespaceList.map(ns => ns.text);
+
+        const alreadyExists = this._usingNamespaces.find(exist => isScopePathEquals(exist.scopePath, scopePath));
+        if (alreadyExists !== undefined) {
+            // If the using namespace already exists, add the node to the existing one.
+            alreadyExists.linkedNodes.push(node);
+        } else {
+            // If the using namespace does not exist, create a new one.
+            this._usingNamespaces.push({scopePath, linkedNodes: [node]});
         }
     }
 
-    public getUsingNamespacesWithParent(): ReadonlyArray<ScopePath> {
+    public getUsingNamespacesWithParent(): ReadonlyArray<ScopeUsingNamespace> {
         return this._parentScope === undefined
             ? this._usingNamespaces
             : [...this._parentScope.getUsingNamespacesWithParent(), ...this._usingNamespaces];
@@ -346,6 +357,18 @@ export class SymbolScope {
             }
         }
 
+        // Copy using namespaces from the external scope.
+        for (const usingNamespace of externalScope._usingNamespaces) {
+            const filteredNodes = usingNamespace.linkedNodes.filter(
+                node => node.namespaceList.some(ns => ns.location.path === externalFilepath));
+            if (filteredNodes.length > 0) {
+                this._usingNamespaces.push({
+                    scopePath: usingNamespace.scopePath,
+                    linkedNodes: filteredNodes
+                });
+            }
+        }
+
         // Copy child scopes recursively.
         for (const [key, otherChild] of externalScope._childScopeTable) {
             // We only insert it if it is a node specific to the external file.
@@ -355,19 +378,17 @@ export class SymbolScope {
                 // The scope name of function overloads is represented by an anonymous identifier.
                 // This checks whether it can be inserted.
                 if (canInsertNode && otherChild.isFunctionScope()) {
-                    const thisChild = this.insertScope(key, otherChild.linkedNode);
-                    // thisChild.includeExternalScopeInternal(externalChild, externalFilepath);
+                    this.insertScope(key, otherChild.linkedNode);
                 }
-            } else if (otherChild._symbolTable.size > 0 || otherChild._childScopeTable.size > 0) {
+            } else if (otherChild._symbolTable.size > 0 ||
+                otherChild._childScopeTable.size > 0 ||
+                otherChild._usingNamespaces.length > 0
+            ) {
                 const thisChild = this.insertScope(key, canInsertNode ? otherChild.linkedNode : undefined);
                 thisChild.includeExternalScope_internal(otherChild, externalFilepath);
             }
         }
 
-        // Copy using namespaces.
-        for (const usingNamespace of externalScope._usingNamespaces) {
-            this.pushUsingNamespace(usingNamespace);
-        }
     }
 }
 
@@ -506,6 +527,18 @@ export interface SymbolAndScope {
 
 export function collectParentScopeList(scope: SymbolScope): SymbolScope[] {
     const result: SymbolScope[] = [];
+    let current = scope;
+    while (current.parentScope !== undefined) {
+        result.push(current.parentScope);
+        current = current.parentScope;
+    }
+
+    return result;
+}
+
+export function collectParentScopesWithUsingNamespaces(scope: SymbolScope): SymbolScope[] {
+    const result: SymbolScope[] = [];
+    const usingNamespaces = scope.getUsingNamespacesWithParent();
     let current = scope;
     while (current.parentScope !== undefined) {
         result.push(current.parentScope);

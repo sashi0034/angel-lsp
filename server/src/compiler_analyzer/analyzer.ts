@@ -102,15 +102,7 @@ export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenR
 
 // BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: NodeUsing) {
-    if (nodeUsing.namespaceList.length === 0) return;
-
-    const scopePath: string[] = [];
-    for (let i = 0; i < nodeUsing.namespaceList.length; i++) {
-        const scopeToken = nodeUsing.namespaceList[i];
-        scopePath.push(scopeToken.text);
-    }
-
-    parentScope.pushUsingNamespace(scopePath);
+    parentScope.pushUsingNamespace(nodeUsing);
 }
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
@@ -382,7 +374,7 @@ function findOptimalScope(
         bestMatch = evaluateScope(parentScope.getGlobalScope(), nodeScope, tokenAfterNamespaces);
     } else {
         // Iterate through all using namespaces
-        for (const usingScope of [[], ...parentScope.getUsingNamespacesWithParent()]) {
+        for (const usingScope of [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)]) {
             if (bestMatch?.ok) {
                 break;
             }
