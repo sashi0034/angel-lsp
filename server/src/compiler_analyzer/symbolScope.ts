@@ -1,4 +1,5 @@
 import {
+    isScopePathEquals,
     ScopePath,
     SymbolObject,
     SymbolObjectHolder,
@@ -115,9 +116,11 @@ export class SymbolScope {
     // The symbol table that contains the symbols declared in this scope
     private readonly _symbolTable: SymbolTable = new Map();
 
-    // The node list that represents this scope.
-    // Unlike linkedNode, this namespaceNode always contains elements
-    // that are defined in the same file as this scope.
+    // List of using namespaces in this scope
+    private readonly _usingNamespaces: ScopePath[] = [];
+
+    // List of namespace nodes that belong to this scope and are defined in the same source file.
+    // Unlike linkedNode, this list excludes nodes coming from other files.
     private readonly _namespaceNodes: ScopeLinkedNamespaceNode[] = [];
 
     /**
@@ -222,6 +225,20 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
+    public pushUsingNamespace(path: ScopePath) {
+        if (path.length > 0 &&
+            !this._usingNamespaces.some(existingPath => isScopePathEquals(existingPath, path))
+        ) {
+            this._usingNamespaces.push(path);
+        }
+    }
+
+    public getUsingNamespacesWithParent(): ReadonlyArray<ScopePath> {
+        return this._parentScope === undefined
+            ? this._usingNamespaces
+            : [...this._parentScope.getUsingNamespacesWithParent(), ...this._usingNamespaces];
+    }
+
     public pushNamespaceNode(node: NodeNamespace, linkedToken: TokenObject) {
         this._namespaceNodes.push({node, linkedToken});
     }
@@ -268,11 +285,11 @@ export class SymbolScope {
         return this._childScopeTable.get(identifier);
     }
 
-    protected resolveScope(path: ScopePath): SymbolScope | undefined {
+    public resolveRelativeScope(path: ScopePath): SymbolScope | undefined {
         if (path.length === 0) return this;
         const child = this._childScopeTable.get(path[0]);
         if (child === undefined) return undefined;
-        return child.resolveScope(path.slice(1));
+        return child.resolveRelativeScope(path.slice(1));
     }
 
     /**
@@ -319,7 +336,7 @@ export class SymbolScope {
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
     }
 
-    protected includeExternalScopeInternal(externalScope: SymbolScope, externalFilepath: string) {
+    protected includeExternalScope_internal(externalScope: SymbolScope, externalFilepath: string) {
         // Copy symbols from the external scope.
         for (const [key, symbolHolder] of externalScope._symbolTable) {
             for (const symbol of symbolHolder.toList()) {
@@ -343,8 +360,13 @@ export class SymbolScope {
                 }
             } else if (otherChild._symbolTable.size > 0 || otherChild._childScopeTable.size > 0) {
                 const thisChild = this.insertScope(key, canInsertNode ? otherChild.linkedNode : undefined);
-                thisChild.includeExternalScopeInternal(otherChild, externalFilepath);
+                thisChild.includeExternalScope_internal(otherChild, externalFilepath);
             }
+        }
+
+        // Copy using namespaces.
+        for (const usingNamespace of externalScope._usingNamespaces) {
+            this.pushUsingNamespace(usingNamespace);
         }
     }
 }
@@ -388,7 +410,7 @@ export class SymbolGlobalScope extends SymbolScope {
      */
     public includeExternalScope(externalScope: SymbolScope) {
         const externalFilepath = externalScope.getContext().filepath;
-        this.includeExternalScopeInternal(externalScope, externalFilepath);
+        this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
     public get info(): Readonly<DetailScopeInformation> {
@@ -396,7 +418,7 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {
-        return super.resolveScope(path);
+        return super.resolveRelativeScope(path);
     }
 }
 

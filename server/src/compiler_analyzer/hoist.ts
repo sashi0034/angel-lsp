@@ -37,7 +37,7 @@ import {
     analyzeFunc,
     AnalyzeQueue,
     analyzeStatBlock,
-    analyzeType,
+    analyzeType, analyzeUsingNamespace,
     analyzeVarInitializer,
     HoistQueue,
     HoistResult,
@@ -72,6 +72,8 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
             hoistFunc(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Namespace) {
             hoistNamespace(parentScope, statement, analyzeQueue);
+        } else if (nodeName === NodeName.Using) {
+            analyzeUsingNamespace(parentScope, statement);
         }
     }
 }

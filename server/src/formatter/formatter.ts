@@ -25,7 +25,7 @@ import {
     NodeScript,
     NodeStatBlock,
     NodeStatement, NodeSwitch, NodeTry,
-    NodeType, NodeTypeDef,
+    NodeType, NodeTypeDef, NodeUsing,
     NodeVar,
     NodeVarAccess, NodeVirtualProp,
     NodeWhile,
@@ -63,11 +63,30 @@ function formatScript(format: FormatterState, nodeScript: NodeScript) {
             formatFunc(format, node);
         } else if (name === NodeName.Namespace) {
             formatNamespace(format, node);
+        } else if (name === NodeName.Using) {
+            formatUsing(format, node);
         }
     }
 }
 
 // BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+function formatUsing(format: FormatterState, nodeUsing: NodeUsing) {
+    formatMoveUntilNodeStart(format, nodeUsing);
+    format.pushWrap();
+
+    formatTargetBy(format, 'using', {});
+
+    formatTargetBy(format, 'namespace', {});
+
+    for (let i = 0; i < nodeUsing.namespaceList.length; i++) {
+        if (i > 0) formatTargetBy(format, '::', {condenseSides: true});
+
+        const namespaceIdentifier = nodeUsing.namespaceList[i];
+        formatTargetBy(format, namespaceIdentifier.text, {});
+    }
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
+}
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatterState, nodeNamespace: NodeNamespace) {
@@ -414,6 +433,8 @@ function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
 
             if (statement.nodeName === NodeName.Var) {
                 formatVar(format, statement);
+            } else if (statement.nodeName === NodeName.Using) {
+                formatUsing(format, statement);
             } else {
                 formatStatement(format, statement);
             }
