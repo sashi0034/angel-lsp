@@ -525,27 +525,25 @@ export interface SymbolAndScope {
     readonly scope: SymbolScope;
 }
 
-export function collectParentScopeList(scope: SymbolScope): SymbolScope[] {
-    const result: SymbolScope[] = [];
-    let current = scope;
-    while (current.parentScope !== undefined) {
-        result.push(current.parentScope);
-        current = current.parentScope;
-    }
-
-    return result;
+export function collectScopeListWithParentAndUsingNamespace(scope: SymbolScope): SymbolScope[] {
+    const usingNamespaces = scope.getUsingNamespacesWithParent();
+    return collectScopeListWithParentAndUsingNamespace_internal(scope, usingNamespaces);
 }
 
-export function collectParentScopesWithUsingNamespaces(scope: SymbolScope): SymbolScope[] {
-    const result: SymbolScope[] = [];
-    const usingNamespaces = scope.getUsingNamespacesWithParent();
-    let current = scope;
-    while (current.parentScope !== undefined) {
-        result.push(current.parentScope);
-        current = current.parentScope;
+function collectScopeListWithParentAndUsingNamespace_internal(scope: SymbolScope, usingNamespaces: ReadonlyArray<ScopeUsingNamespace>): SymbolScope[] {
+    const result: SymbolScope[] = [scope];
+
+    // Add using namespaces to the end of the list.
+    for (const usingNamespace of usingNamespaces) {
+        const namespaceScope = scope?.resolveRelativeScope(usingNamespace.scopePath);
+        if (namespaceScope !== undefined) {
+            result.push(namespaceScope);
+        }
     }
 
-    return result;
+    return scope.parentScope === undefined
+        ? result
+        : [...result, ...collectScopeListWithParentAndUsingNamespace_internal(scope.parentScope, usingNamespaces)];
 }
 
 // -----------------------------------------------
