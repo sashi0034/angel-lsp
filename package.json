@@ -49,6 +49,9 @@
             },
             {
                 "id": "angelscript-predefined",
+                "extensions": [
+                    ".as.predefined"
+                ],
                 "filenames": [
                     "as.predefined"
                 ],

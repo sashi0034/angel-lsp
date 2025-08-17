@@ -205,7 +205,12 @@ export class AnalysisResolver {
 
         if (record.uri !== predefinedUri && predefinedUri !== undefined) {
             // Add 'as.predefined' to the include path
-            includeSet.add(predefinedUri);
+            const predefinedRecord = this._inspectRecords.get(predefinedUri);
+            if (predefinedRecord !== undefined) {
+                this.resolveIncludeAbsolutePathsInternal(includeSet, predefinedRecord);
+            } else {
+                includeSet.add(predefinedUri);
+            }
         }
 
         // Recursively resolve the include-paths
@@ -244,6 +249,8 @@ export class AnalysisResolver {
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
                 this.resolveIncludeAbsolutePathsInternal(includeSet, includeRecord);
+            } else {
+                includeSet.add(uri);
             }
         }
     }
