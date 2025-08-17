@@ -5,6 +5,7 @@
 interface LanguageServerSettings {
     suppressAnalyzerErrors: boolean;
     includePath: string[];
+    forceIncludePredefined: string[];
     implicitMutualInclusion: boolean;
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
@@ -28,6 +29,7 @@ interface LanguageServerSettings {
 const defaultSettings: LanguageServerSettings = {
     suppressAnalyzerErrors: true,
     includePath: [],
+    forceIncludePredefined: [],
     implicitMutualInclusion: false,
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,

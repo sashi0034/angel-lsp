@@ -28,7 +28,7 @@
         "onLanguage:angelscript",
         "onLanguage:angelscript-predefined",
         "workspaceContains:**/*.as",
-		"onDebug"
+        "onDebug"
     ],
     "main": "./client/out/extension",
     "contributes": {
@@ -130,6 +130,15 @@
                     },
                     "default": [],
                     "description": "The include paths used to resolve #include. Specify as relative or absolute paths."
+                },
+                "angelScript.forceIncludePredefined": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Paths (absolute recommended) to one or more `as.predefined` files that will always be included globally, regardless of the project's configuration."
                 },
                 "angelScript.implicitMutualInclusion": {
                     "scope": "window",
@@ -283,8 +292,8 @@
         "ts-node": "^10.9.2",
         "typescript": "^5.3.3"
     },
-	"dependencies": {
+    "dependencies": {
         "@vscode/debugadapter": "^1.61.0",
         "@vscode/debugprotocol": "^1.61.0"
-	}
+    }
 }
