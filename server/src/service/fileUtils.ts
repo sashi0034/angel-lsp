@@ -16,22 +16,10 @@ export function resolveUri(baseUri: string, relativePath: string): string {
         const base = new URL(baseUri);
         const u = new URL(relativePath, base);
 
-        let href = u.href;
+        let href: string = u.href;
 
         if (u.protocol === 'file:') {
-            // Case 1: Normalize drive letter to "c%3A"
-            // Example: file:///C:/... --> file:///c%3A/...
-            href = href.replace(
-                /^file:\/\/\/([A-Za-z]):/,
-                (_m, d: string) => `file:///${d.toLowerCase()}%3A`
-            );
-
-            // Case 2: Special handling for root-only paths
-            // Example: file:///c%3A/ --> file:///c%3A
-            href = href.replace(
-                /^file:\/\/\/([a-z])%3A\/(?=[?#]|$)/,
-                'file:///$1%3A'
-            );
+            href = normalizeFileUri(href);
         }
 
         return href;
@@ -40,9 +28,27 @@ export function resolveUri(baseUri: string, relativePath: string): string {
     }
 }
 
+function normalizeFileUri(uri: string) {
+    // Case 1: Normalize drive letter to "c%3A"
+    // Example: file:///C:/... --> file:///c%3A/...
+    uri = uri.replace(
+        /^file:\/\/\/([A-Za-z]):/,
+        (_m, d: string) => `file:///${d.toLowerCase()}%3A`
+    );
+
+    // Case 2: Special handling for root-only paths
+    // Example: file:///c%3A/ --> file:///c%3A
+    uri = uri.replace(
+        /^file:\/\/\/([a-z])%3A\/(?=[?#]|$)/,
+        'file:///$1%3A'
+    );
+
+    return uri;
+}
+
 export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): string {
     if (path.isAbsolute(relativeOrAbsolute)) {
-        return url.pathToFileURL(relativeOrAbsolute).toString();
+        return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
     const primaryUri = resolveUri(baseUri, relativeOrAbsolute);
