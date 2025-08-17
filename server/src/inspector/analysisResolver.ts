@@ -244,6 +244,8 @@ export class AnalysisResolver {
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
                 this.resolveIncludeAbsolutePathsInternal(includeSet, includeRecord);
+            } else {
+                includeSet.add(uri);
             }
         }
     }

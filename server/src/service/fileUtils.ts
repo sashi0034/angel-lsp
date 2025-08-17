@@ -13,6 +13,10 @@ import {getGlobalSettings} from "../core/settings";
  */
 export function resolveUri(baseUri: string, relativePath: string): string {
     try {
+        if (path.isAbsolute(relativePath)) {
+            return url.pathToFileURL(relativePath).toString();
+        }
+
         const baseUrl = new URL(baseUri);
         return url.format(new URL(relativePath, baseUrl));
     } catch (error) {
