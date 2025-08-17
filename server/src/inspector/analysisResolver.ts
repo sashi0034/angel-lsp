@@ -203,13 +203,21 @@ export class AnalysisResolver {
     private resolveIncludeAbsolutePaths(record: PartialInspectRecord, predefinedUri: string | undefined): string[] {
         const includeSet = new Set<string>();
 
-        if (record.uri !== predefinedUri && predefinedUri !== undefined) {
-            // Add 'as.predefined' to the include path
-            const predefinedRecord = this._inspectRecords.get(predefinedUri);
+        // Add 'as.predefined' to the include-paths
+        const predefinedUriList = [
+            predefinedUri,
+            ...getGlobalSettings().forceIncludePredefined.map(uri => resolveIncludeUri(record.uri, uri))
+        ];
+        for (const uri of predefinedUriList) {
+            if (uri === undefined || uri == record.uri) {
+                continue;
+            }
+
+            const predefinedRecord = this._inspectRecords.get(uri);
             if (predefinedRecord !== undefined) {
                 this.resolveIncludeAbsolutePathsInternal(includeSet, predefinedRecord);
             } else {
-                includeSet.add(predefinedUri);
+                includeSet.add(uri);
             }
         }
 
