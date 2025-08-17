@@ -1,5 +1,16 @@
 # Change Log
 
+## [0.3.52] 2025/08/17
+
+- Support for `#include` of other `*.as.predefined` files inside `as.predefined`
+
+  - For example, you can now write something like:
+  ```as
+  #include "module.as.predefined"
+  ```
+
+- Support for absolute path includes
+
 ## [0.3.50] 2025/08/16
 
 - Support for `using namespace` in AngelScript 2.38.0
