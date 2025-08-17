@@ -13,24 +13,44 @@ import {getGlobalSettings} from "../core/settings";
  */
 export function resolveUri(baseUri: string, relativePath: string): string {
     try {
-        if (path.isAbsolute(relativePath)) {
-            return url.pathToFileURL(relativePath).toString();
+        const base = new URL(baseUri);
+        const u = new URL(relativePath, base);
+
+        let href = u.href;
+
+        if (u.protocol === 'file:') {
+            // Case 1: Normalize drive letter to "c%3A"
+            // Example: file:///C:/... --> file:///c%3A/...
+            href = href.replace(
+                /^file:\/\/\/([A-Za-z]):/,
+                (_m, d: string) => `file:///${d.toLowerCase()}%3A`
+            );
+
+            // Case 2: Special handling for root-only paths
+            // Example: file:///c%3A/ --> file:///c%3A
+            href = href.replace(
+                /^file:\/\/\/([a-z])%3A\/(?=[?#]|$)/,
+                'file:///$1%3A'
+            );
         }
 
-        const baseUrl = new URL(baseUri);
-        return url.format(new URL(relativePath, baseUrl));
+        return href;
     } catch (error) {
         return '';
     }
 }
 
-export function resolveIncludeUri(baseUri: string, relativePath: string): string {
-    const primaryUri = resolveUri(baseUri, relativePath);
+export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): string {
+    if (path.isAbsolute(relativeOrAbsolute)) {
+        return url.pathToFileURL(relativeOrAbsolute).toString();
+    }
+
+    const primaryUri = resolveUri(baseUri, relativeOrAbsolute);
     if (isFileUri(primaryUri)) return primaryUri;
 
     for (const includePath of getGlobalSettings().includePath) {
         const includeUri = pathToFileURL(toAbsolutePath(includePath)).toString() + '/';
-        const fallbackUri = resolveUri(includeUri, relativePath);
+        const fallbackUri = resolveUri(includeUri, relativeOrAbsolute);
         if (isFileUri(fallbackUri)) return fallbackUri;
     }
 
