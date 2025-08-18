@@ -47,6 +47,7 @@ import {
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {findConstructorOfType} from "./constrcutorCall";
+import assert = require("node:assert");
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
@@ -522,9 +523,11 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
 
 // BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
+    assert(scope.parentScope !== undefined);
+
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
-        const type = analyzeType(scope, param.type);
+        const type = analyzeType(scope.parentScope, param.type);
         if (type === undefined) resolvedTypes.push(undefined);
         else resolvedTypes.push(type);
 
