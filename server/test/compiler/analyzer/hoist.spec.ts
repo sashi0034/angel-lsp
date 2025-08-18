@@ -6,4 +6,28 @@ describe('analyzer/hoist', () => {
         
         class Value { }
     `);
+
+    expectSuccess(`// Function can use a type declared after it.
+        int pre() {
+            return A::get_id(1);
+        }
+    
+        namespace A {
+            int pre() {
+                return get_id(1);
+            }
+        
+            int get_id(int id) { 
+                return id; 
+            }
+        
+            int post() {
+                return get_id(1);
+            }
+        }
+
+        int post() {
+            return A::get_id(1);
+        }
+    `);
 });
