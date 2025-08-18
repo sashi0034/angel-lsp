@@ -51,13 +51,22 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
+    if (!relativeOrAbsolute.endsWith('.as') && !relativeOrAbsolute.endsWith('.predefined')) {
+        // If the file does not have an extension, assume it is an ActionScript file.
+        relativeOrAbsolute = relativeOrAbsolute + '.as';
+    }
+
     const primaryUri = resolveUri(baseUri, relativeOrAbsolute);
-    if (isFileUri(primaryUri)) return primaryUri;
+    if (isFileUri(primaryUri)) {
+        return primaryUri;
+    }
 
     for (const includePath of getGlobalSettings().includePath) {
         const includeUri = pathToFileURL(toAbsolutePath(includePath)).toString() + '/';
         const fallbackUri = resolveUri(includeUri, relativeOrAbsolute);
-        if (isFileUri(fallbackUri)) return fallbackUri;
+        if (isFileUri(fallbackUri)) {
+            return fallbackUri;
+        }
     }
 
     return primaryUri;
