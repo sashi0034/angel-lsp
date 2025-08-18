@@ -461,7 +461,10 @@ function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
     const srcMembers =
         resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of srcMembers) {
-        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
+        if (methodHolder.isFunctionHolder() &&
+            ['opConv', 'opImplConv',
+                'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handler.
+            ].includes(methodHolder.identifierText)
         ) {
             convFuncList.push(...methodHolder.toList());
         }
