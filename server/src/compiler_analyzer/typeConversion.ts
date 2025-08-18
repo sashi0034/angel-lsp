@@ -70,25 +70,32 @@ function evaluateConversionCostInternal(
     if (areTemplateTypesEqual(src, dest) === false) return undefined;
 
     // Source or destination is a function type
-    if (srcTypeOrFunc.isFunction() || destTypeOrFunc.isFunction()) {
-        if (!srcTypeOrFunc.isFunction() || !destTypeOrFunc.isFunction()) return undefined;
+    if (destTypeOrFunc.isFunction()) {
+        if (!srcTypeOrFunc.isFunction()) {
+            return undefined;
+        }
 
         return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionConst.RefConv : undefined;
     }
 
-    const srcType: SymbolType = srcTypeOrFunc;
-    const destType: SymbolType = destTypeOrFunc;
-
-    // FIXME: Handle init list?
-
-    // No conversion from void to any other type
-    if (srcType.identifierText === 'void') return ConversionConst.NoConv;
+    const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
 
     // FIXME?
     // Any type can be converted to a var type
     if (destType.identifierText === '?') return ConversionConst.VariableConv;
 
     if (destType.identifierText === 'auto') return ConversionConst.VariableConv;
+
+    if (srcTypeOrFunc.isFunction()) {
+        return undefined;
+    }
+
+    const srcType: SymbolType = srcTypeOrFunc; // <-- srcTypeOrFunc is guaranteed to be a type here
+
+    // FIXME: Handle init list?
+
+    // No conversion from void to any other type
+    if (srcType.identifierText === 'void') return ConversionConst.NoConv;
 
     if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
@@ -461,7 +468,10 @@ function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
     const srcMembers =
         resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of srcMembers) {
-        if (methodHolder.isFunctionHolder() && ['opConv', 'opImplConv'].includes(methodHolder.identifierText)
+        if (methodHolder.isFunctionHolder() &&
+            ['opConv', 'opImplConv',
+                'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handler.
+            ].includes(methodHolder.identifierText)
         ) {
             convFuncList.push(...methodHolder.toList());
         }

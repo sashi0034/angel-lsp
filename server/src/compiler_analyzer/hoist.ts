@@ -72,7 +72,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
         } else if (nodeName === NodeName.Func) {
             hoistFunc(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Namespace) {
-            hoistNamespace(parentScope, statement, analyzeQueue);
+            hoistNamespace(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Using) {
             analyzeUsingNamespace(parentScope, statement);
         }
@@ -82,7 +82,9 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
 // BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, queue: AnalyzeQueue) {
+function hoistNamespace(
+    parentScope: SymbolScope, nodeNamespace: NodeNamespace, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue
+) {
     if (nodeNamespace.namespaceList.length === 0) return;
 
     let scopeIterator = parentScope;
@@ -92,10 +94,7 @@ function hoistNamespace(parentScope: SymbolScope, nodeNamespace: NodeNamespace, 
         scopeIterator.pushNamespaceNode(nodeNamespace, namespaceToken);
     }
 
-    hoistScript(
-        scopeIterator, nodeNamespace.script, queue,
-        queue // TODO: Is this correct? Check
-    );
+    hoistScript(scopeIterator, nodeNamespace.script, analyzeQueue, hoistQueue);
 
     pushScopeRegionInfo(scopeIterator, nodeNamespace.nodeRange);
 }
