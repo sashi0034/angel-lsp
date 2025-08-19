@@ -167,6 +167,7 @@ function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedT
 }
 
 export function insertVariables(scope: SymbolScope, varType: ResolvedType | undefined, nodeVar: NodeVar, isInstanceMember: boolean) {
+    const result: SymbolVariable[] = [];
     for (const variableInitializer of nodeVar.variables) {
         const variable: SymbolVariable = SymbolVariable.create({
             identifierToken: variableInitializer.identifier,
@@ -176,7 +177,11 @@ export function insertVariables(scope: SymbolScope, varType: ResolvedType | unde
             accessRestriction: nodeVar.accessor,
         });
         scope.insertSymbolAndCheck(variable);
+
+        result.push(variable);
     }
+
+    return result;
 }
 
 export function analyzeVarInitializer(

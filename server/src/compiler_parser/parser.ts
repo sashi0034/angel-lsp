@@ -640,6 +640,15 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
 
     const typeTemplates = parseTypeTemplates(parser) ?? [];
 
+    if (parser.isPredefinedFile === false) {
+        // Function declaration is not allowed outside 'as.predefined'
+        if (lookaheadTokenAfterParentheses(parser)?.text === ';') {
+            // This node can be a variable calling a constructor, not a function declaration.
+            parser.backtrack(rangeStart);
+            return undefined;
+        }
+    }
+
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
         parser.backtrack(rangeStart);
@@ -658,13 +667,6 @@ function parseFunc(parser: ParserState): NodeFunc | undefined {
         funcAttr = parseFuncAttr(parser);
 
         if (parser.next().text === ';') {
-            // Function declaration is allowed only in 'as.predefined'
-            if (parser.isPredefinedFile === false) {
-                // This node can be a variable calling a constructor, not a function declaration.
-                parser.backtrack(rangeStart);
-                return undefined;
-            }
-
             parser.commit(HighlightForToken.Operator);
         } else {
             statBlock = expectStatBlock(parser);
@@ -710,6 +712,28 @@ function parseRef(parser: ParserState) {
     const isRef = parser.next().text === '&';
     if (isRef) parser.commit(HighlightForToken.Builtin);
     return isRef;
+}
+
+function lookaheadTokenAfterParentheses(parser: ParserState) {
+    let level = 0;
+    let i = 0;
+    while (parser.isEnd() === false) {
+        const token = parser.next(i);
+        if (token.text === '(') {
+            level++;
+        } else if (token.text === ')') {
+            level--;
+            if (level < 0) {
+                return token;
+            }
+        } else if (level === 0) {
+            return token;
+        }
+
+        i++;
+    }
+
+    return undefined;
 }
 
 // Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
