@@ -212,7 +212,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly type: ResolvedType | undefined,
+        private _type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
         public readonly isVirtualProperty?: boolean,
@@ -252,6 +252,15 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
 
     public toList(): SymbolVariable[] {
         return [this];
+    }
+
+    public get type(): ResolvedType | undefined {
+        return this._type;
+    }
+
+    public assignType(type: ResolvedType | undefined) {
+        assert(this._type === undefined);
+        this._type = type;
     }
 }
 

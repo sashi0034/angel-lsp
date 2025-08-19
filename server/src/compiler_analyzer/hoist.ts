@@ -68,7 +68,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
         } else if (nodeName === NodeName.VirtualProp) {
             hoistVirtualProp(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Var) {
-            hoistVar(parentScope, statement, analyzeQueue, false);
+            hoistVar(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Func) {
             hoistFunc(parentScope, statement, analyzeQueue, hoistQueue, false);
         } else if (nodeName === NodeName.Namespace) {
@@ -271,7 +271,7 @@ function hoistClassMembers(scope: SymbolScope, nodeClass: NodeClass, analyzeQueu
         } else if (member.nodeName === NodeName.Func) {
             hoistFunc(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.Var) {
-            hoistVar(scope, member, analyzeQueue, true);
+            hoistVar(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.FuncDef) {
             hoistFuncDef(scope, member, analyzeQueue, hoistQueue);
         }
@@ -407,18 +407,22 @@ function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface,
 }
 
 // BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzeQueue: AnalyzeQueue, isInstanceMember: boolean) {
-    const varType = analyzeType(scope, nodeVar.type);
-
-    analyzeQueue.push(() => {
-        for (const declaredVar of nodeVar.variables) {
-            const initializer = declaredVar.initializer;
-            if (initializer === undefined) continue;
-            analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+function hoistVar(scope: SymbolScope, nodeVar: NodeVar, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue, isInstanceMember: boolean) {
+    const variables = insertVariables(scope, undefined, nodeVar, isInstanceMember);
+    hoistQueue.push(() => {
+        const varType = analyzeType(scope, nodeVar.type);
+        for (const variable of variables) {
+            variable.assignType(varType);
         }
-    });
 
-    insertVariables(scope, varType, nodeVar, isInstanceMember);
+        analyzeQueue.push(() => {
+            for (const declaredVar of nodeVar.variables) {
+                const initializer = declaredVar.initializer;
+                if (initializer === undefined) continue;
+                analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+            }
+        });
+    });
 }
 
 // BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
