@@ -30,4 +30,18 @@ describe('analyzer/hoist', () => {
             return A::get_id(1);
         }
     `);
+
+    expectSuccess([{
+        uri: 'file:///path/to/as.predefined',
+        content: `
+            class array<T> { }
+            `
+    }, {
+        uri: 'file:///path/to/file.as',
+        content: `// Hoisting of global variable types
+            array<Str> strs;
+
+            class Str { }
+            `
+    }]);
 });
