@@ -1,4 +1,11 @@
-import {SymbolFunction, SymbolObject, SymbolObjectHolder, SymbolType, SymbolVariable} from "./symbolObject";
+import {
+    SymbolFunction,
+    SymbolFunctionHolder,
+    SymbolObject,
+    SymbolObjectHolder,
+    SymbolType,
+    SymbolVariable
+} from "./symbolObject";
 import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
