@@ -1187,18 +1187,22 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (found.symbol.toList()[0].identifierToken.location.path !== '') {
-        // Keywords such as 'this' have an empty identifierToken. They do not add to the reference list.
-        getActiveGlobalScope().info.reference.push({
-            toSymbol: found.symbol.toList()[0],
-            fromToken: varIdentifier
-        });
-    }
+    if (found.symbol.isVariable()) {
+        if (found.symbol.toList()[0].identifierToken.location.path !== '') {
+            // Only add to the reference list if the identifier has a valid path.
+            // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
+            getActiveGlobalScope().info.reference.push({
+                toSymbol: found.symbol.toList()[0],
+                fromToken: varIdentifier
+            });
+        }
 
-    if (found.symbol instanceof SymbolVariable) {
-        return found.symbol.type;
+        return found.symbol.type; // <-- Variable
     } else {
-        return new ResolvedType(found.symbol.first);
+        // Unlike variables, function access is not added to the reference here.
+        // It will be added once overload resolution is completed.
+
+        return new ResolvedType(found.symbol.first); // <-- Function (tentatively using the first overload)
     }
 }
 

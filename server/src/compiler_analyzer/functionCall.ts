@@ -1,5 +1,5 @@
 import {
-    SymbolFunction, SymbolFunctionHolder, SymbolVariable,
+    SymbolFunction, SymbolFunctionHolder, SymbolObject, SymbolVariable,
 } from "./symbolObject";
 import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolScope";
@@ -200,6 +200,18 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
     }
 }
 
+function collectOtherFunctionOverloads(func: SymbolFunction) {
+    const overloadList: SymbolFunction[] = [];
+    const scope = getActiveGlobalScope().resolveScope(func.scopePath)?.lookupSymbol(func.identifierText);
+    for (const symbol of scope?.toList() ?? []) {
+        if (func !== symbol && symbol.isFunction()) {
+            overloadList.push(symbol);
+        }
+    }
+
+    return overloadList;
+}
+
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
     const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
 
@@ -211,19 +223,50 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
         templateTranslator: calleeTemplateTranslator
     });
 
-    if (callerArgs.length === 1 && checkTypeCast(callerArgs[0].type, delegateType)) {
-        return {
-            bestMatching: calleeFuncHolder.first,
-            returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
-            sideEffect: () => {
-                // Add the reference to the function that was called.
-                getActiveGlobalScope().info.reference.push(({
-                    toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
-                }));
+    if (callerArgs.length === 1) {
+        let ok = false;
+        let firstArgSymbol: SymbolObject | undefined = undefined;
 
-                // Probably we do not need to add references to named arguments for delegates.
+        // Check if the first argument can be cast to the delegate type.
+        if (checkTypeCast(callerArgs[0].type, delegateType)) {
+            ok = true;
+            firstArgSymbol = callerArgs[0].type?.typeOrFunc;
+        } else {
+            const firstArg = callerArgs[0].type?.typeOrFunc;
+            if (firstArg?.isFunction()) {
+                // Also check other overloads
+                for (const fallback of collectOtherFunctionOverloads(firstArg)) {
+                    if (checkTypeCast(callerArgs[0].type?.cloneWith(fallback), delegateType)) {
+                        ok = true;
+                        firstArgSymbol = fallback;
+                        break;
+                    }
+                }
             }
-        };
+        }
+
+        if (ok) {
+            return {
+                bestMatching: calleeFuncHolder.first,
+                returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
+                sideEffect: () => {
+                    // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
+                    const firstArgToken = callerArgs[0].range?.start;
+                    if (firstArgSymbol !== undefined && firstArgToken !== undefined) {
+                        getActiveGlobalScope().info.reference.push(({
+                            toSymbol: firstArgSymbol, fromToken: firstArgToken
+                        }));
+                    }
+
+                    // e.g., adding a reference for `my_funcdef` in `@my_funcdef(my_function)
+                    getActiveGlobalScope().info.reference.push(({
+                        toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
+                    }));
+
+                    // Probably we do not need to add references to named arguments for delegates.
+                }
+            };
+        }
     } else {
         return undefined;
     }

@@ -77,6 +77,10 @@ export class ResolvedType {
     //     return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator);
     // }
 
+    public cloneWith(typeOrFunc: SymbolType | SymbolFunction): ResolvedType {
+        return new ResolvedType(typeOrFunc, this.isHandler, this.templateTranslator);
+    }
+
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
         return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator);
     }
