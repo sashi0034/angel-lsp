@@ -101,4 +101,21 @@ describe('completion/namespace', () => {
         }], /* $C0$ */ ["B", "C_0", "C_1"]
         , /* $C1$ */ ["predefined_function", "other_file_function"]
     );
+
+    testCompletion(
+        `// Class inheritance completion
+        namespace foo {
+            namespace bar {
+                class Baz { }
+            }
+            
+            class Bar : bar::$C0$ { 
+            }
+        }
+        
+        class Foo : foo::bar::$C1$ { 
+        }`
+        , /* $C0$ */ ["Baz"]
+        , /* $C1$ */ ["Baz"]
+    );
 });

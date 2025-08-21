@@ -69,7 +69,7 @@ import {
     ParsedPostIndexing,
     ParsedVariableInitializer,
     ReferenceModifier,
-    TypeModifier, NodeUsing
+    TypeModifier, NodeUsing, ClassBasePart
 } from "./nodes";
 import {HighlightForToken} from "../core/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
@@ -385,7 +385,7 @@ function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared'
     else if (token === 'final') attribute.isFinal = true;
 }
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseClass(parser: ParserState): ParseResult<NodeClass> {
     const rangeStart = parser.next();
 
@@ -397,6 +397,7 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
         parser.backtrack(rangeStart);
         return ParseFailure.Mismatch;
     }
+
     parser.commit(HighlightForToken.Builtin);
 
     const identifier = expectIdentifier(parser, HighlightForToken.Class);
@@ -404,18 +405,25 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
 
     const typeTemplates = parseTypeTemplates(parser);
 
-    const baseList: TokenObject[] = [];
+    const baseList: ClassBasePart[] = [];
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
             const loopStart = parser.next();
 
+            const scope = parseScope(parser);
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
-            if (identifier !== undefined) baseList.push(identifier);
 
-            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            baseList.push({scope, identifier});
 
-            if (parser.next() === loopStart) parser.step();
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) {
+                break;
+            }
+
+            if (parser.next() === loopStart) {
+                parser.step();
+            }
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);
@@ -788,7 +796,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     return undefined;
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
     const rangeStart = parser.next();
 
@@ -822,12 +830,19 @@ function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
         while (parser.isEnd() === false) {
             const loopStart = parser.next();
 
+            const scope = parseScope(parser);
+
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
-            if (identifier !== undefined) result.baseList.push(identifier);
 
-            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) break;
+            result.baseList.push({scope, identifier});
 
-            if (parser.next() === loopStart) parser.step();
+            if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) {
+                break;
+            }
+
+            if (parser.next() === loopStart) {
+                parser.step();
+            }
         }
     } else {
         parser.expect('{', HighlightForToken.Operator);

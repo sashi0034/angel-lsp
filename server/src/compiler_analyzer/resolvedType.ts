@@ -1,4 +1,4 @@
-import {ScopePath, SymbolFunction, SymbolType} from "./symbolObject";
+import {ScopePath, SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 
 // Template translation is resolved as a mapping from tokens to types.
@@ -62,27 +62,29 @@ export class ResolvedType {
         public readonly typeOrFunc: SymbolType | SymbolFunction,
         public readonly isHandler?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
+        public readonly accessToken?: TokenObject // This is attached when accessing the variable.
     ) {
     }
 
     public static create(args: {
         typeOrFunc: SymbolType | SymbolFunction
         isHandler?: boolean
-        templateTranslator?: TemplateTranslator
+        templateTranslator?: TemplateTranslator,
+        accessToken?: TokenObject
     }) {
-        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator);
+        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessToken);
     }
 
     // public clone(): ResolvedType {
     //     return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator);
     // }
 
-    public cloneWith(typeOrFunc: SymbolType | SymbolFunction): ResolvedType {
-        return new ResolvedType(typeOrFunc, this.isHandler, this.templateTranslator);
-    }
+    // public cloneWith(typeOrFunc: SymbolType | SymbolFunction): ResolvedType {
+    //     return new ResolvedType(typeOrFunc, this.isHandler, this.templateTranslator, this.accessToken);
+    // }
 
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
-        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator);
+        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator, this.accessToken);
     }
 
     public get scopePath(): ScopePath | undefined {

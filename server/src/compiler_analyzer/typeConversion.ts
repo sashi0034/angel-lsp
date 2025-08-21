@@ -1,5 +1,5 @@
 import {ResolvedType} from "./resolvedType";
-import {resolveActiveScope} from "./symbolScope";
+import {getActiveGlobalScope, resolveActiveScope} from "./symbolScope";
 import {isNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
@@ -11,7 +11,7 @@ export enum ConversionType {
     ExplicitValueCast = 'ExplicitValue', // asIC_EXPLICIT_VAL_CAST
 }
 
-enum ConversionConst {
+enum ConversionCost {
     NoConv = 0,
     ConstConv = 1,
     EnumSameSizeConv = 2,
@@ -33,35 +33,40 @@ enum ConversionConst {
     Unknown = 255,
 }
 
+export interface ConversionEvaluation {
+    cost: ConversionCost;
+    resolvedOverload?: SymbolFunction;
+}
+
 /**
  * Evaluate the cost of converting the source type to the destination type.
  */
-export function evaluateConversionCost(
+export function evaluateTypeConversion(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
-): ConversionConst | undefined {
+): ConversionEvaluation | undefined {
     const initialState: EvaluationState = {
         allowObjectConstruct: true,
     };
 
-    return evaluateConversionCostInternal(initialState, src, dest);
+    return evaluateTypeConversionInternal(initialState, src, dest);
 }
 
 interface EvaluationState {
     allowObjectConstruct: boolean,
 }
 
-function evaluateConversionCostInternal(
+function evaluateTypeConversionInternal(
     state: EvaluationState,
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
-): ConversionConst | undefined {
+): ConversionEvaluation | undefined {
     src = normalizeType(src);
     dest = normalizeType(dest);
 
-    if (src === undefined || dest === undefined) return ConversionConst.Unknown;
+    if (src === undefined || dest === undefined) return {cost: ConversionCost.Unknown};
 
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
@@ -75,16 +80,23 @@ function evaluateConversionCostInternal(
             return undefined;
         }
 
-        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionConst.RefConv : undefined;
+        const srcOverloadList = collectFunctionOverloads(srcTypeOrFunc);
+        for (const srcOverload of srcOverloadList) {
+            if (areFunctionsEqual(srcOverload, destTypeOrFunc)) {
+                return {cost: ConversionCost.RefConv, resolvedOverload: srcOverload};
+            }
+        }
+
+        return undefined;
     }
 
     const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
 
     // FIXME?
     // Any type can be converted to a var type
-    if (destType.identifierText === '?') return ConversionConst.VariableConv;
+    if (destType.identifierText === '?') return {cost: ConversionCost.VariableConv};
 
-    if (destType.identifierText === 'auto') return ConversionConst.VariableConv;
+    if (destType.identifierText === 'auto') return {cost: ConversionCost.VariableConv};
 
     if (srcTypeOrFunc.isFunction()) {
         return undefined;
@@ -95,7 +107,7 @@ function evaluateConversionCostInternal(
     // FIXME: Handle init list?
 
     // No conversion from void to any other type
-    if (srcType.identifierText === 'void') return ConversionConst.NoConv;
+    if (srcType.identifierText === 'void') return {cost: ConversionCost.NoConv};
 
     if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
@@ -151,12 +163,12 @@ function evaluateConvPrimitiveToPrimitive(
     assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
 
     if (srcType.equals(destType)) {
-        return ConversionConst.NoConv;
+        return {cost: ConversionCost.NoConv};
     } else if (srcType.isEnumType() && destType.isEnumType()) {
         // Resolve ambiguous enum members
         for (const candidate of srcType.multipleEnumCandidates ?? []) {
             if (candidate.type?.typeOrFunc.equals(destType)) {
-                return ConversionConst.NoConv;
+                return {cost: ConversionCost.NoConv};
             }
         }
 
@@ -181,26 +193,26 @@ function evaluateConvPrimitiveToPrimitive(
     const srcBytes = numberSizeInBytes.get(srcText) ?? sizeof_int32;
     const destBytes = numberSizeInBytes.get(destText) ?? sizeof_int32;
 
-    let cost = ConversionConst.NoConv;
+    let cost = ConversionCost.NoConv;
     if ((srcProperty?.isFloat || srcProperty?.isDouble) && (destProperty?.isSignedInteger || destProperty?.isUnsignedInteger)) {
-        cost = ConversionConst.FloatToIntConv;
+        cost = ConversionCost.FloatToIntConv;
     } else if ((srcProperty?.isSignedInteger || srcProperty?.isUnsignedInteger) && (destProperty?.isFloat || destProperty?.isDouble)) {
-        cost = ConversionConst.IntToFloatConv;
+        cost = ConversionCost.IntToFloatConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes === destBytes) {
-        cost = ConversionConst.EnumSameSizeConv;
+        cost = ConversionCost.EnumSameSizeConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes !== destBytes) {
-        cost = ConversionConst.EnumDiffSizeConv;
+        cost = ConversionCost.EnumDiffSizeConv;
     } else if (srcProperty?.isSignedInteger && destProperty?.isUnsignedInteger) {
-        cost = ConversionConst.SignedToUnsignedConv;
+        cost = ConversionCost.SignedToUnsignedConv;
     } else if (srcProperty?.isUnsignedInteger && destProperty?.isSignedInteger) {
-        cost = ConversionConst.UnsignedToSignedConv;
+        cost = ConversionCost.UnsignedToSignedConv;
     } else if (srcBytes < destBytes) {
-        cost = ConversionConst.PrimitiveSizeUpConv;
+        cost = ConversionCost.PrimitiveSizeUpConv;
     } else if (srcBytes > destBytes) {
-        cost = ConversionConst.PrimitiveSizeDownConv;
+        cost = ConversionCost.PrimitiveSizeDownConv;
     }
 
-    return cost;
+    return {cost};
 }
 
 // -----------------------------------------------
@@ -220,7 +232,7 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
 ]);
 
-function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -264,7 +276,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     const returnType = selectedConvFunc.returnType;
     assert(returnType !== undefined);
 
-    return ConversionConst.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest) ?? 0);
+    return {cost: ConversionCost.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest)?.cost ?? 0)};
 
     // FIXME: Add more process?
 }
@@ -277,7 +289,7 @@ function evaluateConvPrimitiveToObject(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionEvaluation | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -295,7 +307,7 @@ function evaluateConvObjectToObject(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionEvaluation | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -303,10 +315,10 @@ function evaluateConvObjectToObject(
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
     // Check if these are identical
-    if (src.identifierToken?.equals(dest.identifierToken)) return ConversionConst.NoConv;
+    if (src.identifierToken?.equals(dest.identifierToken)) return {cost: ConversionCost.NoConv};
 
     // FIXME?
-    if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
+    if (canDownCast(srcType, destType)) return {cost: ConversionCost.ToObjectConv};
 
     // Check the conversion using a construct with a single parameter.
     const constByConstructor = evaluateConversionByConstructor(state, src, dest);
@@ -316,7 +328,7 @@ function evaluateConvObjectToObject(
     const convFuncList = collectOpConvFunctions(srcType);
     for (const convFunc of convFuncList) {
         if (convFunc.returnType?.equals(dest)) {
-            return ConversionConst.ToObjectConv;
+            return {cost: ConversionCost.ToObjectConv};
         }
     }
 
@@ -341,7 +353,7 @@ function evaluateConversionByConstructor(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionEvaluation | undefined {
     if (!state.allowObjectConstruct) {
         return undefined;
     }
@@ -376,13 +388,13 @@ function evaluateConversionByConstructor(
         state.allowObjectConstruct = false; // To prevent infinite recursion
 
         // Source type must be convertible to the parameter type of the constructor.
-        const cost = evaluateConversionCostInternal(state, src, paramType);
+        const cost = evaluateTypeConversionInternal(state, src, paramType);
 
         state.allowObjectConstruct = true;
 
         if (cost === undefined) continue;
 
-        return ConversionConst.ToObjectConv + cost; // FIXME?
+        return {cost: ConversionCost.ToObjectConv + cost.cost}; // FIXME?
     }
 
     return undefined;
@@ -407,6 +419,22 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     }
 
     return false;
+}
+
+function collectFunctionOverloads(func: SymbolFunction) {
+    if (func.linkedNode.nodeName === NodeName.FuncDef) {
+        return [func];
+    }
+
+    const overloadList: SymbolFunction[] = [];
+    const scope = getActiveGlobalScope().resolveScope(func.scopePath)?.lookupSymbol(func.identifierText);
+    for (const symbol of scope?.toList() ?? []) {
+        if (symbol.isFunction()) {
+            overloadList.push(symbol);
+        }
+    }
+
+    return overloadList;
 }
 
 function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {

@@ -151,7 +151,7 @@ export interface ParsedEnumMember {
     readonly expr: NodeExpr | undefined
 }
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface NodeClass extends NodeBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: TokenRange;
@@ -159,8 +159,13 @@ export interface NodeClass extends NodeBase {
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly typeTemplates: NodeType[] | undefined;
-    readonly baseList: TokenObject[];
+    readonly baseList: ClassBasePart[];
     readonly memberList: (NodeVirtualProp | NodeVar | NodeFunc | NodeFuncDef)[];
+}
+
+export interface ClassBasePart {
+    readonly scope: NodeScope | undefined;
+    readonly identifier: TokenObject | undefined;
 }
 
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
@@ -210,12 +215,12 @@ export function isFuncHeadReturnValue(head: FuncHead): head is FuncHeadReturnVal
     return head !== funcHeadDestructor && head !== funcHeadConstructor;
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 export interface NodeInterface extends NodeBase {
     readonly nodeName: NodeName.Interface;
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
-    readonly baseList: TokenObject[];
+    readonly baseList: ClassBasePart[];
     readonly memberList: (NodeVirtualProp | NodeIntfMethod)[];
 }
 

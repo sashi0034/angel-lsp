@@ -150,7 +150,7 @@ function formatEnum(format: FormatterState, nodeEnum: NodeEnum) {
     });
 }
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function formatClass(format: FormatterState, nodeClass: NodeClass) {
     formatMoveUntilNodeStart(format, nodeClass);
     format.pushWrap();
@@ -244,7 +244,7 @@ function formatAccessModifier(format: FormatterState) {
     }
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function formatInterface(format: FormatterState, nodeInterface: NodeInterface) {
     formatMoveUntilNodeStart(format, nodeInterface);
     format.pushWrap();
