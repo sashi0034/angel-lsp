@@ -27,7 +27,7 @@ import {
     ParsedEnumMember
 } from "../compiler_parser/nodes";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
-import {findSymbolWithParent} from "./symbolUtils";
+import {getFullIdentifierOfSymbol} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../core/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from "./builtinType";
@@ -239,7 +239,7 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
     return baseList;
 }
 
-function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[]) {
+function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[], outputError = true) {
     // Iterate over each base class
     for (const baseType of baseList) {
         if (baseType === undefined) continue;
@@ -261,7 +261,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
                 if (alreadyExists === undefined) continue;
 
                 const isVirtualProperty = symbol.isVariable() && symbol.isVirtualProperty;
-                if (isVirtualProperty === false) {
+                if (outputError && isVirtualProperty === false) {
                     analyzerDiagnostic.error(
                         alreadyExists.toList()[0].identifierToken.location,
                         `Duplicated symbol '${key}'`
@@ -596,9 +596,85 @@ function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 // BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
+function collectBaseClassesAndDeivedClasses(scope: SymbolScope, baseClassSet: Set<string>, derivedClassList: SymbolType[]) {
+    for (const symbol of scope.symbolTable.values()) {
+        if (symbol.isType()) {
+            if (symbol.baseList.length >= 1) {
+                derivedClassList.push(symbol);
+            } else {
+                baseClassSet.add(getFullIdentifierOfSymbol(symbol));
+            }
+        }
+    }
+
+    for (const childScope of scope.childScopeTable.values()) {
+        if (childScope.isAnonymousScope() || childScope.isFunctionScope()) {
+            continue;
+        }
+
+        collectBaseClassesAndDeivedClasses(childScope, baseClassSet, derivedClassList);
+    }
+}
+
+function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
+    const resolvedClassSet: Set<string> = new Set();
+
+    let unresolvedDerivedClassList: SymbolType[] = [];
+
+    collectBaseClassesAndDeivedClasses(globalScope, resolvedClassSet, unresolvedDerivedClassList);
+
+    // FIXME: Optimize?
+    let nextList: SymbolType[] = [];
+    for (; ;) {
+        for (const derivedClass of unresolvedDerivedClassList) {
+            let resolveBaseClasses = true;
+            for (const baseType of derivedClass.baseList) {
+                if (baseType === undefined || baseType.typeOrFunc.isFunction()) {
+                    continue;
+                }
+
+                if (resolvedClassSet.has(getFullIdentifierOfSymbol(baseType.typeOrFunc)) === false) {
+                    resolveBaseClasses = false;
+                    break;
+                }
+            }
+
+            if (resolveBaseClasses) {
+                let scope = globalScope.resolveScope(derivedClass.scopePath)?.lookupScope(derivedClass.identifierText);
+                if (scope === undefined) {
+                    scope = globalScope.resolveScope(derivedClass.scopePath)
+                        ?.insertScope(derivedClass.identifierText, derivedClass.linkedNode);
+                }
+
+                if (scope !== undefined) {
+                    copyBaseMembers(scope, derivedClass.baseList, false);
+
+                    resolvedClassSet.add(getFullIdentifierOfSymbol(derivedClass));
+                    continue;
+                }
+            }
+
+            nextList.push(derivedClass);
+
+        }
+
+        if (nextList.length === 0 || nextList.length === unresolvedDerivedClassList.length) {
+            // No more classes to resolve or no progress made
+            break;
+        } else {
+            unresolvedDerivedClassList = nextList;
+            nextList = [];
+        }
+    }
+}
+
 export function hoistAfterParsed(ast: NodeScript, globalScope: SymbolGlobalScope): HoistResult {
     const analyzeQueue: AnalyzeQueue = [];
     const hoistQueue: HoistQueue = [];
+
+    // At this stage, inheritance from classes included from other files has not yet been applied.
+    // Therefore, the first step is to process that.
+    applyInheritanceBeforeHoist(globalScope);
 
     // Hoist the declared symbols.
     hoistScript(globalScope, ast, analyzeQueue, hoistQueue);

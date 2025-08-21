@@ -65,16 +65,21 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
     const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
-    if (symbol instanceof SymbolType) {
+    if (symbol.isType()) {
         return fullName;
-    } else if (symbol instanceof SymbolFunction) {
+    } else if (symbol.isFunction()) {
         const head = symbol.returnType === undefined ? '' : stringifyResolvedType(symbol.returnType) + ' ';
         return `${head}${fullName}(${stringifyResolvedTypes(symbol.parameterTypes)})`;
-    } else if (symbol instanceof SymbolVariable) {
+    } else if (symbol.isVariable()) {
         return `${stringifyResolvedType(symbol.type)} ${fullName}`;
     }
 
     assert(false);
+}
+
+// TODO: This should be a member variable
+export function getFullIdentifierOfSymbol(symbol: SymbolObject): string {
+    return [...symbol.scopePath, symbol.identifierToken.text].join('.');
 }
 
 export function printSymbolScope(scope: SymbolScope, indent: string = ''): string {
