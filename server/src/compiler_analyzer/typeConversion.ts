@@ -11,7 +11,7 @@ export enum ConversionType {
     ExplicitValueCast = 'ExplicitValue', // asIC_EXPLICIT_VAL_CAST
 }
 
-enum ConversionConst {
+enum ConversionCost {
     NoConv = 0,
     ConstConv = 1,
     EnumSameSizeConv = 2,
@@ -40,7 +40,7 @@ export function evaluateConversionCost(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
-): ConversionConst | undefined {
+): ConversionCost | undefined {
     const initialState: EvaluationState = {
         allowObjectConstruct: true,
     };
@@ -57,11 +57,11 @@ function evaluateConversionCostInternal(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
     // type: ConversionType = ConversionType.Implicit // TODO?
-): ConversionConst | undefined {
+): ConversionCost | undefined {
     src = normalizeType(src);
     dest = normalizeType(dest);
 
-    if (src === undefined || dest === undefined) return ConversionConst.Unknown;
+    if (src === undefined || dest === undefined) return ConversionCost.Unknown;
 
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
@@ -75,16 +75,16 @@ function evaluateConversionCostInternal(
             return undefined;
         }
 
-        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionConst.RefConv : undefined;
+        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? ConversionCost.RefConv : undefined;
     }
 
     const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
 
     // FIXME?
     // Any type can be converted to a var type
-    if (destType.identifierText === '?') return ConversionConst.VariableConv;
+    if (destType.identifierText === '?') return ConversionCost.VariableConv;
 
-    if (destType.identifierText === 'auto') return ConversionConst.VariableConv;
+    if (destType.identifierText === 'auto') return ConversionCost.VariableConv;
 
     if (srcTypeOrFunc.isFunction()) {
         return undefined;
@@ -95,7 +95,7 @@ function evaluateConversionCostInternal(
     // FIXME: Handle init list?
 
     // No conversion from void to any other type
-    if (srcType.identifierText === 'void') return ConversionConst.NoConv;
+    if (srcType.identifierText === 'void') return ConversionCost.NoConv;
 
     if (destType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
@@ -151,12 +151,12 @@ function evaluateConvPrimitiveToPrimitive(
     assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
 
     if (srcType.equals(destType)) {
-        return ConversionConst.NoConv;
+        return ConversionCost.NoConv;
     } else if (srcType.isEnumType() && destType.isEnumType()) {
         // Resolve ambiguous enum members
         for (const candidate of srcType.multipleEnumCandidates ?? []) {
             if (candidate.type?.typeOrFunc.equals(destType)) {
-                return ConversionConst.NoConv;
+                return ConversionCost.NoConv;
             }
         }
 
@@ -181,23 +181,23 @@ function evaluateConvPrimitiveToPrimitive(
     const srcBytes = numberSizeInBytes.get(srcText) ?? sizeof_int32;
     const destBytes = numberSizeInBytes.get(destText) ?? sizeof_int32;
 
-    let cost = ConversionConst.NoConv;
+    let cost = ConversionCost.NoConv;
     if ((srcProperty?.isFloat || srcProperty?.isDouble) && (destProperty?.isSignedInteger || destProperty?.isUnsignedInteger)) {
-        cost = ConversionConst.FloatToIntConv;
+        cost = ConversionCost.FloatToIntConv;
     } else if ((srcProperty?.isSignedInteger || srcProperty?.isUnsignedInteger) && (destProperty?.isFloat || destProperty?.isDouble)) {
-        cost = ConversionConst.IntToFloatConv;
+        cost = ConversionCost.IntToFloatConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes === destBytes) {
-        cost = ConversionConst.EnumSameSizeConv;
+        cost = ConversionCost.EnumSameSizeConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes !== destBytes) {
-        cost = ConversionConst.EnumDiffSizeConv;
+        cost = ConversionCost.EnumDiffSizeConv;
     } else if (srcProperty?.isSignedInteger && destProperty?.isUnsignedInteger) {
-        cost = ConversionConst.SignedToUnsignedConv;
+        cost = ConversionCost.SignedToUnsignedConv;
     } else if (srcProperty?.isUnsignedInteger && destProperty?.isSignedInteger) {
-        cost = ConversionConst.UnsignedToSignedConv;
+        cost = ConversionCost.UnsignedToSignedConv;
     } else if (srcBytes < destBytes) {
-        cost = ConversionConst.PrimitiveSizeUpConv;
+        cost = ConversionCost.PrimitiveSizeUpConv;
     } else if (srcBytes > destBytes) {
-        cost = ConversionConst.PrimitiveSizeDownConv;
+        cost = ConversionCost.PrimitiveSizeDownConv;
     }
 
     return cost;
@@ -220,7 +220,7 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
 ]);
 
-function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionConst | undefined {
+function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionCost | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -264,7 +264,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     const returnType = selectedConvFunc.returnType;
     assert(returnType !== undefined);
 
-    return ConversionConst.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest) ?? 0);
+    return ConversionCost.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest) ?? 0);
 
     // FIXME: Add more process?
 }
@@ -277,7 +277,7 @@ function evaluateConvPrimitiveToObject(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionCost | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -295,7 +295,7 @@ function evaluateConvObjectToObject(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionCost | undefined {
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
@@ -303,10 +303,10 @@ function evaluateConvObjectToObject(
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
     // Check if these are identical
-    if (src.identifierToken?.equals(dest.identifierToken)) return ConversionConst.NoConv;
+    if (src.identifierToken?.equals(dest.identifierToken)) return ConversionCost.NoConv;
 
     // FIXME?
-    if (canDownCast(srcType, destType)) return ConversionConst.ToObjectConv;
+    if (canDownCast(srcType, destType)) return ConversionCost.ToObjectConv;
 
     // Check the conversion using a construct with a single parameter.
     const constByConstructor = evaluateConversionByConstructor(state, src, dest);
@@ -316,7 +316,7 @@ function evaluateConvObjectToObject(
     const convFuncList = collectOpConvFunctions(srcType);
     for (const convFunc of convFuncList) {
         if (convFunc.returnType?.equals(dest)) {
-            return ConversionConst.ToObjectConv;
+            return ConversionCost.ToObjectConv;
         }
     }
 
@@ -341,7 +341,7 @@ function evaluateConversionByConstructor(
     state: EvaluationState,
     src: ResolvedType,
     dest: ResolvedType
-): ConversionConst | undefined {
+): ConversionCost | undefined {
     if (!state.allowObjectConstruct) {
         return undefined;
     }
@@ -382,7 +382,7 @@ function evaluateConversionByConstructor(
 
         if (cost === undefined) continue;
 
-        return ConversionConst.ToObjectConv + cost; // FIXME?
+        return ConversionCost.ToObjectConv + cost; // FIXME?
     }
 
     return undefined;
