@@ -36,4 +36,22 @@ describe('definition/funcdef', () => {
             auto t = @my_funcdef$C1$(my_function);
         }
     `);
+
+    testDefinition(`
+        funcdef void my_funcdef(float);
+        
+        void my_function() { }
+        
+        void my_function$C0$(float input) { }
+        
+        class MyClass {
+            MyClass(my_funcdef@ value) { }
+        }
+        
+        void main () {
+            auto t = @my_funcdef(my_function);
+            MyClass(t);
+            MyClass(my_function$C1$);
+        }
+    `);
 });
