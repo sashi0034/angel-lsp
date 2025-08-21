@@ -13,4 +13,15 @@ describe('definition/classInheritance', () => {
             }
         }
     `);
+
+    testDefinition(`// The definition source of a namespaced class inheritance
+         namespace foo {
+            namespace bar {
+                class Baz$C0$ { }
+            }
+        }
+        
+        class Foo : foo::bar::Baz$C1$ { 
+        }
+    `);
 });
