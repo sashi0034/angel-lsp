@@ -9,7 +9,6 @@ import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
 import {evaluateTypeConversion} from "./typeConversion";
 import {NodeName} from "../compiler_parser/nodes";
-import {checkTypeCast} from "./typeCast";
 import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
 
 interface CallerArgument {
@@ -200,18 +199,6 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
     }
 }
 
-function collectOtherFunctionOverloads(func: SymbolFunction) {
-    const overloadList: SymbolFunction[] = [];
-    const scope = getActiveGlobalScope().resolveScope(func.scopePath)?.lookupSymbol(func.identifierText);
-    for (const symbol of scope?.toList() ?? []) {
-        if (func !== symbol && symbol.isFunction()) {
-            overloadList.push(symbol);
-        }
-    }
-
-    return overloadList;
-}
-
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
     const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
 
@@ -223,53 +210,29 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
         templateTranslator: calleeTemplateTranslator
     });
 
-    if (callerArgs.length === 1) {
-        let ok = false;
-        let firstArgSymbol: SymbolObject | undefined = undefined;
-
-        // Check if the first argument can be cast to the delegate type.
-        if (checkTypeCast(callerArgs[0].type, delegateType)) {
-            ok = true;
-            firstArgSymbol = callerArgs[0].type?.typeOrFunc;
-        } else {
-            const firstArg = callerArgs[0].type?.typeOrFunc;
-            if (firstArg?.isFunction()) {
-                // Also check other overloads
-                for (const fallback of collectOtherFunctionOverloads(firstArg)) {
-                    if (checkTypeCast(callerArgs[0].type?.cloneWith(fallback), delegateType)) {
-                        ok = true;
-                        firstArgSymbol = fallback;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (ok) {
-            return {
-                bestMatching: calleeFuncHolder.first,
-                returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
-                sideEffect: () => {
-                    // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
-                    const firstArgToken = callerArgs[0].range?.start;
-                    if (firstArgSymbol !== undefined && firstArgToken !== undefined) {
-                        getActiveGlobalScope().info.reference.push(({
-                            toSymbol: firstArgSymbol, fromToken: firstArgToken
-                        }));
-                    }
-
-                    // e.g., adding a reference for `my_funcdef` in `@my_funcdef(my_function)
-                    getActiveGlobalScope().info.reference.push(({
-                        toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
-                    }));
-
-                    // Probably we do not need to add references to named arguments for delegates.
-                }
-            };
-        }
-    } else {
+    if (callerArgs.length !== 1) {
         return undefined;
     }
+
+    const evaluation = evaluateTypeConversion(callerArgs[0].type, delegateType);
+    if (evaluation === undefined) {
+        return undefined;
+    }
+
+    return {
+        bestMatching: calleeFuncHolder.first,
+        returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
+        sideEffect: () => {
+            causeTypeConversionSideEffect(evaluation, callerArgs[0].type, delegateType, callerArgs[0].range);
+
+            // Add the reference to the function that was called.
+            getActiveGlobalScope().info.reference.push(({
+                toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
+            }));
+
+            // Probably we do not need to add references to named arguments for delegates.
+        }
+    };
 }
 
 // -----------------------------------------------
@@ -429,8 +392,8 @@ function evaluatePassingArgument(
 
     const actualType = callerArgs[callerArgId].type;
 
-    const cost = evaluateTypeConversion(actualType, expectedType);
-    if (cost === undefined) {
+    const evaluation = evaluateTypeConversion(actualType, expectedType);
+    if (evaluation === undefined) {
         return {
             reason: MismatchKind.ParameterMismatch,
             mismatchIndex: callerArgId,
@@ -440,10 +403,10 @@ function evaluatePassingArgument(
     }
 
     sideEffectBuffer.push(() => {
-        causeTypeConversionSideEffect(actualType, expectedType, callerArgs[callerArgId].range);
+        causeTypeConversionSideEffect(evaluation, actualType, expectedType, callerArgs[callerArgId].range);
     });
 
-    return cost.cost;
+    return evaluation.cost;
 }
 
 // -----------------------------------------------

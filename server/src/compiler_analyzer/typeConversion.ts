@@ -1,5 +1,5 @@
 import {ResolvedType} from "./resolvedType";
-import {resolveActiveScope} from "./symbolScope";
+import {getActiveGlobalScope, resolveActiveScope} from "./symbolScope";
 import {isNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
 import {NodeName} from "../compiler_parser/nodes";
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
@@ -33,8 +33,9 @@ enum ConversionCost {
     Unknown = 255,
 }
 
-interface ConversionEvaluation {
+export interface ConversionEvaluation {
     cost: ConversionCost;
+    resolvedOverload?: SymbolFunction;
 }
 
 /**
@@ -79,7 +80,14 @@ function evaluateTypeConversionInternal(
             return undefined;
         }
 
-        return areFunctionsEqual(srcTypeOrFunc, destTypeOrFunc) ? {cost: ConversionCost.RefConv} : undefined;
+        const srcOverloadList = collectFunctionOverloads(srcTypeOrFunc);
+        for (const srcOverload of srcOverloadList) {
+            if (areFunctionsEqual(srcOverload, destTypeOrFunc)) {
+                return {cost: ConversionCost.RefConv, resolvedOverload: srcOverload};
+            }
+        }
+
+        return undefined;
     }
 
     const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
@@ -411,6 +419,22 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     }
 
     return false;
+}
+
+function collectFunctionOverloads(func: SymbolFunction) {
+    if (func.linkedNode.nodeName === NodeName.FuncDef) {
+        return [func];
+    }
+
+    const overloadList: SymbolFunction[] = [];
+    const scope = getActiveGlobalScope().resolveScope(func.scopePath)?.lookupSymbol(func.identifierText);
+    for (const symbol of scope?.toList() ?? []) {
+        if (symbol.isFunction()) {
+            overloadList.push(symbol);
+        }
+    }
+
+    return overloadList;
 }
 
 function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {

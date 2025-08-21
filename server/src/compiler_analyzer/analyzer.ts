@@ -1198,11 +1198,13 @@ function analyzeVariableAccess(
         }
 
         return found.symbol.type; // <-- Variable
+        // TODO: Should varIdentifier be attached?
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return new ResolvedType(found.symbol.first); // <-- Function (tentatively using the first overload)
+        return ResolvedType.create({typeOrFunc: found.symbol.first, accessToken: varIdentifier});
+        // <-- Function (tentatively using the first overload)
     }
 }
 
