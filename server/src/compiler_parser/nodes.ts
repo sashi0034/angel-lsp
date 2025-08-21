@@ -165,7 +165,7 @@ export interface NodeClass extends NodeBase {
 
 export interface ClassBasePart {
     readonly scope: NodeScope | undefined;
-    readonly identifier: TokenObject;
+    readonly identifier: TokenObject | undefined;
 }
 
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'

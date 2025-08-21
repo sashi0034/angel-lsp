@@ -414,9 +414,8 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
             const scope = parseScope(parser);
 
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
-            if (identifier !== undefined) {
-                baseList.push({scope, identifier});
-            }
+
+            baseList.push({scope, identifier});
 
             if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) {
                 break;
@@ -834,9 +833,8 @@ function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
             const scope = parseScope(parser);
 
             const identifier = expectIdentifier(parser, HighlightForToken.Type);
-            if (identifier !== undefined) {
-                result.baseList.push({scope, identifier});
-            }
+
+            result.baseList.push({scope, identifier});
 
             if (expectSeparatorOrClose(parser, ',', '{', true) === BreakOrThrough.Break) {
                 break;

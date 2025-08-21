@@ -211,8 +211,8 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
     for (const basePart of nodeClass.baseList) {
         const baseIdentifier = basePart.identifier;
 
-        const baseScope = findOptimalScope(scope, basePart.scope, baseIdentifier);
-        if (baseScope === undefined) {
+        const baseScope = findOptimalScope(scope, basePart.scope, basePart.scope?.nodeRange.end?.next);
+        if (baseIdentifier === undefined || baseScope === undefined) {
             continue;
         }
 
