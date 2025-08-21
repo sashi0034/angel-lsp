@@ -7,7 +7,7 @@ import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resol
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenObject} from "../compiler_tokenizer/tokenObject";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {evaluateConversionCost} from "./typeConversion";
+import {evaluateTypeConversion} from "./typeConversion";
 import {NodeName} from "../compiler_parser/nodes";
 import {checkTypeCast} from "./typeCast";
 import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
@@ -429,7 +429,7 @@ function evaluatePassingArgument(
 
     const actualType = callerArgs[callerArgId].type;
 
-    const cost = evaluateConversionCost(actualType, expectedType);
+    const cost = evaluateTypeConversion(actualType, expectedType);
     if (cost === undefined) {
         return {
             reason: MismatchKind.ParameterMismatch,
@@ -443,7 +443,7 @@ function evaluatePassingArgument(
         causeTypeConversionSideEffect(actualType, expectedType, callerArgs[callerArgId].range);
     });
 
-    return cost;
+    return cost.cost;
 }
 
 // -----------------------------------------------

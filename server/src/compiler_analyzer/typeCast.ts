@@ -2,7 +2,7 @@ import {stringifyResolvedType} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {evaluateConversionCost} from "./typeConversion";
+import {evaluateTypeConversion} from "./typeConversion";
 import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
 
 /**
@@ -35,7 +35,7 @@ export function checkTypeCast(
 ): boolean {
     if (src === undefined || dest === undefined) return true;
 
-    const cost = evaluateConversionCost(src, dest);
+    const cost = evaluateTypeConversion(src, dest);
     if (cost === undefined) return false;
 
     causeTypeConversionSideEffect(src, dest, nodeRange);
