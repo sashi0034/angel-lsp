@@ -38,7 +38,7 @@ import {
     AnalyzeQueue,
     analyzeStatBlock,
     analyzeType, analyzeUsingNamespace,
-    analyzeVarInitializer,
+    analyzeVarInitializer, findOptimalScope,
     HoistQueue,
     HoistResult,
     insertVariables,
@@ -130,7 +130,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
     }
 }
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         identifierToken: nodeClass.identifier,
@@ -208,21 +208,28 @@ function hoistBaseList(scope: SymbolScope, nodeClass: NodeClass | NodeInterface)
     if (nodeClass.baseList.length === 0) return undefined;
 
     const baseList: (ResolvedType | undefined)[] = [];
-    for (const baseIdentifier of nodeClass.baseList) {
-        const baseType = findSymbolWithParent(scope, baseIdentifier.text);
+    for (const basePart of nodeClass.baseList) {
+        const baseIdentifier = basePart.identifier;
+
+        const baseScope = findOptimalScope(scope, basePart.scope, baseIdentifier);
+        if (baseScope === undefined) {
+            continue;
+        }
+
+        const baseType = baseScope.lookupSymbolWithParent(baseIdentifier.text);
 
         if (baseType === undefined) {
             analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
             baseList.push(undefined);
-        } else if (baseType.symbol instanceof SymbolType === false) {
+        } else if (baseType.isType() === false) {
             analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
             baseList.push(undefined);
         } else {
             // Found the base class
-            baseList.push(new ResolvedType(baseType.symbol));
+            baseList.push(new ResolvedType(baseType));
 
             getActiveGlobalScope().info.reference.push({
-                toSymbol: baseType.symbol,
+                toSymbol: baseType,
                 fromToken: baseIdentifier
             });
         }
@@ -372,7 +379,7 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function hoistInterface(parentScope: SymbolScope, nodeInterface: NodeInterface, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     const symbol: SymbolType = SymbolType.create({
         identifierToken: nodeInterface.identifier,

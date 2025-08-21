@@ -109,7 +109,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: NodeU
 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
@@ -140,7 +140,7 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
     analyzeStatBlock(scope, func.statBlock);
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' IDENTIFIER {',' IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
@@ -368,12 +368,12 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 }
 
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function findOptimalScope(
+export function findOptimalScope(
     parentScope: SymbolScope,
     nodeScope: NodeScope | undefined,
     tokenAfterNamespaces: TokenObject | undefined
 ): SymbolScope | undefined {
-    let bestMatch = undefined;
+    let bestMatch = undefined; // If no valid scope exists, fall back to the most appropriate invalid one.
 
     if (nodeScope?.isGlobal) {
         bestMatch = evaluateScope(parentScope.getGlobalScope(), nodeScope, tokenAfterNamespaces);
