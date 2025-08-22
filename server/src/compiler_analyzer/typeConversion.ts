@@ -479,11 +479,19 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
         const srcParam = normalizeType(srcTemplateTypes[i]);
         const destParam = normalizeType(destTemplates[i]);
 
-        if (srcParam === undefined || destParam === undefined) continue; // FIXME?
+        if (srcParam === undefined || destParam === undefined ||
+            srcParam.identifierText === '?' || destParam.identifierText === '?'
+        ) {
+            continue; // FIXME?
+        }
 
-        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) return false;
+        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) {
+            return false;
+        }
 
-        if (areTemplateTypesEqual(srcParam, destParam) === false) return false;
+        if (areTemplateTypesEqual(srcParam, destParam) === false) {
+            return false;
+        }
     }
 
     return true;
