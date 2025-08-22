@@ -342,7 +342,7 @@ function hoistFunc(
         // Check if the function is a virtual property setter or getter
         tryInsertVirtualSetterOrGetter(parentScope, nodeFunc, returnType, isInstanceMember);
 
-        symbol.assignParameterTypes(hoistParamList(functionScope, nodeFunc.paramList));
+        symbol.assignParameterTypes(hoistParamList(funcionHolderScope, functionScope, nodeFunc.paramList));
     });
 
     analyzeQueue.push(() => {
@@ -410,7 +410,7 @@ function hoistInterfaceMembers(scope: SymbolScope, nodeInterface: NodeInterface,
         if (member.nodeName === NodeName.VirtualProp) {
             hoistVirtualProp(scope, member, analyzeQueue, hoistQueue, true);
         } else if (member.nodeName === NodeName.IntfMethod) {
-            hoistIntfMethod(scope, member);
+            hoistIntfMethod(scope, member, hoistQueue);
         }
     }
 }
@@ -513,40 +513,54 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: An
 }
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod) {
+function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod, hoistQueue: HoistQueue) {
     const symbol: SymbolFunction = SymbolFunction.create({
         identifierToken: intfMethod.identifier,
         scopePath: parentScope.scopePath,
-        returnType: analyzeType(parentScope, intfMethod.returnType),
+        returnType: undefined,
         parameterTypes: [],
         linkedNode: intfMethod,
         functionScopePath: undefined, // TODO: Create a dummy function scope for the interface method because named arguments give reference
         isInstanceMember: true,
         accessRestriction: undefined,
     });
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    hoistQueue.push(() => {
+        const returnType = analyzeType(parentScope, intfMethod.returnType);
+        symbol.assignReturnType(returnType);
 
-    // FIXME: Check for the use of 'property' in 'as.predefined'?
-    tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
+        // Check if the function is a virtual property setter or getter
+        tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
+
+        symbol.assignParameterTypes(hoistParamList(parentScope, undefined, intfMethod.paramList));
+    });
 }
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
 
 // BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
-function hoistParamList(scope: SymbolScope, paramList: NodeParamList) {
-    assert(scope.parentScope !== undefined);
+function hoistParamList(functionHolderScope: SymbolScope, functionScope: SymbolScope | undefined, paramList: NodeParamList) {
+    assert(functionScope === undefined || functionScope.parentScope === functionHolderScope);
 
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
-        const type = analyzeType(scope.parentScope, param.type);
-        if (type === undefined) resolvedTypes.push(undefined);
-        else resolvedTypes.push(type);
+        const type = analyzeType(functionHolderScope, param.type);
+        if (type === undefined) {
+            resolvedTypes.push(undefined);
+        } else {
+            resolvedTypes.push(type);
+        }
 
-        if (param.identifier === undefined) continue;
-        scope.insertSymbolAndCheck(SymbolVariable.create({
+        if (param.identifier === undefined) {
+            continue;
+        }
+
+        functionScope?.insertSymbolAndCheck(SymbolVariable.create({
             identifierToken: param.identifier,
-            scopePath: scope.scopePath,
+            scopePath: functionScope.scopePath,
             type: type,
             isInstanceMember: false,
             accessRestriction: undefined,

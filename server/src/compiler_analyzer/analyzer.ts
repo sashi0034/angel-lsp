@@ -1060,7 +1060,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
 
     const [calleeSymbol, calleeScope] = [calleeFunc.symbol, calleeFunc.scope];
 
-    if (calleeSymbol instanceof SymbolType) {
+    if (calleeSymbol.isType()) {
         const constructorType: ResolvedType = new ResolvedType(calleeSymbol);
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
