@@ -145,24 +145,33 @@ export function findSymbolWithParent(scope: SymbolScope, identifier: string): Sy
 
 /**
  * Check if the accessing scope is allowed to access the instance member.
- * @param accessingScope
+ * @param accessScope
  * @param instanceMember
  */
-export function canAccessInstanceMember(accessingScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
+export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
     const instanceMemberSymbol = instanceMember.toList()[0]; // FIXME: What if there are multiple functions?
 
     if (instanceMemberSymbol.isType()) return true;
 
     if (instanceMemberSymbol.accessRestriction === undefined) return true;
 
-    const instanceMemberScope = resolveActiveScope(instanceMemberSymbol.scopePath);
+    const scopeOfInstanceMember = resolveActiveScope(instanceMemberSymbol.scopePath);
 
-    if (instanceMemberSymbol.accessRestriction === AccessModifier.Private) {
-        return isScopeChildOrGrandchild(accessingScope, instanceMemberScope);
-    } else if (instanceMemberSymbol.accessRestriction === AccessModifier.Protected) {
-        if (instanceMemberScope.linkedNode === undefined) return false;
+    const typeOfInstanceMember = scopeOfInstanceMember.parentScope?.lookupSymbol(scopeOfInstanceMember.key);
 
-        const nearestClassScope = accessingScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
+    let accessRestriction: AccessModifier | undefined = instanceMemberSymbol.accessRestriction;
+    if (typeOfInstanceMember?.isType() && typeOfInstanceMember.isMixin) {
+        if (accessRestriction === AccessModifier.Private) {
+            accessRestriction = AccessModifier.Protected; // FIXME?
+        }
+    }
+
+    if (accessRestriction === AccessModifier.Private) {
+        return isScopeChildOrGrandchild(accessScope, scopeOfInstanceMember);
+    } else if (accessRestriction === AccessModifier.Protected) {
+        if (scopeOfInstanceMember.linkedNode === undefined) return false;
+
+        const nearestClassScope = accessScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
         if (nearestClassScope === undefined || nearestClassScope.parentScope === undefined) return false;
 
         // Get the symbol of the class to which the accessing scope belongs.
@@ -170,8 +179,8 @@ export function canAccessInstanceMember(accessingScope: SymbolScope, instanceMem
         if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) return false;
 
         // Get the symbol of the class to which the instance member belongs.
-        if (instanceMemberScope.parentScope === undefined) return false;
-        const instanceClassSymbol = instanceMemberScope.parentScope.lookupSymbol(instanceMemberScope.key);
+        if (scopeOfInstanceMember.parentScope === undefined) return false;
+        const instanceClassSymbol = scopeOfInstanceMember.parentScope.lookupSymbol(scopeOfInstanceMember.key);
         if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) return false;
 
         return (canDownCast(nearestClassSymbol, instanceClassSymbol));
