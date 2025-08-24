@@ -58,7 +58,7 @@ function hoistScript(parentScope: SymbolScope, ast: NodeScript, analyzeQueue: An
         } else if (nodeName === NodeName.TypeDef) {
             hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
-            hoistClass(parentScope, statement, analyzeQueue, hoistQueue);
+            hoistClass(parentScope, statement, false, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Mixin) {
             hoistMixin(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Interface) {
@@ -131,12 +131,19 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember
 }
 
 // BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
-function hoistClass(parentScope: SymbolScope, nodeClass: NodeClass, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
+function hoistClass(
+    parentScope: SymbolScope,
+    nodeClass: NodeClass,
+    isMixin: boolean,
+    analyzeQueue: AnalyzeQueue,
+    hoistQueue: HoistQueue
+) {
     const symbol: SymbolType = SymbolType.create({
         identifierToken: nodeClass.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeClass,
         membersScopePath: undefined,
+        isMixin: isMixin,
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
@@ -248,13 +255,17 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
         const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScopePath);
         if (baseScope === undefined) continue;
 
+        const isMixin = baseType.typeOrFunc.isMixin;
+
         // Insert each base class member if possible
         for (const [key, symbolHolder] of baseScope.symbolTable) {
             if (key === 'this') continue;
 
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.isFunction() || symbol.isVariable()) {
-                    if (symbol.accessRestriction === AccessModifier.Private) continue;
+                    if (!isMixin && symbol.accessRestriction === AccessModifier.Private) {
+                        continue;
+                    }
                 }
 
                 const alreadyExists = scope.insertSymbol(symbol);
@@ -509,7 +520,7 @@ function hoistVirtualProp(
 
 // BNF: MIXIN         ::= 'mixin' CLASS
 function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
-    hoistClass(parentScope, mixin.mixinClass, analyzeQueue, hoistQueue);
+    hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
 }
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'

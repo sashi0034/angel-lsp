@@ -96,6 +96,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         public readonly scopePath: ScopePath,
         public readonly linkedNode: TypeDefinitionNode | undefined,
         private _membersScopePath: ScopePath | undefined,
+        public readonly isMixin?: boolean,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
@@ -117,7 +118,8 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         scopePath: ScopePath
         linkedNode: TypeDefinitionNode | undefined
         membersScopePath: ScopePath | undefined
-        isTypeParameter?: boolean
+        isMixin?: boolean,
+        isTypeParameter?: boolean,
         templateTypes?: TokenObject[]
         baseList?: (ResolvedType | undefined)[]
         isHandler?: boolean,
@@ -128,6 +130,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
             args.scopePath,
             args.linkedNode,
             args.membersScopePath,
+            args.isMixin,
             args.isTypeParameter,
             args.templateTypes,
             args.baseList,
