@@ -162,7 +162,9 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
     let accessRestriction: AccessModifier | undefined = instanceMemberSymbol.accessRestriction;
     if (typeOfInstanceMember?.isType() && typeOfInstanceMember.isMixin) {
         if (accessRestriction === AccessModifier.Private) {
-            accessRestriction = AccessModifier.Protected; // FIXME?
+            // A mixin's private member is treated as protected.
+            // FIXME?
+            accessRestriction = AccessModifier.Protected;
         }
     }
 
