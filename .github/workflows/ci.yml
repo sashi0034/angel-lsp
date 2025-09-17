@@ -1,5 +1,5 @@
 # .github/workflows/ci.yml
-name: Tests
+name: Tests & Package
 
 on: [push]
 
