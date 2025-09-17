@@ -153,7 +153,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 bestMatching?.sideEffects.forEach(sideEffect => sideEffect());
 
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().info.reference.push(({
+                getActiveGlobalScope().pushReference(({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
                 }));
 
@@ -170,7 +170,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
-                getActiveGlobalScope().info.reference.push(({
+                getActiveGlobalScope().pushReference(({
                     toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
                 }));
 
@@ -195,7 +195,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
         if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
 
         // Add a reference to the named argument in the callee function scope.
-        getActiveGlobalScope().info.reference.push(({toSymbol: toSymbol, fromToken: args.name}));
+        getActiveGlobalScope().pushReference(({toSymbol: toSymbol, fromToken: args.name}));
     }
 }
 
@@ -226,7 +226,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
             causeTypeConversionSideEffect(evaluation, callerArgs[0].type, delegateType, callerArgs[0].range);
 
             // Add the reference to the function that was called.
-            getActiveGlobalScope().info.reference.push(({
+            getActiveGlobalScope().pushReference(({
                 toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
             }));
 

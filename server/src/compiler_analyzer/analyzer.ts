@@ -304,7 +304,7 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    getActiveGlobalScope().info.reference.push({
+    getActiveGlobalScope().pushReference({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -1191,7 +1191,7 @@ function analyzeVariableAccess(
         if (found.symbol.toList()[0].identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
             // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
-            getActiveGlobalScope().info.reference.push({
+            getActiveGlobalScope().pushReference({
                 toSymbol: found.symbol.toList()[0],
                 fromToken: varIdentifier
             });

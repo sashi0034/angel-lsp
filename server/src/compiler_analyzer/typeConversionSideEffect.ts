@@ -15,7 +15,7 @@ export function causeTypeConversionSideEffect(
 
     if (evaluation.resolvedOverload !== undefined && src.accessToken !== undefined) {
         // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
-        getActiveGlobalScope().info.reference.push(({
+        getActiveGlobalScope().pushReference(({
             toSymbol: evaluation.resolvedOverload, fromToken: src.accessToken
         }));
     }
@@ -25,7 +25,7 @@ export function causeTypeConversionSideEffect(
         const enumScope = resolveActiveScope(dest.scopePath ?? []).lookupScope(dest.identifierText);
         const enumMember = enumScope?.lookupSymbol(src.typeOrFunc.identifierText);
         if (enumMember?.isVariable()) {
-            getActiveGlobalScope().info.reference.push({
+            getActiveGlobalScope().pushReference({
                 fromToken: src.typeOrFunc.identifierToken, toSymbol: enumMember,
             });
         }

@@ -438,6 +438,10 @@ export class SymbolGlobalScope extends SymbolScope {
         return this._context.info;
     }
 
+    public pushReference(info: ReferenceInfo) {
+        this._context.info.reference.push(info);
+    }
+
     public resolveScope(path: ScopePath): SymbolScope | undefined {
         return super.resolveRelativeScope(path);
     }
