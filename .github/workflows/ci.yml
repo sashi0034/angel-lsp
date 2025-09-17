@@ -1,0 +1,37 @@
+# .github/workflows/ci.yml
+name: Tests
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run compile
+
+      - name: Test (server)
+        run: npm test --prefix server
+
+      - name: Package VS Code extension (.vsix)
+        if: ${{ success() }}
+        run: npx --yes @vscode/vsce package
+
+      - name: Upload .vsix artifact
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: "*.vsix"
