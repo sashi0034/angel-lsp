@@ -197,8 +197,16 @@ export function analyzeVarInitializer(
         assertTypeCast(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined || varType.typeOrFunc.isFunction()) return undefined;
-        return analyzeConstructorCall(scope, varIdentifier, initializer, varType);
+        // e.g., `MyClass obj(args1, args2);`
+
+        if (varType === undefined || varType.typeOrFunc.isFunction()) {
+            return undefined;
+        }
+
+        // FIXME: Think of a better way.
+        const callerIdentifier = TokenIdentifier.createVirtual(varType.identifierText);
+
+        return analyzeConstructorCall(scope, callerIdentifier, initializer, varType);
     }
 }
 
