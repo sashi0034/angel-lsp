@@ -197,8 +197,16 @@ export function analyzeVarInitializer(
         assertTypeCast(exprType, varType, initializer.nodeRange);
         return exprType;
     } else if (initializer.nodeName === NodeName.ArgList) {
-        if (varType === undefined || varType.typeOrFunc.isFunction()) return undefined;
-        return analyzeConstructorCall(scope, varIdentifier, initializer, varType);
+        // e.g., `MyClass obj(args1, args2);`
+
+        if (varType === undefined || varType.typeOrFunc.isFunction()) {
+            return undefined;
+        }
+
+        // FIXME: Think of a better way.
+        const callerIdentifier = TokenIdentifier.createVirtual(varType.identifierText);
+
+        return analyzeConstructorCall(scope, callerIdentifier, initializer, varType);
     }
 }
 
@@ -304,7 +312,7 @@ function completeAnalyzingType(
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined,
 ): ResolvedType | undefined {
-    getActiveGlobalScope().info.reference.push({
+    getActiveGlobalScope().pushReference({
         toSymbol: foundSymbol,
         fromToken: identifier
     });
@@ -1191,7 +1199,7 @@ function analyzeVariableAccess(
         if (found.symbol.toList()[0].identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
             // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
-            getActiveGlobalScope().info.reference.push({
+            getActiveGlobalScope().pushReference({
                 toSymbol: found.symbol.toList()[0],
                 fromToken: varIdentifier
             });
