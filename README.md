@@ -81,7 +81,11 @@ The following features are currently under development:
 
 # Other Clients
 
-It's still in development, but there are implementations for clients other than VSCode as well.
+This plugin is also available on Open VSX.
+
+- [AngelScript Language Server (Open VSX)](https://open-vsx.org/extension/sashi0034/angel-lsp)
+
+It's still in development, but there are implementations for IntelliJe as well.
 
 - [AngelScript Language Server for IntelliJ](https://plugins.jetbrains.com/plugin/26645-angelscript-language-server)
 
