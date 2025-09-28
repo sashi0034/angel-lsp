@@ -219,6 +219,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
         public readonly isVirtualProperty?: boolean,
+        public readonly isIndexedPropertyAccessor?: boolean,
     ) {
         super();
     }
@@ -230,6 +231,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         isInstanceMember: boolean
         accessRestriction: AccessModifier | undefined,
         isVirtualProperty?: boolean,
+        isIndexedPropertyAccessor?: boolean,
     }) {
         return new SymbolVariable(
             args.identifierToken,
@@ -238,6 +240,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
             args.isInstanceMember,
             args.accessRestriction,
             args.isVirtualProperty,
+            args.isIndexedPropertyAccessor
         );
     }
 
@@ -427,5 +430,3 @@ export type SymbolObject = SymbolType | SymbolVariable | SymbolFunction;
 export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHolder;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-
-

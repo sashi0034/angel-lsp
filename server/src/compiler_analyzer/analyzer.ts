@@ -1196,7 +1196,8 @@ function analyzeVariableAccess(
     }
 
     if (found.symbol.isVariable()) {
-        if (found.symbol.toList()[0].identifierToken.location.path !== '') {
+        const accessedVariable = found.symbol.toList()[0];
+        if (accessedVariable.identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
             // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
             getActiveGlobalScope().pushReference({
@@ -1205,13 +1206,12 @@ function analyzeVariableAccess(
             });
         }
 
-        return found.symbol.type; // <-- Variable
-        // TODO: Should varIdentifier be attached?
+        return found.symbol.type?.cloneWithAccessSource(accessedVariable); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return ResolvedType.create({typeOrFunc: found.symbol.first, accessToken: varIdentifier});
+        return ResolvedType.create({typeOrFunc: found.symbol.first, accessSource: varIdentifier});
         // <-- Function (tentatively using the first overload)
     }
 }

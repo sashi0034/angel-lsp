@@ -62,7 +62,7 @@ export class ResolvedType {
         public readonly typeOrFunc: SymbolType | SymbolFunction,
         public readonly isHandler?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
-        public readonly accessToken?: TokenObject // This is attached when accessing the variable.
+        public readonly accessSource?: SymbolVariable | TokenObject // This is attached when accessing from the variable.
     ) {
     }
 
@@ -70,9 +70,9 @@ export class ResolvedType {
         typeOrFunc: SymbolType | SymbolFunction
         isHandler?: boolean
         templateTranslator?: TemplateTranslator,
-        accessToken?: TokenObject
+        accessSource?: SymbolVariable | TokenObject
     }) {
-        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessToken);
+        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessSource);
     }
 
     // public clone(): ResolvedType {
@@ -84,7 +84,11 @@ export class ResolvedType {
     // }
 
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
-        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator, this.accessToken);
+        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator, this.accessSource);
+    }
+
+    public cloneWithAccessSource(accessSource: SymbolVariable | TokenObject | undefined): ResolvedType {
+        return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator, accessSource);
     }
 
     public get scopePath(): ScopePath | undefined {
@@ -97,6 +101,22 @@ export class ResolvedType {
 
     public get identifierText(): string {
         return this.typeOrFunc.identifierToken.text;
+    }
+
+    public get accessSourceVariable(): SymbolVariable | undefined {
+        return this.accessSource instanceof SymbolVariable ? this.accessSource : undefined;
+    }
+
+    public get accessSourceToken(): TokenObject | undefined {
+        if (this.accessSource === undefined) {
+            return undefined;
+        }
+
+        if (this.accessSource instanceof SymbolVariable) {
+            return this.accessSource.identifierToken;
+        }
+
+        return this.accessSource;
     }
 
     public equals(other: ResolvedType | undefined): boolean {

@@ -8,7 +8,7 @@ import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
 import assert = require("node:assert");
 import {checkTypeCast} from "./typeCast";
 import {resolvedBuiltinInt} from "./builtinType";
-import {normalizeType} from "./typeConversion";
+import {canTypeConvert, normalizeType} from "./typeConversion";
 import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
 
 type OverloadedOperatorCallArgs = {
@@ -152,6 +152,13 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
             `The operator '${alias}' in ${stringifyResolvedType(lhs)} does not match the argument types ${rhsText}.`
         );
         return;
+    } else if (lhsReason.reason === MismatchKind.MismatchIndexedPropertyAccessor) {
+        const rhsText = Array.isArray(rhs) ? stringifyResolvedTypes(rhs) : stringifyResolvedType(rhs);
+        analyzerDiagnostic.error(
+            args.rhsRange.getBoundingLocation(),
+            `'${lhs.accessSourceToken?.text ?? '[ ]'}' expects one integer argument, but got '${rhsText}'.`
+        );
+        return;
     }
 
     assert(false);
@@ -160,6 +167,7 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
 enum MismatchKind {
     MissingAliasOperator = 'MissingAliasOperator',
     MismatchOverload = 'MismatchOverload',
+    MismatchIndexedPropertyAccessor = 'MismatchIndexedPropertyAccessor',
 }
 
 type MismatchReason = {
@@ -167,6 +175,8 @@ type MismatchReason = {
     foundButNotFunction?: boolean
 } | {
     reason: MismatchKind.MismatchOverload,
+} | {
+    reason: MismatchKind.MismatchIndexedPropertyAccessor,
 }
 
 function hasMismatchReason(reason: ResolvedType | MismatchReason | undefined): reason is MismatchReason {
@@ -188,20 +198,30 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
 
     const rhsArgs = Array.isArray(args.rhs) ? args.rhs : [args.rhs];
 
+    let provisionalMismatch: MismatchReason | undefined;
+    if (lhs.accessSourceVariable?.isIndexedPropertyAccessor) {
+        if (rhsArgs.length == 1 && canTypeConvert(rhsArgs[0], resolvedBuiltinInt)) {
+            // e.g., `myNotebook[123]` where `class MyNotebook { string get_texts(int idx) property { ... } }`
+            return lhs.accessSourceVariable.type;
+        }
+
+        provisionalMismatch = {reason: MismatchKind.MismatchIndexedPropertyAccessor};
+    }
+
     if (lhs.typeOrFunc.isType() && lhs.typeOrFunc.isPrimitiveType()) {
-        return {reason: MismatchKind.MissingAliasOperator};
+        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
     }
 
     if (lhs.scopePath === undefined) {
-        return {reason: MismatchKind.MissingAliasOperator};
+        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
     }
 
     const aliasFunction =
         resolveActiveScope(lhs.scopePath).lookupScope(lhs.identifierText)?.lookupSymbol(alias);
     if (aliasFunction === undefined) {
-        return {reason: MismatchKind.MissingAliasOperator};
+        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
     } else if (aliasFunction.isFunctionHolder() === false) {
-        return {reason: MismatchKind.MissingAliasOperator, foundButNotFunction: true};
+        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator, foundButNotFunction: true};
     }
 
     const callerArgs = rhsArgs.map((arg, i) => {

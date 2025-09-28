@@ -13,10 +13,10 @@ export function causeTypeConversionSideEffect(
         return false;
     }
 
-    if (evaluation.resolvedOverload !== undefined && src.accessToken !== undefined) {
+    if (evaluation.resolvedOverload !== undefined && src.accessSourceToken !== undefined) {
         // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
         getActiveGlobalScope().pushReference(({
-            toSymbol: evaluation.resolvedOverload, fromToken: src.accessToken
+            toSymbol: evaluation.resolvedOverload, fromToken: src.accessSourceToken
         }));
     }
 
