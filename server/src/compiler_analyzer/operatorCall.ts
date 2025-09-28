@@ -198,30 +198,29 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
 
     const rhsArgs = Array.isArray(args.rhs) ? args.rhs : [args.rhs];
 
-    let provisionalMismatch: MismatchReason | undefined;
     if (lhs.accessSourceVariable?.isIndexedPropertyAccessor) {
         if (rhsArgs.length == 1 && canTypeConvert(rhsArgs[0], resolvedBuiltinInt)) {
             // e.g., `myNotebook[123]` where `class MyNotebook { string get_texts(int idx) property { ... } }`
             return lhs.accessSourceVariable.type;
         }
 
-        provisionalMismatch = {reason: MismatchKind.MismatchIndexedPropertyAccessor};
+        return {reason: MismatchKind.MismatchIndexedPropertyAccessor};
     }
 
     if (lhs.typeOrFunc.isType() && lhs.typeOrFunc.isPrimitiveType()) {
-        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
+        return {reason: MismatchKind.MissingAliasOperator};
     }
 
     if (lhs.scopePath === undefined) {
-        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
+        return {reason: MismatchKind.MissingAliasOperator};
     }
 
     const aliasFunction =
         resolveActiveScope(lhs.scopePath).lookupScope(lhs.identifierText)?.lookupSymbol(alias);
     if (aliasFunction === undefined) {
-        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator};
+        return {reason: MismatchKind.MissingAliasOperator};
     } else if (aliasFunction.isFunctionHolder() === false) {
-        return provisionalMismatch ?? {reason: MismatchKind.MissingAliasOperator, foundButNotFunction: true};
+        return {reason: MismatchKind.MissingAliasOperator, foundButNotFunction: true};
     }
 
     const callerArgs = rhsArgs.map((arg, i) => {
