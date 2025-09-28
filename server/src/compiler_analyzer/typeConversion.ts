@@ -38,6 +38,15 @@ export interface ConversionEvaluation {
     resolvedOverload?: SymbolFunction;
 }
 
+export function canTypeConvert(
+    src: ResolvedType | undefined,
+    dest: ResolvedType | undefined,
+    // type: ConversionType = ConversionType.Implicit // TODO?
+): boolean {
+    const evaluation = evaluateTypeConversion(src, dest);
+    return evaluation !== undefined;
+}
+
 /**
  * Evaluate the cost of converting the source type to the destination type.
  */

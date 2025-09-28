@@ -368,13 +368,26 @@ function tryInsertVirtualSetterOrGetter(
     returnType: ResolvedType | undefined,
     isInstanceMember: boolean
 ) {
-    if (node.identifier.text.startsWith('get_') || node.identifier.text.startsWith('set_')) {
-        if (node.funcAttr?.isProperty === true || getGlobalSettings().explicitPropertyAccessor === false) {
-            // FIXME?A
+    const isGetter = node.identifier.text.startsWith('get_');
+    const isSetter = !isGetter && node.identifier.text.startsWith('set_');
+
+    if (isGetter || isSetter) {
+        if (node.funcAttr?.isProperty || !getGlobalSettings().explicitPropertyAccessor) {
+            // FIXME?
             const identifier: TokenObject = TokenIdentifier.createVirtual(
                 node.identifier.text.substring(4),
                 new TokenRange(node.identifier, node.identifier)
             );
+
+            // Indexed property accessors: https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_class_prop.html
+            let isIndexedPropertyAccessor;
+            if (isGetter) {
+                // e.g., 'string get_texts(int idx) property'
+                isIndexedPropertyAccessor = node.paramList.length == 1; // TODO: Check the type of the parameter
+            } else {
+                // e.g., 'void set_texts(int idx, const string &in value) property'
+                isIndexedPropertyAccessor = node.paramList.length == 2;
+            }
 
             const symbol: SymbolVariable = SymbolVariable.create({
                 identifierToken: identifier,
@@ -382,7 +395,8 @@ function tryInsertVirtualSetterOrGetter(
                 type: returnType,
                 isInstanceMember: isInstanceMember,
                 accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
-                isVirtualProperty: true
+                isVirtualProperty: true,
+                isIndexedPropertyAccessor: isIndexedPropertyAccessor,
             });
 
             scope.insertSymbol(symbol);
