@@ -4,7 +4,7 @@
     "description": "VSCode extensions for AngelScript Language Server",
     "author": "sashi0034",
     "license": "MIT",
-    "version": "0.3.63",
+    "version": "0.3.64",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
