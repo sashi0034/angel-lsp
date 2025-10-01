@@ -13,11 +13,12 @@ export function provideSignatureHelp(
 ): SignatureHelp {
     const signatures: SignatureInformation[] = [];
 
-    for (let i = 0; i < globalScope.info.functionCall.length; i++) {
+    // Since the nesting is deeper toward the end, iterate from the back.
+    for (let i = globalScope.info.functionCall.length - 1; i >= 0; i--) {
         const info = globalScope.info.functionCall[i];
 
         // Check if the caller location is at the cursor position in the scope.
-        const shouldExtend = info.callerArgumentsNode.nodeRange.end.location.end.character > caret.character;
+        const shouldExtend = info.callerArgumentsNode.nodeRange.end.text == ','; // ',' indicates that user is still typing.
         const location = info.callerArgumentsNode.nodeRange.extendForward(shouldExtend ? 1 : 0); // Extend to the next token of ')'
         if (location.getBoundingLocation().positionInRange(caret)) {
             const callee = info.calleeFuncHolder.first; // FIXME?
