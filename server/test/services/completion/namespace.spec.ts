@@ -11,9 +11,11 @@ describe('completion/namespace', () => {
         }
         
         void main() {
-            foo::$C0$
-        }
-    `, ["bar", "call_foo"]
+            foo::$C0$ ;
+            foo::call_$C1$
+        }`
+        , /* $C0$ */ ["bar", "call_foo"]
+        , /* $C1$ */ ["bar", "call_foo"]
     );
 
     testCompletion(`// Nested nested namespace completion
