@@ -465,7 +465,7 @@ function evaluateScope(parentScope: SymbolScope, nodeScope: NodeScope | undefine
         // Append an information for completion of the namespace to the scope.
         sideEffect.push(() => {
             getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
-                autocompleteLocation: extendTokenLocation(scopeToken, 0, 2), // scopeToken --> '::' --> <token>
+                autocompleteLocation: extendTokenLocation(scopeToken, 0, 3), // scopeToken --> '::' --> <token> --> ...
                 accessScope: found,
                 namespaceToken: scopeToken,
                 tokenAfterNamespaces: tokenAfterNamespaces,
