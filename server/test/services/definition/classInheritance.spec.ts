@@ -24,4 +24,16 @@ describe('definition/classInheritance', () => {
         class Foo : foo::bar::Baz$C1$ { 
         }
     `);
+
+    testDefinition(`// The definition source of a namespaced class inheritance
+        namespace A {
+            class Entity$C0$ { 
+            }
+        }
+
+        using namespace A;
+        
+        class Cat : Entity$C1$ {
+        }
+    `);
 });
