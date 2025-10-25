@@ -253,9 +253,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
 
     const typeIdentifier = nodeType.dataType.identifier;
 
-    const searchScope = nodeType.scope !== undefined
-        ? (findOptimalScope(scope, nodeType.scope, typeIdentifier) ?? scope)
-        : scope;
+    const searchScope = findOptimalScope(scope, nodeType.scope, typeIdentifier) ?? scope;
 
     let givenTypeTemplates = nodeType.typeTemplates;
     let givenIdentifier = typeIdentifier.text;
@@ -387,7 +385,8 @@ export function findOptimalScope(
         bestMatch = evaluateScope(parentScope.getGlobalScope(), nodeScope, tokenAfterNamespaces);
     } else {
         // Iterate through all using namespaces
-        for (const usingScope of [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)]) {
+        const scopeList = [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)];
+        for (const usingScope of scopeList) {
             if (bestMatch?.ok) {
                 break;
             }
