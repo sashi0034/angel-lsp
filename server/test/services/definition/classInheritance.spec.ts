@@ -34,6 +34,7 @@ describe('definition/classInheritance', () => {
         using namespace A;
         
         class Cat : Entity$C1$ {
+            Entity$C2$@ entry;
         }
     `);
 });
