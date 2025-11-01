@@ -37,4 +37,30 @@ describe('completion/usingNamespace', () => {
     `
         , ["call_baz", "fn_1", "foo"]
     );
+
+    testCompletion([{
+            uri: 'file:///path/to/file_1.as',
+            content: `
+            namespace foo { 
+                int bar; 
+            }
+            
+            using namespace foo;
+            `
+        }, {
+            uri: 'file:///path/to/file_2.as',
+            content: `
+            #include "file_1.as"
+            using namespace foo;
+        `
+        }, {
+            uri: 'file:///path/to/file_3.as',
+            content: `// 'foo' must not appear twice. (#223)
+            #include "file_2.as"
+            void main() {
+                $C0$
+            }
+        `
+        }], /* $C0$ */ ["foo", "bar", "main"] // Before the bug was fixed, foo appeared twice in the suggestions.
+    );
 });
