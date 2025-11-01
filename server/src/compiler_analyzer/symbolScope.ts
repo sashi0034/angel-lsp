@@ -361,7 +361,9 @@ export class SymbolScope {
         for (const usingNamespace of externalScope._usingNamespaces) {
             const filteredNodes = usingNamespace.linkedNodes.filter(
                 node => node.namespaceList.some(ns => ns.location.path === externalFilepath));
-            if (filteredNodes.length > 0) {
+            if (filteredNodes.length > 0 &&
+                !this._usingNamespaces.some(elem => isScopePathEquals(elem.scopePath, usingNamespace.scopePath))
+            ) {
                 this._usingNamespaces.push({
                     scopePath: usingNamespace.scopePath,
                     linkedNodes: filteredNodes
