@@ -397,14 +397,19 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
     const uri = params.textDocument.uri;
     const caret = TextPosition.create(params.position);
 
-    // See if we can autocomplete file paths, etc.
+    // Determine completion candidates based on the token.
+    // If the token is a comment, suppress completion candidates here.
     const completionsOfToken = provideCompletionOfToken(s_inspector.getRecord(uri).rawTokens, caret);
-    if (completionsOfToken !== undefined) return completionsOfToken;
+    if (completionsOfToken !== undefined) {
+        return completionsOfToken;
+    }
 
     s_inspector.flushRecord(uri);
 
     const globalScope = s_inspector.getRecord(uri).analyzerScope;
-    if (globalScope === undefined) return [];
+    if (globalScope === undefined) {
+        return [];
+    }
 
     // Collect completion candidates for symbols.
     const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
