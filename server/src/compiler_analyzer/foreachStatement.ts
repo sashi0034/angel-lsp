@@ -27,6 +27,7 @@ export function checkForEachIterator(
     }
 
     const memberScope = resolveActiveScope(iteratorType.typeOrFunc.membersScopePath);
+    if (memberScope === undefined) return undefined;
 
     const opForBegin = memberScope.lookupSymbol('opForBegin');
     const opForEnd = memberScope.lookupSymbol('opForEnd');
