@@ -16,10 +16,18 @@ export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPo
 
     const uri = tokenOnCaret.token.location.path;
 
-    if (tokenOnCaret.token.isStringToken()) {
+    if (tokenOnCaret.token?.isCommentToken()) {
+        // No completion in comments
+        return [];
+    }
+
+    if (tokenOnCaret.token?.isStringToken()) {
         if (canAutocompleteFilepath(rawTokens, tokenOnCaret.index)) {
             return provideFilepathCompletion(tokenOnCaret.token.getStringContent(), uri);
         }
+
+        // No other completion in string literals
+        return [];
     }
 
     return undefined;
