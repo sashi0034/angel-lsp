@@ -156,6 +156,7 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
     if (instanceMemberSymbol.accessRestriction === undefined) return true;
 
     const scopeOfInstanceMember = resolveActiveScope(instanceMemberSymbol.scopePath);
+    if (scopeOfInstanceMember === undefined) return false;
 
     const typeOfInstanceMember = scopeOfInstanceMember.parentScope?.lookupSymbol(scopeOfInstanceMember.key);
 
@@ -181,7 +182,7 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
         if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) return false;
 
         // Get the symbol of the class to which the instance member belongs.
-        if (scopeOfInstanceMember.parentScope === undefined) return false;
+        assert(scopeOfInstanceMember.parentScope !== undefined);
         const instanceClassSymbol = scopeOfInstanceMember.parentScope.lookupSymbol(scopeOfInstanceMember.key);
         if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) return false;
 
