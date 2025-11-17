@@ -61,6 +61,8 @@ The Language Server analyzes AngelScript files within your project and offers th
 
     - [Sven Co-op/as.predefined](./examples/Sven%20Co-op/as.predefined) for [Sven Co-op](https://store.steampowered.com/app/225840/Sven_Coop) by [@DrAbcOfficial](https://github.com/DrAbcOfficial)
 
+    - [Trackmania Nations Forever/as.predefined](./examples/Trackmania%20Nations%20Forever/as.predefined) for [TMInterface](https://donadigo.com/tminterface/) by [@Tulis12](https://github.com/Tulis12)
+
    In many cases, `as.predefined` can also be automatically generated.
 
    - [Example of generate `as.predefined` in C++](./examples/generate_as_predefined.cpp)
