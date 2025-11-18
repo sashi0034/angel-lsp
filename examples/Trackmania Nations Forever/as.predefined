@@ -1,0 +1,1160 @@
+namespace Graphics {
+    array<uint8>@ CaptureScreenshot(vec2&inout size);
+    void FocusGameWindow();
+    void ForceGameRender();
+    void ShowGameWindow();
+}
+
+namespace IO {
+    array<string>@ GetCommandLineArgs();
+    uint GetCurrentProcessId();
+    string GetUserPath(const string&in path);
+    string GetUserPath();
+    bool SetClipboard(const string&in content);
+}
+
+namespace Math {
+    int Abs(int i);
+    float Abs(float f);
+    float Acos(float f);
+    float Angle(const vec2&in a, const vec2&in b);
+    float Angle(const vec3&in a, const vec3&in b);
+    float Asin(float f);
+    float Atan(float f);
+    float Atan2(float y, float x);
+    float Ceil(float f);
+    float Clamp(float x, float min, float max);
+    int Clamp(int x, int min, int max);
+    float Cos(float f);
+    float Distance(const vec2&in a, const vec2&in b);
+    float Distance(const vec3&in a, const vec3&in b);
+    float Dot(const vec2&in a, const vec2&in b);
+    float Dot(const vec3&in a, const vec3&in b);
+    float Exp(float f);
+    float Floor(float f);
+    bool IsInf(float x);
+    bool IsNaN(float x);
+    float Log(float f);
+    float Log10(float f);
+    float Log2(float f);
+    float Max(float x, float y);
+    int Max(int x, int y);
+    int Min(int x, int y);
+    float Min(float x, float y);
+    float Pow(float x, float y);
+    int Rand(int min, int max);
+    float Rand(float min, float max);
+    float Round(float f);
+    float Sin(float f);
+    float Sqrt(float f);
+    float Tan(float f);
+    float ToDeg(float rad);
+    float ToRad(float deg);
+    const double PI;
+    const int INT_MIN;
+    const int INT_MAX;
+    const uint UINT_MAX;
+    const uint64 UINT64_MAX;
+}
+
+namespace Net {
+    class Socket {
+        Socket();
+        ~Socket();
+
+        bool Connect(const string&in host, uint16 port, uint timeout = Math :: UINT_MAX);
+        bool Listen(const string&in host, uint16 port);
+        string ReadString(uint bytes);
+        array<uint8>@ ReadBytes(uint bytes);
+        int8 ReadInt8();
+        uint8 ReadUint8();
+        int16 ReadInt16();
+        uint16 ReadUint16();
+        int ReadInt32();
+        uint ReadUint32();
+        int64 ReadInt64();
+        uint64 ReadUint64();
+        float ReadFloat();
+        double ReadDouble();
+        bool Write(const string&in data);
+        bool Write(const array<uint8>&in data);
+        bool Write(int8 value);
+        bool Write(uint8 value);
+        bool Write(int16 value);
+        bool Write(uint16 value);
+        bool Write(int value);
+        bool Write(uint value);
+        bool Write(int64 value);
+        bool Write(uint64 value);
+        bool Write(float value);
+        bool Write(double value);
+        Socket@ Accept(uint timeoutMs = Math :: UINT_MAX);
+        uint get_Available();
+        void set_NoDelay(bool value);
+        string get_RemoteIP();
+    }
+}
+
+namespace TM {
+    class HmsStateDyna {
+        // Properties
+        quat Quat;
+        iso4 Location;
+        vec3 LinearSpeed;
+        vec3 AddLinearSpeed;
+        vec3 AngularSpeed;
+        vec3 Force;
+        vec3 Torque;
+        vec3 InverseInertiaTensor;
+        vec3 NotTweakedLinearSpeed;
+    }
+    class GameCtnBlock {
+        // Methods
+        string get_Name();
+        WayPointType get_WayPointType();
+        // Properties
+        const nat3 Coord;
+        const CardinalDir Dir;
+    }
+    class GameCtnChallenge {
+        // Methods
+        string get_Name();
+        string get_Uid();
+        string get_Author();
+        array<GameCtnBlock@>@ get_Blocks();
+    }
+    class PlayerCheckpoint {
+        // Behaviors
+        ~PlayerCheckpoint();
+        PlayerCheckpoint();
+        // Methods
+        PlayerCheckpoint& opAssign(const PlayerCheckpoint&in other);
+        // Properties
+        int Time;
+        uint Score;
+    }
+    class PlayerInfo {
+        // Methods
+        array<int>@ get_CheckpointStates();
+        array<PlayerCheckpoint>@ get_Checkpoints();
+        // Properties
+        uint Team;
+        iso4 VehicleRespawnLoc;
+        iso4 VehicleSpawnLoc;
+        uint PrevRaceTime;
+        int RaceTime;
+        uint RaceStartTime;
+        uint RaceBestTime;
+        uint LapStartTime;
+        uint LapTime;
+        uint LapBestTime;
+        uint MinRespawns;
+        uint NbCompleted;
+        uint MaxCompleted;
+        uint StuntsScore;
+        uint BestStuntsScore;
+        uint CurCheckpoint;
+        float AverageRank;
+        uint CurrentRaceRank;
+        uint CurrentRoundRank;
+        uint CurrentTime;
+        uint ReadyEnum;
+        uint TMRoundNum;
+        float OffsetFromBestAtCurrentCP;
+        uint CurLapCheckpointCount;
+        uint CurCheckpointCount;
+        uint CurLap;
+        bool RaceFinished;
+        uint DisplaySpeed;
+        bool FinishNotPassed;
+        uint CountdownTime;
+    }
+    class SceneVehicleCar {
+        // Properties
+        bool IsUpdateAsync;
+        float InputGas;
+        float InputBrake;
+        float InputSteer;
+        bool IsLightTrailsSet;
+        bool IsNetworked;
+        int Quality;
+        float MaxLinearSpeed;
+        int GearboxState;
+        SceneVehicleCar::VehicleCarState PrevSyncVehicleState;
+        SceneVehicleCar::VehicleCarState SyncVehicleState;
+        SceneVehicleCar::VehicleCarState AsyncVehicleState;
+        SceneVehicleCar::VehicleCarState PrevAsyncVehicleState;
+        SceneVehicleCar::Engine CarEngine;
+        bool HasAnyLateralContact;
+        uint LastHasAnyLateralContactTime;
+        bool WaterForcesApplied;
+        float TurningRate;
+        float TurboBoostFactor;
+        uint LastTurboTypeChangeTime;
+        uint LastTurboTime;
+        SceneVehicleCar::TurboType Turbo;
+        float RouletteValue01;
+        bool IsFreeWheeling;
+        bool IsSliding;
+        uint WheelContactAbsorbCounter;
+        SceneVehicleCar::BurnoutState Burnout;
+        vec3 CurrentLocalSpeed;
+        vec3 TotalCentralForceAdded;
+        bool IsRubberBall;
+        iso4 SavedState;
+    }
+    class HmsDyna {
+        // Properties
+        bool HasAngularVelictyLimit;
+        float AngularVelocityLimit;
+        HmsStateDyna PreviousState;
+        HmsStateDyna CurrentState;
+        HmsStateDyna TempState;
+        HmsStateDyna@ RefStatePrevious;
+        HmsStateDyna@ RefStateCurrent;
+        bool HasReplacement;
+        int DynamicType;
+    }
+    class InputEventValue {
+        // Behaviors
+        ~InputEventValue();
+        InputEventValue();
+        // Methods
+        InputEventValue& opAssign(const InputEventValue&in other);
+        bool get_Binary();
+        void set_Binary(bool value);
+        int get_Analog();
+        void set_Analog(int value);
+        // Properties
+        int8 EventIndex;
+    }
+    class InputEvent {
+        // Behaviors
+        ~InputEvent();
+        InputEvent();
+        // Methods
+        InputEvent& opAssign(const InputEvent&in other);
+        // Properties
+        uint Time;
+        InputEventValue Value;
+    }
+    class InputEventBuffer {
+        // Methods
+        void Add(const InputEvent&in event);
+        void Clear();
+        void RemoveAt(uint index, uint count = 1);
+        uint get_Length();
+        InputEvent& opIndex(uint index);
+        const InputEvent& opIndex(uint index);
+        array<uint>@ Find(int inputTime = - 1, InputType type = InputType :: None, int value = Math :: INT_MAX);
+        void Add(int time, InputType type, int value);
+        EventIndices get_EventIndices();
+        string ToCommandsText(InputFormatFlags flags = InputFormatFlags :: Default);
+    }
+    class GameCamera {
+        // Methods
+        string get_NameId();
+        vec3 get_Speed();
+        // Properties
+        iso4 Location;
+        float Fov;
+    }
+    enum CardinalDir {
+        North = 0, 
+        East = 1, 
+        South = 2, 
+        West = 3
+    }
+    enum WayPointType {
+        Start = 0, 
+        Finish = 1, 
+        Checkpoint = 2, 
+        None = 3, 
+        StartFinish = 4
+    }
+    enum PlugSurfaceMaterialId {
+        Concrete = 0, 
+        Pavement = 1, 
+        Grass = 2, 
+        Ice = 3, 
+        Metal = 4, 
+        Sand = 5, 
+        Dirt = 6, 
+        Turbo = 7, 
+        DirtRoad = 8, 
+        Rubber = 9, 
+        SlidingRubber = 10, 
+        Test = 11, 
+        Rock = 12, 
+        Water = 13, 
+        Wood = 14, 
+        Danger = 15, 
+        Asphalt = 16, 
+        WetDirtRoad = 17, 
+        WetAsphalt = 18, 
+        WetPavement = 19, 
+        WetGrass = 20, 
+        Snow = 21, 
+        ResonantMetal = 22, 
+        GolfBall = 23, 
+        GolfWall = 24, 
+        GolfGround = 25, 
+        Turbo2 = 26, 
+        Bumper = 27, 
+        NotCollidable = 28, 
+        FreeWheeling = 29, 
+        TurboRoulette = 30
+    }
+    enum GameState {
+        None = 0, 
+        GameNetMenus = 1, 
+        GameNetRoundPrepare = 2, 
+        GameNetRoundPlay = 4, 
+        GameNetRoundExit = 8, 
+        StartUp = 16, 
+        Menus = 32, 
+        Quit = 64, 
+        LocalInit = 128, 
+        LocalEditor = 256, 
+        LocalRace = 512, 
+        LocalRaceEndDialog = 1024, 
+        LocalReplayEditor = 2048, 
+        LocalReplay = 4096, 
+        LocalEnd = 8192, 
+        NetSync = 16384, 
+        NetPlaying = 32768, 
+        NetExitRound = 65536, 
+        Unknown1 = 262144, 
+        Unknown2 = 1048576, 
+        Unknown3 = 2097152, 
+        Unknown4 = 4194304, 
+        Unknown5 = 8388608, 
+        Unknown6 = 16777216
+    }
+}
+
+namespace TM::SceneVehicleCar {
+    class Engine {
+        // Properties
+        float MaxRPM;
+        float BrakingFactor;
+        float ClampedRPM;
+        float ActualRPM;
+        float SlideFactor;
+        int RearGear;
+        int Gear;
+    }
+    class SurfaceHandler {
+        // Properties
+        iso4 Location;
+    }
+    class SimulationWheel {
+        // Properties
+        bool Steerable;
+        TM::SceneVehicleCar::SurfaceHandler SurfaceHandler;
+        vec3 OffsetFromVehicle;
+        SimulationWheel::RealTimeState RTState;
+        vec3 ContactRelativeLocalDistance;
+        SimulationWheel::State PrevSyncWheelState;
+        SimulationWheel::State SyncWheelState;
+        SimulationWheel::State AsyncWheelState;
+    }
+    class VehicleCarState {
+        // Properties
+        float RPM;
+        int GearboxState;
+    }
+    enum BurnoutState {
+        None = 0, 
+        Burnout = 1, 
+        Donut = 2, 
+        AfterBurnout = 3
+    }
+    enum TurboType {
+        None = 0, 
+        Normal = 1, 
+        Roulette = 2
+    }
+}
+
+namespace TM::SceneVehicleCar::SimulationWheel  {
+    class State {
+    }
+
+    class RealTimeState {
+        // Methods
+        TM::PlugSurfaceMaterialId get_ContactMaterialId();
+        void set_ContactMaterialId(TM::PlugSurfaceMaterialId id);
+        // Properties
+        float DamperAbsorbVal;
+        bool HasGroundContact;
+        bool IsSliding;
+        vec3 RelativeRotZAxis;
+        int NbGroundContacts;
+    }
+}
+
+namespace Text {
+    string FormatFloat(double val, const string&in options = "", uint width = 0, uint precision = 0);
+    string FormatInt(int64 val, const string&in options = "", uint width = 0);
+    string FormatUInt(uint64 val, const string&in options = "", uint width = 0);
+    string Join(const array<string>&in, const string&in);
+    double ParseFloat(const string&in, uint&out byteCount = 0);
+    int64 ParseInt(const string&in, uint base = 10, uint&out byteCount = 0);
+    uint64 ParseUInt(const string&in, uint base = 10, uint&out byteCount = 0);
+    vec2 ParseVec2(const string&in str);
+    vec3 ParseVec3(const string&in str);
+}
+
+namespace Time {
+    string Format(int raceTimeMs);
+    string FormatPrecise(double raceTimeSeconds);
+    uint64 get_Now();
+    int Parse(const string&in raceTime);
+}
+
+namespace UI {
+    enum Col {
+        Text = 0, 
+        TextDisabled = 1, 
+        WindowBg = 2, 
+        ChildBg = 3, 
+        PopupBg = 4, 
+        Border = 5, 
+        BorderShadow = 6, 
+        FrameBg = 7, 
+        FrameBgHovered = 8, 
+        FrameBgActive = 9, 
+        TitleBg = 10, 
+        TitleBgActive = 11, 
+        TitleBgCollapsed = 12, 
+        MenuBarBg = 13, 
+        ScrollbarBg = 14, 
+        ScrollbarGrab = 15, 
+        ScrollbarGrabHovered = 16, 
+        ScrollbarGrabActive = 17, 
+        CheckMark = 18, 
+        SliderGrab = 19, 
+        SliderGrabActive = 20, 
+        Button = 21, 
+        ButtonHovered = 22, 
+        ButtonActive = 23, 
+        Header = 24, 
+        HeaderHovered = 25, 
+        HeaderActive = 26, 
+        Separator = 27, 
+        SeparatorHovered = 28, 
+        SeparatorActive = 29, 
+        ResizeGrip = 30, 
+        ResizeGripHovered = 31, 
+        ResizeGripActive = 32, 
+        Tab = 33, 
+        TabHovered = 34, 
+        TabActive = 35, 
+        TabUnfocused = 36, 
+        TabUnfocusedActive = 37, 
+        DockingPreview = 38, 
+        DockingEmptyBg = 39, 
+        PlotLines = 40, 
+        PlotLinesHovered = 41, 
+        PlotHistogram = 42, 
+        PlotHistogramHovered = 43, 
+        TableHeaderBg = 44, 
+        TableBorderStrong = 45, 
+        TableBorderLight = 46, 
+        TableRowBg = 47, 
+        TableRowBgAlt = 48, 
+        TextSelectedBg = 49, 
+        DragDropTarget = 50, 
+        NavHighlight = 51, 
+        NavWindowingHighlight = 52, 
+        NavWindowingDimBg = 53, 
+        ModalWindowDimBg = 54
+    }
+
+    enum WindowFlags {
+        None = 0, 
+        NoTitleBar = 1, 
+        NoResize = 2, 
+        NoMove = 4, 
+        NoScrollbar = 8, 
+        NoScrollWithMouse = 16, 
+        NoCollapse = 32, 
+        AlwaysAutoResize = 64, 
+        NoBackground = 128, 
+        NoSavedSettings = 256, 
+        NoMouseInputs = 512, 
+        MenuBar = 1024, 
+        HorizontalScrollbar = 2048, 
+        NoFocusOnAppearing = 4096, 
+        NoBringToFrontOnFocus = 8192, 
+        AlwaysVerticalScrollbar = 16384, 
+        AlwaysHorizontalScrollbar = 32768, 
+        AlwaysUseWindowPadding = 65536, 
+        NoNavInputs = 262144, 
+        NoNavFocus = 524288, 
+        UnsavedDocument = 1048576, 
+        NoDocking = 2097152, 
+        NoNav = 786432, 
+        NoDecoration = 43, 
+        NoInputs = 786944
+    }
+
+    bool Begin(const string&in title, bool&inout open, int flags = UI :: WindowFlags :: None);
+    bool Begin(const string&in title, int flags = UI :: WindowFlags :: None);
+    bool BeginCombo(const string&in label, const string&in current);
+    void BeginDisabled(bool disabled = true);
+    bool BeginTabBar(const string&in label);
+    bool BeginTabItem(const string&in label, bool&out open);
+    bool BeginTabItem(const string&in label);
+    bool BeginTable(const string&in label, int columns);
+    bool BeginTooltip();
+    bool Button(const string&in label, const vec2&in size = vec2 ( ));
+    bool Checkbox(const string&in label, bool active);
+    bool CheckboxVar(const string&in label, const string&in variableName);
+    bool CollapsingHeader(const string&in label);
+    bool DragFloat3(const string&in label, vec3&inout value, float speed = 1.0f, float min = 0.0f, float max = 0.0f, const string&inout format = "%.3f");
+    bool DragFloat3Var(const string&in label, const string&in variableName, float speed = 1.0f, float min = 0.0f, float max = 0.0f, const string&inout format = "%.3f");
+    void Dummy(const vec2&in size);
+    void End();
+    void EndCombo();
+    void EndDisabled();
+    void EndTabBar();
+    void EndTabItem();
+    void EndTable();
+    void EndTooltip();
+    float InputFloat(const string&in label, float num, float step = 1.0f);
+    float InputFloatVar(const string&in label, const string&in vairableName, float step = 1.0f);
+    int InputInt(const string&in label, int num, int step = 1);
+    int InputIntVar(const string&in label, const string&in variableName, int step = 1);
+    string InputText(const string&in label, string str);
+    bool InputTextMultiline(const string&in label, string&inout text, const vec2&in size = vec2 ( 0 , 0 ));
+    string InputTextVar(const string&in label, const string&in variableName);
+    int InputTime(const string&in label, int currentTime, int step = 100, int defaultTime = 0);
+    int InputTimeVar(const string&in label, const string&in variableName, int step = 100, int defaultTime = 0);
+    bool IsItemHovered();
+    bool IsMainDockVisible();
+    void PopID();
+    void PopItemWidth();
+    void PopStyleColor(int count = 1);
+    void PushID(const string&in str);
+    void PushItemWidth(float width);
+    void PushStyleColor(Col index, const vec4&inout color);
+    void SameLine();
+    bool Selectable(const string&in label, bool selected);
+    void Separator();
+    void SetNextWindowPos(const vec2&in size);
+    void SetNextWindowSize(const vec2&in size);
+    float SliderFloat(const string&in label, float num, float min, float max, const string&in format = "%.3f");
+    float SliderFloatVar(const string&in label, const string&in variableName, float min, float max, const string&in format = "%.3f");
+    int SliderInt(const string&in label, int num, int min, int max, const string&in format = "%d");
+    int SliderIntVar(const string&in label, const string&in variableName, int min, int max, const string&in format = "%d");
+    void TableHeader(const string&in label);
+    void TableHeadersRow();
+    bool TableNextColumn();
+    void TableNextRow();
+    bool TableSetColumnIndex(int column);
+    void TableSetupColumn(const string&in label);
+    void TableSetupScrollFreeze(int cols, int rows);
+    bool Text(const string&in text);
+    bool TextDimmed(const string&in text);
+    bool TextWrapped(const string&in text);
+}
+
+// Global
+
+class array<T> {
+    // Behaviors
+    array();
+    array(uint size);
+    ~array();
+    // Methods
+    array<T>& opAssign(const array<T>&in value);
+    void Add(const T&in value);
+    void InsertAt(uint index, const T&in value);
+    uint get_Length();
+    const T& opIndex(uint index);
+    T& opIndex(uint index);
+    bool IsEmpty();
+    void RemoveAt(uint index, uint count = 1);
+    void Clear();
+    void Resize(uint length);
+    void SortAsc();
+    void SortDesc();
+    int Find(const T&in value);
+    int Find(uint startAt, const T&in value);
+}
+
+class string {
+    // Behaviors
+    ~string();
+    string();
+    string(const string&in);
+    // Methods
+    string& opAssign(const string&in);
+    string& opAddAssign(const string&in);
+    bool opEquals(const string&in);
+    int opCmp(const string&in);
+    string opAdd(const string&in);
+    void Resize(uint);
+    uint get_Length();
+    void set_Length(uint);
+    bool IsEmpty();
+    uint8& opIndex(uint);
+    const uint8& opIndex(uint);
+    string& opAssign(double);
+    string& opAddAssign(double);
+    string opAdd(double);
+    string opAdd_r(double);
+    string& opAssign(float);
+    string& opAddAssign(float);
+    string opAdd(float);
+    string opAdd_r(float);
+    string& opAssign(int64);
+    string& opAddAssign(int64);
+    string opAdd(int64);
+    string opAdd_r(int64);
+    string& opAssign(uint64);
+    string& opAddAssign(uint64);
+    string opAdd(uint64);
+    string opAdd_r(uint64);
+    string& opAssign(bool);
+    string& opAddAssign(bool);
+    string opAdd(bool);
+    string opAdd_r(bool);
+    string Substr(uint start = 0, int count = - 1);
+    int FindFirst(const string&in, uint start = 0);
+    int FindFirstOf(const string&in, uint start = 0);
+    int FindFirstNotOf(const string&in, uint start = 0);
+    int FindLast(const string&in, int start = - 1);
+    int FindLastOf(const string&in, int start = - 1);
+    int FindLastNotOf(const string&in, int start = - 1);
+    void Insert(uint pos, const string&in other);
+    void Erase(uint pos, int count = - 1);
+    array<string>@ Split(const string&in);
+}
+
+class dictionaryValue {
+    // Behaviors
+    ~dictionaryValue();
+    dictionaryValue();
+    // Methods
+    dictionaryValue& opAssign(const dictionaryValue&in);
+    dictionaryValue& opHndlAssign(const ?&in);
+    dictionaryValue& opHndlAssign(const dictionaryValue&in);
+    dictionaryValue& opAssign(const ?&in);
+    dictionaryValue& opAssign(double);
+    dictionaryValue& opAssign(int64);
+    void opCast(?&out);
+    void opConv(?&out);
+    int64 opConv();
+    double opConv();
+}
+class dictionary {
+    // Behaviors
+    dictionary();
+    ~dictionary();
+    // Methods
+    dictionary& opAssign(const dictionary&in);
+    void Set(const string&in, const ?&in);
+    bool Get(const string&in, ?&out);
+    void Set(const string&in, const int64&in);
+    bool Get(const string&in, int64&out);
+    void Set(const string&in, const double&in);
+    bool Get(const string&in, double&out);
+    bool Exists(const string&in);
+    bool IsEmpty();
+    uint GetSize();
+    bool Delete(const string&in);
+    void DeleteAll();
+    array<string>@ GetKeys();
+    dictionaryValue& opIndex(const string&in);
+    const dictionaryValue& opIndex(const string&in);
+}
+
+class PluginInfo {
+    // Behaviors
+    PluginInfo();
+    ~PluginInfo();
+    // Properties
+    string Author;
+    string Name;
+    string Description;
+    string Version;
+}
+
+class vec2 {
+    // Behaviors
+    ~vec2();
+    vec2();
+    vec2(float init);
+    vec2(float x, float y);
+    vec2(const vec2&in v);
+    // Methods
+    float Length();
+    float LengthSquared();
+    vec2 Normalized();
+    string ToString();
+    vec2 opAdd(const vec2&in);
+    vec2 opAdd(const float&in);
+    vec2& opAddAssign(const vec2&in);
+    vec2& opAddAssign(const float&in);
+    vec2 opSub(const vec2&in);
+    vec2 opSub(const float&in);
+    vec2& opSubAssign(const vec2&in);
+    vec2& opSubAssign(const float&in);
+    vec2 opDiv(const vec2&in);
+    vec2 opDiv(const float&in);
+    vec2& opDivAssign(const vec2&in);
+    vec2& opDivAssign(const float&in);
+    vec2 opMul(const vec2&in);
+    vec2 opMul(const float&in);
+    vec2& opMulAssign(const vec2&in);
+    vec2& opMulAssign(const float&in);
+    bool opEquals(const vec2&in other);
+    vec2& opAssign(const vec2&in v);
+    float& opIndex(uint index);
+    // Properties
+    float x;
+    float y;
+}
+
+class vec3 {
+    // Behaviors
+    ~vec3();
+    vec3();
+    vec3(float init);
+    vec3(float x, float y, float z);
+    // Methods
+    vec3& opAssign(const vec3&in v);
+    float& opIndex(uint index);
+    float Length();
+    float LengthSquared();
+    vec3 Normalized();
+    string ToString();
+    vec3 opAdd(const vec3&in);
+    vec3 opAdd(const float&in);
+    vec3& opAddAssign(const vec3&in);
+    vec3& opAddAssign(const float&in);
+    vec3 opSub(const vec3&in);
+    vec3 opSub(const float&in);
+    vec3& opSubAssign(const vec3&in);
+    vec3& opSubAssign(const float&in);
+    vec3 opDiv(const vec3&in);
+    vec3 opDiv(const float&in);
+    vec3& opDivAssign(const vec3&in);
+    vec3& opDivAssign(const float&in);
+    vec3 opMul(const vec3&in);
+    vec3 opMul(const float&in);
+    vec3& opMulAssign(const vec3&in);
+    vec3& opMulAssign(const float&in);
+    bool opEquals(const vec3&in other);
+    // Properties
+    float x;
+    float y;
+    float z;
+}
+
+class vec4 {
+    // Behaviors
+    ~vec4();
+    vec4();
+    vec4(float init);
+    vec4(float x, float y, float z, float w);
+    // Methods
+    vec3& opAssign(const vec3&in v);
+    float& opIndex(uint index);
+    string ToString();
+    // Properties
+    float x;
+    float y;
+    float z;
+    float w;
+}
+
+class mat2 {
+    // Behaviors
+    ~mat2();
+    mat2();
+    // Methods
+    mat2& opAssign(const mat2&in m);
+    void SetIdentity();
+    void Transpose();
+    // Properties
+    vec2 x;
+    vec2 y;
+}
+
+class mat3 {
+    // Behaviors
+    ~mat3();
+    mat3();
+    // Methods
+    mat3& opAssign(const mat3&in m);
+    void GetYawPitchRoll(float&out yaw, float&out pitch, float&out roll);
+    void SetIdentity();
+    void Transpose();
+    // Properties
+    vec3 x;
+    vec3 y;
+    vec3 z;
+}
+
+class quat {
+    // Behaviors
+    ~quat();
+    quat();
+    quat(float x, float y, float z, float w);
+    quat(const mat3&in m);
+    // Methods
+    quat& opAssign(const quat&in q);
+    void GetYawPitchRoll(float&out yaw, float&out pitch, float&out roll);
+    void SetYawPitchRoll(float yaw, float pitch, float roll);
+    void SetIdentity();
+    void SetInverse(quat&in q);
+    string ToString();
+    // Properties
+    float w;
+    float x;
+    float y;
+    float z;
+}
+
+class iso4 {
+    // Behaviors
+    ~iso4();
+    iso4();
+    // Methods
+    iso4& opAssign(const iso4&in iso);
+    // Properties
+    mat3 Rotation;
+    vec3 Position;
+}
+
+class nat3 {
+    // Behaviors
+    ~nat3();
+    nat3();
+    // Methods
+    nat3& opAssign(const nat3&in m);
+    // Properties
+    uint x;
+    uint y;
+    uint z;
+}
+
+class BFEvaluationInfo {
+    // Behaviors
+    ~BFEvaluationInfo();
+    BFEvaluationInfo();
+    // Methods
+    BFEvaluationInfo& opAssign(const BFEvaluationInfo&in other);
+    // Properties
+    BFPhase Phase;
+    bool Rewinded;
+    uint Iterations;
+}
+
+class BFEvaluationResponse {
+    // Behaviors
+    BFEvaluationResponse();
+    ~BFEvaluationResponse();
+    // Methods
+    BFEvaluationResponse& opAssign(const BFEvaluationResponse&in other);
+    // Properties
+    BFEvaluationDecision Decision;
+    int RewindTime;
+    string ResultFileStartContent;
+}
+
+class InputState {
+    // Behaviors
+    ~InputState();
+    InputState();
+    // Methods
+    InputState& opAssign(const InputState&in other);
+    // Properties
+    bool Left;
+    bool Right;
+    bool Up;
+    bool Down;
+    int Gas;
+    int Steer;
+}
+
+class EventIndices {
+    // Behaviors
+    ~EventIndices();
+    EventIndices();
+    // Methods
+    EventIndices& opAssign(const EventIndices&in other);
+    // Properties
+    int RaceRunningId;
+    int FinishLineId;
+    int AccelerateId;
+    int BrakeId;
+    int SteerLeftId;
+    int SteerRightId;
+    int SteerId;
+    int GasId;
+    int RespawnId;
+    int HornId;
+}
+
+class SimulationWheels {
+    // Methods
+    TM::SceneVehicleCar::SimulationWheel@ opIndex(uint index);
+    TM::SceneVehicleCar::SimulationWheel@ get_FrontLeft();
+    TM::SceneVehicleCar::SimulationWheel@ get_FrontRight();
+    TM::SceneVehicleCar::SimulationWheel@ get_BackRight();
+    TM::SceneVehicleCar::SimulationWheel@ get_BackLeft();
+}
+
+class SimulationState {
+    // Behaviors
+    SimulationState();
+    SimulationState(const array<uint8>&in array);
+    ~SimulationState();
+    // Methods
+    SimulationState& opAssign(const SimulationState&in other);
+    TM::PlayerInfo@ get_PlayerInfo();
+    SimulationWheels@ get_Wheels();
+    TM::HmsDyna@ get_Dyna();
+    TM::SceneVehicleCar@ get_SceneVehicleCar();
+    array<uint8>@ ToArray();
+    // Properties
+    ContextMode Mode;
+}
+
+class SimulationManager {
+    // Methods
+    void ForceFinish();
+    void ResetCamera();
+    void SetInputState(InputType state, int value);
+    InputState GetInputState();
+    void SetSpeed(float speed);
+    void Resync();
+    void GiveUp();
+    void Respawn();
+    void Horn();
+    void RemoveStateValidation();
+    void PreventSimulationFinish();
+    SimulationState@ SaveState();
+    void RewindToState(const SimulationState&in state, bool resetCamera = true);
+    void SetSimulationTimeLimit(int timeMs);
+    bool get_Running();
+    void set_Running(bool running);
+    bool get_SimulationOnly();
+    void set_SimulationOnly(bool simulationOnly);
+    TM::PlayerInfo@ get_PlayerInfo();
+    SimulationWheels@ get_Wheels();
+    TM::HmsDyna@ get_Dyna();
+    TM::SceneVehicleCar@ get_SceneVehicleCar();
+    TM::InputEventBuffer@ get_InputEvents();
+    int get_RaceTime();
+    int get_TickTime();
+    uint get_EventsDuration();
+    bool get_InRace();
+    void RewindToState(const SimulationStateFile&in file, bool resetCamera = true);
+}
+
+class SimulationStateFile {
+    // Behaviors
+    SimulationStateFile();
+    ~SimulationStateFile();
+    // Methods
+    SimulationStateFile& opAssign(const SimulationStateFile&in other);
+    bool Load(const string&in stateRelativePath, string&out error);
+    bool Save(const string&in stateRelativePath, string&out error);
+    bool CaptureCurrentState(SimulationManager@ simManager, bool withStatesAndInputs);
+    string get_ChallengeName();
+    SimulationState@ ToState();
+    // Properties
+    const string ChallengeUID;
+    const string ChallengeEnvironment;
+}
+
+class TimedCommand {
+    // Behaviors
+    ~TimedCommand();
+    TimedCommand();
+    // Methods
+    TimedCommand& opAssign(const TimedCommand&in other);
+    // Properties
+    string Content;
+    int Timestamp;
+}
+
+class InputCommand {
+    // Behaviors
+    ~InputCommand();
+    InputCommand();
+    // Methods
+    InputCommand& opAssign(const InputCommand&in other);
+    string ToScript(bool useDecimalTime = true);
+    string ToString(bool useDecimalTime = true);
+    // Properties
+    InputType Type;
+    int Timestamp;
+    int State;
+}
+
+class CommandList {
+    // Behaviors
+    CommandList();
+    CommandList(const string&in scriptRelativePath);
+    ~CommandList();
+    // Methods
+    CommandList& opAssign(const CommandList&in other);
+    void Process(CommandListProcessOption option = CommandListProcessOption :: QueueAndExecute);
+    bool get_IsFullyProcessed();
+    string get_Filename();
+    string get_Content();
+    void set_Content(const string&in content);
+    bool Save(const string&in scriptRelativePath);
+    array<TimedCommand>@ get_TimedCommands();
+    array<InputCommand>@ get_InputCommands();
+}
+
+class VariableInfo {
+    // Behaviors
+    ~VariableInfo();
+    VariableInfo();
+    // Methods
+    VariableInfo& opAssign(const VariableInfo&in other);
+    // Properties
+    string Name;
+    VariableType Type;
+}
+
+class Trigger3D {
+    // Behaviors
+    ~Trigger3D();
+    Trigger3D();
+    Trigger3D(const vec3&in position, const vec3&in size);
+    // Methods
+    Trigger3D& opAssign(const Trigger3D&in other);
+    bool opImplConv();
+    bool opEquals(const Trigger3D&in other);
+    bool ContainsPoint(const vec3&in p);
+    float Distance(const vec3&in p);
+    // Properties
+    vec3 Position;
+    vec3 Size;
+}
+
+enum Severity {
+    Info = 0, 
+    Success = 1, 
+    Warning = 2, 
+    Error = 3
+}
+
+enum ContextMode {
+    Simulation = 0, 
+    Run = 1
+}
+
+enum VariableType {
+    Double = 0, 
+    String = 1, 
+    Boolean = 2
+}
+
+enum InputType {
+    None = -1, 
+    Down = 0, 
+    Up = 1, 
+    Left = 2, 
+    Right = 3, 
+    Steer = 4, 
+    Gas = 5, 
+    Respawn = 6, 
+    GiveUp = 7, 
+    Horn = 8, 
+    FakeFinish = 9
+}
+
+enum SimulationResult {
+    Valid = 1, 
+    Invalid = 0, 
+    WrongSimulation = 2
+}
+
+enum BFPhase {
+    Initial = 0, 
+    Search = 1
+}
+
+enum BFEvaluationDecision {
+    DoNothing = 1, 
+    Accept = 2, 
+    Reject = 3, 
+    Stop = 4
+}
+
+enum InputFormatFlags {
+    None = 0, 
+    DecimalTime = 1, 
+    SeperateRelease = 2, 
+    Default = 4
+}
+
+enum CommandListProcessOption {
+    OnlyParse = 0, 
+    QueueAndExecute = 1, 
+    ExecuteImmediately = 2
+}
+
+enum CommandListChangeReason {
+    Load = 0, 
+    Unload = 1, 
+    InternalReload = 2, 
+    ExternalReload = 3
+}
+
+enum ExecuteCommandFlags {
+    None = 0, 
+    AppendHistory = 1, 
+    Echo = 2, 
+    SuppressOutput = 8, 
+    Default = 3
+}
+
+void clear();
+void ExecuteCommand(const string&in input, ExecuteCommandFlags flags = ExecuteCommandFlags :: Default);
+TM::GameCamera@ GetCurrentCamera();
+TM::GameCtnChallenge@ GetCurrentChallenge();
+TM::GameState GetCurrentGameState();
+SimulationManager@ GetSimulationManager();
+Trigger3D GetTrigger(int id);
+Trigger3D GetTriggerByIndex(int index);
+array<int>@ GetTriggerIds();
+bool GetVariable(const string&in name, bool&out val);
+bool GetVariable(const string&in name, double&out val);
+bool GetVariable(const string&in name, string&out val);
+bool GetVariableBool(const string&in name);
+double GetVariableDouble(const string&in name);
+string GetVariableString(const string&in name);
+array<VariableInfo>@ ListVariables();
+void log(const string&in str, Severity severity = Severity :: Info);
+void print(const string&in str, Severity severity = Severity :: Info);
+void RegisterBruteforceEvaluation(const string&in identifier, const string&in title, OnBruteforceEvaluate@ callback, RenderBruteforceEvaluationSettings@ renderCallback = null);
+void RegisterCustomCommand(const string&in name, const string&in description, OnCustomCommand@ callback);
+void RegisterSettingsPage(const string&in title, RenderSettingsPage@ renderCallback);
+void RegisterValidationHandler(const string&in identifier, const string&in title, RenderValidationHandlerSettings@ renderCallback = null);
+bool RegisterVariable(const string&in name, bool defaultVal);
+bool RegisterVariable(const string&in name, double defaultVal);
+bool RegisterVariable(const string&in name, const string&in defaultVal);
+bool RemoveTrigger(int id);
+void SetCurrentCommandList(CommandList@ commandList);
+int SetTrigger(const Trigger3D&in trigger, int id = - 1);
+bool SetVariable(const string&in name, const string&in val);
+bool SetVariable(const string&in name, double val);
+bool SetVariable(const string&in name, bool val);
+void ToggleRaceInterface(bool visible);
+funcdef void RenderValidationHandlerSettings();
+funcdef void RenderBruteforceEvaluationSettings();
+funcdef void RenderSettingsPage();
+funcdef void OnCustomCommand(int fromTime, int toTime, const string&in commandLine, const array<string>&in args);
+funcdef BFEvaluationResponse@ OnBruteforceEvaluate(SimulationManager@ simManager, const BFEvaluationInfo&in info);
