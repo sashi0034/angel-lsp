@@ -250,7 +250,7 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
 }
 
 const widerNumberTable = [
-    'double', 'float', 'int64', 'uint64', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint'
+    'double', 'float', 'int64', 'uint64', 'int32', 'uint32', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8'
 ];
 
 function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType {
