@@ -932,12 +932,15 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     }
 
-    const classScope = exprValue.typeOrFunc.membersScopePath;
+    const classScopePath = exprValue.typeOrFunc.membersScopePath;
+    if (classScopePath === undefined) return undefined;
+
+    const classScope = resolveActiveScope(classScopePath);
     if (classScope === undefined) return undefined;
 
     if (isMemberMethod) {
         // Analyze method call.
-        const instanceMember = resolveActiveScope(classScope).lookupSymbol(identifier.text);
+        const instanceMember = classScope.lookupSymbol(identifier.text);
         if (instanceMember === undefined) {
             analyzerDiagnostic.error(identifier.location, `'${identifier.text}' is not defined.`);
             return undefined;
@@ -962,7 +965,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     } else {
         // Analyze field access.
-        return analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
+        return analyzeVariableAccess(scope, classScope, identifier);
     }
 }
 
@@ -1103,7 +1106,10 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
         return;
     }
 
-    const classScope = resolveActiveScope(varType.scopePath).lookupScope(varType.typeOrFunc.identifierText);
+    const typeScope = resolveActiveScope(varType.scopePath);
+    if (typeScope === undefined) return undefined;
+
+    const classScope = typeScope.lookupScope(varType.typeOrFunc.identifierText);
     if (classScope === undefined) return undefined;
 
     const opCall = classScope.lookupSymbol('opCall');

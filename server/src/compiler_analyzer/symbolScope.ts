@@ -568,9 +568,8 @@ export function getActiveGlobalScope(): SymbolGlobalScope {
 }
 
 /** @internal */
-export function resolveActiveScope(path: ScopePath): SymbolScope {
+export function resolveActiveScope(path: ScopePath): SymbolScope | undefined {
     const result = getActiveGlobalScope().resolveScope(path);
-    assert(result !== undefined);
     return result;
 }
 

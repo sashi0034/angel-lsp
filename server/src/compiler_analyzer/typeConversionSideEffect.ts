@@ -22,7 +22,10 @@ export function causeTypeConversionSideEffect(
 
     // Resolved the type of the ambiguous enum member
     if (src.typeOrFunc.isType() && src.typeOrFunc.multipleEnumCandidates !== undefined) {
-        const enumScope = resolveActiveScope(dest.scopePath ?? []).lookupScope(dest.identifierText);
+        const destScope = resolveActiveScope(dest.scopePath ?? []);
+        if (destScope === undefined) return false;
+
+        const enumScope = destScope.lookupScope(dest.identifierText);
         const enumMember = enumScope?.lookupSymbol(src.typeOrFunc.identifierText);
         if (enumMember?.isVariable()) {
             getActiveGlobalScope().pushReference({

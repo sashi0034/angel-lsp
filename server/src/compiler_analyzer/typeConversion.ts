@@ -373,6 +373,7 @@ function evaluateConversionByConstructor(
     assert(srcType.isType() && destType.isType());
 
     const destScope = resolveActiveScope(destType.scopePath);
+    if (destScope === undefined) return undefined;
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
     const constructorScope = destScope.lookupScope(destType.identifierText);
@@ -510,8 +511,11 @@ function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
     // TODO: Consider implicit or explicit
 
     const convFuncList: SymbolFunction[ ] = [];
+    const typeScope = resolveActiveScope(srcType.scopePath);
+    if (typeScope === undefined) return [];
+
     const srcMembers =
-        resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
+        typeScope.lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of srcMembers) {
         if (methodHolder.isFunctionHolder() &&
             ['opConv', 'opImplConv',

@@ -215,8 +215,17 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
         return {reason: MismatchKind.MissingAliasOperator};
     }
 
-    const aliasFunction =
-        resolveActiveScope(lhs.scopePath).lookupScope(lhs.identifierText)?.lookupSymbol(alias);
+    const typeScope = resolveActiveScope(lhs.scopePath);
+    if (typeScope === undefined) {
+        return {reason: MismatchKind.MissingAliasOperator};
+    }
+
+    const classScope = typeScope.lookupScope(lhs.identifierText);
+    if (classScope === undefined) {
+        return {reason: MismatchKind.MissingAliasOperator};
+    }
+
+    const aliasFunction = classScope.lookupSymbol(alias);
     if (aliasFunction === undefined) {
         return {reason: MismatchKind.MissingAliasOperator};
     } else if (aliasFunction.isFunctionHolder() === false) {

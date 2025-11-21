@@ -20,7 +20,10 @@ export function findConstructorOfType(resolvedType: ResolvedType | undefined): S
     // |-- class 'TypeName' scope
     //     |-- constructor 'TypeName'
 
-    const classScope = resolveActiveScope(resolvedType.scopePath).lookupScope(typeName);
+    const typeScope = resolveActiveScope(resolvedType.scopePath);
+    if (typeScope === undefined) return undefined;
+
+    const classScope = typeScope.lookupScope(typeName);
     return classScope !== undefined ? classScope.lookupSymbol(typeName) : undefined;
 }
 
