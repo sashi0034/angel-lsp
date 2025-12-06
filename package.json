@@ -93,7 +93,8 @@
             "editor.semanticTokenColorCustomizations": {
                 "rules": {
                     "builtin": "#00b0e0",
-                    "directive": "#ffe020"
+                    "directive": "#ffe020",
+                    "metadata": "#bb55ff"
                 }
             },
             "[angelscript]": {

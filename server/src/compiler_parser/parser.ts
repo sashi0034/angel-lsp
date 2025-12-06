@@ -2,6 +2,7 @@
 
 import {
     AccessModifier,
+    ClassBasePart,
     EntityAttribute,
     FuncHead,
     funcHeadConstructor,
@@ -10,6 +11,7 @@ import {
     isFuncHeadReturnValue,
     NodeArgList,
     NodeAssign,
+    NodeBase,
     NodeBreak,
     NodeCase,
     NodeCast,
@@ -50,7 +52,6 @@ import {
     NodeNamespace,
     NodeParamList,
     NodeReturn,
-    NodeBase,
     NodeScope,
     NodeScript,
     NodeStatBlock,
@@ -59,6 +60,7 @@ import {
     NodeTry,
     NodeType,
     NodeTypeDef,
+    NodeUsing,
     NodeVar,
     NodeVarAccess,
     NodeVirtualProp,
@@ -69,7 +71,7 @@ import {
     ParsedPostIndexing,
     ParsedVariableInitializer,
     ReferenceModifier,
-    TypeModifier, NodeUsing, ClassBasePart
+    TypeModifier
 } from "./nodes";
 import {HighlightForToken} from "../core/highlight";
 import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
@@ -777,7 +779,12 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
             } else metadata.at(-1)!.push(parser.next());
         } else {
             metadata.at(-1)!.push(parser.next());
-            parser.commit(HighlightForToken.Decorator);
+
+            if (parser.next().kind === TokenKind.Identifier) {
+                parser.commit(HighlightForToken.Metadata);
+            } else {
+                parser.step();
+            }
         }
     }
 
