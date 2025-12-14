@@ -148,7 +148,15 @@ export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMembe
 
     for (const declaredVar of nodeVar.variables) {
         const initializer = declaredVar.initializer;
-        if (initializer === undefined) continue;
+        if (initializer === undefined) {
+            if (varType?.isAutoType()) {
+                analyzerDiagnostic.error(
+                    declaredVar.identifier.location,
+                    `Variables declared using 'auto' must be initialized.`
+                );
+            }
+            continue;
+        }
 
         const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
 
