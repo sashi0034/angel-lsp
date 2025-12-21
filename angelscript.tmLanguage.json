@@ -5,10 +5,10 @@
     "patterns": [
         {
             "name": "keyword.declaration.angelscript",
-            "match": "\\b(class|struct|delegate|event|import|enum|namespace)\\b"
+            "match": "\\b(class|interface|delegate|typedef|import|enum|namespace|using)\\b"
         },
         {
-            "name": "keyword.statement.angelscript",
+            "name": "keyword.control.angelscript",
             "match": "\\b(for|if|return|continue|break|default|else|while|case|switch|fallthrough)\\b"
         },
         {
@@ -45,7 +45,7 @@
         },
         {
             "name": "storage.type.primitive.angelscript",
-            "match": "\\b(int|float|double|bool|int32|int64|int16|int8|uint32|uint64|uint16|uint8|float32|float64)\\b"
+            "match": "\\b(int|uint|float|double|bool|int32|int64|int16|int8|uint32|uint64|uint16|uint8|float32|float64)\\b"
         },
         {
             "match": "::",
