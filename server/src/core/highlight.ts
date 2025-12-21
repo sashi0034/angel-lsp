@@ -58,6 +58,7 @@ export const highlightForTokenList = [
 ];
 
 export enum HighlightForModifier {
+    Nothing,
     Declaration, // For declarations of symbols.
     Definition, // For definitions of symbols, for example, in header files.
     Readonly, // For readonly variables and member fields (constants).
@@ -68,10 +69,10 @@ export enum HighlightForModifier {
     Modification, // For variable references where the variable is assigned to.
     Documentation, // For occurrences of symbols in documentation.
     DefaultLibrary, // For symbols that are part of the standard library.
-    Nothing,
 }
 
 export const highlightForModifierList = [
+    '',
     'declaration',
     'definition',
     'readonly',
@@ -82,5 +83,4 @@ export const highlightForModifierList = [
     'modification',
     'documentation',
     'defaultLibrary',
-    '',
 ];
