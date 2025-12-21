@@ -25,11 +25,6 @@ export enum HighlightForToken {
     Number, // For tokens that represent a number literal.
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
-    // -----------------------------------------------
-    // The following members are specific to AngelScript Language Server:
-    Builtin, // For tokens that represent a built-in type or function.
-    Directive, // For tokens that represent a preprocessor directive.
-    Metadata, // For tokens that represent metadata annotations.
 }
 
 export const highlightForTokenList = [
