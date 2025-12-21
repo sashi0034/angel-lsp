@@ -5,7 +5,15 @@
     "patterns": [
         {
             "name": "keyword.declaration.angelscript",
-            "match": "\\b(class|interface|delegate|typedef|import|enum|namespace|using)\\b"
+            "match": "\\b(delegate|typedef|import|enum|using)\\b"
+        },
+        {
+            "name": "storage.type.class",
+            "match": "\\b(class|interface)\\b"
+        },
+        {
+            "name": "storage.type.namespace",
+            "match": "\\b(namespace)\\b"
         },
         {
             "name": "keyword.control.angelscript",
@@ -40,11 +48,11 @@
             "match": "\\bfalse\\b"
         },
         {
-            "name": "keyword.access.angelscript",
+            "name": "storage.access.angelscript",
             "match": "\\b(private|protected|access)\\b"
         },
         {
-            "name": "storage.type.primitive.angelscript",
+            "name": "keyword.type.primitive.angelscript",
             "match": "\\b(int|uint|float|double|bool|int32|int64|int16|int8|uint32|uint64|uint16|uint8|float32|float64)\\b"
         },
         {
