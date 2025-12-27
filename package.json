@@ -89,6 +89,26 @@
                 "title": "AngelScript: Print Global Scope in Current File"
             }
         ],
+        "semanticTokenTypes": [
+            {
+                "id": "keywordControl",
+                "description": "For keywords that affect control flow.",
+                "superType": "keyword"
+            }
+        ],
+        "semanticTokenScopes": [
+            {
+                "language": "angelscript",
+                "scopes": {
+                    "keyword": [
+                        "keyword.angelscript"
+                    ],
+                    "keywordControl": [
+                        "keyword.control.angelscript"
+                    ]
+                }
+            }
+        ],
         "configurationDefaults": {
             "editor.semanticTokenColorCustomizations": {
                 "rules": {

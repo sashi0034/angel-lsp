@@ -25,11 +25,8 @@ export enum HighlightForToken {
     Number, // For tokens that represent a number literal.
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
-    // -----------------------------------------------
-    // The following members are specific to AngelScript Language Server:
-    Builtin, // For tokens that represent a built-in type or function.
-    Directive, // For tokens that represent a preprocessor directive.
-    Metadata, // For tokens that represent metadata annotations.
+    // Custom Token Types
+    KeywordControl, // For keywords that affect control(for, while, etc.).
 }
 
 export const highlightForTokenList = [
@@ -57,12 +54,11 @@ export const highlightForTokenList = [
     'number',
     'regexp',
     'operator',
-    'builtin',
-    'directive',
-    'metadata',
+    'keywordControl',
 ];
 
 export enum HighlightForModifier {
+    Nothing,
     Declaration, // For declarations of symbols.
     Definition, // For definitions of symbols, for example, in header files.
     Readonly, // For readonly variables and member fields (constants).
@@ -73,10 +69,10 @@ export enum HighlightForModifier {
     Modification, // For variable references where the variable is assigned to.
     Documentation, // For occurrences of symbols in documentation.
     DefaultLibrary, // For symbols that are part of the standard library.
-    Nothing,
 }
 
 export const highlightForModifierList = [
+    '',
     'declaration',
     'definition',
     'readonly',
@@ -87,5 +83,4 @@ export const highlightForModifierList = [
     'modification',
     'documentation',
     'defaultLibrary',
-    '',
 ];

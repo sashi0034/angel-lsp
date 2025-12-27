@@ -68,10 +68,10 @@ function preprocessDirectives(tokens: TokenObject[]): TokenString[] {
 }
 
 function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: TokenString[]) {
-    directiveTokens[0].setHighlight(HighlightForToken.Directive);
+    directiveTokens[0].setHighlight(HighlightForToken.Macro);
 
     if (directiveTokens[1]?.text === 'include') {
-        directiveTokens[1].setHighlight(HighlightForToken.Directive);
+        directiveTokens[1].setHighlight(HighlightForToken.Macro);
 
         // Check the include directive.
         const fileName = directiveTokens[2];

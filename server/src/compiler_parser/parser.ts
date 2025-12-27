@@ -186,9 +186,9 @@ function parseUsing(parser: ParserState): ParseResult<NodeUsing> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
-    parser.expect('namespace', HighlightForToken.Builtin);
+    parser.expect('namespace', HighlightForToken.Keyword);
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
@@ -223,7 +223,7 @@ function parseUsing(parser: ParserState): ParseResult<NodeUsing> {
 function parseNamespace(parser: ParserState): ParseResult<NodeNamespace> {
     if (parser.next().text !== 'namespace') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
@@ -287,7 +287,7 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
         parser.backtrack(rangeStart);
         return ParseFailure.Mismatch;
     }
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const identifier = expectIdentifier(parser, HighlightForToken.Enum);
     if (identifier === undefined) return ParseFailure.Pending;
@@ -373,7 +373,7 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
         };
 
         setEntityAttribute(attribute, next);
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
     }
 
     cache.store(attribute);
@@ -400,7 +400,7 @@ function parseClass(parser: ParserState): ParseResult<NodeClass> {
         return ParseFailure.Mismatch;
     }
 
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const identifier = expectIdentifier(parser, HighlightForToken.Class);
     if (identifier === undefined) return ParseFailure.Pending;
@@ -512,7 +512,7 @@ function parseForEachVar(parser: ParserState): NodeForEachVar | undefined {
 function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
     if (parser.next().text !== 'typedef') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const primeType = parsePrimeType(parser);
     if (primeType === undefined) {
@@ -720,7 +720,7 @@ function parseConst(parser: ParserState): boolean {
 
 function parseRef(parser: ParserState) {
     const isRef = parser.next().text === '&';
-    if (isRef) parser.commit(HighlightForToken.Builtin);
+    if (isRef) parser.commit(HighlightForToken.Keyword);
     return isRef;
 }
 
@@ -781,7 +781,7 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
             metadata.at(-1)!.push(parser.next());
 
             if (parser.next().kind === TokenKind.Identifier) {
-                parser.commit(HighlightForToken.Metadata);
+                parser.commit(HighlightForToken.Type);
             } else {
                 parser.step();
             }
@@ -797,7 +797,7 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
 function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     const next = parser.next().text;
     if (next === 'private' || next === 'protected') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
         return next === 'private' ? AccessModifier.Private : AccessModifier.Protected;
     }
     return undefined;
@@ -813,7 +813,7 @@ function parseInterface(parser: ParserState): ParseResult<NodeInterface> {
         parser.backtrack(rangeStart);
         return ParseFailure.Mismatch;
     }
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const identifier = expectIdentifier(parser, HighlightForToken.Interface);
     if (identifier === undefined) return ParseFailure.Pending;
@@ -1001,7 +1001,7 @@ function parseFuncDef(parser: ParserState): ParseResult<NodeFuncDef> {
         return ParseFailure.Mismatch;
     }
 
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const returnType = expectType(parser);
     if (returnType === undefined) return ParseFailure.Pending;
@@ -1083,7 +1083,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
 
 // ('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')
 function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const isConst = parseConst(parser);
     const funcAttr = parseFuncAttr(parser);
@@ -1100,7 +1100,7 @@ function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
 function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     if (parser.next().text !== 'mixin') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     const parsedClass = parseClass(parser);
     if (parsedClass === ParseFailure.Pending) return ParseFailure.Pending;
@@ -1204,7 +1204,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
     parser.commit(HighlightForToken.Operator);
 
     if (parser.next().text === 'void') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
         parser.expect(')', HighlightForToken.Operator);
         return [];
     }
@@ -1328,11 +1328,11 @@ function parseTypeMod(parser: ParserState): TypeModifier | undefined {
     let mod: TypeModifier | undefined = undefined;
 
     if (parser.next().text === '&') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
 
         const next = parser.next().text;
         if (next === 'in' || next === 'out' || next === 'inout') {
-            parser.commit(HighlightForToken.Builtin);
+            parser.commit(HighlightForToken.Keyword);
             if (next === 'in') mod = TypeModifier.In;
             else if (next === 'out') mod = TypeModifier.Out;
             else mod = TypeModifier.InOut;
@@ -1341,13 +1341,13 @@ function parseTypeMod(parser: ParserState): TypeModifier | undefined {
 
     // TODO: this should only be allowed on non-nocount handles
     if (parser.next().text === '+') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
     }
 
     // TODO: this should only be allowed on handles of
     // template parameter types
     if (parser.next().text === 'if_handle_then_const') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
     }
 
     return mod;
@@ -1393,15 +1393,15 @@ function parseTypeTail(parser: ParserState) {
             isArray = true;
             continue;
         } else if (parser.next().text === '@') {
-            parser.commit(HighlightForToken.Builtin);
+            parser.commit(HighlightForToken.Keyword);
 
             // auto-handle
             if (parser.next().text === '+') {
-                parser.commit(HighlightForToken.Builtin);
+                parser.commit(HighlightForToken.Keyword);
             }
 
             if (parser.next().text === 'const') {
-                parser.commit(HighlightForToken.Builtin);
+                parser.commit(HighlightForToken.Keyword);
                 refModifier = ReferenceModifier.AtConst;
             } else {
                 refModifier = ReferenceModifier.At;
@@ -1559,7 +1559,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
     }
 
     if (next.text === '?' || next.text === 'auto') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
         return {
             nodeName: NodeName.DataType,
             nodeRange: new TokenRange(next, next),
@@ -1581,7 +1581,7 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
 function parsePrimeType(parser: ParserState) {
     const next = parser.next();
     if (next.isReservedToken() === false || next.property.isPrimeType === false) return undefined;
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
     return next;
 }
 
@@ -1605,7 +1605,7 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
         };
 
         setFunctionAttribute(attribute, next);
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
     }
     return attribute;
 }
@@ -1686,7 +1686,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
 function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
     if (parser.next().text !== 'switch') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     parser.expect('(', HighlightForToken.Operator);
 
@@ -1724,7 +1724,7 @@ function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
 function parseBreak(parser: ParserState): NodeBreak | undefined {
     if (parser.next().text !== 'break') return undefined;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     parser.expect(';', HighlightForToken.Operator);
     return {nodeName: NodeName.Break, nodeRange: new TokenRange(rangeStart, parser.prev())};
@@ -1811,7 +1811,7 @@ function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
 function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
     if (parser.next().text !== 'while') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
@@ -1835,7 +1835,7 @@ function parseWhile(parser: ParserState): ParseResult<NodeWhile> {
 function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
     if (parser.next().text !== 'do') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     const statement = expectStatement(parser);
     if (statement === undefined) return ParseFailure.Pending;
@@ -1847,7 +1847,7 @@ function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
         assign: undefined
     };
 
-    if (parser.expect('while', HighlightForToken.Keyword) === false) return appliedNodeEnd(parser, result);
+    if (parser.expect('while', HighlightForToken.KeywordControl) === false) return appliedNodeEnd(parser, result);
     if (parser.expect('(', HighlightForToken.Operator) === false) return appliedNodeEnd(parser, result);
 
     result.assign = expectAssign(parser);
@@ -1863,7 +1863,7 @@ function parseDoWhile(parser: ParserState): ParseResult<NodeDoWhile> {
 function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (parser.next().text !== 'if') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
@@ -1942,7 +1942,7 @@ function expectExprStat(parser: ParserState): NodeExprStat | undefined {
 function parseTry(parser: ParserState): ParseResult<NodeTry> {
     if (parser.next().text !== 'try') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     const tryBlock = expectStatBlock(parser);
     if (tryBlock === undefined) return ParseFailure.Pending;
@@ -1954,7 +1954,7 @@ function parseTry(parser: ParserState): ParseResult<NodeTry> {
         catchBlock: undefined
     };
 
-    if (parser.expect('catch', HighlightForToken.Keyword) === false) return appliedNodeEnd(parser, result);
+    if (parser.expect('catch', HighlightForToken.KeywordControl) === false) return appliedNodeEnd(parser, result);
 
     result.catchBlock = expectStatBlock(parser);
     return appliedNodeEnd(parser, result);
@@ -1964,7 +1964,7 @@ function parseTry(parser: ParserState): ParseResult<NodeTry> {
 function parseReturn(parser: ParserState): ParseResult<NodeReturn> {
     if (parser.next().text !== 'return') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     const result: Mutable<NodeReturn> = {
         nodeName: NodeName.Return,
@@ -1990,12 +1990,12 @@ function parseCase(parser: ParserState): ParseResult<NodeCase> {
 
     let expr = undefined;
     if (parser.next().text === 'case') {
-        parser.commit(HighlightForToken.Keyword);
+        parser.commit(HighlightForToken.KeywordControl);
 
         expr = expectExpr(parser);
         if (expr === undefined) return ParseFailure.Pending;
     } else if (parser.next().text === 'default') {
-        parser.commit(HighlightForToken.Keyword);
+        parser.commit(HighlightForToken.KeywordControl);
     } else {
         return ParseFailure.Mismatch;
     }
@@ -2341,7 +2341,7 @@ const parseLambda = (parser: ParserState): ParseResult<NodeLambda> => {
     if (canParseLambda(parser) === false) return ParseFailure.Mismatch;
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
 
     parser.expect('(', HighlightForToken.Operator);
 
@@ -2403,7 +2403,7 @@ function parseLiteral(parser: ParserState): NodeLiteral | undefined {
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
     if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
-        parser.commit(HighlightForToken.Builtin);
+        parser.commit(HighlightForToken.Keyword);
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
     return undefined;
@@ -2455,7 +2455,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
         };
     }
     const isBuiltin: boolean = scope === undefined && next.text === 'this';
-    parser.commit(isBuiltin ? HighlightForToken.Builtin : HighlightForToken.Variable);
+    parser.commit(isBuiltin ? HighlightForToken.Keyword : HighlightForToken.Variable);
 
     return {
         nodeName: NodeName.VarAccess,
@@ -2573,7 +2573,7 @@ function parseExprOp(parser: ParserState) {
         return parseNotIsOperator(parser);
     }
 
-    parser.commit(next.text === 'is' ? HighlightForToken.Builtin : HighlightForToken.Operator);
+    parser.commit(next.text === 'is' ? HighlightForToken.Keyword : HighlightForToken.Operator);
     return next;
 }
 
@@ -2582,8 +2582,8 @@ function parseNotIsOperator(parser: ParserState) {
     if (areTokensJoinedBy(parser.next(), ['!', 'is']) === false) return undefined;
 
     const coveredRange = new TokenRange(parser.next(), parser.next(1));
-    parser.commit(HighlightForToken.Builtin);
-    parser.commit(HighlightForToken.Builtin);
+    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.Keyword);
 
     return TokenReserved.createVirtual('!is', coveredRange);
 }
