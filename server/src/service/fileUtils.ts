@@ -3,13 +3,34 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
+import { minimatch } from "minimatch";
 
 /**
- * Check if a file URI has an extension that should be processed as AngelScript.
+ * Check if a file URI matches any of the configured AngelScript file patterns.
  */
 export function isAngelscriptFile(uri: string): boolean {
-    const allowedExtensions = getGlobalSettings().angelscriptExtensions;
-    return allowedExtensions.some(ext => uri.endsWith(ext));
+    const filePath = fileURLToPath(uri);
+    const fileName = path.basename(filePath);
+    const patterns = getGlobalSettings().angelscriptFilePatterns;
+    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(filePath, pattern));
+}
+
+/**
+ * Extract file extension from a glob pattern (e.g., "*.as" -> ".as").
+ * Returns the first extension found, or ".as" as default.
+ */
+function extractExtensionFromPattern(pattern: string): string {
+    // Match patterns like "*.ext" or "**/*.ext"
+    const match = pattern.match(/\*\.([^.]+)$/);
+    if (match && match[1]) {
+        return '.' + match[1];
+    }
+    // For exact filenames like "as.predefined", return empty (no extension to append)
+    if (!pattern.includes('*')) {
+        return '';
+    }
+    // Default fallback
+    return '.as';
 }
 
 /**
@@ -59,12 +80,18 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
-    // Check if the file already has one of the configured AngelScript extensions
-    const allowedExtensions = getGlobalSettings().angelscriptExtensions;
-    const hasConfiguredExtension = allowedExtensions.some(ext => relativeOrAbsolute.endsWith(ext));
-    if (!hasConfiguredExtension) {
-        // If the file does not have a configured extension, append the first configured extension (defaults to .as)
-        relativeOrAbsolute = relativeOrAbsolute + allowedExtensions[0];
+    // Check if the file already matches one of the configured patterns
+    const patterns = getGlobalSettings().angelscriptFilePatterns;
+    const fileName = path.basename(relativeOrAbsolute);
+    const matchesPattern = patterns.some(pattern => minimatch(fileName, pattern));
+
+    if (!matchesPattern) {
+        // If the file does not match any pattern, try to extract extension from first pattern
+        // and append it (defaults to .as)
+        const defaultExt = extractExtensionFromPattern(patterns[0] || '*.as');
+        if (defaultExt) {
+            relativeOrAbsolute = relativeOrAbsolute + defaultExt;
+        }
     }
 
     const primaryUri = resolveUri(baseUri, relativeOrAbsolute);
