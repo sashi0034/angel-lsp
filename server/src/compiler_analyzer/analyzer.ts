@@ -284,6 +284,28 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
         symbolAndScope = getSymbolAndScopeIfExist(
             symbolAndScope.scope.parentScope.lookupSymbol(givenIdentifier), symbolAndScope.scope.parentScope);
     }
+
+    // If we found a function holder (method) but not a FuncDef, and we're looking for a type,
+    // continue searching in parent scopes to find the actual class type.
+    // This handles cases where a method has the same name as the class (e.g., class array { void array(...); })
+    if (symbolAndScope !== undefined &&
+        symbolAndScope.symbol.isFunctionHolder() &&
+        symbolAndScope.symbol.first.linkedNode.nodeName !== NodeName.FuncDef &&
+        !(symbolAndScope.symbol instanceof SymbolType) &&
+        symbolAndScope.scope.parentScope !== undefined
+    ) {
+        // Search up the parent hierarchy for a type with this name
+        let currentScope: SymbolScope | undefined = symbolAndScope.scope.parentScope;
+        while (currentScope !== undefined) {
+            const typeSymbol = currentScope.lookupSymbol(givenIdentifier);
+            if (typeSymbol !== undefined && typeSymbol instanceof SymbolType) {
+                symbolAndScope = {symbol: typeSymbol, scope: currentScope};
+                break;
+            }
+            currentScope = currentScope.parentScope;
+        }
+    }
+
     if (symbolAndScope === undefined) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not defined.`);
         return undefined;
