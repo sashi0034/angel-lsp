@@ -51,7 +51,9 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
-    if (!relativeOrAbsolute.endsWith('.as') && !relativeOrAbsolute.endsWith('.predefined')) {
+    // Check if the file has any extension (contains a dot followed by at least one character)
+    const hasExtension = /\.\w+$/.test(relativeOrAbsolute);
+    if (!hasExtension) {
         // If the file does not have an extension, assume it is an ActionScript file.
         relativeOrAbsolute = relativeOrAbsolute + '.as';
     }

@@ -234,7 +234,7 @@ export class AnalysisResolver {
                 return [...Array.from(includeSet),
                     ...Array.from(this._inspectRecords.keys())
                         .filter(uri => uri.startsWith(predefinedDirectory))
-                        .filter(uri => uri.endsWith('.as') && uri !== record.uri)];
+                        .filter(uri => uri !== record.uri)];
             }
         }
 
@@ -302,7 +302,7 @@ export class AnalysisResolver {
             const fileUri = resolveUri(dirUri, entry.name);
             if (entry.isDirectory()) {
                 this.inspectUnderDirectory(`${fileUri}/`);
-            } else if (entry.isFile() && fileUri.endsWith('.as')) {
+            } else if (entry.isFile()) {
                 const content = readFileContent(fileUri);
                 if (content !== undefined) this._inspectRequest(fileUri, content);
             }
