@@ -167,6 +167,15 @@
                     "default": false,
                     "description": "Project files implicitly include each other (like C# or Java). This works with `as.predefined` as the root."
                 },
+                "angelScript.angelscriptExtensions": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [".as", ".predefined"],
+                    "description": "File extensions that should be treated as AngelScript files. Files with these extensions will be processed by the language server. Include the leading dot (e.g., \".as\", \".hxx\", \".css\")."
+                },
                 "angelScript.hoistEnumParentScope": {
                     "scope": "window",
                     "type": "boolean",

@@ -5,6 +5,14 @@ import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
 
 /**
+ * Check if a file URI has an extension that should be processed as AngelScript.
+ */
+export function isAngelscriptFile(uri: string): boolean {
+    const allowedExtensions = getGlobalSettings().angelscriptExtensions;
+    return allowedExtensions.some(ext => uri.endsWith(ext));
+}
+
+/**
  * Resolves a relative file path against a base file URI and returns the resulting URI as a string.
  *
  * @param baseUri - The base file or directory URI as a string (e.g., "file:///path/to/file.as").
@@ -51,11 +59,12 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
-    // Check if the file has any extension (contains a dot followed by at least one character)
-    const hasExtension = /\.\w+$/.test(relativeOrAbsolute);
-    if (!hasExtension) {
-        // If the file does not have an extension, assume it is an ActionScript file.
-        relativeOrAbsolute = relativeOrAbsolute + '.as';
+    // Check if the file already has one of the configured AngelScript extensions
+    const allowedExtensions = getGlobalSettings().angelscriptExtensions;
+    const hasConfiguredExtension = allowedExtensions.some(ext => relativeOrAbsolute.endsWith(ext));
+    if (!hasConfiguredExtension) {
+        // If the file does not have a configured extension, append the first configured extension (defaults to .as)
+        relativeOrAbsolute = relativeOrAbsolute + allowedExtensions[0];
     }
 
     const primaryUri = resolveUri(baseUri, relativeOrAbsolute);

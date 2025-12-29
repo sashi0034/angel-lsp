@@ -5,7 +5,7 @@ import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {getParentDirectoryList, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
+import {getParentDirectoryList, isAngelscriptFile, isFileTooLarge, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
@@ -233,8 +233,12 @@ export class AnalysisResolver {
                 const predefinedDirectory = resolveUri(predefinedUri, '.');
                 return [...Array.from(includeSet),
                     ...Array.from(this._inspectRecords.keys())
-                        .filter(uri => uri.startsWith(predefinedDirectory))
-                        .filter(uri => uri !== record.uri)];
+                        .filter(uri =>
+                            uri.startsWith(predefinedDirectory) &&
+                            uri !== record.uri &&
+                            isAngelscriptFile(uri)
+                        )
+                    ];
             }
         }
 
@@ -303,6 +307,11 @@ export class AnalysisResolver {
             if (entry.isDirectory()) {
                 this.inspectUnderDirectory(`${fileUri}/`);
             } else if (entry.isFile()) {
+                // Only process files with allowed AngelScript extensions
+                if (!isAngelscriptFile(fileUri)) {
+                    continue;
+                }
+
                 const content = readFileContent(fileUri);
                 if (content !== undefined) this._inspectRequest(fileUri, content);
             }
