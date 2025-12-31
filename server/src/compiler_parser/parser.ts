@@ -1884,7 +1884,7 @@ function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (result.thenStat === undefined) return appliedNodeEnd(parser, result);
 
     if (parser.next().text === 'else') {
-        parser.commit(HighlightForToken.Keyword);
+        parser.commit(HighlightForToken.KeywordControl);
 
         result.elseStat = expectStatement(parser);
     }
