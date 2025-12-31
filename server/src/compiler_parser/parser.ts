@@ -1734,7 +1734,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
 function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (parser.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
@@ -1773,7 +1773,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
 function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     if (parser.next().text !== 'foreach') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
