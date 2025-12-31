@@ -1901,7 +1901,7 @@ function appliedNodeEnd<T extends NodeBase>(parser: ParserState, node: Mutable<T
 function parseContinue(parser: ParserState): NodeContinue | undefined {
     if (parser.next().text !== 'continue') return undefined;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
     parser.expect(';', HighlightForToken.Operator);
     return {nodeName: NodeName.Continue, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
