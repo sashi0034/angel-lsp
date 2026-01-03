@@ -1734,7 +1734,7 @@ function parseBreak(parser: ParserState): NodeBreak | undefined {
 function parseFor(parser: ParserState): ParseResult<NodeFor> {
     if (parser.next().text !== 'for') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
@@ -1773,7 +1773,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
 function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
     if (parser.next().text !== 'foreach') return ParseFailure.Mismatch;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) return ParseFailure.Pending;
 
@@ -1884,7 +1884,7 @@ function parseIf(parser: ParserState): ParseResult<NodeIf> {
     if (result.thenStat === undefined) return appliedNodeEnd(parser, result);
 
     if (parser.next().text === 'else') {
-        parser.commit(HighlightForToken.Keyword);
+        parser.commit(HighlightForToken.KeywordControl);
 
         result.elseStat = expectStatement(parser);
     }
@@ -1901,7 +1901,7 @@ function appliedNodeEnd<T extends NodeBase>(parser: ParserState, node: Mutable<T
 function parseContinue(parser: ParserState): NodeContinue | undefined {
     if (parser.next().text !== 'continue') return undefined;
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
+    parser.commit(HighlightForToken.KeywordControl);
     parser.expect(';', HighlightForToken.Operator);
     return {nodeName: NodeName.Continue, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
