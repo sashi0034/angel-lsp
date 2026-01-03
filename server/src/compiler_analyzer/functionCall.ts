@@ -183,6 +183,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: SymbolFunction) {
     if (callee.functionScopePath === undefined) return;
     const functionScope = resolveActiveScope(callee.functionScopePath);
+    if (functionScope === undefined) return;
 
     for (const args of callerArgs) {
         if (args.name === undefined) continue;
