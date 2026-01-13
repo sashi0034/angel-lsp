@@ -32,7 +32,7 @@ import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../core/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from "./builtinType";
 import {TokenIdentifier, TokenObject} from "../compiler_tokenizer/tokenObject";
-import {getIdentifierInNodeType} from "../compiler_parser/nodesUtils";
+import {buildTemplateSignature, getIdentifierInNodeType} from "../compiler_parser/nodesUtils";
 import {
     analyzeFunc,
     AnalyzeQueue,
@@ -138,8 +138,21 @@ function hoistClass(
     analyzeQueue: AnalyzeQueue,
     hoistQueue: HoistQueue
 ) {
+    const isSpecialization = isTemplateSpecialization(parentScope, nodeClass.typeTemplates);
+
+    const baseIdentifier = nodeClass.identifier.text;
+    const specializationSig = isSpecialization && nodeClass.typeTemplates
+        ? buildTemplateSignature(nodeClass.typeTemplates)
+        : undefined;
+    const symbolKey = specializationSig ? baseIdentifier + specializationSig : baseIdentifier;
+
+    // Preserve the original location so the symbol can be copied to other scopes
+    const identifierToken = specializationSig
+        ? new TokenIdentifier(symbolKey, nodeClass.identifier.location)
+        : nodeClass.identifier;
+
     const symbol: SymbolType = SymbolType.create({
-        identifierToken: nodeClass.identifier,
+        identifierToken: identifierToken,
         scopePath: parentScope.scopePath,
         linkedNode: nodeClass,
         membersScopePath: undefined,
@@ -147,7 +160,7 @@ function hoistClass(
     });
     if (parentScope.insertSymbolAndCheck(symbol) === false) return;
 
-    const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeClass.identifier, nodeClass);
+    const scope: SymbolScope = parentScope.insertScopeAndCheck(identifierToken, nodeClass);
     symbol.assignMembersScopePath(scope.scopePath);
 
     const thisVariable: SymbolVariable = SymbolVariable.create({
@@ -159,8 +172,10 @@ function hoistClass(
     });
     scope.insertSymbolAndCheck(thisVariable);
 
-    const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
-    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
+    if (!isSpecialization) {
+        const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
+        if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
+    }
 
     symbol.assignBaseList(hoistBaseList(scope, nodeClass));
 
@@ -193,6 +208,20 @@ function hoistClass(
     });
 
     pushScopeRegionInfo(scope, nodeClass.nodeRange);
+}
+
+function isTemplateSpecialization(parentScope: SymbolScope, types: NodeType[] | undefined): boolean {
+    if (!types || types.length === 0) return false;
+
+    for (const type of types) {
+        const identifier = getIdentifierInNodeType(type);
+        const existingSymbol = parentScope.lookupSymbolWithParent(identifier.text);
+        if (existingSymbol === undefined || !existingSymbol.isType()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {

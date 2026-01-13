@@ -26,3 +26,13 @@ export function stringifyNodeType(type: NodeType): string {
 export function getIdentifierInNodeType(type: NodeType): TokenObject {
     return type.dataType.identifier;
 }
+
+export function buildTemplateSignature(types: NodeType[]): string {
+    const typeNames = types.map(type => {
+        const identifier = type.dataType.identifier.text;
+        return type.typeTemplates.length > 0
+            ? identifier + buildTemplateSignature(type.typeTemplates)
+            : identifier;
+    });
+    return '<' + typeNames.join(',') + '>';
+}

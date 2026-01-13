@@ -42,6 +42,7 @@ import {
     NodeVarAccess,
     NodeWhile
 } from "../compiler_parser/nodes";
+import {buildTemplateSignature} from "../compiler_parser/nodesUtils";
 import {
     isNodeClassOrInterface,
     SymbolFunction,
@@ -76,7 +77,7 @@ import {
 } from "./symbolUtils";
 import {Mutable} from "../utils/utilities";
 import {getGlobalSettings} from "../core/settings";
-import {ResolvedType, TemplateTranslator} from "./resolvedType";
+import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resolvedType";
 import {analyzerDiagnostic} from "./analyzerDiagnostic";
 import {getBoundingLocationBetween, TokenRange} from "../compiler_tokenizer/tokenRange";
 import {AnalyzerScope} from "./analyzerScope";
@@ -272,6 +273,19 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
         const copiedNodeType: Mutable<NodeType> = {...nodeType};
         copiedNodeType.isArray = false;
         givenTypeTemplates = [copiedNodeType];
+    }
+
+    if (givenTypeTemplates.length > 0) {
+        const specializationKey = givenIdentifier + buildTemplateSignature(givenTypeTemplates);
+        const specializationSymbol = findSymbolWithParent(searchScope, specializationKey);
+        if (specializationSymbol !== undefined && specializationSymbol.symbol.isType()) {
+            return completeAnalyzingType(
+                scope,
+                typeIdentifier,
+                specializationSymbol.symbol,
+                specializationSymbol.scope
+            );
+        }
     }
 
     let symbolAndScope = findSymbolWithParent(searchScope, givenIdentifier);
@@ -970,7 +984,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
         return undefined;
     } else {
         // Analyze field access.
-        return analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
+        const fieldType = analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
+        return applyTemplateTranslator(fieldType, exprValue.templateTranslator);
     }
 }
 
