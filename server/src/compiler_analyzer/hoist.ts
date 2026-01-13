@@ -27,7 +27,7 @@ import {
     ParsedEnumMember
 } from "../compiler_parser/nodes";
 import {SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
-import {getFullIdentifierOfSymbol} from "./symbolUtils";
+import {findSymbolWithParent, getFullIdentifierOfSymbol} from "./symbolUtils";
 import {ResolvedType} from "./resolvedType";
 import {getGlobalSettings} from "../core/settings";
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from "./builtinType";
@@ -138,7 +138,7 @@ function hoistClass(
     analyzeQueue: AnalyzeQueue,
     hoistQueue: HoistQueue
 ) {
-    const isSpecialization = isTemplateSpecialization(parentScope, nodeClass.typeTemplates);
+    const isSpecialization = isTemplateSpecialization(parentScope, nodeClass);
 
     const baseIdentifier = nodeClass.identifier.text;
     const specializationSig = isSpecialization && nodeClass.typeTemplates
@@ -210,18 +210,15 @@ function hoistClass(
     pushScopeRegionInfo(scope, nodeClass.nodeRange);
 }
 
-function isTemplateSpecialization(parentScope: SymbolScope, types: NodeType[] | undefined): boolean {
-    if (!types || types.length === 0) return false;
-
-    for (const type of types) {
-        const identifier = getIdentifierInNodeType(type);
-        const existingSymbol = parentScope.lookupSymbolWithParent(identifier.text);
-        if (existingSymbol === undefined || !existingSymbol.isType()) {
-            return false;
-        }
+// e.g.,
+// class Box<T> { ... } <-- isTemplateSpecialization() returns false
+// class Box<int> { ... } <-- isTemplateSpecialization() returns true
+function isTemplateSpecialization(parentScope: SymbolScope, type: NodeClass): boolean {
+    if (!type.typeTemplates || type.typeTemplates.length === 0) {
+        return false;
     }
 
-    return true;
+    return findSymbolWithParent(parentScope, type.identifier.text) !== undefined;
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefined) {

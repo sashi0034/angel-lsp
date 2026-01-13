@@ -51,6 +51,10 @@ describe('analyzer/templateSpecialization', () => {
                 T value;
             }
 
+            class Box<float> {
+                float specialValue;
+            }
+
             class Item {
                 int weight;
             }
