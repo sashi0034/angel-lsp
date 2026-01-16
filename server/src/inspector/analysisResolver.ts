@@ -271,7 +271,7 @@ export class AnalysisResolver {
         // Search for nearest 'as.predefined'
         for (const dir of dirs) {
             // find all predefined files in the directory
-            const files = fs.readdirSync(fileURLToPath(dir)).filter(file => isAngelscriptPredefinedFile(file));
+            const files = this.getDirectoryEntries(dir).filter(file => file.isFile() && isAngelscriptPredefinedFile(file.name));
 
             for (const file of files) {
                 const predefinedUri = dir + `/${file}`;
