@@ -5,14 +5,17 @@ import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
 import { minimatch } from "minimatch";
 
-/**
- * Check if a file URI matches any of the configured AngelScript file patterns.
- */
-export function isAngelscriptFile(uri: string): boolean {
-    const filePath = fileURLToPath(uri);
-    const fileName = path.basename(filePath);
-    const patterns = getGlobalSettings().angelscriptFilePatterns;
-    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(filePath, pattern));
+export function isAngelscriptFile(uriOrPath: string): boolean {
+    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelscriptFilePatterns);
+}
+
+export function isAngelscriptPredefinedFile(uriOrPath: string): boolean {
+    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelscriptPredefinedFilePatterns);
+}
+
+function isUriMatchesPattern(uriOrPath: string, patterns: string[]): boolean {
+    const fileName = path.basename(uriOrPath);
+    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(uriOrPath, pattern));
 }
 
 /**

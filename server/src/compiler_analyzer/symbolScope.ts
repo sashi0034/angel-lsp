@@ -493,7 +493,7 @@ function collectEnumScopeList(scope: SymbolScope): SymbolScope[] {
 function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean {
     if (source === undefined) return false;
     if (source.nodeName != NodeName.Class) return false;
-    // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;
+    // if (isAngelscriptPredefinedFile(source.nodeRange.path) === false) return false;
 
     // Check if the class has a metadata that indicates it is a built-in string type.
     const builtinStringMetadata = "BuiltinString";

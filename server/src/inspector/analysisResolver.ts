@@ -5,7 +5,7 @@ import {DelayedTask} from "../utils/delayedTask";
 import {PublishDiagnosticsParams} from "vscode-languageserver-protocol";
 import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {getParentDirectoryList, isAngelscriptFile, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
+import {getParentDirectoryList, isAngelscriptFile, isAngelscriptPredefinedFile, readFileContent, resolveIncludeUri, resolveUri} from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
 import {hoistAfterParsed} from "../compiler_analyzer/hoist";
@@ -30,8 +30,6 @@ interface PartialInspectRecord {
 export type InspectRequest = (uri: string, content: string) => void;
 
 export type DiagnosticsCallback = (params: PublishDiagnosticsParams) => void;
-
-const predefinedFileName = 'as.predefined';
 
 const profilerDescriptionLength = 12;
 
@@ -229,7 +227,7 @@ export class AnalysisResolver {
 
         if (getGlobalSettings().implicitMutualInclusion) {
             // If implicit mutual inclusion is enabled, include all files under the directory where 'as.predefined' is located.
-            if (record.uri.endsWith(predefinedFileName) === false && predefinedUri !== undefined) {
+            if (!isAngelscriptPredefinedFile(record.uri) && predefinedUri !== undefined) {
                 const predefinedDirectory = resolveUri(predefinedUri, '.');
                 return [...Array.from(includeSet),
                     ...Array.from(this._inspectRecords.keys())
@@ -272,29 +270,34 @@ export class AnalysisResolver {
 
         // Search for nearest 'as.predefined'
         for (const dir of dirs) {
-            const predefinedUri = dir + `/${predefinedFileName}`;
+            // find all predefined files in the directory
+            const files = fs.readdirSync(dir).filter(file => isAngelscriptPredefinedFile(file));
 
-            if (this._inspectRecords.get(predefinedUri) !== undefined &&
-                this._resolvedPredefinedFilepaths.has(predefinedUri)
-            ) {
-                // Return the record if the file has already been analyzed
+            for (const file of files) {
+                const predefinedUri = dir + `/${file}`;
+
+                if (this._inspectRecords.get(predefinedUri) !== undefined &&
+                    this._resolvedPredefinedFilepaths.has(predefinedUri)
+                ) {
+                    // Return the record if the file has already been analyzed
+                    return predefinedUri;
+                }
+
+                if (targetUri !== predefinedUri) {
+                    const content = readFileContent(predefinedUri);
+                    if (content === undefined) continue;
+
+                    // If the file is found, inspect it
+                    this._inspectRequest(predefinedUri, content);
+                }
+
+                // Inspect all files under the directory where 'as.predefined' is located
+                this.inspectUnderDirectory(resolveUri(predefinedUri, '.'));
+
+                this._resolvedPredefinedFilepaths.add(predefinedUri);
+
                 return predefinedUri;
             }
-
-            if (targetUri !== predefinedUri) {
-                const content = readFileContent(predefinedUri);
-                if (content === undefined) continue;
-
-                // If the file is found, inspect it
-                this._inspectRequest(predefinedUri, content);
-            }
-
-            // Inspect all files under the directory where 'as.predefined' is located
-            this.inspectUnderDirectory(resolveUri(predefinedUri, '.'));
-
-            this._resolvedPredefinedFilepaths.add(predefinedUri);
-
-            return predefinedUri;
         }
 
         return undefined;
