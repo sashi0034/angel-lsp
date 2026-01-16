@@ -274,7 +274,7 @@ export class AnalysisResolver {
             const files = this.getDirectoryEntries(dir).filter(file => file.isFile() && isAngelscriptPredefinedFile(file.name));
 
             for (const file of files) {
-                const predefinedUri = dir + `/${file}`;
+                const predefinedUri = dir + `/${file.name}`;
 
                 if (this._inspectRecords.get(predefinedUri) !== undefined &&
                     this._resolvedPredefinedFilepaths.has(predefinedUri)

@@ -241,6 +241,17 @@ describe('fileUtils', () => {
             assert(result.includes('nonexistent.as'));
         });
 
+        it('should support alternative file extensions', () => {
+            resetGlobalSettings({
+                ...copyGlobalSettings(),
+                angelscriptFilePatterns: ['*.as', '*.angelscript']
+            });
+            const baseUri = 'file:///C:/project/main.as';
+            const relativePath = 'test.angelscript';
+            const result = resolveIncludeUri(baseUri, relativePath);
+            assert(result.includes('test.angelscript'));
+        });
+
         it('should handle predefined file patterns', () => {
             const predefinedFile = path.join(tempDir, 'as.predefined');
             fs.writeFileSync(predefinedFile, '// predefined');
