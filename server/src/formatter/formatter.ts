@@ -211,6 +211,8 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
 
     formatTargetBy(format, nodeFunc.identifier.text, {});
 
+    formatTypeTemplates(format, nodeFunc.typeTemplates);
+
     formatParamList(format, nodeFunc.paramList);
 
     if (nodeFunc.isConst) formatTargetBy(format, 'const', {});
@@ -975,6 +977,10 @@ function formatFuncCall(format: FormatterState, funcCall: NodeFuncCall) {
     }
 
     formatTargetBy(format, funcCall.identifier.text, {});
+
+    if (funcCall.typeTemplates !== undefined) {
+        formatTypeTemplates(format, funcCall.typeTemplates);
+    }
 
     formatArgList(format, funcCall.argList);
 }

@@ -381,6 +381,22 @@ function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], template
     return translation;
 }
 
+function mergeTemplateTranslators(
+    base: TemplateTranslator | undefined,
+    overlay: TemplateTranslator | undefined
+): TemplateTranslator | undefined {
+    if (base === undefined && overlay === undefined) return undefined;
+    if (base === undefined) return overlay;
+    if (overlay === undefined) return base;
+
+    const merged: TemplateTranslator = new Map(base);
+    for (const [token, type] of overlay) {
+        merged.set(token, type);
+    }
+
+    return merged;
+}
+
 // BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
     for (const init of initList.initList) {
@@ -965,18 +981,35 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
             return undefined;
         }
 
+        const callTemplateTypes = member.typeTemplates ?? [];
+
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
+            const callTemplateTranslator = callTemplateTypes.length > 0
+                ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.first.templateTypes)
+                : undefined;
             return analyzeFunctionCall(
-                scope, identifier, member.argList, instanceMember, exprValue.templateTranslator
+                scope,
+                identifier,
+                member.argList,
+                instanceMember,
+                mergeTemplateTranslators(exprValue.templateTranslator, callTemplateTranslator)
             );
         }
 
         if (instanceMember.isVariable() && instanceMember.type?.typeOrFunc.isFunction()) {
             // This instance member is a delegate.
             const delegate = instanceMember.type.typeOrFunc.toHolder();
+            const callTemplateTranslator = callTemplateTypes.length > 0
+                ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.type.typeOrFunc.templateTypes)
+                : undefined;
             return analyzeFunctionCall(
-                scope, identifier, member.argList, delegate, exprValue.templateTranslator, instanceMember
+                scope,
+                identifier,
+                member.argList,
+                delegate,
+                mergeTemplateTranslators(exprValue.templateTranslator, callTemplateTranslator),
+                instanceMember
             );
         }
 
@@ -1095,14 +1128,19 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
+    const callTemplateTypes = funcCall.typeTemplates ?? [];
+
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handler
+        const callTemplateTranslator = callTemplateTypes.length > 0
+            ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.type.typeOrFunc.templateTypes)
+            : undefined;
         return analyzeFunctionCall(
             scope,
             funcCall.identifier,
             funcCall.argList,
             new SymbolFunctionHolder(calleeSymbol.type.typeOrFunc),
-            undefined,
+            callTemplateTranslator,
             calleeSymbol
         );
     }
@@ -1116,7 +1154,16 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
         return undefined;
     }
 
-    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, undefined);
+    const callTemplateTranslator = callTemplateTypes.length > 0
+        ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.first.templateTypes)
+        : undefined;
+    return analyzeFunctionCall(
+        scope,
+        funcCall.identifier,
+        funcCall.argList,
+        calleeSymbol,
+        callTemplateTranslator
+    );
 }
 
 function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {

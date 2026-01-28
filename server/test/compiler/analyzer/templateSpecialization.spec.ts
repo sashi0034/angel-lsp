@@ -104,4 +104,30 @@ describe('analyzer/templateSpecialization', () => {
             }
             `
     }]);
+
+    expectSuccess([{
+        uri: 'file:///path/to/as.predefined',
+        content: `
+            class Item {
+                int weight;
+            }
+
+            class Box<Item> {
+                int specialWeight;
+            }
+
+            T findItem<T>(int id) {
+                T item;
+                return item;
+            }
+            `
+    }, {
+        uri: 'file:///path/to/file.as',
+        content: `// Explicit function template arguments resolve return types.
+            void main() {
+                auto itemBox = findItem<Box<Item>>(1);
+                Box<Item> itemBoxCopy = itemBox;
+            }
+            `
+    }]);
 });
