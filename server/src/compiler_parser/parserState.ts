@@ -1,12 +1,12 @@
 import {HighlightForToken} from "../core/highlight";
 import {diagnostic} from "../core/diagnostic";
-import {TokenIdentifier, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
+import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
 import {
     ParserCachedData,
     ParserCacheKind,
     ParserCacheServices, ParserCacheTargets
 } from "./parserCache";
-import {MutableTextPosition, TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
+import {TextLocation} from "../compiler_tokenizer/textLocation";
 
 export enum ParseFailure {
     /**
@@ -58,8 +58,9 @@ export class ParserState {
     ) {
         this._caches = new Array(_tokens.length);
 
-        this._sofToken = makeSofToken(_tokens.at(0));
-        this._eofToken = makeEofToken(_tokens.at(-1));
+        // TODO: Maybe we should create a special token separately
+        this._sofToken = new TokenString('', TextLocation.createEmpty());
+        this._eofToken = new TokenString('', TextLocation.createEmpty());
 
         this.isPredefinedFile = _tokens.at(0)?.location.path.endsWith('as.predefined') ?? false;
     }
@@ -159,22 +160,3 @@ export class ParserState {
     }
 }
 
-function makeSofToken(firstToken: TokenObject | undefined) {
-    if (firstToken === undefined) {
-        return new TokenIdentifier('', TextLocation.createEmpty());
-    }
-
-    const start = new TextPosition(0, 0);
-    return new TokenIdentifier('', new TextLocation(firstToken.location.path, start, start));
-}
-
-function makeEofToken(lastToken: TokenObject | undefined) {
-    if (lastToken === undefined) {
-        return new TokenIdentifier('', TextLocation.createEmpty());
-    }
-
-    const end0 = MutableTextPosition.create(lastToken.location.end);
-    end0.character_ += 1;
-    const end = end0.freeze();
-    return new TokenIdentifier('', new TextLocation(lastToken.location.path, end, end));
-}
