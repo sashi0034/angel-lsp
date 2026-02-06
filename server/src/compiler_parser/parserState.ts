@@ -7,7 +7,6 @@ import {
     ParserCacheServices, ParserCacheTargets
 } from "./parserCache";
 import {MutableTextPosition, TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
-import { isAngelscriptPredefinedFile } from '../service/fileUtils';
 
 export enum ParseFailure {
     /**
@@ -62,7 +61,7 @@ export class ParserState {
         this._sofToken = makeSofToken(_tokens.at(0));
         this._eofToken = makeEofToken(_tokens.at(-1));
 
-        this.isPredefinedFile = isAngelscriptPredefinedFile(_tokens.at(0)?.location.path ?? '');
+        this.isPredefinedFile = _tokens.at(0)?.location.path.endsWith('as.predefined') ?? false;
     }
 
     public backtrack(token: TokenObject) {

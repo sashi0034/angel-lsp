@@ -6,7 +6,6 @@ import * as os from "os";
 import {pathToFileURL} from "node:url";
 import {
     isAngelscriptFile,
-    isAngelscriptPredefinedFile,
     resolveUri,
     resolveIncludeUri
 } from "../../src/service/fileUtils";
@@ -68,37 +67,6 @@ describe('fileUtils', () => {
             });
             assert.strictEqual(isAngelscriptFile('file:///C:/path/to/file.as'), true);
             assert.strictEqual(isAngelscriptFile('file:///path/to/file.as'), true);
-        });
-    });
-
-    describe('isAngelscriptPredefinedFile', () => {
-        it('should return true for as.predefined files', () => {
-            resetGlobalSettings({
-                ...copyGlobalSettings(),
-                angelscriptPredefinedFilePatterns: ['as.predefined']
-            });
-            assert.strictEqual(isAngelscriptPredefinedFile('as.predefined'), true);
-            assert.strictEqual(isAngelscriptPredefinedFile('/path/to/as.predefined'), true);
-            assert.strictEqual(isAngelscriptPredefinedFile('file:///path/to/as.predefined'), true);
-        });
-
-        it('should return false for non-predefined files', () => {
-            resetGlobalSettings({
-                ...copyGlobalSettings(),
-                angelscriptPredefinedFilePatterns: ['as.predefined']
-            });
-            assert.strictEqual(isAngelscriptPredefinedFile('test.as'), false);
-            assert.strictEqual(isAngelscriptPredefinedFile('test.txt'), false);
-        });
-
-        it('should support multiple patterns', () => {
-            resetGlobalSettings({
-                ...copyGlobalSettings(),
-                angelscriptPredefinedFilePatterns: ['as.predefined', '*.predefined']
-            });
-            assert.strictEqual(isAngelscriptPredefinedFile('as.predefined'), true);
-            assert.strictEqual(isAngelscriptPredefinedFile('custom.predefined'), true);
-            assert.strictEqual(isAngelscriptPredefinedFile('test.as'), false);
         });
     });
 
@@ -250,22 +218,6 @@ describe('fileUtils', () => {
             const relativePath = 'test.angelscript';
             const result = resolveIncludeUri(baseUri, relativePath);
             assert(result.includes('test.angelscript'));
-        });
-
-        it('should handle predefined file patterns', () => {
-            const predefinedFile = path.join(tempDir, 'as.predefined');
-            fs.writeFileSync(predefinedFile, '// predefined');
-
-            resetGlobalSettings({
-                ...copyGlobalSettings(),
-                angelscriptPredefinedFilePatterns: ['as.predefined']
-            });
-
-            const baseDir = tempDir;
-            const baseUri = pathToFileURL(path.join(baseDir, 'main.as')).toString();
-            const relativePath = 'as.predefined';
-            const result = resolveIncludeUri(baseUri, relativePath);
-            assert(result.includes('as.predefined'));
         });
     });
 });

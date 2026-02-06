@@ -8,7 +8,6 @@ interface LanguageServerSettings {
     forceIncludePredefined: string[];
     implicitMutualInclusion: boolean;
     angelscriptFilePatterns: string[];
-    angelscriptPredefinedFilePatterns: string[];
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
     allowUnicodeIdentifiers: boolean;
@@ -34,7 +33,6 @@ const defaultSettings: LanguageServerSettings = {
     forceIncludePredefined: [],
     implicitMutualInclusion: false,
     angelscriptFilePatterns: ["*.as"],
-    angelscriptPredefinedFilePatterns: ["as.predefined"],
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
     allowUnicodeIdentifiers: false,

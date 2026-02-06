@@ -9,10 +9,6 @@ export function isAngelscriptFile(uriOrPath: string): boolean {
     return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelscriptFilePatterns);
 }
 
-export function isAngelscriptPredefinedFile(uriOrPath: string): boolean {
-    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelscriptPredefinedFilePatterns);
-}
-
 function isUriMatchesPattern(uriOrPath: string, patterns: string[]): boolean {
     const fileName = path.basename(uriOrPath);
     return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(uriOrPath, pattern));
@@ -83,7 +79,7 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
-    if (!isAngelscriptFile(relativeOrAbsolute) && !isAngelscriptPredefinedFile(relativeOrAbsolute)) {
+    if (!isAngelscriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
         // If the file does not match any pattern, try to extract extension from first file pattern
         // and append it (defaults to .as)
         const defaultExt = extractExtensionFromPattern(getGlobalSettings().angelscriptFilePatterns[0] || '*.as');
