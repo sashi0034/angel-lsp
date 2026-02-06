@@ -7,7 +7,7 @@ import {getGlobalSettings} from "../core/settings";
 import {PreprocessedOutput} from "../compiler_parser/parserPreprocess";
 import {
     getParentDirectoryList,
-    isAngelscriptFile,
+    isAngelScriptFile,
     readFileContent,
     resolveIncludeUri,
     resolveUri
@@ -242,7 +242,7 @@ export class AnalysisResolver {
                         .filter(uri =>
                             uri.startsWith(predefinedDirectory) &&
                             uri !== record.uri &&
-                            isAngelscriptFile(uri)
+                            isAngelScriptFile(uri)
                         )
                 ];
             }
@@ -314,7 +314,7 @@ export class AnalysisResolver {
                 this.inspectUnderDirectory(`${fileUri}/`);
             } else if (entry.isFile()) {
                 // Only process files with allowed AngelScript extensions
-                if (!isAngelscriptFile(fileUri)) {
+                if (!isAngelScriptFile(fileUri)) {
                     continue;
                 }
 

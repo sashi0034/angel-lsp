@@ -5,7 +5,7 @@ import * as path from "path";
 import * as os from "os";
 import {pathToFileURL} from "node:url";
 import {
-    isAngelscriptFile,
+    isAngelScriptFile,
     resolveUri,
     resolveIncludeUri
 } from "../../src/service/fileUtils";
@@ -36,9 +36,9 @@ describe('fileUtils', () => {
                 ...copyGlobalSettings(),
                 angelScriptFilePatterns: ['*.as']
             });
-            assert.strictEqual(isAngelscriptFile('test.as'), true);
-            assert.strictEqual(isAngelscriptFile('/path/to/file.as'), true);
-            assert.strictEqual(isAngelscriptFile('file:///path/to/file.as'), true);
+            assert.strictEqual(isAngelScriptFile('test.as'), true);
+            assert.strictEqual(isAngelScriptFile('/path/to/file.as'), true);
+            assert.strictEqual(isAngelScriptFile('file:///path/to/file.as'), true);
         });
 
         it('should return false for non-.as files', () => {
@@ -46,8 +46,8 @@ describe('fileUtils', () => {
                 ...copyGlobalSettings(),
                 angelScriptFilePatterns: ['*.as']
             });
-            assert.strictEqual(isAngelscriptFile('test.txt'), false);
-            assert.strictEqual(isAngelscriptFile('test.js'), false);
+            assert.strictEqual(isAngelScriptFile('test.txt'), false);
+            assert.strictEqual(isAngelScriptFile('test.js'), false);
         });
 
         it('should support multiple patterns', () => {
@@ -55,9 +55,9 @@ describe('fileUtils', () => {
                 ...copyGlobalSettings(),
                 angelScriptFilePatterns: ['*.as', '*.angelscript']
             });
-            assert.strictEqual(isAngelscriptFile('test.as'), true);
-            assert.strictEqual(isAngelscriptFile('test.angelscript'), true);
-            assert.strictEqual(isAngelscriptFile('test.txt'), false);
+            assert.strictEqual(isAngelScriptFile('test.as'), true);
+            assert.strictEqual(isAngelScriptFile('test.angelscript'), true);
+            assert.strictEqual(isAngelScriptFile('test.txt'), false);
         });
 
         it('should match full URI paths', () => {
@@ -65,8 +65,8 @@ describe('fileUtils', () => {
                 ...copyGlobalSettings(),
                 angelScriptFilePatterns: ['*.as']
             });
-            assert.strictEqual(isAngelscriptFile('file:///C:/path/to/file.as'), true);
-            assert.strictEqual(isAngelscriptFile('file:///path/to/file.as'), true);
+            assert.strictEqual(isAngelScriptFile('file:///C:/path/to/file.as'), true);
+            assert.strictEqual(isAngelScriptFile('file:///path/to/file.as'), true);
         });
     });
 
