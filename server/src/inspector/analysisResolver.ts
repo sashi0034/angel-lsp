@@ -312,12 +312,7 @@ export class AnalysisResolver {
             const fileUri = resolveUri(dirUri, entry.name);
             if (entry.isDirectory()) {
                 this.inspectUnderDirectory(`${fileUri}/`);
-            } else if (entry.isFile()) {
-                // Only process files with allowed AngelScript extensions
-                if (!isAngelScriptFile(fileUri)) {
-                    continue;
-                }
-
+            } else if (entry.isFile() && isAngelScriptFile(fileUri)) {
                 const content = readFileContent(fileUri);
                 if (content !== undefined) this._inspectRequest(fileUri, content);
             }
