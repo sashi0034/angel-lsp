@@ -80,6 +80,13 @@ function evaluateTypeConversionInternal(
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
 
+    if (destTypeOrFunc.isType()) {
+        // Any type can be converted to a var/auto type
+        if (dest.isAnyType() || dest.isAutoType()) {
+            return {cost: ConversionCost.VariableConv};
+        }
+    }
+
     // Template types must be the same
     if (areTemplateTypesEqual(src, dest) === false) return undefined;
 
@@ -100,12 +107,6 @@ function evaluateTypeConversionInternal(
     }
 
     const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
-
-    // FIXME?
-    // Any type can be converted to a var type
-    if (destType.identifierText === '?') return {cost: ConversionCost.VariableConv};
-
-    if (destType.identifierText === 'auto') return {cost: ConversionCost.VariableConv};
 
     if (srcTypeOrFunc.isFunction()) {
         return undefined;
