@@ -34,7 +34,7 @@ describe('fileUtils', () => {
         it('should return true for .as files', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
             assert.strictEqual(isAngelscriptFile('test.as'), true);
             assert.strictEqual(isAngelscriptFile('/path/to/file.as'), true);
@@ -44,7 +44,7 @@ describe('fileUtils', () => {
         it('should return false for non-.as files', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
             assert.strictEqual(isAngelscriptFile('test.txt'), false);
             assert.strictEqual(isAngelscriptFile('test.js'), false);
@@ -53,7 +53,7 @@ describe('fileUtils', () => {
         it('should support multiple patterns', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as', '*.angelscript']
+                angelScriptFilePatterns: ['*.as', '*.angelscript']
             });
             assert.strictEqual(isAngelscriptFile('test.as'), true);
             assert.strictEqual(isAngelscriptFile('test.angelscript'), true);
@@ -63,7 +63,7 @@ describe('fileUtils', () => {
         it('should match full URI paths', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
             assert.strictEqual(isAngelscriptFile('file:///C:/path/to/file.as'), true);
             assert.strictEqual(isAngelscriptFile('file:///path/to/file.as'), true);
@@ -128,7 +128,7 @@ describe('fileUtils', () => {
         it('should append default extension for files without extension', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
             const baseDir = path.dirname(tempFile);
             const baseUri = pathToFileURL(path.join(baseDir, 'main.as')).toString();
@@ -140,7 +140,7 @@ describe('fileUtils', () => {
         it('should not append extension for files matching patterns', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
             const baseDir = path.dirname(tempFile);
             const baseUri = pathToFileURL(path.join(baseDir, 'main.as')).toString();
@@ -160,7 +160,7 @@ describe('fileUtils', () => {
                 resetGlobalSettings({
                     ...copyGlobalSettings(),
                     includePath: [includeDir],
-                    angelscriptFilePatterns: ['*.as']
+                    angelScriptFilePatterns: ['*.as']
                 });
 
                 const baseUri = 'file:///C:/project/main.as';
@@ -182,7 +182,7 @@ describe('fileUtils', () => {
                 resetGlobalSettings({
                     ...copyGlobalSettings(),
                     includePath: [includeDir1, includeDir2],
-                    angelscriptFilePatterns: ['*.as']
+                    angelScriptFilePatterns: ['*.as']
                 });
 
                 const baseUri = 'file:///C:/project/main.as';
@@ -199,7 +199,7 @@ describe('fileUtils', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
                 includePath: ['/nonexistent/path'],
-                angelscriptFilePatterns: ['*.as']
+                angelScriptFilePatterns: ['*.as']
             });
 
             const baseUri = 'file:///C:/project/main.as';
@@ -212,7 +212,7 @@ describe('fileUtils', () => {
         it('should support alternative file extensions', () => {
             resetGlobalSettings({
                 ...copyGlobalSettings(),
-                angelscriptFilePatterns: ['*.as', '*.angelscript']
+                angelScriptFilePatterns: ['*.as', '*.angelscript']
             });
             const baseUri = 'file:///C:/project/main.as';
             const relativePath = 'test.angelscript';

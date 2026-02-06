@@ -109,7 +109,7 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
     };
 
     if (s_hasWorkspaceFolderCapability) {
-        const filters = ['*as.predefined'].concat(getGlobalSettings().angelscriptFilePatterns).map(pattern => ({
+        const filters = ['*as.predefined'].concat(getGlobalSettings().angelScriptFilePatterns).map(pattern => ({
             scheme: 'file',
             pattern: {glob: pattern}
         }));

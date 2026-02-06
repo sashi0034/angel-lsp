@@ -167,13 +167,15 @@
                     "default": false,
                     "description": "Project files implicitly include each other (like C# or Java). This works with `as.predefined` as the root."
                 },
-                "angelScript.angelscriptFilePatterns": {
+                "angelScript.angelScriptFilePatterns": {
                     "scope": "window",
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
-                    "default": ["*.as"],
+                    "default": [
+                        "*.as"
+                    ],
                     "description": "Glob patterns that match files to be treated as AngelScript. Examples: \"*.as\", \"*.hxx\", \"*.cxx\". Files matching these patterns will be processed by the language server."
                 },
                 "angelScript.angelscriptPredefinedFilePatterns": {
@@ -182,7 +184,9 @@
                     "items": {
                         "type": "string"
                     },
-                    "default": ["as.predefined"],
+                    "default": [
+                        "as.predefined"
+                    ],
                     "description": "Glob patterns that match files to be treated as AngelScript predefined files. Examples: \"*.as.predefined\", \"as.predefined\". Files matching these patterns will be processed by the language server."
                 },
                 "angelScript.hoistEnumParentScope": {

@@ -6,7 +6,7 @@ import {getGlobalSettings} from "../core/settings";
 import { minimatch } from "minimatch";
 
 export function isAngelscriptFile(uriOrPath: string): boolean {
-    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelscriptFilePatterns);
+    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelScriptFilePatterns);
 }
 
 function isUriMatchesPattern(uriOrPath: string, patterns: string[]): boolean {
@@ -82,7 +82,7 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
     if (!isAngelscriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
         // If the file does not match any pattern, try to extract extension from first file pattern
         // and append it (defaults to .as)
-        const defaultExt = extractExtensionFromPattern(getGlobalSettings().angelscriptFilePatterns[0] || '*.as');
+        const defaultExt = extractExtensionFromPattern(getGlobalSettings().angelScriptFilePatterns[0] || '*.as');
         if (defaultExt) {
             relativeOrAbsolute = relativeOrAbsolute + defaultExt;
         }
