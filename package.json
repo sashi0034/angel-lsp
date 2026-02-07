@@ -4,7 +4,7 @@
     "description": "VSCode extensions for AngelScript Language Server",
     "author": "sashi0034",
     "license": "MIT",
-    "version": "0.3.78",
+    "version": "0.3.80",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
@@ -166,17 +166,6 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Project files implicitly include each other (like C# or Java). This works with `as.predefined` as the root."
-                },
-                "angelScript.angelScriptFilePatterns": {
-                    "scope": "window",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "default": [
-                        "*.as"
-                    ],
-                    "description": "Glob patterns that match files to be treated as AngelScript. Examples: \"*.as\", \"*.hxx\", \"*.cxx\". Files matching these patterns will be processed by the language server."
                 },
                 "angelScript.hoistEnumParentScope": {
                     "scope": "window",

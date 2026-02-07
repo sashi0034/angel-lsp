@@ -11,7 +11,7 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {getGlobalSettings, resetGlobalSettings} from "./core/settings";
+import {resetGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
@@ -109,10 +109,10 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
     };
 
     if (s_hasWorkspaceFolderCapability) {
-        const filters = ['*as.predefined'].concat(getGlobalSettings().angelScriptFilePatterns).map(pattern => ({
+        const filters = {
             scheme: 'file',
-            pattern: {glob: pattern}
-        }));
+            pattern: {glob: '**/{as.predefined,*.as}',}
+        };
 
         result.capabilities.workspace = {
             workspaceFolders: {
@@ -120,10 +120,10 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
             },
             fileOperations: {
                 didRename: {
-                    filters
+                    filters: [filters]
                 },
                 didDelete: {
-                    filters
+                    filters: [filters]
                 }
             }
         };
