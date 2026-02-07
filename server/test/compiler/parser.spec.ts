@@ -105,4 +105,6 @@ describe("Parser", () => {
     expectSuccess(`bool foo = not true; bool bar = not not false;`);
 
     expectFailure(`funcdef`);
+
+    expectFailure("void foo(");
 });
