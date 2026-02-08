@@ -727,7 +727,7 @@ function parseRef(parser: ParserState) {
 function lookaheadTokenAfterParentheses(parser: ParserState) {
     let level = 0;
     let i = 0;
-    while (parser.isEnd() === false) {
+    while (parser.hasNext(i)) {
         const token = parser.next(i);
         if (token.text === '(') {
             level++;
