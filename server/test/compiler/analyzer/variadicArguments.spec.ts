@@ -22,43 +22,26 @@ describe('analyzer/variadicArguments', () => {
         }
     ]);
 
-    expectError([
-        {
-            uri: 'file:///path/to/as.predefined',
-            content: `
-                class Str { }
-                void format(const Str& in str, const Str& in ...);
-            `
-        },
-        {
-            uri: 'file:///path/to/file.as',
-            content: `// Variadic arguments need at least one argument.
-                void main() {
-                    Str str;
-                    format(str);
-                }
-            `
-        }
-    ]);
-
-    expectError([
-        {
-            uri: 'file:///path/to/as.predefined',
-            content: `
-                class Str { }
-                void format(const Str& in str, const Str& in ...);
-            `
-        },
-        {
-            uri: 'file:///path/to/file.as',
-            content: `// Variadic arguments need at least one argument.
-                void main() {
-                    Str str;
-                    format(str);
-                }
-            `
-        }
-    ]);
+    // The new version of AngelScript allows variadic functions to accept zero arguments.
+    // https://github.com/sashi0034/angel-lsp/issues/272
+    // expectError([
+    //     {
+    //         uri: 'file:///path/to/as.predefined',
+    //         content: `
+    //             class Str { }
+    //             void format(const Str& in str, const Str& in ...);
+    //         `
+    //     },
+    //     {
+    //         uri: 'file:///path/to/file.as',
+    //         content: `// Variadic arguments need at least one argument.
+    //             void main() {
+    //                 Str str;
+    //                 format(str);
+    //             }
+    //         `
+    //     }
+    // ]);
 
     expectError([
         {

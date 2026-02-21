@@ -340,8 +340,10 @@ function evaluatePassingPositionalArgument(
     for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
         if (paramId >= callerArgs.length) {
             // Handle when the caller arguments are insufficient.
-            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined) {
-                // When there is default expressions
+            // If the parameter has a default expression or is variadic (can accept zero args),
+            // treat it as satisfied and stop checking further positional parameters.
+            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined ||
+                callee.linkedNode.paramList[paramId].isVariadic) {
                 break;
             } else {
                 return {reason: MismatchKind.FewerArguments};
