@@ -24,17 +24,30 @@ export interface CompletionItemWrapper {
 export function provideCompletion(
     globalScope: SymbolGlobalScope, caret: TextPosition
 ): CompletionItemWrapper[] {
+    const items = provideCompletion_internal(globalScope, caret);
+
+    // Assign sort keys to completion items.
+    for (const item of items) {
+        attackSortKey(item.item);
+    }
+
+    return items;
+}
+
+function provideCompletion_internal(
+    globalScope: SymbolGlobalScope, caret: TextPosition
+): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     const caretScope = findScopeContainingPosition(globalScope, caret).scope;
 
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
-    // e.g. Methods of the instance object.
+    // e.g., Methods of the instance object.
     const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
     if (prioritizedCompletion !== undefined) return prioritizedCompletion;
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
-    // e.g. Defined classes or functions in the scope.
+    // e.g., Defined classes or functions in the scope.
     for (const scope of collectScopeListWithParentAndUsingNamespace(caretScope)) {
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
@@ -177,6 +190,18 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
     }
 
     return {item, symbol};
+}
+
+// Symbols with underscores are sorted to the back.
+function attackSortKey(item: CompletionItem) {
+    const labelText: string = item.label;
+
+    let underscoreCount = 0;
+    while (underscoreCount < labelText.length && labelText[underscoreCount] === "_") {
+        underscoreCount++;
+    }
+
+    item.sortText = String.fromCharCode(underscoreCount) + labelText;
 }
 
 // -----------------------------------------------
