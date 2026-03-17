@@ -266,11 +266,6 @@ export function tokenize(path: string, content: string): TokenObject[] {
     const tokenizer = new TokenizerState(content);
     const unknownWordBuffer = new UnknownWordBuffer();
 
-    // UTF8 BOM remove
-    if (tokenizer.next() === '\uFEFF') {
-        tokenizer.stepNext();
-    }
-
     for (; ;) {
         if (tokenizer.isEnd()) break;
         if (tokenizer.isNextWrap()
