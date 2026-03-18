@@ -220,6 +220,15 @@
                     "default": false,
                     "description": "Whether your codebase uses the `asEP_USE_CHARACTER_LITERALS` option."
                 },
+                "angelScript.files.exclude": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Glob patterns that match files to be excluded from the language server. Examples: \"**/bin/**\", \"**/obj/**\". Files matching these patterns will not be included by the language server on its own."
+                },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
                     "type": "number",

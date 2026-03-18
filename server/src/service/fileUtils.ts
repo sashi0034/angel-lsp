@@ -3,15 +3,20 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
-import { minimatch } from "minimatch";
+import {minimatch} from "minimatch";
+import {getEditorState} from "../core/editorState";
 
-export function isAngelScriptFile(uriOrPath: string): boolean {
-    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelScriptFilePatterns);
+export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
+    const patterns = getGlobalSettings().angelScriptFilePatterns;
+    const fileName = path.basename(relativeOrAbsolute);
+    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
 }
 
-function isUriMatchesPattern(uriOrPath: string, patterns: string[]): boolean {
-    const fileName = path.basename(uriOrPath);
-    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(uriOrPath, pattern));
+export function shouldExcludeFile(uri: string): boolean {
+    // TODO: Optimize
+    const patterns = getGlobalSettings().files.exclude;
+    const cwd = (getEditorState().workspaceFolderUris[0] ?? '') + '/';
+    return patterns.some(pattern => minimatch(uri, resolveUri(cwd, pattern)));
 }
 
 /**
@@ -57,7 +62,7 @@ export function resolveUri(baseUri: string, relativePath: string): string {
 }
 
 function normalizeFileUri(uri: string) {
-    // Case 1: Normalize drive letter to "c%3A"
+    // Case 1: Normalize a drive letter ":" to "%3A"
     // Example: file:///C:/... --> file:///c%3A/...
     uri = uri.replace(
         /^file:\/\/\/([A-Za-z]):/,

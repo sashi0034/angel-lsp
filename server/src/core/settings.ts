@@ -1,3 +1,5 @@
+import {string} from "vscode-languageserver/lib/common/utils/is";
+
 /**
  * LanguageServer settings.
  * See package.json because the settings in VSCode are defined in it.
@@ -17,6 +19,9 @@ interface LanguageServerSettings {
     supportsDigitSeparators: boolean;
     builtinStringType: string;
     builtinArrayType: string;
+    files: {
+        exclude: string[];
+    };
     formatter: {
         maxBlankLines: number;
         indentSpaces: number;
@@ -42,6 +47,9 @@ const defaultSettings: LanguageServerSettings = {
     supportsDigitSeparators: false,
     builtinStringType: "string",
     builtinArrayType: "array",
+    files: {
+        exclude: []
+    },
     formatter: {
         maxBlankLines: 1,
         indentSpaces: 4,

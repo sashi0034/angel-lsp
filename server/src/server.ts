@@ -31,6 +31,7 @@ import {safeWriteFile} from "./utils/fileUtils";
 import {moveInlayHintByChanges} from "./service/contentChangeApplier";
 import {provideDefinitionFallback} from "./services/definitionExtension";
 import {CodeActionWrapper} from "./actions/utils";
+import {getEditorState} from "./core/editorState";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -61,6 +62,8 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
 
     s_hasDiagnosticRelatedInformationCapability =
         capabilities.textDocument?.publishDiagnostics?.relatedInformation ?? false;
+
+    getEditorState().workspaceFolderUris = params.workspaceFolders?.map(folder => folder.uri) ?? [];
 
     const result: lsp.InitializeResult = {
         capabilities: {
