@@ -7,6 +7,7 @@ import {minimatch} from "minimatch";
 import {getEditorState} from "../core/editorState";
 
 export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
+    // FIXME?
     const patterns = getGlobalSettings().angelScriptFilePatterns;
     const fileName = path.basename(relativeOrAbsolute);
     return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
@@ -16,7 +17,7 @@ export function shouldExcludeFile(uri: string): boolean {
     // TODO: Optimize
     const patterns = getGlobalSettings().files.exclude;
     const cwd = (getEditorState().workspaceFolderUris[0] ?? '') + '/';
-    return patterns.some(pattern => minimatch(uri, resolveUri(cwd, pattern)));
+    return patterns.some(pattern => minimatch(uri, pattern) || minimatch(uri, resolveUri(cwd, pattern)));
 }
 
 /**
