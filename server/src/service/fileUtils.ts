@@ -3,15 +3,21 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
-import { minimatch } from "minimatch";
+import {minimatch} from "minimatch";
+import {getEditorState} from "../core/editorState";
 
-export function isAngelScriptFile(uriOrPath: string): boolean {
-    return isUriMatchesPattern(uriOrPath, getGlobalSettings().angelScriptFilePatterns);
+export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
+    // FIXME?
+    const patterns = getGlobalSettings().files.angelScript;
+    const fileName = path.basename(relativeOrAbsolute);
+    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
 }
 
-function isUriMatchesPattern(uriOrPath: string, patterns: string[]): boolean {
-    const fileName = path.basename(uriOrPath);
-    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(uriOrPath, pattern));
+export function shouldExcludeFile(uri: string): boolean {
+    // TODO: Optimize
+    const patterns = getGlobalSettings().files.exclude;
+    const cwd = (getEditorState().workspaceFolderUris[0] ?? '') + '/';
+    return patterns.some(pattern => minimatch(uri, pattern) || minimatch(uri, resolveUri(cwd, pattern)));
 }
 
 /**
@@ -57,7 +63,7 @@ export function resolveUri(baseUri: string, relativePath: string): string {
 }
 
 function normalizeFileUri(uri: string) {
-    // Case 1: Normalize drive letter to "c%3A"
+    // Case 1: Normalize a drive letter ":" to "%3A"
     // Example: file:///C:/... --> file:///c%3A/...
     uri = uri.replace(
         /^file:\/\/\/([A-Za-z]):/,
@@ -82,7 +88,7 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
     if (!isAngelScriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
         // If the file does not match any pattern, try to extract extension from first file pattern
         // and append it (defaults to .as)
-        const defaultExt = extractExtensionFromPattern(getGlobalSettings().angelScriptFilePatterns[0] || '*.as');
+        const defaultExt = extractExtensionFromPattern(getGlobalSettings().files.angelScript[0] || '*.as');
         if (defaultExt) {
             relativeOrAbsolute = relativeOrAbsolute + defaultExt;
         }

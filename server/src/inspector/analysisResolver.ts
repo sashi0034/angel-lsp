@@ -10,7 +10,8 @@ import {
     isAngelScriptFile,
     readFileContent,
     resolveIncludeUri,
-    resolveUri
+    resolveUri,
+    shouldExcludeFile
 } from "../service/fileUtils";
 import {analyzerDiagnostic} from "../compiler_analyzer/analyzerDiagnostic";
 import {Profiler} from "../core/profiler";
@@ -183,10 +184,10 @@ export class AnalysisResolver {
     // We will reanalyze the files that include the file specified by the given URI.
     private reanalyzeFilesWithDependency(targetUri: string, reanalyzeDependents: boolean) {
         const resolvedSet = new Set<string>();
-        this.reanalyzeFilesWithDependencyInternal(resolvedSet, targetUri, reanalyzeDependents);
+        this.reanalyzeFilesWithDependency_internal(resolvedSet, targetUri, reanalyzeDependents);
     }
 
-    private reanalyzeFilesWithDependencyInternal(resolvedSet: Set<string>, targetUri: string, reanalyzeDependents: boolean) {
+    private reanalyzeFilesWithDependency_internal(resolvedSet: Set<string>, targetUri: string, reanalyzeDependents: boolean) {
         if (resolvedSet.has(targetUri)) return;
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
@@ -202,7 +203,7 @@ export class AnalysisResolver {
 
         // Recursively reanalyze the files that include the dependent files
         for (const dependent of dependentFiles) {
-            this.reanalyzeFilesWithDependencyInternal(resolvedSet, dependent.uri, reanalyzeDependents);
+            this.reanalyzeFilesWithDependency_internal(resolvedSet, dependent.uri, reanalyzeDependents);
         }
     }
 
@@ -310,6 +311,11 @@ export class AnalysisResolver {
         const entries = this.getDirectoryEntries(dirUri);
         for (const entry of entries) {
             const fileUri = resolveUri(dirUri, entry.name);
+
+            if (shouldExcludeFile(fileUri)) {
+                continue;
+            }
+
             if (entry.isDirectory()) {
                 this.inspectUnderDirectory(`${fileUri}/`);
             } else if (entry.isFile() && isAngelScriptFile(fileUri)) {

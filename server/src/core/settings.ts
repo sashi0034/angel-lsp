@@ -1,3 +1,5 @@
+import {string} from "vscode-languageserver/lib/common/utils/is";
+
 /**
  * LanguageServer settings.
  * See package.json because the settings in VSCode are defined in it.
@@ -7,7 +9,6 @@ interface LanguageServerSettings {
     includePath: string[];
     forceIncludePredefined: string[];
     implicitMutualInclusion: boolean;
-    angelScriptFilePatterns: string[];
     hoistEnumParentScope: boolean;
     explicitPropertyAccessor: boolean;
     allowUnicodeIdentifiers: boolean;
@@ -17,6 +18,10 @@ interface LanguageServerSettings {
     supportsDigitSeparators: boolean;
     builtinStringType: string;
     builtinArrayType: string;
+    files: {
+        angelScript: string[];
+        exclude: string[];
+    };
     formatter: {
         maxBlankLines: number;
         indentSpaces: number;
@@ -32,7 +37,6 @@ const defaultSettings: LanguageServerSettings = {
     includePath: [],
     forceIncludePredefined: [],
     implicitMutualInclusion: false,
-    angelScriptFilePatterns: ["*.as"],
     hoistEnumParentScope: false,
     explicitPropertyAccessor: false,
     allowUnicodeIdentifiers: false,
@@ -42,6 +46,10 @@ const defaultSettings: LanguageServerSettings = {
     supportsDigitSeparators: false,
     builtinStringType: "string",
     builtinArrayType: "array",
+    files: {
+        angelScript: ["*.as"],
+        exclude: []
+    },
     formatter: {
         maxBlankLines: 1,
         indentSpaces: 4,
