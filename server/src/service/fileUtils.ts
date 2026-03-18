@@ -3,6 +3,40 @@ import * as url from "url";
 import * as fs from "fs";
 import * as path from "path";
 import {getGlobalSettings} from "../core/settings";
+import {minimatch} from "minimatch";
+import {getEditorState} from "../core/editorState";
+
+export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
+    // FIXME?
+    const patterns = getGlobalSettings().files.angelScript;
+    const fileName = path.basename(relativeOrAbsolute);
+    return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
+}
+
+export function shouldExcludeFile(uri: string): boolean {
+    // TODO: Optimize
+    const patterns = getGlobalSettings().files.exclude;
+    const cwd = (getEditorState().workspaceFolderUris[0] ?? '') + '/';
+    return patterns.some(pattern => minimatch(uri, pattern) || minimatch(uri, resolveUri(cwd, pattern)));
+}
+
+/**
+ * Extract file extension from a glob pattern (e.g., "*.as" -> ".as").
+ * Returns the first extension found, or ".as" as default.
+ */
+function extractExtensionFromPattern(pattern: string): string {
+    // Match patterns like "*.ext", "**/*.ext", or "*.spec.ts"
+    const match = pattern.match(/\*(\.[^*]+)$/);
+    if (match && match[1]) {
+        return match[1];
+    }
+    // For exact filenames like "as.predefined", return empty (no extension to append)
+    if (!pattern.includes('*')) {
+        return '';
+    }
+    // Default fallback
+    return '.as';
+}
 
 /**
  * Resolves a relative file path against a base file URI and returns the resulting URI as a string.
@@ -29,7 +63,7 @@ export function resolveUri(baseUri: string, relativePath: string): string {
 }
 
 function normalizeFileUri(uri: string) {
-    // Case 1: Normalize drive letter to "c%3A"
+    // Case 1: Normalize a drive letter ":" to "%3A"
     // Example: file:///C:/... --> file:///c%3A/...
     uri = uri.replace(
         /^file:\/\/\/([A-Za-z]):/,
@@ -51,9 +85,13 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
         return normalizeFileUri(url.pathToFileURL(relativeOrAbsolute).toString());
     }
 
-    if (!relativeOrAbsolute.endsWith('.as') && !relativeOrAbsolute.endsWith('.predefined')) {
-        // If the file does not have an extension, assume it is an ActionScript file.
-        relativeOrAbsolute = relativeOrAbsolute + '.as';
+    if (!isAngelScriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
+        // If the file does not match any pattern, try to extract extension from first file pattern
+        // and append it (defaults to .as)
+        const defaultExt = extractExtensionFromPattern(getGlobalSettings().files.angelScript[0] || '*.as');
+        if (defaultExt) {
+            relativeOrAbsolute = relativeOrAbsolute + defaultExt;
+        }
     }
 
     const primaryUri = resolveUri(baseUri, relativeOrAbsolute);

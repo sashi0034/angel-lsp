@@ -11,7 +11,7 @@ import {provideSemanticTokens} from "./services/semanticTokens";
 import {provideReferences} from "./services/reference";
 import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
 import {Location} from "vscode-languageserver";
-import {resetGlobalSettings} from "./core/settings";
+import {getGlobalSettings, resetGlobalSettings} from "./core/settings";
 import {formatFile} from "./formatter/formatter";
 import {provideSignatureHelp} from "./services/signatureHelp";
 import {TextLocation, TextPosition, TextRange} from "./compiler_tokenizer/textLocation";
@@ -31,6 +31,7 @@ import {safeWriteFile} from "./utils/fileUtils";
 import {moveInlayHintByChanges} from "./service/contentChangeApplier";
 import {provideDefinitionFallback} from "./services/definitionExtension";
 import {CodeActionWrapper} from "./actions/utils";
+import {getEditorState} from "./core/editorState";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -61,6 +62,8 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
 
     s_hasDiagnosticRelatedInformationCapability =
         capabilities.textDocument?.publishDiagnostics?.relatedInformation ?? false;
+
+    getEditorState().workspaceFolderUris = params.workspaceFolders?.map(folder => folder.uri) ?? [];
 
     const result: lsp.InitializeResult = {
         capabilities: {
@@ -109,10 +112,10 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
     };
 
     if (s_hasWorkspaceFolderCapability) {
-        const filters = {
+        const filters = ['*as.predefined'].concat(getGlobalSettings().files.angelScript).map(pattern => ({
             scheme: 'file',
-            pattern: {glob: '**/{as.predefined,*.as}',}
-        };
+            pattern: {glob: pattern}
+        }));
 
         result.capabilities.workspace = {
             workspaceFolders: {
@@ -120,10 +123,10 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
             },
             fileOperations: {
                 didRename: {
-                    filters: [filters]
+                    filters
                 },
                 didDelete: {
-                    filters: [filters]
+                    filters
                 }
             }
         };

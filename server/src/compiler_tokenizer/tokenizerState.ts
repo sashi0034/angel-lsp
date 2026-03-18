@@ -44,7 +44,7 @@ export class TokenizerState {
 
     public isNextWhitespace() {
         const next = this._fileContent[this._cursorOffset];
-        return next === ' ' || next === '\t';
+        return next === ' ' || next === '\t' || next === '\uFEFF';
     }
 
     public stepNext() {

@@ -4,7 +4,7 @@
     "description": "VSCode extensions for AngelScript Language Server",
     "author": "sashi0034",
     "license": "MIT",
-    "version": "0.3.82",
+    "version": "0.3.85",
     "repository": {
         "type": "git",
         "url": "https://github.com/sashi0034/angel-lsp"
@@ -208,6 +208,26 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Whether your codebase uses the `asEP_USE_CHARACTER_LITERALS` option."
+                },
+                "angelScript.files.angelScript": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "*.as"
+                    ],
+                    "description": "Glob patterns that match files to be treated as AngelScript. Examples: \"*.as\", \"*.hxx\", \"*.cxx\". Files matching these patterns will be processed by the language server."
+                },
+                "angelScript.files.exclude": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Glob patterns that match files to be excluded from the language server. Examples: \"**/bin/**\", \"**/obj/**\". Files matching these patterns will not be included by the language server on its own."
                 },
                 "angelScript.formatter.maxBlankLines": {
                     "scope": "window",
