@@ -8,7 +8,7 @@ import {getEditorState} from "../core/editorState";
 
 export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
     // FIXME?
-    const patterns = getGlobalSettings().angelScriptFilePatterns;
+    const patterns = getGlobalSettings().files.angelScript;
     const fileName = path.basename(relativeOrAbsolute);
     return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
 }
@@ -88,7 +88,7 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
     if (!isAngelScriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
         // If the file does not match any pattern, try to extract extension from first file pattern
         // and append it (defaults to .as)
-        const defaultExt = extractExtensionFromPattern(getGlobalSettings().angelScriptFilePatterns[0] || '*.as');
+        const defaultExt = extractExtensionFromPattern(getGlobalSettings().files.angelScript[0] || '*.as');
         if (defaultExt) {
             relativeOrAbsolute = relativeOrAbsolute + defaultExt;
         }
