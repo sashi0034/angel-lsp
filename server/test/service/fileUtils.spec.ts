@@ -7,9 +7,11 @@ import {pathToFileURL} from "node:url";
 import {
     isAngelScriptFile,
     resolveUri,
-    resolveIncludeUri
+    resolveIncludeUri,
+    shouldExcludeFile
 } from "../../src/service/fileUtils";
 import {copyGlobalSettings, resetGlobalSettings} from "../../src/core/settings";
+import {getEditorState} from "../../src/core/editorState";
 
 describe('fileUtils', () => {
     let tempDir: string;
@@ -28,6 +30,7 @@ describe('fileUtils', () => {
             fs.rmSync(tempDir, {recursive: true, force: true});
         }
         resetGlobalSettings(undefined);
+        getEditorState().workspaceFolderUris = [];
     });
 
     describe('isAngelscriptFile', () => {
@@ -218,6 +221,47 @@ describe('fileUtils', () => {
             const relativePath = 'test.angelscript';
             const result = resolveIncludeUri(baseUri, relativePath);
             assert(result.includes('test.angelscript'));
+        });
+    });
+
+    describe('shouldExcludeFile', () => {
+        it('should return true if file matches exclude pattern', () => {
+            resetGlobalSettings({
+                ...copyGlobalSettings(),
+                files: {
+                    exclude: ['**/ignored.as']
+                }
+            });
+            assert.strictEqual(shouldExcludeFile('file:///path/to/ignored.as'), true);
+            assert.strictEqual(shouldExcludeFile('file:///path/to/normal.as'), false);
+        });
+
+        it('should resolve patterns against workspace root', () => {
+            getEditorState().workspaceFolderUris = ['file:///C:/project'];
+            resetGlobalSettings({
+                ...copyGlobalSettings(),
+                files: {
+                    exclude: ['build/*.as']
+                }
+            });
+            
+            // shouldExcludeFile checks:
+            // 1. minimatch('file:///c%3A/project/build/test.as', 'build/*.as') -> false
+            // 2. minimatch('file:///c%3A/project/build/test.as', resolveUri('file:///C:/project/', 'build/*.as'))
+            //    resolveUri('file:///C:/project/', 'build/*.as') -> 'file:///c%3A/project/build/*.as'
+            //    minimatch('file:///c%3A/project/build/test.as', 'file:///c%3A/project/build/*.as') -> true
+            
+            assert.strictEqual(shouldExcludeFile('file:///c%3A/project/build/test.as'), true);
+        });
+
+        it('should return false if no exclude patterns are set', () => {
+            resetGlobalSettings({
+                ...copyGlobalSettings(),
+                files: {
+                    exclude: []
+                }
+            });
+            assert.strictEqual(shouldExcludeFile('file:///path/to/file.as'), false);
         });
     });
 });
