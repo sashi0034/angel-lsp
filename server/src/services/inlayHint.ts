@@ -1,9 +1,9 @@
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {isNodeClassOrInterface} from "../compiler_analyzer/symbolObject";
-import * as lsp from "vscode-languageserver/node";
+import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
+import {TextLocation} from '../compiler_tokenizer/textLocation';
+import {isNodeClassOrInterface} from '../compiler_analyzer/symbolObject';
+import * as lsp from 'vscode-languageserver/node';
 import {NodeName} from '../compiler_parser/nodes';
-import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
+import {stringifyResolvedType} from '../compiler_analyzer/symbolUtils';
 
 export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextLocation): lsp.InlayHint[] {
     return [
@@ -22,7 +22,9 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
         if (location.intersects(callerIdentifier.location) === false) continue;
 
         // FIXME: Optimize the search
-        const callingReference = globalScope.info.reference.find(reference => reference.fromToken === info.callerIdentifier);
+        const callingReference = globalScope.info.reference.find(
+            reference => reference.fromToken === info.callerIdentifier
+        );
         if (callingReference === undefined) continue;
 
         const calleeFunction = callingReference.toSymbol;
@@ -210,5 +212,5 @@ const operatorOverloads = new Map([
     ['opForValue12', 'foreach'],
     ['opForValue13', 'foreach'],
     ['opForValue14', 'foreach'],
-    ['opForValue15', 'foreach'],
+    ['opForValue15', 'foreach']
 ]);

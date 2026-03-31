@@ -1,4 +1,4 @@
-import {expectSuccess} from "./utils";
+import {expectSuccess} from './utils';
 
 describe('analyzer/hoist', () => {
     expectSuccess(`// Function can use a type declared after it.
@@ -31,17 +31,20 @@ describe('analyzer/hoist', () => {
         }
     `);
 
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class array<T> { }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Hoisting of global variable types
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Hoisting of global variable types
             array<Str> strs;
 
             class Str { }
             `
-    }]);
+        }
+    ]);
 });

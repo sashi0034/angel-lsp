@@ -1,7 +1,8 @@
-import {testCompletion} from "./utils";
+import {testCompletion} from './utils';
 
 describe('completion/namespace', () => {
-    testCompletion(`// Nested namespace completion
+    testCompletion(
+        `// Nested namespace completion
         namespace foo {
             namespace bar {
                 void call_baz() { }
@@ -13,12 +14,13 @@ describe('completion/namespace', () => {
         void main() {
             foo::$C0$ ;
             foo::call_$C1$
-        }`
-        , /* $C0$ */ ["bar", "call_foo"]
-        , /* $C1$ */ ["bar", "call_foo"]
+        }`,
+        /* $C0$ */ ['bar', 'call_foo'],
+        /* $C1$ */ ['bar', 'call_foo']
     );
 
-    testCompletion(`// Nested nested namespace completion
+    testCompletion(
+        `// Nested nested namespace completion
         namespace foo {
             namespace bar {
                 void call_baz() { }
@@ -30,10 +32,12 @@ describe('completion/namespace', () => {
         void main() {
             foo::bar::$C0$
         }
-    `, ["call_baz"]
+    `,
+        ['call_baz']
     );
 
-    testCompletion(`// Completion is possible even if the namespace is defined in multiple places.
+    testCompletion(
+        `// Completion is possible even if the namespace is defined in multiple places.
         class A {
             void apple();
         }
@@ -63,15 +67,17 @@ describe('completion/namespace', () => {
             
             A a;
             a.$C2$
-        }`
-        , /* $C0$ */ ["B", "alpha_0", "alpha_1"]
-        , /* $C1$ */ ["beta_0", "beta_1", "C_0", "C_1"]
-        , /* $C2$ */ ["apple"]
+        }`,
+        /* $C0$ */ ['B', 'alpha_0', 'alpha_1'],
+        /* $C1$ */ ['beta_0', 'beta_1', 'C_0', 'C_1'],
+        /* $C2$ */ ['apple']
     );
 
-    testCompletion([{
-            uri: 'file:///path/to/as.predefined',
-            content: `
+    testCompletion(
+        [
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
             namespace A {
                 namespace B {
                     void predefined_function();
@@ -79,9 +85,10 @@ describe('completion/namespace', () => {
 
                 namespace C_0 { void a(); }
             }`
-        }, {
-            uri: 'file:///path/to/file_1.as',
-            content: `
+            },
+            {
+                uri: 'file:///path/to/file_1.as',
+                content: `
             namespace A {
                 namespace B {
                     void other_file_function();
@@ -90,9 +97,10 @@ describe('completion/namespace', () => {
                 namespace C_1 { void a(); }
             }
         `
-        }, {
-            uri: 'file:///path/to/file_2.as',
-            content: `// Compression of other files is also possible
+            },
+            {
+                uri: 'file:///path/to/file_2.as',
+                content: `// Compression of other files is also possible
             #include "file_1.as"
             
             void main() {
@@ -100,8 +108,10 @@ describe('completion/namespace', () => {
                 A::B::$C1$;
             }
         `
-        }], /* $C0$ */ ["B", "C_0", "C_1"]
-        , /* $C1$ */ ["predefined_function", "other_file_function"]
+            }
+        ],
+        /* $C0$ */ ['B', 'C_0', 'C_1'],
+        /* $C1$ */ ['predefined_function', 'other_file_function']
     );
 
     testCompletion(
@@ -116,8 +126,8 @@ describe('completion/namespace', () => {
         }
         
         class Foo : foo::bar::$C1$ { 
-        }`
-        , /* $C0$ */ ["Baz"]
-        , /* $C1$ */ ["Baz"]
+        }`,
+        /* $C0$ */ ['Baz'],
+        /* $C1$ */ ['Baz']
     );
 });

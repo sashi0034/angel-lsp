@@ -1,5 +1,5 @@
-import {TokenObject} from "./tokenObject";
-import {TextLocation} from "./textLocation";
+import {TokenObject} from './tokenObject';
+import {TextLocation} from './textLocation';
 
 export function getBoundingLocationBetween(start: TokenObject, end: TokenObject): TextLocation {
     return start.location.withEnd(end.location.end);
@@ -9,8 +9,7 @@ export class TokenRange {
     public constructor(
         public readonly start: TokenObject,
         public readonly end: TokenObject
-    ) {
-    }
+    ) {}
 
     /**
      * Get text range covering two tokens

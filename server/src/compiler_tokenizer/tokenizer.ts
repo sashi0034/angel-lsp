@@ -6,11 +6,11 @@ import {
     TokenNumber,
     TokenReserved,
     TokenString
-} from "./tokenObject";
-import {diagnostic} from "../core/diagnostic";
-import {TokenizerState, UnknownWordBuffer} from "./tokenizerState";
-import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from "./reservedWord";
-import {TextLocation} from "./textLocation";
+} from './tokenObject';
+import {diagnostic} from '../core/diagnostic';
+import {TokenizerState, UnknownWordBuffer} from './tokenizerState';
+import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from './reservedWord';
+import {TextLocation} from './textLocation';
 import {getGlobalSettings} from '../core/settings';
 
 // Tokenizer satisfies this interface.
@@ -61,7 +61,7 @@ function tryComment(tokenizer: TokenizerState, location: TextLocation): TokenCom
 function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
-    for (; ;) {
+    for (;;) {
         if (tokenizer.isEnd() || tokenizer.isNextWrap()) break;
         tokenizer.stepNext();
     }
@@ -72,7 +72,7 @@ function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) 
 function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
-    for (; ;) {
+    for (;;) {
         if (tokenizer.isEnd()) break;
         if (tokenizer.isNext('*/')) {
             tokenizer.stepFor(2);
@@ -95,7 +95,8 @@ function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumb
     return new TokenNumber(
         tokenizer.substrToCursor(start),
         location.withEnd(tokenizer.getCursorPosition()),
-        numberLiteral);
+        numberLiteral
+    );
 }
 
 function consumeNumber(tokenizer: TokenizerState) {
@@ -166,25 +167,27 @@ function consumeNumber(tokenizer: TokenizerState) {
 
 // Check if the next token is a string and tokenize it.
 function tryString(tokenizer: TokenizerState, location: TextLocation): TokenString | undefined {
-
     const start = tokenizer.getCursorOffset();
-    if (tokenizer.next() !== '\'' && tokenizer.next() !== '"') return undefined;
-    const startQuote: '\'' | '"' | '"""' = (() => {
+    if (tokenizer.next() !== "'" && tokenizer.next() !== '"') return undefined;
+    const startQuote: "'" | '"' | '"""' = (() => {
         if (tokenizer.isNext('"""')) return '"""';
         else if (tokenizer.isNext('"')) return '"';
-        return '\'';
+        return "'";
     })();
     tokenizer.stepFor(startQuote.length);
 
     let isEscaping = false;
-    for (; ;) {
+    for (;;) {
         if (tokenizer.isEnd()) break;
 
         if (startQuote !== '"""' && tokenizer.isNextWrap()) {
-            diagnostic.error({
-                start: tokenizer.getCursorPosition(),
-                end: tokenizer.getCursorPosition(),
-            }, 'Missing end quote ' + startQuote);
+            diagnostic.error(
+                {
+                    start: tokenizer.getCursorPosition(),
+                    end: tokenizer.getCursorPosition()
+                },
+                'Missing end quote ' + startQuote
+            );
             break;
         } else if (isEscaping === false && tokenizer.isNext(startQuote)) {
             tokenizer.stepFor(startQuote.length);
@@ -246,7 +249,7 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
     }
 
     const identifier = tokenizer.substrToCursor(start);
-    if (identifier === "") return undefined;
+    if (identifier === '') return undefined;
 
     const tokenLocation = location.withEnd(tokenizer.getCursorPosition());
 
@@ -266,10 +269,9 @@ export function tokenize(path: string, content: string): TokenObject[] {
     const tokenizer = new TokenizerState(content);
     const unknownWordBuffer = new UnknownWordBuffer();
 
-    for (; ;) {
+    for (;;) {
         if (tokenizer.isEnd()) break;
-        if (tokenizer.isNextWrap()
-            || tokenizer.isNextWhitespace()) {
+        if (tokenizer.isNextWrap() || tokenizer.isNextWhitespace()) {
             tokenizer.stepNext();
             continue;
         }
@@ -277,7 +279,7 @@ export function tokenize(path: string, content: string): TokenObject[] {
         const location: TextLocation = new TextLocation(
             path,
             tokenizer.getCursorPosition(),
-            tokenizer.getCursorPosition(),
+            tokenizer.getCursorPosition()
         );
 
         // Tokenize a comment

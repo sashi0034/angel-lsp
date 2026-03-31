@@ -1,5 +1,5 @@
-import {LanguageClient} from "vscode-languageclient/node";
-import {commands, Position, Range, window, workspace, WorkspaceEdit} from "vscode";
+import {LanguageClient} from 'vscode-languageclient/node';
+import {commands, Position, Range, window, workspace, WorkspaceEdit} from 'vscode';
 
 // obsoleted
 // I'll re-implement this feature in the future
@@ -20,7 +20,7 @@ export async function executeSmartBackspace(client: LanguageClient) {
     const params = {
         textDocument: textDocumentIdentifier,
         position: position,
-        ch: "\b",  // Normally unexpected, but manually provided
+        ch: '\b', // Normally unexpected, but manually provided
         options: {
             // Formatting options (e.g., tab size) sent to formatter
             tabSize: 4,
@@ -29,7 +29,7 @@ export async function executeSmartBackspace(client: LanguageClient) {
     };
 
     // 2. Manually request onTypeFormatting from the server
-    const edits = await client.sendRequest("textDocument/onTypeFormatting", params);
+    const edits = await client.sendRequest('textDocument/onTypeFormatting', params);
 
     // 3. Apply returned TextEdits to the editor
     if (edits && Array.isArray(edits) && edits.length > 0) {

@@ -1,9 +1,9 @@
-import {TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {findTokenContainingPosition} from "./utils";
-import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {isFileUri, resolveIncludeUri} from "../service/fileUtils";
-import * as lsp from "vscode-languageserver";
+import {TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {findTokenContainingPosition} from './utils';
+import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {isFileUri, resolveIncludeUri} from '../service/fileUtils';
+import * as lsp from 'vscode-languageserver';
 
 /**
  * Returns the definition of the tokens like string literals at the specified position.
@@ -38,5 +38,3 @@ function provideFileDefinition(uri: string, token: TokenString): lsp.Definition 
         }
     };
 }
-
-

@@ -1,7 +1,8 @@
-import {testDefinition} from "./utils";
+import {testDefinition} from './utils';
 
 describe('definition/ambiguousEnumMember', () => {
-    testDefinition(`// AngelScript allows ambiguous enum member access.
+    testDefinition(
+        `// AngelScript allows ambiguous enum member access.
         enum Color { Red$C0$ }
         enum Status { Red$C1$ }
         namespace detail {
@@ -17,6 +18,12 @@ describe('definition/ambiguousEnumMember', () => {
             fn_detail_color(Red$C5$);
             detail::Color d_c = Red$C6$;
         }
-    `, [[3, 0], [4, 1], [5, 2], [6, 2]]
+    `,
+        [
+            [3, 0],
+            [4, 1],
+            [5, 2],
+            [6, 2]
+        ]
     );
 });

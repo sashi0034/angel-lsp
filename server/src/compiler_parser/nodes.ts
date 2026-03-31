@@ -1,36 +1,36 @@
-import {TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
+import {TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 export enum AccessModifier {
     Private = 'Private',
-    Protected = 'Protected',
+    Protected = 'Protected'
 }
 
 export enum TypeModifier {
     In = 'In',
     Out = 'Out',
-    InOut = 'InOut',
+    InOut = 'InOut'
 }
 
 export enum ReferenceModifier {
     At = 'At',
-    AtConst = 'AtConst',
+    AtConst = 'AtConst'
 }
 
 export interface EntityAttribute {
-    readonly isShared: boolean,
-    readonly isExternal: boolean,
-    readonly isAbstract: boolean,
-    readonly isFinal: boolean,
+    readonly isShared: boolean;
+    readonly isExternal: boolean;
+    readonly isAbstract: boolean;
+    readonly isFinal: boolean;
 }
 
 export interface FunctionAttribute {
-    readonly isOverride: boolean,
-    readonly isFinal: boolean,
-    readonly isExplicit: boolean,
-    readonly isProperty: boolean,
-    readonly isDeleted: boolean,
-    readonly isNoDiscard: boolean
+    readonly isOverride: boolean;
+    readonly isFinal: boolean;
+    readonly isExplicit: boolean;
+    readonly isProperty: boolean;
+    readonly isDeleted: boolean;
+    readonly isNoDiscard: boolean;
 }
 
 export enum NodeName {
@@ -110,7 +110,7 @@ export interface NodeBase {
 export type NodeScript = NodeScriptMember[];
 
 export type NodeScriptMember =
-    NodeImport
+    | NodeImport
     | NodeEnum
     | NodeTypeDef
     | NodeClass
@@ -131,9 +131,9 @@ export interface NodeUsing extends NodeBase {
 
 // BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface NodeNamespace extends NodeBase {
-    readonly nodeName: NodeName.Namespace
-    readonly namespaceList: TokenObject[],
-    readonly script: NodeScript
+    readonly nodeName: NodeName.Namespace;
+    readonly namespaceList: TokenObject[];
+    readonly script: NodeScript;
 }
 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -147,8 +147,8 @@ export interface NodeEnum extends NodeBase {
 }
 
 export interface ParsedEnumMember {
-    readonly identifier: TokenObject,
-    readonly expr: NodeExpr | undefined
+    readonly identifier: TokenObject;
+    readonly expr: NodeExpr | undefined;
 }
 
 // BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
@@ -226,9 +226,9 @@ export interface NodeInterface extends NodeBase {
 
 // BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export interface NodeVar extends NodeBase {
-    readonly nodeName: NodeName.Var
-    readonly accessor: AccessModifier | undefined,
-    readonly type: NodeType,
+    readonly nodeName: NodeName.Var;
+    readonly accessor: AccessModifier | undefined;
+    readonly type: NodeType;
     readonly variables: ParsedVariableInitializer[];
 }
 
@@ -261,19 +261,19 @@ export interface NodeFuncDef extends NodeBase {
 
 // BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface NodeVirtualProp extends NodeBase {
-    readonly nodeName: NodeName.VirtualProp
-    readonly accessor: AccessModifier | undefined,
-    readonly type: NodeType,
-    readonly isRef: boolean,
-    readonly identifier: TokenObject,
-    readonly getter: ParsedGetterSetter | undefined,
-    readonly setter: ParsedGetterSetter | undefined
+    readonly nodeName: NodeName.VirtualProp;
+    readonly accessor: AccessModifier | undefined;
+    readonly type: NodeType;
+    readonly isRef: boolean;
+    readonly identifier: TokenObject;
+    readonly getter: ParsedGetterSetter | undefined;
+    readonly setter: ParsedGetterSetter | undefined;
 }
 
 export interface ParsedGetterSetter {
-    readonly isConst: boolean,
-    readonly funcAttr: FunctionAttribute | undefined,
-    readonly statBlock: NodeStatBlock | undefined
+    readonly isConst: boolean;
+    readonly funcAttr: FunctionAttribute | undefined;
+    readonly statBlock: NodeStatBlock | undefined;
 }
 
 // BNF: MIXIN         ::= 'mixin' CLASS
@@ -328,12 +328,12 @@ export interface NodeListOperatorRepeatSame extends NodeListOperator {
 }
 
 export interface NodeListOperatorType extends NodeListOperator {
-    readonly operator: NodeListOp.Type,
-    readonly type: NodeType
+    readonly operator: NodeListOp.Type;
+    readonly type: NodeType;
 }
 
 export type NodeListValidOperators =
-    NodeListOperatorType
+    | NodeListOperatorType
     | NodeListOperatorRepeatSame
     | NodeListOperatorRepeat
     | NodeListOperatorEndList
@@ -350,24 +350,24 @@ export interface NodeListPattern extends NodeBase {
 export type NodeParamList = ParsedTypeIdentifier[];
 
 export interface ParsedTypeIdentifier {
-    readonly type: NodeType,
-    readonly modifier: TypeModifier | undefined,
-    readonly identifier: TokenObject | undefined
-    readonly defaultExpr: NodeExpr | NodeExprVoid | undefined
-    readonly isVariadic: boolean
+    readonly type: NodeType;
+    readonly modifier: TypeModifier | undefined;
+    readonly identifier: TokenObject | undefined;
+    readonly defaultExpr: NodeExpr | NodeExprVoid | undefined;
+    readonly isVariadic: boolean;
 }
 
 // BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
 // BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface NodeType extends NodeBase {
-    readonly nodeName: NodeName.Type
-    readonly isConst: boolean,
-    readonly scope: NodeScope | undefined,
-    readonly dataType: NodeDataType,
-    readonly typeTemplates: NodeType[],
-    readonly isArray: boolean,
-    readonly refModifier: ReferenceModifier | undefined,
+    readonly nodeName: NodeName.Type;
+    readonly isConst: boolean;
+    readonly scope: NodeScope | undefined;
+    readonly dataType: NodeDataType;
+    readonly typeTemplates: NodeType[];
+    readonly isArray: boolean;
+    readonly refModifier: ReferenceModifier | undefined;
 }
 
 // BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -378,10 +378,10 @@ export interface NodeInitList extends NodeBase {
 
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 export interface NodeScope extends NodeBase {
-    readonly nodeName: NodeName.Scope
-    readonly isGlobal: boolean,
-    readonly scopeList: TokenObject[],
-    readonly typeTemplates: NodeType[]
+    readonly nodeName: NodeName.Scope;
+    readonly isGlobal: boolean;
+    readonly scopeList: TokenObject[];
+    readonly typeTemplates: NodeType[];
 }
 
 // BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
@@ -396,7 +396,7 @@ export interface NodeDataType extends NodeBase {
 
 // BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 export type NodeStatement =
-    NodeIf
+    | NodeIf
     | NodeFor
     | NodeForEach
     | NodeWhile
@@ -411,9 +411,9 @@ export type NodeStatement =
 
 // BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 export interface NodeSwitch extends NodeBase {
-    readonly nodeName: NodeName.Switch
-    readonly assign: NodeAssign,
-    readonly caseList: NodeCase[]
+    readonly nodeName: NodeName.Switch;
+    readonly assign: NodeAssign;
+    readonly caseList: NodeCase[];
 }
 
 // BNF: BREAK         ::= 'break' ';'
@@ -423,48 +423,48 @@ export interface NodeBreak extends NodeBase {
 
 // BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 export interface NodeFor extends NodeBase {
-    readonly nodeName: NodeName.For
-    readonly initial: NodeVar | NodeExprStat,
-    readonly condition: NodeExprStat | undefined
-    readonly incrementList: NodeAssign[],
-    readonly statement: NodeStatement | undefined
+    readonly nodeName: NodeName.For;
+    readonly initial: NodeVar | NodeExprStat;
+    readonly condition: NodeExprStat | undefined;
+    readonly incrementList: NodeAssign[];
+    readonly statement: NodeStatement | undefined;
 }
 
 // like NodeVar but no initializer or modifier
 export interface NodeForEachVar extends NodeBase {
-    readonly nodeName: NodeName.ForEachVar
-    readonly type: NodeType,
+    readonly nodeName: NodeName.ForEachVar;
+    readonly type: NodeType;
     readonly identifier: TokenObject;
 }
 
 // BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 export interface NodeForEach extends NodeBase {
-    readonly nodeName: NodeName.ForEach
-    readonly variables: NodeForEachVar[],
-    readonly assign: NodeAssign | undefined,
-    readonly statement: NodeStatement | undefined
+    readonly nodeName: NodeName.ForEach;
+    readonly variables: NodeForEachVar[];
+    readonly assign: NodeAssign | undefined;
+    readonly statement: NodeStatement | undefined;
 }
 
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
 export interface NodeWhile extends NodeBase {
-    readonly nodeName: NodeName.While
-    readonly assign: NodeAssign,
-    readonly statement: NodeStatement | undefined
+    readonly nodeName: NodeName.While;
+    readonly assign: NodeAssign;
+    readonly statement: NodeStatement | undefined;
 }
 
 // BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 export interface NodeDoWhile extends NodeBase {
-    readonly nodeName: NodeName.DoWhile
-    readonly statement: NodeStatement,
-    readonly assign: NodeAssign | undefined
+    readonly nodeName: NodeName.DoWhile;
+    readonly statement: NodeStatement;
+    readonly assign: NodeAssign | undefined;
 }
 
 // BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 export interface NodeIf extends NodeBase {
-    readonly nodeName: NodeName.If
-    readonly condition: NodeAssign,
-    readonly thenStat: NodeStatement | undefined,
-    readonly elseStat: NodeStatement | undefined
+    readonly nodeName: NodeName.If;
+    readonly condition: NodeAssign;
+    readonly thenStat: NodeStatement | undefined;
+    readonly elseStat: NodeStatement | undefined;
 }
 
 // BNF: CONTINUE      ::= 'continue' ';'
@@ -474,15 +474,15 @@ export interface NodeContinue extends NodeBase {
 
 // BNF: EXPRSTAT      ::= [ASSIGN] ';'
 export interface NodeExprStat extends NodeBase {
-    readonly nodeName: NodeName.ExprStat,
-    readonly assign: NodeAssign | undefined
+    readonly nodeName: NodeName.ExprStat;
+    readonly assign: NodeAssign | undefined;
 }
 
 // BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
 export interface NodeTry extends NodeBase {
     readonly nodeName: NodeName.Try;
-    readonly tryBlock: NodeStatBlock,
-    readonly catchBlock: NodeStatBlock | undefined
+    readonly tryBlock: NodeStatBlock;
+    readonly catchBlock: NodeStatBlock | undefined;
 }
 
 // BNF: RETURN        ::= 'return' [ASSIGN] ';'
@@ -493,16 +493,16 @@ export interface NodeReturn extends NodeBase {
 
 // BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 export interface NodeCase extends NodeBase {
-    readonly nodeName: NodeName.Case
-    readonly expr: NodeExpr | undefined,
-    readonly statementList: NodeStatement[]
+    readonly nodeName: NodeName.Case;
+    readonly expr: NodeExpr | undefined;
+    readonly statementList: NodeStatement[];
 }
 
 // BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
 export interface NodeExpr extends NodeBase {
-    readonly nodeName: NodeName.Expr
-    readonly head: NodeExprTerm,
-    readonly tail: ParsedOpExpr | undefined
+    readonly nodeName: NodeName.Expr;
+    readonly head: NodeExprTerm;
+    readonly tail: ParsedOpExpr | undefined;
 }
 
 // EXPRVOID      ::= 'void'
@@ -511,8 +511,8 @@ export interface NodeExprVoid extends NodeBase {
 }
 
 export interface ParsedOpExpr {
-    readonly operator: TokenObject,
-    readonly expression: NodeExpr
+    readonly operator: TokenObject;
+    readonly expression: NodeExpr;
 }
 
 // BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
@@ -520,24 +520,24 @@ export type NodeExprTerm = NodeExprTerm1 | NodeExprTerm2;
 
 // ([TYPE '='] INITLIST)
 export interface NodeExprTerm1 extends NodeBase {
-    readonly nodeName: NodeName.ExprTerm
-    readonly exprTerm: 1
-    readonly type: NodeType | undefined,
-    readonly initList: NodeInitList
+    readonly nodeName: NodeName.ExprTerm;
+    readonly exprTerm: 1;
+    readonly type: NodeType | undefined;
+    readonly initList: NodeInitList;
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 export interface NodeExprTerm2 extends NodeBase {
-    readonly nodeName: NodeName.ExprTerm
-    readonly exprTerm: 2,
-    readonly preOps: TokenObject[],
-    readonly value: NodeExprValue,
-    readonly postOps: NodeExprPostOp[]
+    readonly nodeName: NodeName.ExprTerm;
+    readonly exprTerm: 2;
+    readonly preOps: TokenObject[];
+    readonly value: NodeExprValue;
+    readonly postOps: NodeExprPostOp[];
 }
 
 // BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type NodeExprValue =
-    NodeConstructCall
+    | NodeConstructCall
     | NodeFuncCall
     | NodeVarAccess
     | NodeCast
@@ -576,8 +576,8 @@ export interface NodeExprPostOp2 extends NodeBase {
 }
 
 export interface ParsedPostIndexing {
-    readonly identifier: TokenObject | undefined,
-    readonly assign: NodeAssign
+    readonly identifier: TokenObject | undefined;
+    readonly assign: NodeAssign;
 }
 
 // ARGLIST
@@ -604,14 +604,14 @@ export interface NodeCast extends NodeBase {
 // BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface NodeLambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
-    readonly paramList: ParsedLambdaParams[],
-    readonly statBlock: NodeStatBlock | undefined
+    readonly paramList: ParsedLambdaParams[];
+    readonly statBlock: NodeStatBlock | undefined;
 }
 
 export interface ParsedLambdaParams {
-    readonly type: NodeType | undefined,
-    readonly typeMod: TypeModifier | undefined,
-    readonly identifier: TokenObject | undefined
+    readonly type: NodeType | undefined;
+    readonly typeMod: TypeModifier | undefined;
+    readonly identifier: TokenObject | undefined;
 }
 
 // BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
@@ -622,10 +622,10 @@ export interface NodeLiteral extends NodeBase {
 
 // BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
 export interface NodeFuncCall extends NodeBase {
-    readonly nodeName: NodeName.FuncCall
-    readonly scope: NodeScope | undefined,
-    readonly identifier: TokenObject,
-    readonly argList: NodeArgList,
+    readonly nodeName: NodeName.FuncCall;
+    readonly scope: NodeScope | undefined;
+    readonly identifier: TokenObject;
+    readonly argList: NodeArgList;
     readonly typeTemplates: NodeType[] | undefined;
 }
 
@@ -643,8 +643,8 @@ export interface NodeArgList extends NodeBase {
 }
 
 export interface ParsedArgument {
-    readonly identifier: TokenObject | undefined,
-    readonly assign: NodeAssign
+    readonly identifier: TokenObject | undefined;
+    readonly assign: NodeAssign;
 }
 
 // BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
@@ -655,18 +655,18 @@ export interface NodeAssign extends NodeBase {
 }
 
 export interface ParsedAssignTail {
-    readonly operator: TokenObject,
-    readonly assign: NodeAssign
+    readonly operator: TokenObject;
+    readonly assign: NodeAssign;
 }
 
 // BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
 export interface NodeCondition extends NodeBase {
-    readonly nodeName: NodeName.Condition
-    readonly expr: NodeExpr,
-    readonly ternary: ParsedTernary | undefined
+    readonly nodeName: NodeName.Condition;
+    readonly expr: NodeExpr;
+    readonly ternary: ParsedTernary | undefined;
 }
 
 export interface ParsedTernary {
-    readonly trueAssign: NodeAssign,
-    readonly falseAssign: NodeAssign
+    readonly trueAssign: NodeAssign;
+    readonly falseAssign: NodeAssign;
 }

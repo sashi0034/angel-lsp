@@ -1,23 +1,23 @@
 {
-	"name": "angel-lsp",
-	"description": "AngelScript Language Server for VisualStudioCode",
-	"version": "1.0.0",
-	"author": "sashi0034",
-	"license": "MIT",
-	"engines": {
-		"node": "*"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
-	},
-	"dependencies": {
-		"minimatch": "^10.1.1",
-		"vscode-languageserver": "^9.0.1",
-		"vscode-languageserver-textdocument": "^1.0.11"
-	},
-	"scripts": {
-		"test": "mocha",
-		"bundle": "tsc && npx esbuild src/server.ts --bundle --outfile=angelscript-language-server.js --minify --platform=node"
-	}
+    "name": "angel-lsp",
+    "description": "AngelScript Language Server for VisualStudioCode",
+    "version": "1.0.0",
+    "author": "sashi0034",
+    "license": "MIT",
+    "engines": {
+        "node": "*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/Microsoft/vscode-extension-samples"
+    },
+    "dependencies": {
+        "minimatch": "^10.1.1",
+        "vscode-languageserver": "^9.0.1",
+        "vscode-languageserver-textdocument": "^1.0.11"
+    },
+    "scripts": {
+        "test": "mocha",
+        "bundle": "tsc && npx esbuild src/server.ts --bundle --outfile=angelscript-language-server.js --minify --platform=node"
+    }
 }

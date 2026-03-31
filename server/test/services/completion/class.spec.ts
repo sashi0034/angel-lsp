@@ -1,7 +1,8 @@
-import {testCompletion} from "./utils";
+import {testCompletion} from './utils';
 
 describe('completion/class', () => {
-    testCompletion(`//  Instance member completion occurs after period.
+    testCompletion(
+        `//  Instance member completion occurs after period.
         class Player {
             int x, y;
             
@@ -15,11 +16,13 @@ describe('completion/class', () => {
             Player player;
             player.$C1$
         }    
-        `,  /* $C0$ */ ["Player", "x", "y", "this", "attack", "move", "bar"]
-        , /* $C1$ */ ["x", "y", "attack"]
+        `,
+        /* $C0$ */ ['Player', 'x', 'y', 'this', 'attack', 'move', 'bar'],
+        /* $C1$ */ ['x', 'y', 'attack']
     );
 
-    testCompletion(`// Private members can be accessed only from within the class.
+    testCompletion(
+        `// Private members can be accessed only from within the class.
         class Foo {
             int x;
             private int z;
@@ -41,9 +44,8 @@ describe('completion/class', () => {
         void main() {
             Bar bar;
             bar.$C1$
-        }`
-        , /* $C0 */ ["Foo", "Bar", "x", "y", "a", "c", "this", "w", "v", "d", "e", "main"]
-        , /* $C1 */ ["w", "d", "x", "a"]
+        }`,
+        /* $C0 */ ['Foo', 'Bar', 'x', 'y', 'a', 'c', 'this', 'w', 'v', 'd', 'e', 'main'],
+        /* $C1 */ ['w', 'd', 'x', 'a']
     );
-
 });

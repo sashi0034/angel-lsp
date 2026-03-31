@@ -1,6 +1,6 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
-describe("analyzer/defaultConstructor", () => {
+describe('analyzer/defaultConstructor', () => {
     expectSuccess(`
         class A { int m; }
         A g_a();

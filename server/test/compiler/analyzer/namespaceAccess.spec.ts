@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/namespaceAccess', () => {
     expectSuccess(`// Select the most appropriate scope for namespace access
@@ -39,4 +39,3 @@ describe('analyzer/namespaceAccess', () => {
         }
     `);
 });
-

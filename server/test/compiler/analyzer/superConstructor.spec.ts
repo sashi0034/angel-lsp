@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/superConstructor', () => {
     expectSuccess(`// Default super constructor is available.

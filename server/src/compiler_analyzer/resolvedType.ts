@@ -1,5 +1,5 @@
-import {ScopePath, SymbolFunction, SymbolType, SymbolVariable} from "./symbolObject";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
+import {ScopePath, SymbolFunction, SymbolType, SymbolVariable} from './symbolObject';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
 // Template translation is resolved as a mapping from tokens to types.
 // In other words, for example, when instantiating `array<T>` as `array<int>`,
@@ -9,7 +9,10 @@ export type TemplateTranslator = Map<TokenObject, ResolvedType | undefined>;
 /**
  * Apply the template translator to the target type.
  */
-export function applyTemplateTranslator(target: ResolvedType | undefined, translator: TemplateTranslator | undefined): ResolvedType | undefined {
+export function applyTemplateTranslator(
+    target: ResolvedType | undefined,
+    translator: TemplateTranslator | undefined
+): ResolvedType | undefined {
     // e.g.1:
     // target: array<T> with {T: T}
     // translator: {T: int}
@@ -63,14 +66,13 @@ export class ResolvedType {
         public readonly isHandler?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
         public readonly accessSource?: SymbolVariable | TokenObject // This is attached when accessing from the variable.
-    ) {
-    }
+    ) {}
 
     public static create(args: {
-        typeOrFunc: SymbolType | SymbolFunction
-        isHandler?: boolean
-        templateTranslator?: TemplateTranslator,
-        accessSource?: SymbolVariable | TokenObject
+        typeOrFunc: SymbolType | SymbolFunction;
+        isHandler?: boolean;
+        templateTranslator?: TemplateTranslator;
+        accessSource?: SymbolVariable | TokenObject;
     }) {
         return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessSource);
     }

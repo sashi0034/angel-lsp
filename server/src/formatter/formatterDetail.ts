@@ -1,9 +1,9 @@
-import {Position} from "vscode-languageserver";
-import {FormatterState, stepCursorAlongLines} from "./formatterState";
-import {TokenObject, TokenKind} from "../compiler_tokenizer/tokenObject";
-import {NodeBase} from "../compiler_parser/nodes";
-import {logger} from "../core/logger";
-import {getGlobalSettings} from "../core/settings";
+import {Position} from 'vscode-languageserver';
+import {FormatterState, stepCursorAlongLines} from './formatterState';
+import {TokenObject, TokenKind} from '../compiler_tokenizer/tokenObject';
+import {NodeBase} from '../compiler_parser/nodes';
+import {logger} from '../core/logger';
+import {getGlobalSettings} from '../core/settings';
 
 function isNullOrWhitespace(char: string | undefined): boolean {
     if (char === undefined) return false;
@@ -34,7 +34,7 @@ function formatTokenWithSpace(format: FormatterState, frontToken: TokenObject) {
     const backToken = format.map.getTokenAt({line: spaceStart.line, character: spaceStart.character - 1});
     const editSpace = canInsertEditSpace(backToken, frontToken) ? ' ' : '';
 
-    format.pushEdit(spaceStart, spaceEnd, (spaceStart.character > 0 ? editSpace : format.getIndent()));
+    format.pushEdit(spaceStart, spaceEnd, spaceStart.character > 0 ? editSpace : format.getIndent());
     format.setCursorToTail(frontToken);
 }
 
@@ -54,9 +54,9 @@ function canInsertEditSpace(backToken: TokenObject | undefined, frontToken: Toke
 }
 
 export interface FormatTargetOption {
-    condenseSides?: boolean,
-    condenseLeft?: boolean,
-    condenseRight?: boolean,
+    condenseSides?: boolean;
+    condenseLeft?: boolean;
+    condenseRight?: boolean;
     forceWrap?: boolean;
     connectTail?: boolean;
 }
@@ -90,8 +90,9 @@ export function formatMoveUntil(format: FormatterState, destination: Position) {
             formatBlankLines(format, format.getCursor().line + 1, cursor.line - 1);
         }
 
-        const isReached = cursor.line > destination.line
-            || (cursor.line === destination.line && cursor.character >= destination.character);
+        const isReached =
+            cursor.line > destination.line ||
+            (cursor.line === destination.line && cursor.character >= destination.character);
         if (isReached === false) {
             formatTokenWithSpace(format, next);
             cursor = format.getCursor();
@@ -162,7 +163,8 @@ function formatBlankLines(format: FormatterState, startLine: number, endLine: nu
     format.pushEdit(
         {line: startLine, character: 0},
         {line: endLine, character: format.textLines[endLine].length - 1},
-        '\n'.repeat(getMaxBlankLines() - 1));
+        '\n'.repeat(getMaxBlankLines() - 1)
+    );
     format.setCursor({line: endLine + 1, character: 0});
 }
 
@@ -175,8 +177,7 @@ function executeFormatTargetWith(
 ) {
     const isCondenseLeft: boolean =
         format.popCondense() || option.condenseSides === true || option.condenseLeft === true;
-    const isCondenseRight: boolean =
-        option.condenseSides === true || option.condenseRight === true;
+    const isCondenseRight: boolean = option.condenseSides === true || option.condenseRight === true;
     if (isCondenseRight) format.pushCondense();
 
     const forceWrap: boolean = format.popWrap() || option.forceWrap === true;
@@ -202,9 +203,7 @@ function executeFormatTargetWith(
         } else {
             const sameLine = editStart.line === editEnd.line;
             const editStart2: Position = sameLine ? walkedBack : walkBackUntilWhitespace(format, editEnd);
-            const newText = sameLine
-                ? (forceWrap ? '\n' + format.getIndent() : frontSpace)
-                : format.getIndent();
+            const newText = sameLine ? (forceWrap ? '\n' + format.getIndent() : frontSpace) : format.getIndent();
             format.pushEdit(editStart2, editEnd, newText);
         }
     }

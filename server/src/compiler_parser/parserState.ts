@@ -1,12 +1,8 @@
-import {HighlightForToken} from "../core/highlight";
-import {diagnostic} from "../core/diagnostic";
-import {TokenComment, TokenKind, TokenObject} from "../compiler_tokenizer/tokenObject";
-import {
-    ParserCachedData,
-    ParserCacheKind,
-    ParserCacheServices, ParserCacheTargets
-} from "./parserCache";
-import {MutableTextPosition, TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
+import {HighlightForToken} from '../core/highlight';
+import {diagnostic} from '../core/diagnostic';
+import {TokenComment, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {ParserCachedData, ParserCacheKind, ParserCacheServices, ParserCacheTargets} from './parserCache';
+import {MutableTextPosition, TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
 
 export enum ParseFailure {
     /**
@@ -17,7 +13,7 @@ export enum ParseFailure {
      * The parser visited a function where the input conforms to the expected grammar,
      * but parsing fails due to missing elements.
      */
-    Pending = 'Pending',
+    Pending = 'Pending'
 }
 
 export enum BreakOrThrough {
@@ -28,7 +24,7 @@ export enum BreakOrThrough {
     /**
      * The parser should continue parsing.
      */
-    Through = 'Through',
+    Through = 'Through'
 }
 
 /**
@@ -105,7 +101,7 @@ export class ParserState {
      */
     public expect(reservedWord: string, highlight: HighlightForToken) {
         if (this.isEnd()) {
-            diagnostic.error(this.next().location, "Unexpected end of file.");
+            diagnostic.error(this.next().location, 'Unexpected end of file.');
             return false;
         }
 
@@ -139,22 +135,23 @@ export class ParserState {
         const data = this._caches[rangeStart];
 
         let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
-        if (data !== undefined && data.kind === key) restore = () => {
-            this._cursorIndex = data.rangeEnd;
-            return data.data as ParserCacheTargets<T> | undefined;
-        };
+        if (data !== undefined && data.kind === key)
+            restore = () => {
+                this._cursorIndex = data.rangeEnd;
+                return data.data as ParserCacheTargets<T> | undefined;
+            };
 
         const store = (cache: ParserCacheTargets<T> | undefined) => {
             this._caches[rangeStart] = {
                 kind: key,
                 rangeEnd: this._cursorIndex,
-                data: cache,
+                data: cache
             };
         };
 
         return {
             restore: restore,
-            store: store,
+            store: store
         };
     }
 }
@@ -182,4 +179,3 @@ function makeEofToken(lastToken: TokenObject | undefined) {
     token.bindPreprocessedToken(lastToken.index + 1, undefined);
     return token;
 }
-

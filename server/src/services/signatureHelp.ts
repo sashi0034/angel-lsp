@@ -1,16 +1,14 @@
-import {SymbolFunction} from "../compiler_analyzer/symbolObject";
-import {Position, SignatureHelp, URI} from "vscode-languageserver";
-import {ParameterInformation, SignatureInformation} from "vscode-languageserver-types";
-import {FunctionCallInfo} from "../compiler_analyzer/info";
-import {stringifyResolvedType} from "../compiler_analyzer/symbolUtils";
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {applyTemplateTranslator} from "../compiler_analyzer/resolvedType";
-import {getDocumentCommentOfSymbol} from "./utils";
+import {SymbolFunction} from '../compiler_analyzer/symbolObject';
+import {Position, SignatureHelp, URI} from 'vscode-languageserver';
+import {ParameterInformation, SignatureInformation} from 'vscode-languageserver-types';
+import {FunctionCallInfo} from '../compiler_analyzer/info';
+import {stringifyResolvedType} from '../compiler_analyzer/symbolUtils';
+import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {applyTemplateTranslator} from '../compiler_analyzer/resolvedType';
+import {getDocumentCommentOfSymbol} from './utils';
 
-export function provideSignatureHelp(
-    globalScope: SymbolGlobalScope, caret: Position, uri: URI
-): SignatureHelp {
+export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Position, uri: URI): SignatureHelp {
     const signatures: SignatureInformation[] = [];
 
     // Since the nesting is deeper toward the end, iterate from the back.
@@ -22,8 +20,9 @@ export function provideSignatureHelp(
         const location = info.callerArgumentsNode.nodeRange.extendForward(shouldExtend ? 1 : 0); // Extend to the next token of ')'
         if (location.getBoundingLocation().positionInRange(caret)) {
             const callee = info.calleeFuncHolder.first; // FIXME?
-            const expectedCallee =
-                globalScope.resolveScope(callee.scopePath)?.lookupSymbolWithParent(callee.actualIdentifierToken.text);
+            const expectedCallee = globalScope
+                .resolveScope(callee.scopePath)
+                ?.lookupSymbolWithParent(callee.actualIdentifierToken.text);
             if (!expectedCallee?.isFunctionHolder()) continue;
 
             for (const callee of expectedCallee.overloadList) {
@@ -35,7 +34,7 @@ export function provideSignatureHelp(
     }
 
     return {
-        signatures: signatures,
+        signatures: signatures
         // activeSignature: 0,
     };
 }

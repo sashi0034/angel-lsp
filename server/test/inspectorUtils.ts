@@ -1,8 +1,7 @@
-import {Inspector} from "../src/inspector/inspector";
+import {Inspector} from '../src/inspector/inspector';
 
 export class InspectorTestEvent {
-    private _onBegin: () => void = () => {
-    };
+    private _onBegin: () => void = () => {};
 
     public onBegin(callback: () => void): InspectorTestEvent {
         this._onBegin = callback;
@@ -22,17 +21,19 @@ export interface FileContentUnit {
 export type FileContents = string | FileContentUnit[];
 
 export function isRawContent(fileContent: FileContents): fileContent is string {
-    return typeof fileContent === "string";
+    return typeof fileContent === 'string';
 }
 
 const defaultTargetUri = 'file:///path/to/file.as';
 
 export function makeFileContentList(fileContents: FileContents): FileContentUnit[] {
     if (isRawContent(fileContents)) {
-        return [{
-            uri: defaultTargetUri,
-            content: fileContents
-        }];
+        return [
+            {
+                uri: defaultTargetUri,
+                content: fileContents
+            }
+        ];
     } else {
         return structuredClone(fileContents);
     }
@@ -49,4 +50,3 @@ export function inspectFileContents(fileContentList: FileContentUnit[]): Inspect
 
     return inspector;
 }
-

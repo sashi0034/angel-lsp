@@ -1,154 +1,92 @@
 {
     "If statement": {
         "prefix": "if",
-        "body": [
-            "if (${1:CONDITION}) {",
-            "\t$2",
-            "}"
-        ],
+        "body": ["if (${1:CONDITION}) {", "\t$2", "}"],
         "description": "If statement"
     },
     "For loop": {
         "prefix": "for",
-        "body": [
-            "for (${1:int} ${2:i} = 0; ${2} < ${3:n}; ${2}++) {",
-            "\t$0",
-            "}"
-        ],
+        "body": ["for (${1:int} ${2:i} = 0; ${2} < ${3:n}; ${2}++) {", "\t$0", "}"],
         "description": "For loop"
     },
     "Foreach loop": {
         "prefix": "foreach",
-        "body": [
-            "foreach (const auto ${2:VALUE0} : ${1:COLLECTION}) {",
-            "\t$3",
-            "}"
-        ],
+        "body": ["foreach (const auto ${2:VALUE0} : ${1:COLLECTION}) {", "\t$3", "}"],
         "description": "Foreach loop (available in preview version)"
     },
     "While loop": {
         "prefix": "while",
-        "body": [
-            "while (${1:CONDITION}) {",
-            "\t$2",
-            "}"
-        ],
+        "body": ["while (${1:CONDITION}) {", "\t$2", "}"],
         "description": "While loop"
     },
     "Return statement": {
         "prefix": "return",
-        "body": [
-            "return $1;"
-        ],
+        "body": ["return $1;"],
         "description": "Return statement"
     },
     "Break statement": {
         "prefix": "break",
-        "body": [
-            "break;"
-        ],
+        "body": ["break;"],
         "description": "Break statement"
     },
     "Continue statement": {
         "prefix": "continue",
-        "body": [
-            "continue;"
-        ],
+        "body": ["continue;"],
         "description": "Continue statement"
     },
     "Do while loop": {
         "prefix": "dowhile",
-        "body": [
-            "do {",
-            "\t$2",
-            "} while (${1:CONDITION});"
-        ],
+        "body": ["do {", "\t$2", "} while (${1:CONDITION});"],
         "description": "Do while loop"
     },
     "Switch statement": {
         "prefix": "switch",
-        "body": [
-            "switch (${1:EXPRESSION}) {",
-            "case ${2:VALUE}:",
-            "\t$3",
-            "\tbreak;",
-            "default:",
-            "\tbreak;",
-            "}"
-        ],
+        "body": ["switch (${1:EXPRESSION}) {", "case ${2:VALUE}:", "\t$3", "\tbreak;", "default:", "\tbreak;", "}"],
         "description": "Switch statement"
     },
     "Try block": {
         "prefix": "try",
-        "body": [
-            "try {",
-            "\t$1",
-            "} catch {",
-            "}"
-        ],
+        "body": ["try {", "\t$1", "} catch {", "}"],
         "description": "Try catch block"
     },
     "Cast": {
         "prefix": "cast",
-        "body": [
-            "cast<${1:TYPE}>($2)"
-        ],
+        "body": ["cast<${1:TYPE}>($2)"],
         "description": "Cast to a type"
     },
     "Namespace definition": {
         "prefix": "namespace",
-        "body": [
-            "namespace ${1:IDENTIFIER} {",
-            "}"
-        ],
+        "body": ["namespace ${1:IDENTIFIER} {", "}"],
         "description": "Namespace definition"
     },
     "Using namespace": {
         "prefix": "using",
-        "body": [
-            "using namespace ${1:IDENTIFIER};"
-        ],
+        "body": ["using namespace ${1:IDENTIFIER};"],
         "description": "Using namespace"
     },
     "Interface definition": {
         "prefix": "interface",
-        "body": [
-            "interface ${1:IDENTIFIER} {",
-            "}"
-        ],
+        "body": ["interface ${1:IDENTIFIER} {", "}"],
         "description": "Interface definition"
     },
     "Class definition": {
         "prefix": "class",
-        "body": [
-            "class ${1:IDENTIFIER} {",
-            "}"
-        ],
+        "body": ["class ${1:IDENTIFIER} {", "}"],
         "description": "Class definition"
     },
     "Type definition": {
         "prefix": "typedef",
-        "body": [
-            "typedef ${1:PRIMITIVE} ${2:IDENTIFIER};"
-        ],
+        "body": ["typedef ${1:PRIMITIVE} ${2:IDENTIFIER};"],
         "description": "Alias for a type"
     },
     "Function handler definition": {
         "prefix": "funcdef",
-        "body": [
-            "funcdef ${1:RETURN} ${2:IDENTIFIER}(${3:PARAMS});"
-        ],
+        "body": ["funcdef ${1:RETURN} ${2:IDENTIFIER}(${3:PARAMS});"],
         "description": "Function handler definition"
     },
     "Virtual property getter": {
         "prefix": "getter",
-        "body": [
-            "${1:TYPE} ${2:IDENTIFIER} {",
-            "\tget const {",
-            "\t\treturn ${3:VALUE};",
-            "\t}",
-            "}"
-        ],
+        "body": ["${1:TYPE} ${2:IDENTIFIER} {", "\tget const {", "\t\treturn ${3:VALUE};", "\t}", "}"],
         "description": "Virtual property getter"
     },
     "Virtual property getter and setter": {
@@ -167,9 +105,7 @@
     },
     "Include statement": {
         "prefix": "#include",
-        "body": [
-            "#include \"${1:HEADER}\""
-        ],
+        "body": ["#include \"${1:HEADER}\""],
         "description": "Include other file"
     }
 }

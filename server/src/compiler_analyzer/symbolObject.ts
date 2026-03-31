@@ -8,10 +8,10 @@ import {
     NodeIntfMethod,
     NodeName,
     NodeBase
-} from "../compiler_parser/nodes";
-import {ResolvedType} from "./resolvedType";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import assert = require("node:assert");
+} from '../compiler_parser/nodes';
+import {ResolvedType} from './resolvedType';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import assert = require('node:assert');
 
 /**
  * A node that represents a type definition.
@@ -31,7 +31,7 @@ export function isNodeClassOrInterface(type: NodeBase | undefined): type is Node
 export enum SymbolKind {
     Type = 'Type',
     Variable = 'Variable',
-    Function = 'Function',
+    Function = 'Function'
 }
 
 export type ScopePath = ReadonlyArray<string>;
@@ -103,7 +103,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         private _templateTypes?: TokenObject[],
         private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
-        public readonly multipleEnumCandidates?: SymbolVariable[],
+        public readonly multipleEnumCandidates?: SymbolVariable[]
     ) {
         super();
 
@@ -114,16 +114,16 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
     }
 
     public static create(args: {
-        identifierToken: TokenObject
-        scopePath: ScopePath
-        linkedNode: TypeDefinitionNode | undefined
-        membersScopePath: ScopePath | undefined
-        isMixin?: boolean,
-        isTypeParameter?: boolean,
-        templateTypes?: TokenObject[]
-        baseList?: (ResolvedType | undefined)[]
-        isHandler?: boolean,
-        multipleEnumCandidates?: SymbolVariable[],
+        identifierToken: TokenObject;
+        scopePath: ScopePath;
+        linkedNode: TypeDefinitionNode | undefined;
+        membersScopePath: ScopePath | undefined;
+        isMixin?: boolean;
+        isTypeParameter?: boolean;
+        templateTypes?: TokenObject[];
+        baseList?: (ResolvedType | undefined)[];
+        isHandler?: boolean;
+        multipleEnumCandidates?: SymbolVariable[];
     }) {
         return new SymbolType(
             args.identifierToken,
@@ -219,19 +219,19 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
         public readonly isVirtualProperty?: boolean,
-        public readonly isIndexedPropertyAccessor?: boolean,
+        public readonly isIndexedPropertyAccessor?: boolean
     ) {
         super();
     }
 
     public static create(args: {
-        identifierToken: TokenObject
-        scopePath: ScopePath
-        type: ResolvedType | undefined
-        isInstanceMember: boolean
-        accessRestriction: AccessModifier | undefined,
-        isVirtualProperty?: boolean,
-        isIndexedPropertyAccessor?: boolean,
+        identifierToken: TokenObject;
+        scopePath: ScopePath;
+        type: ResolvedType | undefined;
+        isInstanceMember: boolean;
+        accessRestriction: AccessModifier | undefined;
+        isVirtualProperty?: boolean;
+        isIndexedPropertyAccessor?: boolean;
     }) {
         return new SymbolVariable(
             args.identifierToken,
@@ -285,20 +285,20 @@ export class SymbolFunction extends SymbolBase {
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        private _templateTypes?: TokenObject[],
+        private _templateTypes?: TokenObject[]
     ) {
         super();
     }
 
     public static create(args: {
-        identifierToken: TokenObject
-        scopePath: ScopePath
-        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod
-        functionScopePath: ScopePath | undefined,
-        returnType: ResolvedType | undefined
-        parameterTypes: (ResolvedType | undefined)[]
-        isInstanceMember: boolean
-        accessRestriction: AccessModifier | undefined
+        identifierToken: TokenObject;
+        scopePath: ScopePath;
+        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
+        functionScopePath: ScopePath | undefined;
+        returnType: ResolvedType | undefined;
+        parameterTypes: (ResolvedType | undefined)[];
+        isInstanceMember: boolean;
+        accessRestriction: AccessModifier | undefined;
     }) {
         return new SymbolFunction(
             args.identifierToken,
@@ -308,13 +308,11 @@ export class SymbolFunction extends SymbolBase {
             args.returnType,
             args.parameterTypes,
             args.isInstanceMember,
-            args.accessRestriction);
+            args.accessRestriction
+        );
     }
 
-    public clone(option?: {
-        identifierToken?: TokenObject,
-        accessRestriction?: AccessModifier,
-    }): this {
+    public clone(option?: {identifierToken?: TokenObject; accessRestriction?: AccessModifier}): this {
         const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
         if (option?.identifierToken !== undefined) clone.identifierToken = option.identifierToken;
         if (option?.accessRestriction !== undefined) clone.accessRestriction = option.accessRestriction;

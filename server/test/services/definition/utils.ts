@@ -1,6 +1,6 @@
-import {FileContents, inspectFileContents, makeFileContentList} from "../../inspectorUtils";
-import {provideDefinitionAsToken} from "../../../src/services/definition";
-import {CaretMap} from "../caretMap";
+import {FileContents, inspectFileContents, makeFileContentList} from '../../inspectorUtils';
+import {provideDefinitionAsToken} from '../../../src/services/definition';
+import {CaretMap} from '../caretMap';
 
 export function testDefinition(fileContents: FileContents, mapping?: [number, number][]) {
     const fileContentList = makeFileContentList(fileContents);
@@ -10,7 +10,7 @@ export function testDefinition(fileContents: FileContents, mapping?: [number, nu
     caretMap.processFiles(fileContentList);
 
     if (caretMap.length < 2) {
-        throw new Error("Expected at least 2 caret positions");
+        throw new Error('Expected at least 2 caret positions');
     }
 
     if (mapping === undefined) {
@@ -52,7 +52,9 @@ export function testDefinition(fileContents: FileContents, mapping?: [number, nu
 
             const definitionLocation = definitionToken.location;
             if (definitionLocation.positionInRange(toCaret) === false || definitionLocation.path !== toUri) {
-                throw new Error(`Expected definition of $C${fromId}$ to be ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`);
+                throw new Error(
+                    `Expected definition of $C${fromId}$ to be ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`
+                );
             }
         }
     });

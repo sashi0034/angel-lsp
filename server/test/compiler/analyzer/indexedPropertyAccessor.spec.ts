@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/indexedPropertyAccessor', () => {
     expectSuccess(`// Indexed property accessors can be used through the index operator.

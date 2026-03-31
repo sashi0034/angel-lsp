@@ -1,9 +1,9 @@
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolFunctionHolder, SymbolObject, SymbolType} from "./symbolObject";
-import {SymbolScope} from "./symbolScope";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {ResolvedType, TemplateTranslator} from "./resolvedType";
-import {NodeArgList} from "../compiler_parser/nodes";
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {SymbolFunctionHolder, SymbolObject, SymbolType} from './symbolObject';
+import {SymbolScope} from './symbolScope';
+import {TextLocation} from '../compiler_tokenizer/textLocation';
+import {ResolvedType, TemplateTranslator} from './resolvedType';
+import {NodeArgList} from '../compiler_parser/nodes';
 
 /**
  * Information about a symbol that references a symbol declared elsewhere.

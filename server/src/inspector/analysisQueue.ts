@@ -1,8 +1,8 @@
-import assert = require("node:assert");
+import assert = require('node:assert');
 
 export enum AnalysisQueuePriority {
     Direct = 'Direct',
-    Indirect = 'Indirect',
+    Indirect = 'Indirect'
 }
 
 // Direct with reanalyzeDependents: true --- Added when the user directly edits a file
@@ -49,8 +49,7 @@ export class AnalysisQueue<Record extends RecordElement> {
     }
 
     public isInQueue(uri: string): boolean {
-        return this._directQueue.some(r => r.record.uri === uri) ||
-            this._indirectQueue.some(r => r.record.uri === uri);
+        return this._directQueue.some(r => r.record.uri === uri) || this._indirectQueue.some(r => r.record.uri === uri);
     }
 
     /**
@@ -90,7 +89,7 @@ export class AnalysisQueue<Record extends RecordElement> {
         }
     }
 
-    public frontPop(): QueueElement<Record> & { queue: AnalysisQueuePriority } | undefined {
+    public frontPop(): (QueueElement<Record> & {queue: AnalysisQueuePriority}) | undefined {
         if (this._directQueue.length > 0) {
             // console.log('** pop directQueue: ' + this._directQueue[0].record.uri);
             return {...this._directQueue.shift()!, queue: AnalysisQueuePriority.Direct};
@@ -104,4 +103,3 @@ export class AnalysisQueue<Record extends RecordElement> {
         return undefined;
     }
 }
-

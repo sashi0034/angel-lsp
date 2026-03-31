@@ -1,4 +1,4 @@
-import {getGlobalSettings} from "./settings";
+import {getGlobalSettings} from './settings';
 
 export function message(info: string) {
     if (getGlobalSettings().trace.server === 'off') return;
@@ -18,5 +18,5 @@ export function verbose(info: string) {
 export const logger = {
     message,
     error,
-    verbose,
+    verbose
 } as const;

@@ -1,7 +1,7 @@
-import * as lsp from "vscode-languageserver/node";
-import {getGlobalSettings} from "../core/settings";
-import {TextLocation} from "../compiler_tokenizer/textLocation";
-import {ActionHint} from "./actionHint";
+import * as lsp from 'vscode-languageserver/node';
+import {getGlobalSettings} from '../core/settings';
+import {TextLocation} from '../compiler_tokenizer/textLocation';
+import {ActionHint} from './actionHint';
 
 const sourceName = 'AngelScript - Analyzer';
 
@@ -12,13 +12,15 @@ function beginSession() {
 }
 
 function error(location: TextLocation, message: string) {
-    const severity = getGlobalSettings().suppressAnalyzerErrors ? lsp.DiagnosticSeverity.Warning : lsp.DiagnosticSeverity.Error;
+    const severity = getGlobalSettings().suppressAnalyzerErrors
+        ? lsp.DiagnosticSeverity.Warning
+        : lsp.DiagnosticSeverity.Error;
 
     s_diagnostics.push({
         severity: severity,
         range: location.clone(),
         message: message,
-        source: sourceName,
+        source: sourceName
     });
 }
 
@@ -42,5 +44,5 @@ export const analyzerDiagnostic = {
     beginSession,
     error,
     hint,
-    endSession,
+    endSession
 } as const;

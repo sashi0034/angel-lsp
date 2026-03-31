@@ -8,7 +8,7 @@ class TrieNode<T> {
     }
 }
 
-export type TriePair<T> = { key: string, value: T };
+export type TriePair<T> = {key: string; value: T};
 
 export class Trie<T> {
     root: TrieNode<T>;

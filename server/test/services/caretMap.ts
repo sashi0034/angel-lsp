@@ -1,6 +1,6 @@
-import {TextPosition} from "../../src/compiler_tokenizer/textLocation";
-import {FileContentUnit} from "../inspectorUtils";
-import {makeCaretListAndContent} from "./caretUtils";
+import {TextPosition} from '../../src/compiler_tokenizer/textLocation';
+import {FileContentUnit} from '../inspectorUtils';
+import {makeCaretListAndContent} from './caretUtils';
 
 interface CaretLocation {
     uri: string;

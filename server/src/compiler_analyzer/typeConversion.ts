@@ -1,14 +1,14 @@
-import {ResolvedType} from "./resolvedType";
-import {getActiveGlobalScope, resolveActiveScope} from "./symbolScope";
-import {isNodeClassOrInterface, SymbolFunction, SymbolType} from "./symbolObject";
-import {NodeName} from "../compiler_parser/nodes";
-import {resolvedBuiltinInt, resolvedBuiltinUInt} from "./builtinType";
-import assert = require("node:assert");
+import {ResolvedType} from './resolvedType';
+import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
+import {isNodeClassOrInterface, SymbolFunction, SymbolType} from './symbolObject';
+import {NodeName} from '../compiler_parser/nodes';
+import {resolvedBuiltinInt, resolvedBuiltinUInt} from './builtinType';
+import assert = require('node:assert');
 
 export enum ConversionType {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
     ExplicitRefCast = 'ExplicitRefCast', // asIC_EXPLICIT_REF_CAST
-    ExplicitValueCast = 'ExplicitValue', // asIC_EXPLICIT_VAL_CAST
+    ExplicitValueCast = 'ExplicitValue' // asIC_EXPLICIT_VAL_CAST
 }
 
 enum ConversionCost {
@@ -30,7 +30,7 @@ enum ConversionCost {
     // ToObjectConv + ConstConv = 15
     VariableConv = 16,
 
-    Unknown = 255,
+    Unknown = 255
 }
 
 export interface ConversionEvaluation {
@@ -40,7 +40,7 @@ export interface ConversionEvaluation {
 
 export function canTypeConvert(
     src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    dest: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): boolean {
     const evaluation = evaluateTypeConversion(src, dest);
@@ -52,24 +52,24 @@ export function canTypeConvert(
  */
 export function evaluateTypeConversion(
     src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    dest: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionEvaluation | undefined {
     const initialState: EvaluationState = {
-        allowObjectConstruct: true,
+        allowObjectConstruct: true
     };
 
     return evaluateTypeConversionInternal(initialState, src, dest);
 }
 
 interface EvaluationState {
-    allowObjectConstruct: boolean,
+    allowObjectConstruct: boolean;
 }
 
 function evaluateTypeConversionInternal(
     state: EvaluationState,
     src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    dest: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionEvaluation | undefined {
     src = normalizeType(src);
@@ -154,23 +154,20 @@ const numberSizeInBytes = new Map<string, number>([
     ['int16', 2],
     ['uint16', 2],
     ['int8', 1],
-    ['uint8', 1],
+    ['uint8', 1]
 
     // Note: int32 and uint32 are normalized to int and uint respectively at the beginning of the evaluation.
 ]);
 
 const sizeof_int32 = 4;
 
-function evaluateConvPrimitiveToPrimitive(
-    src: ResolvedType,
-    dest: ResolvedType,
-) {
+function evaluateConvPrimitiveToPrimitive(src: ResolvedType, dest: ResolvedType) {
     // FIXME: Check a primitive is const or not?
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
-    assert((srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum()));
+    assert(srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum());
 
     if (srcType.equals(destType)) {
         return {cost: ConversionCost.NoConv};
@@ -204,9 +201,15 @@ function evaluateConvPrimitiveToPrimitive(
     const destBytes = numberSizeInBytes.get(destText) ?? sizeof_int32;
 
     let cost = ConversionCost.NoConv;
-    if ((srcProperty?.isFloat || srcProperty?.isDouble) && (destProperty?.isSignedInteger || destProperty?.isUnsignedInteger)) {
+    if (
+        (srcProperty?.isFloat || srcProperty?.isDouble) &&
+        (destProperty?.isSignedInteger || destProperty?.isUnsignedInteger)
+    ) {
         cost = ConversionCost.FloatToIntConv;
-    } else if ((srcProperty?.isSignedInteger || srcProperty?.isUnsignedInteger) && (destProperty?.isFloat || destProperty?.isDouble)) {
+    } else if (
+        (srcProperty?.isSignedInteger || srcProperty?.isUnsignedInteger) &&
+        (destProperty?.isFloat || destProperty?.isDouble)
+    ) {
         cost = ConversionCost.IntToFloatConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes === destBytes) {
         cost = ConversionCost.EnumSameSizeConv;
@@ -239,7 +242,7 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['int16', ['int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'int8', 'uint8', 'double', 'float']],
     ['uint16', ['uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'uint8', 'int8', 'double', 'float']],
     ['int8', ['int8', 'uint8', 'int16', 'uint16', 'int', 'uint', 'int64', 'uint64', 'double', 'float']],
-    ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']],
+    ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']]
 ]);
 
 function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
@@ -247,7 +250,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     const destType = dest.typeOrFunc;
 
     assert(srcType.isType() && destType.isType());
-    assert((srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum()));
+    assert(srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum());
 
     // FIXME: An explicit handle cannot be converted to a primitive
 
@@ -474,8 +477,10 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
     if (srcType.templateTypes?.length !== destType.templateTypes?.length) {
         // The number of template types is different.
         return false;
-    } else if (srcType.templateTypes === undefined || destType.templateTypes === undefined
-        || srcType.templateTypes.length == 0
+    } else if (
+        srcType.templateTypes === undefined ||
+        destType.templateTypes === undefined ||
+        srcType.templateTypes.length == 0
     ) {
         // Both types do not have template types.
         return true;
@@ -489,8 +494,11 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
         const srcParam = normalizeType(srcTemplateTypes[i]);
         const destParam = normalizeType(destTemplates[i]);
 
-        if (srcParam === undefined || destParam === undefined ||
-            srcParam.identifierText === '?' || destParam.identifierText === '?'
+        if (
+            srcParam === undefined ||
+            destParam === undefined ||
+            srcParam.identifierText === '?' ||
+            destParam.identifierText === '?'
         ) {
             continue; // FIXME?
         }
@@ -510,12 +518,15 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
 function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
     // TODO: Consider implicit or explicit
 
-    const convFuncList: SymbolFunction[ ] = [];
+    const convFuncList: SymbolFunction[] = [];
     const srcMembers =
         resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of srcMembers) {
-        if (methodHolder.isFunctionHolder() &&
-            ['opConv', 'opImplConv',
+        if (
+            methodHolder.isFunctionHolder() &&
+            [
+                'opConv',
+                'opImplConv',
                 'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handler.
             ].includes(methodHolder.identifierText)
         ) {

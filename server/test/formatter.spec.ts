@@ -1,12 +1,14 @@
-import {formatFile} from "../src/formatter/formatter";
-import {TextDocument} from "vscode-languageserver-textdocument";
-import {Inspector} from "../src/inspector/inspector";
+import {formatFile} from '../src/formatter/formatter';
+import {TextDocument} from 'vscode-languageserver-textdocument';
+import {Inspector} from '../src/inspector/inspector';
 
 function makeVisible(content: string) {
     const lines = content.split(/\r?\n/);
-    return lines.map((line, index) => {
-        return `${index}: '${line}'`;
-    }).join('\n');
+    return lines
+        .map((line, index) => {
+            return `${index}: '${line}'`;
+        })
+        .join('\n');
 }
 
 function getDiffLineNumber(expected: string, actual: string) {
@@ -26,7 +28,7 @@ function testFormatter(content: string, expectedContent: string) {
     it(`format ${content}`, () => {
         const inspector = new Inspector();
 
-        const uri = "/foo/bar.as";
+        const uri = '/foo/bar.as';
         inspector.inspectFile(uri, content);
 
         inspector.flushRecord();
@@ -47,7 +49,9 @@ function testFormatter(content: string, expectedContent: string) {
         if (actual !== expected) {
             const difference = `difference: ${getDiffLineNumber(expected, actual)}`;
             const hr = '-----------------------------------------------';
-            throw new Error(`${hr} expected\n${makeVisible(actual)}\n${hr} actual\n${makeVisible(expected)}\n${hr}\n${difference}`);
+            throw new Error(
+                `${hr} expected\n${makeVisible(actual)}\n${hr} actual\n${makeVisible(expected)}\n${hr}\n${difference}`
+            );
         }
     });
 }
@@ -77,5 +81,3 @@ void main() {
 `
     );
 });
-
-

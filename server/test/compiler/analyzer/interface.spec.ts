@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/interface', () => {
     expectSuccess(`// Interfaces can have functions.

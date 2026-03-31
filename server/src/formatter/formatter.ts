@@ -2,39 +2,56 @@ import {
     funcHeadDestructor,
     isFuncHeadReturnValue,
     NodeArgList,
-    NodeAssign, NodeBreak, NodeCase,
-    NodeCast, NodeClass,
+    NodeAssign,
+    NodeBreak,
+    NodeCase,
+    NodeCast,
+    NodeClass,
     NodeCondition,
     NodeConstructCall,
     NodeContinue,
-    NodeDataType, NodeDoWhile, NodeEnum,
+    NodeDataType,
+    NodeDoWhile,
+    NodeEnum,
     NodeExpr,
     NodeExprPostOp,
     NodeExprStat,
     NodeExprTerm,
     NodeExprValue,
     NodeFor,
-    NodeFunc, NodeFuncCall, NodeFuncDef,
-    NodeIf, NodeImport,
-    NodeInitList, NodeInterface, NodeIntfMethod,
-    NodeLambda, NodeMixin,
+    NodeFunc,
+    NodeFuncCall,
+    NodeFuncDef,
+    NodeIf,
+    NodeImport,
+    NodeInitList,
+    NodeInterface,
+    NodeIntfMethod,
+    NodeLambda,
+    NodeMixin,
     NodeName,
     NodeNamespace,
-    NodeParamList, NodeReturn,
+    NodeParamList,
+    NodeReturn,
     NodeScope,
     NodeScript,
     NodeStatBlock,
-    NodeStatement, NodeSwitch, NodeTry,
-    NodeType, NodeTypeDef, NodeUsing,
+    NodeStatement,
+    NodeSwitch,
+    NodeTry,
+    NodeType,
+    NodeTypeDef,
+    NodeUsing,
     NodeVar,
-    NodeVarAccess, NodeVirtualProp,
+    NodeVarAccess,
+    NodeVirtualProp,
     NodeWhile,
     ReferenceModifier
-} from "../compiler_parser/nodes";
-import {FormatterState, isEditedWrapAt} from "./formatterState";
-import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from "./formatterDetail";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
+} from '../compiler_parser/nodes';
+import {FormatterState, isEditedWrapAt} from './formatterState';
+import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
+import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, nodeScript: NodeScript) {
@@ -228,7 +245,7 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function formatEntityModifier(format: FormatterState) {
-    for (; ;) {
+    for (;;) {
         const next = formatMoveToNonComment(format);
         if (next === undefined) return;
         if (next.text === 'shared' || next.text === 'abstract' || next.text === 'final' || next.text === 'external') {
@@ -363,7 +380,7 @@ function formatVirtualProp(format: FormatterState, virtualProp: NodeVirtualProp)
     formatTargetBy(format, virtualProp.identifier.text, {});
 
     formatBraceBlock(format, () => {
-        for (; ;) {
+        for (;;) {
             const getter = virtualProp.getter;
             const setter = virtualProp.setter;
             const next = formatMoveToNonComment(format);
@@ -585,7 +602,7 @@ function formatDataType(format: FormatterState, dataType: NodeDataType) {
 
 // BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function formatFuncAttr(format: FormatterState) {
-    for (; ;) {
+    for (;;) {
         const next = formatMoveToNonComment(format);
         if (next === undefined) return;
         if (next.text === 'override' || next.text === 'final' || next.text === 'explicit' || next.text === 'property') {
@@ -600,39 +617,39 @@ function formatStatement(format: FormatterState, statement: NodeStatement, canIn
     if (isIndented) format.pushIndent();
 
     switch (statement.nodeName) {
-    case NodeName.If:
-        formatIf(format, statement);
-        break;
-    case NodeName.For:
-        formatFor(format, statement);
-        break;
-    case NodeName.While:
-        formatWhile(format, statement);
-        break;
-    case NodeName.Return:
-        formatReturn(format, statement);
-        break;
-    case NodeName.StatBlock:
-        formatStatBlock(format, statement);
-        break;
-    case NodeName.Break:
-        formatBreak(format, statement);
-        break;
-    case NodeName.Continue:
-        formatContinue(format, statement);
-        break;
-    case NodeName.DoWhile:
-        formatDoWhile(format, statement);
-        break;
-    case NodeName.Switch:
-        formatSwitch(format, statement);
-        break;
-    case NodeName.ExprStat:
-        formatExprStat(format, statement);
-        break;
-    case NodeName.Try:
-        formatTry(format, statement);
-        break;
+        case NodeName.If:
+            formatIf(format, statement);
+            break;
+        case NodeName.For:
+            formatFor(format, statement);
+            break;
+        case NodeName.While:
+            formatWhile(format, statement);
+            break;
+        case NodeName.Return:
+            formatReturn(format, statement);
+            break;
+        case NodeName.StatBlock:
+            formatStatBlock(format, statement);
+            break;
+        case NodeName.Break:
+            formatBreak(format, statement);
+            break;
+        case NodeName.Continue:
+            formatContinue(format, statement);
+            break;
+        case NodeName.DoWhile:
+            formatDoWhile(format, statement);
+            break;
+        case NodeName.Switch:
+            formatSwitch(format, statement);
+            break;
+        case NodeName.ExprStat:
+            formatExprStat(format, statement);
+            break;
+        case NodeName.Try:
+            formatTry(format, statement);
+            break;
     }
 
     if (isIndented) format.popIndent();
@@ -648,11 +665,15 @@ function formatSwitch(format: FormatterState, nodeSwitch: NodeSwitch) {
         formatAssign(format, nodeSwitch.assign);
     });
 
-    formatBraceBlock(format, () => {
-        for (const nodeCase of nodeSwitch.caseList) {
-            formatCase(format, nodeCase);
-        }
-    }, false);
+    formatBraceBlock(
+        format,
+        () => {
+            for (const nodeCase of nodeSwitch.caseList) {
+                formatCase(format, nodeCase);
+            }
+        },
+        false
+    );
 }
 
 // BNF: BREAK         ::= 'break' ';'
@@ -670,19 +691,23 @@ function formatFor(format: FormatterState, nodeFor: NodeFor) {
 
     formatTargetBy(format, 'for', {});
 
-    formatParenthesesBlock(format, () => {
-        if (nodeFor.initial.nodeName === NodeName.Var) {
-            formatVar(format, nodeFor.initial);
-        } else {
-            formatExprStat(format, nodeFor.initial);
-        }
+    formatParenthesesBlock(
+        format,
+        () => {
+            if (nodeFor.initial.nodeName === NodeName.Var) {
+                formatVar(format, nodeFor.initial);
+            } else {
+                formatExprStat(format, nodeFor.initial);
+            }
 
-        if (nodeFor.condition !== undefined) formatExprStat(format, nodeFor.condition);
+            if (nodeFor.condition !== undefined) formatExprStat(format, nodeFor.condition);
 
-        for (const increment of nodeFor.incrementList) {
-            formatAssign(format, increment);
-        }
-    }, false);
+            for (const increment of nodeFor.incrementList) {
+                formatAssign(format, increment);
+            }
+        },
+        false
+    );
 
     if (nodeFor.statement !== undefined) formatStatement(format, nodeFor.statement, true);
 }
@@ -693,9 +718,13 @@ function formatWhile(format: FormatterState, nodeWhile: NodeWhile) {
 
     formatTargetBy(format, 'while', {});
 
-    formatParenthesesBlock(format, () => {
-        formatAssign(format, nodeWhile.assign);
-    }, false);
+    formatParenthesesBlock(
+        format,
+        () => {
+            formatAssign(format, nodeWhile.assign);
+        },
+        false
+    );
 
     if (nodeWhile.statement !== undefined) formatStatement(format, nodeWhile.statement, true);
 }
@@ -710,9 +739,13 @@ function formatDoWhile(format: FormatterState, doWhile: NodeDoWhile) {
 
     formatTargetBy(format, 'while', {connectTail: true});
 
-    formatParenthesesBlock(format, () => {
-        if (doWhile.assign !== undefined) formatAssign(format, doWhile.assign);
-    }, false);
+    formatParenthesesBlock(
+        format,
+        () => {
+            if (doWhile.assign !== undefined) formatAssign(format, doWhile.assign);
+        },
+        false
+    );
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
@@ -723,9 +756,13 @@ function formatIf(format: FormatterState, nodeIf: NodeIf) {
 
     formatTargetBy(format, 'if', {});
 
-    formatParenthesesBlock(format, () => {
-        formatAssign(format, nodeIf.condition);
-    }, false);
+    formatParenthesesBlock(
+        format,
+        () => {
+            formatAssign(format, nodeIf.condition);
+        },
+        false
+    );
 
     if (nodeIf.thenStat !== undefined) {
         formatStatement(format, nodeIf.thenStat, true);
@@ -860,9 +897,13 @@ function formatExprValue(format: FormatterState, exprValue: NodeExprValue) {
     } else if (exprValue.nodeName === NodeName.Literal) {
         formatTargetBy(format, exprValue.value.text, {});
     } else if (exprValue.nodeName === NodeName.Assign) {
-        formatParenthesesBlock(format, () => {
-            formatAssign(format, exprValue);
-        }, false);
+        formatParenthesesBlock(
+            format,
+            () => {
+                formatAssign(format, exprValue);
+            },
+            false
+        );
     } else if (exprValue.nodeName === NodeName.Lambda) {
         formatLambda(format, exprValue);
     }

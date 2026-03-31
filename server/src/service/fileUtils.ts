@@ -1,10 +1,10 @@
-import {fileURLToPath, pathToFileURL} from "node:url";
-import * as url from "url";
-import * as fs from "fs";
-import * as path from "path";
-import {getGlobalSettings} from "../core/settings";
-import {minimatch} from "minimatch";
-import {getEditorState} from "../core/editorState";
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import * as url from 'url';
+import * as fs from 'fs';
+import * as path from 'path';
+import {getGlobalSettings} from '../core/settings';
+import {minimatch} from 'minimatch';
+import {getEditorState} from '../core/editorState';
 
 export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
     // FIXME?
@@ -65,17 +65,11 @@ export function resolveUri(baseUri: string, relativePath: string): string {
 function normalizeFileUri(uri: string) {
     // Case 1: Normalize a drive letter ":" to "%3A"
     // Example: file:///C:/... --> file:///c%3A/...
-    uri = uri.replace(
-        /^file:\/\/\/([A-Za-z]):/,
-        (_m, d: string) => `file:///${d.toLowerCase()}%3A`
-    );
+    uri = uri.replace(/^file:\/\/\/([A-Za-z]):/, (_m, d: string) => `file:///${d.toLowerCase()}%3A`);
 
     // Case 2: Special handling for root-only paths
     // Example: file:///c%3A/ --> file:///c%3A
-    uri = uri.replace(
-        /^file:\/\/\/([a-z])%3A\/(?=[?#]|$)/,
-        'file:///$1%3A'
-    );
+    uri = uri.replace(/^file:\/\/\/([a-z])%3A\/(?=[?#]|$)/, 'file:///$1%3A');
 
     return uri;
 }
@@ -110,8 +104,8 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
     return primaryUri;
 }
 
-export function getIncludeUriList(): { path: string, uri: string }[] {
-    const list: { path: string, uri: string }[] = [];
+export function getIncludeUriList(): {path: string; uri: string}[] {
+    const list: {path: string; uri: string}[] = [];
     for (const includePath of getGlobalSettings().includePath) {
         const includeUri = pathToFileURL(toAbsolutePath(includePath)).toString() + '/';
         list.push({path: includePath, uri: includeUri});
@@ -121,9 +115,7 @@ export function getIncludeUriList(): { path: string, uri: string }[] {
 }
 
 function toAbsolutePath(inputPath: string, baseDir: string = process.cwd()): string {
-    return path.isAbsolute(inputPath)
-        ? inputPath
-        : path.resolve(baseDir, inputPath);
+    return path.isAbsolute(inputPath) ? inputPath : path.resolve(baseDir, inputPath);
 }
 
 export function isFileUri(uri: string): boolean {
@@ -157,12 +149,14 @@ export function getParentDirectoryList(uri: string): string[] {
     // Repeat until the directory reaches the root
     while (parentPath !== path.dirname(parentPath)) {
         parentPath = path.dirname(parentPath);
-        directories.push(url.format({
-            protocol: parsedUrl.protocol,
-            slashes: true,
-            hostname: parsedUrl.hostname,
-            pathname: parentPath
-        }));
+        directories.push(
+            url.format({
+                protocol: parsedUrl.protocol,
+                slashes: true,
+                hostname: parsedUrl.hostname,
+                pathname: parentPath
+            })
+        );
     }
 
     return directories;

@@ -1,4 +1,4 @@
-import {TextPosition} from "../../src/compiler_tokenizer/textLocation";
+import {TextPosition} from '../../src/compiler_tokenizer/textLocation';
 
 interface CaretAndContent {
     caret: TextPosition;
@@ -23,7 +23,7 @@ export function makeCaretAndContent(rawContent: string): CaretAndContent {
         }
     }
 
-    throw new Error("No $C$ found in content");
+    throw new Error('No $C$ found in content');
 }
 
 interface CaretListAndContent {
@@ -60,6 +60,6 @@ export function makeCaretListAndContent(rawContent: string): CaretListAndContent
 
     return {
         caretList,
-        actualContent: newLines.join("\n")
+        actualContent: newLines.join('\n')
     };
 }

@@ -1,9 +1,13 @@
-import {provideDefinitionAsToken} from "./definition";
-import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
+import {provideDefinitionAsToken} from './definition';
+import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
 
-export function provideReferences(globalScope: SymbolGlobalScope, allGlobalScopes: SymbolGlobalScope[], caret: TextPosition): TokenObject[] {
+export function provideReferences(
+    globalScope: SymbolGlobalScope,
+    allGlobalScopes: SymbolGlobalScope[],
+    caret: TextPosition
+): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, allGlobalScopes, caret);
     if (targetDefinition === undefined) return [];
 

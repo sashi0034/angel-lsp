@@ -1,4 +1,4 @@
-import {expectSuccess} from "./utils";
+import {expectSuccess} from './utils';
 
 describe('analyzer/classConstructor', () => {
     expectSuccess(`// Do not confuse type declarations with constructors (#159)
@@ -19,5 +19,3 @@ describe('analyzer/classConstructor', () => {
         }
     `);
 });
-
-

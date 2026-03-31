@@ -1,7 +1,7 @@
-import {TokenKind, TokenObject, TokenString} from "../compiler_tokenizer/tokenObject";
-import {diagnostic} from "../core/diagnostic";
-import {HighlightForToken} from "../core/highlight";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
+import {TokenKind, TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
+import {diagnostic} from '../core/diagnostic';
+import {HighlightForToken} from '../core/highlight';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
  * Output of the 'preprocessAfterTokenized' function.
@@ -25,13 +25,14 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
 
     // Concatenate continuous strings.
     for (let i = actualTokens.length - 1; i >= 1; i--) {
-        const canCombine =
-            actualTokens[i - 1].isStringToken() && actualTokens[i].isStringToken(); // "string" --> "string"
+        const canCombine = actualTokens[i - 1].isStringToken() && actualTokens[i].isStringToken(); // "string" --> "string"
         if (canCombine === false) continue;
 
         // Create a new token with the combined elements.
-        actualTokens[i - 1] =
-            createCombinedStringToken(actualTokens[i - 1] as TokenString, actualTokens[i] as TokenString); // "stringstring"
+        actualTokens[i - 1] = createCombinedStringToken(
+            actualTokens[i - 1] as TokenString,
+            actualTokens[i] as TokenString
+        ); // "stringstring"
         actualTokens.splice(i, 1);
     }
 

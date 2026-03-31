@@ -4,8 +4,7 @@ export class TextPosition implements lsp.Position {
     constructor(
         public readonly line: number,
         public readonly character: number
-    ) {
-    }
+    ) {}
 
     public static create(position: lsp.Position): TextPosition {
         return new TextPosition(position.line, position.character);
@@ -76,8 +75,7 @@ export class MutableTextPosition {
     public constructor(
         public line_: number,
         public character_: number
-    ) {
-    }
+    ) {}
 
     public static create(position: lsp.Position): MutableTextPosition {
         return new MutableTextPosition(position.line, position.character);
@@ -92,8 +90,7 @@ export class TextRange implements lsp.Range {
     constructor(
         public readonly start: TextPosition,
         public readonly end: TextPosition
-    ) {
-    }
+    ) {}
 
     public static create(range: lsp.Range): TextRange {
         return new TextRange(TextPosition.create(range.start), TextPosition.create(range.end));
@@ -140,8 +137,7 @@ export class MutableTextRange {
     public constructor(
         public start: MutableTextPosition,
         public end: MutableTextPosition
-    ) {
-    }
+    ) {}
 
     public static create(range: lsp.Range): MutableTextRange {
         return new MutableTextRange(MutableTextPosition.create(range.start), MutableTextPosition.create(range.end));

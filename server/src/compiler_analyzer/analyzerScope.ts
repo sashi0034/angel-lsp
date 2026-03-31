@@ -1,4 +1,4 @@
-import {SymbolGlobalScope, SymbolScope} from "./symbolScope";
+import {SymbolGlobalScope, SymbolScope} from './symbolScope';
 
 export function createGlobalScope(filepath: string, includeScopes: AnalyzerScope[]): SymbolGlobalScope {
     const globalScope = new SymbolGlobalScope(filepath);

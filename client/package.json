@@ -1,24 +1,24 @@
 {
-	"name": "angel-lsp-client",
-	"description": "VSCode part of a language server",
-	"author": "sashi0034",
-	"license": "MIT",
-	"version": "0.0.1",
-	"publisher": "sashi0034",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/sashi0034/angel-lsp"
-	},
-	"engines": {
-		"vscode": "^1.75.0"
-	},
-	"dependencies": {
-		"vscode-languageclient": "^9.0.1",
+    "name": "angel-lsp-client",
+    "description": "VSCode part of a language server",
+    "author": "sashi0034",
+    "license": "MIT",
+    "version": "0.0.1",
+    "publisher": "sashi0034",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/sashi0034/angel-lsp"
+    },
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^9.0.1",
         "@vscode/debugadapter": "^1.61.0",
         "@vscode/debugprotocol": "^1.61.0"
-	},
-	"devDependencies": {
-		"@types/vscode": "^1.75.1",
-		"@vscode/test-electron": "^2.3.9"
-	}
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.75.1",
+        "@vscode/test-electron": "^2.3.9"
+    }
 }

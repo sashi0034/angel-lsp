@@ -1,6 +1,6 @@
-import {expectError, expectSuccess} from "./utils";
-import {afterEach} from "node:test";
-import {copyGlobalSettings, getGlobalSettings, resetGlobalSettings} from "../../../src/core/settings";
+import {expectError, expectSuccess} from './utils';
+import {afterEach} from 'node:test';
+import {copyGlobalSettings, getGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 
 describe('analyzer/property', () => {
     afterEach(() => {
@@ -99,15 +99,17 @@ describe('analyzer/property', () => {
         }
     `);
 
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             interface IValue {
                 int get_value() const property;
             }`
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Interface properties are available.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Interface properties are available.
             class Value : IValue {
                 private int m_value;
                 int get_value() const property { return m_value; }
@@ -117,5 +119,6 @@ describe('analyzer/property', () => {
                 IValue@ v = Value();
                 const int value = v.value;
             }`
-    }]);
+        }
+    ]);
 });

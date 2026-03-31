@@ -1,4 +1,4 @@
-import {testDefinition} from "./utils";
+import {testDefinition} from './utils';
 
 describe('definition/constructor', () => {
     testDefinition(` // Bug reported in #232
