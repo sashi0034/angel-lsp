@@ -1,0 +1,7 @@
+*.md
+out/
+node_modules/
+dist/
+bundle/
+angelscript-language-server.js
+bnf.txt

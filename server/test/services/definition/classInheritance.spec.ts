@@ -1,4 +1,4 @@
-import {testDefinition} from "./utils";
+import {testDefinition} from './utils';
 
 describe('definition/classInheritance', () => {
     testDefinition(`// The definition of 'super' is the constructor of the base class.
