@@ -1,6 +1,6 @@
-import {SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {TextLocation, TextPosition} from "../compiler_tokenizer/textLocation";
-import {ScopeRegionInfo} from "../compiler_analyzer/info";
+import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
+import {TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
+import {ScopeRegionInfo} from '../compiler_analyzer/info';
 
 export function takeNarrowestScopeRegion(lhs: ScopeRegionInfo, rhs: ScopeRegionInfo): ScopeRegionInfo {
     const lhsDiff = lhs.boundingLocation.getDifference();
@@ -28,14 +28,12 @@ export function findScopeContainingPosition(globalScope: SymbolGlobalScope, care
         if (location.path !== path) continue;
 
         if (location.positionInRange(caret)) {
-            found = found === undefined
-                ? info
-                : takeNarrowestScopeRegion(found, info);
+            found = found === undefined ? info : takeNarrowestScopeRegion(found, info);
         }
     }
 
     return {
         scope: found?.targetScope ?? globalScope,
-        location: found?.boundingLocation,
+        location: found?.boundingLocation
     };
 }

@@ -5,18 +5,19 @@ import {
     SymbolObjectHolder,
     SymbolType,
     SymbolVariable
-} from "./symbolObject";
+} from './symbolObject';
 import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
-    SymbolAndScope, SymbolGlobalScope,
+    SymbolAndScope,
+    SymbolGlobalScope,
     SymbolScope
-} from "./symbolScope";
-import {ResolvedType} from "./resolvedType";
-import {AccessModifier, NodeName} from "../compiler_parser/nodes";
-import {canDownCast} from "./typeConversion";
-import assert = require("node:assert");
+} from './symbolScope';
+import {ResolvedType} from './resolvedType';
+import {AccessModifier, NodeName} from '../compiler_parser/nodes';
+import {canDownCast} from './typeConversion';
+import assert = require('node:assert');
 
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     let suffix = '';
@@ -130,7 +131,10 @@ export function printSymbolScope(scope: SymbolScope, indent: string = ''): strin
 // -----------------------------------------------
 
 // obsolete
-export function getSymbolAndScopeIfExist(symbol: SymbolObjectHolder | undefined, scope: SymbolScope): SymbolAndScope | undefined {
+export function getSymbolAndScopeIfExist(
+    symbol: SymbolObjectHolder | undefined,
+    scope: SymbolScope
+): SymbolAndScope | undefined {
     if (symbol === undefined) return undefined;
     return {symbol: symbol, scope: scope};
 }
@@ -185,7 +189,7 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
         const instanceClassSymbol = scopeOfInstanceMember.parentScope.lookupSymbol(scopeOfInstanceMember.key);
         if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) return false;
 
-        return (canDownCast(nearestClassSymbol, instanceClassSymbol));
+        return canDownCast(nearestClassSymbol, instanceClassSymbol);
     } else {
         assert(false);
     }

@@ -1,16 +1,18 @@
-import {testDefinition} from "./utils";
+import {testDefinition} from './utils';
 
 describe('definition/multipleNamespaces', () => {
-    testDefinition([{
-        uri: 'file:///path/to/file_0.as',
-        content: `
+    testDefinition([
+        {
+            uri: 'file:///path/to/file_0.as',
+            content: `
             namespace A$C0$ {
                 void fn_0() { }
             }
         `
-    }, {
-        uri: 'file:///path/to/file_1.as',
-        content: `// Jump to the most appropriate namespace
+        },
+        {
+            uri: 'file:///path/to/file_1.as',
+            content: `// Jump to the most appropriate namespace
             #include "file_0.as"
             namespace A {
                 void fn_1() { }
@@ -20,18 +22,21 @@ describe('definition/multipleNamespaces', () => {
                 A$C1$::fn_0();
             }
         `
-    }]);
+        }
+    ]);
 
-    testDefinition([{
-        uri: 'file:///path/to/file_0.as',
-        content: `// Jump to the most appropriate namespace
+    testDefinition([
+        {
+            uri: 'file:///path/to/file_0.as',
+            content: `// Jump to the most appropriate namespace
             namespace A {
                 void fn_0() { }
             }
         `
-    }, {
-        uri: 'file:///path/to/file_1.as',
-        content: `
+        },
+        {
+            uri: 'file:///path/to/file_1.as',
+            content: `
             #include "file_0.as"
             namespace A$C0$ {
                 void fn_1() { }
@@ -41,9 +46,11 @@ describe('definition/multipleNamespaces', () => {
                 A$C1$::fn_1();
             }
         `
-    }]);
+        }
+    ]);
 
-    testDefinition(`// Jump to the most appropriate namespace
+    testDefinition(
+        `// Jump to the most appropriate namespace
         namespace A$C0$ {
             namespace B$C1$ {
                 namespace C_0$C2$ { int c_0$C3$; }
@@ -63,7 +70,19 @@ describe('definition/multipleNamespaces', () => {
             A$C14$ :: B$C15$ :: C_1$C16$ :: c_1$C17$ = 2;
             int v = A$C18$ :: Red$C19$;
         }
-    `, [[10, 0], [11, 1], [12, 2], [13, 3], [14, 4], [15, 5], [16, 6], [17, 7], [18, 8], [19, 9]]
+    `,
+        [
+            [10, 0],
+            [11, 1],
+            [12, 2],
+            [13, 3],
+            [14, 4],
+            [15, 5],
+            [16, 6],
+            [17, 7],
+            [18, 8],
+            [19, 9]
+        ]
         // This mapping is an array of pairs of caret positions in the format [(from), (to)]
     );
 });

@@ -1,6 +1,6 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
-describe("analyzer/namedArguments", () => {
+describe('analyzer/namedArguments', () => {
     expectSuccess(`
         class B { }
         class C { }

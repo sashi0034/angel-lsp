@@ -1,5 +1,5 @@
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {EntityAttribute, NodeType, ReferenceModifier} from "./nodes";
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {EntityAttribute, NodeType, ReferenceModifier} from './nodes';
 
 export function isEntityModifierForClass(modifier: EntityAttribute) {
     return modifier.isAbstract || modifier.isFinal;
@@ -17,7 +17,7 @@ export function stringifyNodeType(type: NodeType): string {
     }
 
     if (type.refModifier !== undefined) {
-        str += (type.refModifier === ReferenceModifier.AtConst ? '@const' : '@');
+        str += type.refModifier === ReferenceModifier.AtConst ? '@const' : '@';
     }
 
     return str;
@@ -30,9 +30,7 @@ export function getIdentifierInNodeType(type: NodeType): TokenObject {
 export function buildTemplateSignature(types: NodeType[]): string {
     const typeNames = types.map(type => {
         const identifier = type.dataType.identifier.text;
-        return type.typeTemplates.length > 0
-            ? identifier + buildTemplateSignature(type.typeTemplates)
-            : identifier;
+        return type.typeTemplates.length > 0 ? identifier + buildTemplateSignature(type.typeTemplates) : identifier;
     });
     return '<' + typeNames.join(',') + '>';
 }

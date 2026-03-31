@@ -1,7 +1,10 @@
-import * as lsp from "vscode-languageserver/node";
-import * as assert from "node:assert";
+import * as lsp from 'vscode-languageserver/node';
+import * as assert from 'node:assert';
 
-export function moveDiagnosticsByChanges(diagnosticList: lsp.Diagnostic[], changes: lsp.TextDocumentContentChangeEvent[]) {
+export function moveDiagnosticsByChanges(
+    diagnosticList: lsp.Diagnostic[],
+    changes: lsp.TextDocumentContentChangeEvent[]
+) {
     for (const change of changes) {
         moveElementsByChange(diagnosticList, change);
     }
@@ -45,11 +48,13 @@ function countLineBreaksAndLength(str: string) {
     return {lineBreaks, lastLineLength};
 }
 
-type MoveElement = {
-    range: lsp.Range;
-} | {
-    position: lsp.Position;
-}
+type MoveElement =
+    | {
+          range: lsp.Range;
+      }
+    | {
+          position: lsp.Position;
+      };
 
 function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocumentContentChangeEvent) {
     assert(lsp.TextDocumentContentChangeEvent.isIncremental(change));
@@ -59,9 +64,7 @@ function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocume
 
     for (const element of elementList) {
         // I hope this will be optimized :)
-        const elementRange = 'range' in element
-            ? element.range :
-            {start: element.position, end: {...element.position}};
+        const elementRange = 'range' in element ? element.range : {start: element.position, end: {...element.position}};
 
         if (changeRange.end.line < elementRange.start.line) {
             // l1: ... <change begin> ...
@@ -73,7 +76,8 @@ function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocume
 
             elementRange.start.line += lineDiff;
             elementRange.end.line += lineDiff;
-        } else if (changeRange.end.line === elementRange.start.line &&
+        } else if (
+            changeRange.end.line === elementRange.start.line &&
             changeRange.end.character <= elementRange.start.character
         ) {
             // l1: ... <change begin> ...
@@ -104,7 +108,8 @@ function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocume
                 if (lineDiff < 0) {
                     // l1: ... ... <replaced last line> ... <diagnostic> ...
                     characterStart += changeRange.start.character + changeText.lastLineLength;
-                } else { // lineDiff > 0
+                } else {
+                    // lineDiff > 0
                     // l3: <replaced last line> ... <diagnostic> ...
                     characterStart += changeText.lastLineLength;
                 }
@@ -116,7 +121,8 @@ function moveElementsByChange(elementList: MoveElement[], change: lsp.TextDocume
                 }
 
                 elementRange.start.character = characterStart;
-            } else { // lineDiff === 0
+            } else {
+                // lineDiff === 0
                 // l1: ... <change begin> ...
                 // l2: ... <change end> ... <diagnostic> ...
                 //   |

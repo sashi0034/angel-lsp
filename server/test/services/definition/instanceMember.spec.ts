@@ -1,4 +1,4 @@
-import {testDefinition} from "./utils";
+import {testDefinition} from './utils';
 
 describe('definition/instanceMember', () => {
     testDefinition(`
@@ -11,6 +11,5 @@ describe('definition/instanceMember', () => {
         void main() {
             Foo foo;
             foo.value$C1$ = 2;
-        }`
-    );
+        }`);
 });

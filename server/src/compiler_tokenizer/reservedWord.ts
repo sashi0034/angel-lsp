@@ -1,29 +1,179 @@
-import {Trie, TriePair} from "../utils/trie";
-import {Mutable} from "../utils/utilities";
-import assert = require("assert");
+import {Trie, TriePair} from '../utils/trie';
+import {Mutable} from '../utils/utilities';
+import assert = require('assert');
 
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
 
 // Symbols that are non-alphanumeric reserved words are referred to as "Marks" in this context.
 // A list of all Marks
 const reservedMarkArray = [
-    '*', '**', '/', '%', '+', '-', '<=', '<', '>=', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '>>', '>>>', '&=', '|=', '^=', '<<=', '>>=', '>>>=', '.', '...', '&&', '||', '!', '[', ']', '^^', '@', '!is', '::',
-    '#', // Strictly speaking, '#' is not a Mark, but is included here for use in preprocessing.
+    '*',
+    '**',
+    '/',
+    '%',
+    '+',
+    '-',
+    '<=',
+    '<',
+    '>=',
+    '>',
+    '(',
+    ')',
+    '==',
+    '!=',
+    '?',
+    ':',
+    '=',
+    '+=',
+    '-=',
+    '*=',
+    '/=',
+    '%=',
+    '**=',
+    '++',
+    '--',
+    '&',
+    ',',
+    '{',
+    '}',
+    ';',
+    '|',
+    '^',
+    '~',
+    '<<',
+    '>>',
+    '>>>',
+    '&=',
+    '|=',
+    '^=',
+    '<<=',
+    '>>=',
+    '>>>=',
+    '.',
+    '...',
+    '&&',
+    '||',
+    '!',
+    '[',
+    ']',
+    '^^',
+    '@',
+    '!is',
+    '::',
+    '#' // Strictly speaking, '#' is not a Mark, but is included here for use in preprocessing.
 ];
 
 // A list of Marks with context-dependent reserved words removed. We call it Atomic Marks.
 // For example, in "array<array<int>>", '>>' should be recognized as ['>', '>'].
 // This should not include non-alphanumeric characters that are not Marks.
 const reservedAtomicMarkArray = [
-    '*', '**', '/', '%', '+', '-', '<=', '<', '>', '(', ')', '==', '!=', '?', ':', '=', '+=', '-=', '*=', '/=', '%=', '**=', '++', '--', '&', ',', '{', '}', ';', '|', '^', '~', '<<', '&=', '|=', '^=', '<<=', '.', '...', '&&', '||', '!', '[', ']', '^^', '@', '::',
+    '*',
+    '**',
+    '/',
+    '%',
+    '+',
+    '-',
+    '<=',
+    '<',
+    '>',
+    '(',
+    ')',
+    '==',
+    '!=',
+    '?',
+    ':',
+    '=',
+    '+=',
+    '-=',
+    '*=',
+    '/=',
+    '%=',
+    '**=',
+    '++',
+    '--',
+    '&',
+    ',',
+    '{',
+    '}',
+    ';',
+    '|',
+    '^',
+    '~',
+    '<<',
+    '&=',
+    '|=',
+    '^=',
+    '<<=',
+    '.',
+    '...',
+    '&&',
+    '||',
+    '!',
+    '[',
+    ']',
+    '^^',
+    '@',
+    '::',
     // '>=', '>>', '>>>', '>>=', '>>>=', '!is' // These are context-dependent.
-    '#', // For preprocessor
+    '#' // For preprocessor
 ];
 
 // Alphanumeric reserved words are referred to as "Keywords" in this context.
 // A list of reserved keywords composed of alphanumeric characters.
 const reservedKeywordArray = [
-    'and', 'auto', 'bool', 'break', 'case', 'cast', 'catch', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'false', 'float', 'for', 'funcdef', 'if', 'import', 'in', 'inout', 'int', 'interface', 'int8', 'int16', 'int32', 'int64', 'is', 'mixin', 'namespace', 'not', 'null', 'or', 'out', 'override', 'private', 'protected', 'return', 'switch', 'true', 'try', 'typedef', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'void', 'while', 'xor', 'using'
+    'and',
+    'auto',
+    'bool',
+    'break',
+    'case',
+    'cast',
+    'catch',
+    'class',
+    'const',
+    'continue',
+    'default',
+    'do',
+    'double',
+    'else',
+    'enum',
+    'false',
+    'float',
+    'for',
+    'funcdef',
+    'if',
+    'import',
+    'in',
+    'inout',
+    'int',
+    'interface',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'is',
+    'mixin',
+    'namespace',
+    'not',
+    'null',
+    'or',
+    'out',
+    'override',
+    'private',
+    'protected',
+    'return',
+    'switch',
+    'true',
+    'try',
+    'typedef',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'void',
+    'while',
+    'xor',
+    'using'
     // Not really a reserved keyword, but is recognized by the compiler as a built-in keyword.
     // 'abstract', 'explicit', 'external', 'function', 'final', 'from', 'get', 'set', 'shared', 'super', 'this',
 ];
@@ -40,9 +190,37 @@ const logicOpSet = new Set(['&&', '||', '^^', 'and', 'or', 'xor']);
 
 const assignOpSet = new Set(['=', '+=', '-=', '*=', '/=', '|=', '&=', '^=', '%=', '**=', '<<=', '>>=', '>>>=']);
 
-export const numberTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double']);
+export const numberTypeSet = new Set<string>([
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'float',
+    'double'
+]);
 
-const primeTypeSet = new Set<string>(['void', 'int', 'int8', 'int16', 'int32', 'int64', 'uint', 'uint8', 'uint16', 'uint32', 'uint64', 'float', 'double', 'bool']);
+const primeTypeSet = new Set<string>([
+    'void',
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'float',
+    'double',
+    'bool'
+]);
 
 const signedIntegerTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64']);
 
@@ -84,7 +262,7 @@ function makeEmptyProperty(): ReservedWordProperty {
         isSignedInteger: false,
         isUnsignedInteger: false,
         isFloat: false,
-        isDouble: false,
+        isDouble: false
     };
 }
 

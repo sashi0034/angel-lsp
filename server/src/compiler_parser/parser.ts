@@ -72,14 +72,14 @@ import {
     ParsedVariableInitializer,
     ReferenceModifier,
     TypeModifier
-} from "./nodes";
-import {HighlightForToken} from "../core/highlight";
-import {TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from "./parserState";
-import {ParserCacheKind} from "./parserCache";
-import {areTokensJoinedBy} from "../compiler_tokenizer/tokenUtils";
-import {Mutable} from "../utils/utilities";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
+} from './nodes';
+import {HighlightForToken} from '../core/highlight';
+import {TokenKind, TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';
+import {ParserCacheKind} from './parserCache';
+import {areTokensJoinedBy} from '../compiler_tokenizer/tokenUtils';
+import {Mutable} from '../utils/utilities';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {getGlobalSettings} from '../core/settings';
 
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
@@ -263,7 +263,7 @@ function parseIdentifier(parser: ParserState, kind: HighlightForToken): TokenObj
 function expectIdentifier(parser: ParserState, kind: HighlightForToken): TokenObject | undefined {
     const identifier = parseIdentifier(parser, kind);
     if (identifier === undefined) {
-        parser.error("Expected identifier.");
+        parser.error('Expected identifier.');
     }
     return identifier;
 }
@@ -350,7 +350,6 @@ function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
     }
 
     return members;
-
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
@@ -480,7 +479,7 @@ function expectClassMembers(parser: ParserState) {
             continue;
         }
 
-        parser.error("Expected class member.");
+        parser.error('Expected class member.');
         parser.step();
     }
 
@@ -492,13 +491,11 @@ function parseForEachVar(parser: ParserState): NodeForEachVar | undefined {
     const rangeStart = parser.next();
     const type = expectType(parser);
 
-    if (type === undefined)
-        return undefined;
+    if (type === undefined) return undefined;
 
     const identifier = expectIdentifier(parser, HighlightForToken.Variable);
 
-    if (identifier === undefined)
-        return undefined;
+    if (identifier === undefined) return undefined;
 
     return {
         nodeName: NodeName.ForEachVar,
@@ -516,7 +513,7 @@ function parseTypeDef(parser: ParserState): ParseResult<NodeTypeDef> {
 
     const primeType = parsePrimeType(parser);
     if (primeType === undefined) {
-        parser.error("Expected primitive type.");
+        parser.error('Expected primitive type.');
         return ParseFailure.Pending;
     }
 
@@ -546,7 +543,6 @@ function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]
             });
             listDepth++;
         } else if (parser.next().text === '}') {
-
             if (!listDepth) {
                 break;
             } else {
@@ -880,7 +876,7 @@ function expectInterfaceMembers(parser: ParserState): (NodeIntfMethod | NodeVirt
             continue;
         }
 
-        parser.error("Expected interface member.");
+        parser.error('Expected interface member.');
         parser.step();
     }
 
@@ -944,7 +940,7 @@ function expectInitListOrExpr(parser: ParserState) {
         return expr;
     }
 
-    parser.error("Expected initializer list or assignment.");
+    parser.error('Expected initializer list or assignment.');
 }
 
 // BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
@@ -971,7 +967,7 @@ function parseImport(parser: ParserState): ParseResult<NodeImport> {
 
     const path = parser.next();
     if (path.kind !== TokenKind.String) {
-        parser.error("Expected string path.");
+        parser.error('Expected string path.');
         return ParseFailure.Pending;
     }
     parser.commit(HighlightForToken.String);
@@ -1064,7 +1060,7 @@ function parseVirtualProp(parser: ParserState): NodeVirtualProp | undefined {
         else if (next === 'get') getter = expectGetterSetter(parser);
         else if (next === 'set') setter = expectGetterSetter(parser);
         else {
-            parser.error("Expected getter or setter.");
+            parser.error('Expected getter or setter.');
             parser.step();
         }
     }
@@ -1105,7 +1101,7 @@ function parseMixin(parser: ParserState): ParseResult<NodeMixin> {
     const parsedClass = parseClass(parser);
     if (parsedClass === ParseFailure.Pending) return ParseFailure.Pending;
     if (parsedClass === ParseFailure.Mismatch) {
-        parser.error("Expected class definition.");
+        parser.error('Expected class definition.');
         return ParseFailure.Pending;
     }
 
@@ -1179,7 +1175,7 @@ function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
             continue;
         }
 
-        parser.error("Expected statement.");
+        parser.error('Expected statement.');
         parser.step();
     }
 
@@ -1193,7 +1189,7 @@ function parseStatBlock(parser: ParserState): NodeStatBlock | undefined {
 function expectStatBlock(parser: ParserState): NodeStatBlock | undefined {
     const statBlock = parseStatBlock(parser);
     if (statBlock === undefined) {
-        parser.error("Expected statement block.");
+        parser.error('Expected statement block.');
     }
     return statBlock;
 }
@@ -1269,7 +1265,7 @@ function parseParamList(parser: ParserState): NodeParamList | undefined {
 function expectParamList(parser: ParserState): NodeParamList | undefined {
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
-        parser.error("Expected parameter list.");
+        parser.error('Expected parameter list.');
     }
     return paramList;
 }
@@ -1283,7 +1279,11 @@ function isCommaOrParensClose(character: string): boolean {
 }
 
 function parseSeparatorOrClose(
-    parser: ParserState, separatorOp: string, closeOp: string, canSeparator: boolean, allowTrailing: boolean = false
+    parser: ParserState,
+    separatorOp: string,
+    closeOp: string,
+    canSeparator: boolean,
+    allowTrailing: boolean = false
 ): BreakOrThrough | undefined {
     const next = parser.next().text;
     if (next === closeOp) {
@@ -1305,7 +1305,11 @@ function parseSeparatorOrClose(
 }
 
 function expectSeparatorOrClose(
-    parser: ParserState, separatorOp: string, closeOp: string, canSeparator: boolean, allowTrailing: boolean = false
+    parser: ParserState,
+    separatorOp: string,
+    closeOp: string,
+    canSeparator: boolean,
+    allowTrailing: boolean = false
 ): BreakOrThrough {
     const parsed = parseSeparatorOrClose(parser, separatorOp, closeOp, canSeparator, allowTrailing);
     if (parsed !== undefined) return parsed;
@@ -1417,7 +1421,7 @@ function parseTypeTail(parser: ParserState) {
 function expectType(parser: ParserState): NodeType | undefined {
     const type = parseType(parser);
     if (type === undefined) {
-        parser.error("Expected type.");
+        parser.error('Expected type.');
     }
 
     return type;
@@ -1478,7 +1482,7 @@ function parseInitList(parser: ParserState): NodeInitList | undefined {
             continue;
         }
 
-        parser.error("Expected assignment or initializer list.");
+        parser.error('Expected assignment or initializer list.');
         parser.step();
     }
     return {
@@ -1568,11 +1572,12 @@ function parseDatatype(parser: ParserState): NodeDataType | undefined {
     }
 
     const primType = parsePrimeType(parser);
-    if (primType !== undefined) return {
-        nodeName: NodeName.DataType,
-        nodeRange: new TokenRange(next, next),
-        identifier: primType
-    };
+    if (primType !== undefined)
+        return {
+            nodeName: NodeName.DataType,
+            nodeRange: new TokenRange(next, next),
+            identifier: primType
+        };
 
     return undefined;
 }
@@ -1591,8 +1596,13 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
-        const isFuncAttrToken = next === 'override' || next === 'final' || next === 'explicit' || next === 'property' ||
-            next === 'delete' || next === 'nodiscard';
+        const isFuncAttrToken =
+            next === 'override' ||
+            next === 'final' ||
+            next === 'explicit' ||
+            next === 'property' ||
+            next === 'delete' ||
+            next === 'nodiscard';
         if (isFuncAttrToken === false) break;
 
         attribute = attribute ?? {
@@ -1610,7 +1620,10 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
     return attribute;
 }
 
-function setFunctionAttribute(attribute: Mutable<FunctionAttribute>, token: 'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard') {
+function setFunctionAttribute(
+    attribute: Mutable<FunctionAttribute>,
+    token: 'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'
+) {
     if (token === 'override') attribute.isOverride = true;
     else if (token === 'final') attribute.isFinal = true;
     else if (token === 'explicit') attribute.isExplicit = true;
@@ -1676,7 +1689,7 @@ function expectStatement(parser: ParserState): NodeStatement | undefined {
     const statement = parseStatement(parser);
     if (statement === ParseFailure.Pending) return undefined;
     if (statement === ParseFailure.Mismatch) {
-        parser.error("Expected statement.");
+        parser.error('Expected statement.');
         return undefined;
     }
     return statement;
@@ -1702,7 +1715,7 @@ function parseSwitch(parser: ParserState): ParseResult<NodeSwitch> {
 
         const parsedCase = parseCase(parser);
         if (parsedCase === ParseFailure.Mismatch) {
-            parser.error("Expected case statement.");
+            parser.error('Expected case statement.');
             parser.step();
             continue;
         }
@@ -1740,7 +1753,7 @@ function parseFor(parser: ParserState): ParseResult<NodeFor> {
 
     const initial: NodeExprStat | NodeVar | undefined = parseVar(parser) ?? parseExprStat(parser);
     if (initial === undefined) {
-        parser.error("Expected initial expression statement or variable declaration.");
+        parser.error('Expected initial expression statement or variable declaration.');
         return ParseFailure.Pending;
     }
 
@@ -1791,7 +1804,7 @@ function parseForEach(parser: ParserState): ParseResult<NodeForEach> {
         const variable = parseForEachVar(parser);
 
         if (variable === undefined) {
-            parser.error("Invalid variable declaration.");
+            parser.error('Invalid variable declaration.');
             return ParseFailure.Pending;
         }
 
@@ -1933,7 +1946,7 @@ function parseExprStat(parser: ParserState): NodeExprStat | undefined {
 function expectExprStat(parser: ParserState): NodeExprStat | undefined {
     const exprStat = parseExprStat(parser);
     if (exprStat === undefined) {
-        parser.error("Expected expression statement.");
+        parser.error('Expected expression statement.');
     }
     return exprStat;
 }
@@ -2027,20 +2040,22 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
     if (exprTerm === undefined) return undefined;
 
     const exprOp = parseExprOp(parser);
-    if (exprOp === undefined) return {
-        nodeName: NodeName.Expr,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
-        head: exprTerm,
-        tail: undefined
-    };
+    if (exprOp === undefined)
+        return {
+            nodeName: NodeName.Expr,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            head: exprTerm,
+            tail: undefined
+        };
 
     const tail = expectExpr(parser);
-    if (tail === undefined) return {
-        nodeName: NodeName.Expr,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
-        head: exprTerm,
-        tail: undefined
-    };
+    if (tail === undefined)
+        return {
+            nodeName: NodeName.Expr,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            head: exprTerm,
+            tail: undefined
+        };
 
     return {
         nodeName: NodeName.Expr,
@@ -2056,7 +2071,7 @@ function parseExpr(parser: ParserState): NodeExpr | undefined {
 function expectExpr(parser: ParserState): NodeExpr | undefined {
     const expr = parseExpr(parser);
     if (expr === undefined) {
-        parser.error("Expected expression.");
+        parser.error('Expected expression.');
     }
     return expr;
 }
@@ -2074,7 +2089,7 @@ function expectExprOrVoid(parser: ParserState): NodeExpr | NodeExprVoid | undefi
 
     const expr = parseExpr(parser);
     if (expr === undefined) {
-        parser.error("Expected expression.");
+        parser.error('Expected expression.');
     }
     return expr;
 }
@@ -2257,7 +2272,7 @@ function parseExprPostOp1(parser: ParserState): NodeExprPostOp1 | undefined {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
             postOp: 1,
-            member: funcCall,
+            member: funcCall
         };
 
     const identifier = expectIdentifier(parser, HighlightForToken.Variable);
@@ -2446,7 +2461,7 @@ function parseVarAccess(parser: ParserState): NodeVarAccess | undefined {
     const next = parser.next();
     if (next.kind !== TokenKind.Identifier) {
         if (scope === undefined) return undefined;
-        parser.error("Expected identifier.");
+        parser.error('Expected identifier.');
         return {
             nodeName: NodeName.VarAccess,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
@@ -2520,7 +2535,7 @@ function parseAssign(parser: ParserState): NodeAssign | undefined {
 function expectAssign(parser: ParserState): NodeAssign | undefined {
     const assign = parseAssign(parser);
     if (assign === undefined) {
-        parser.error("Expected assignment.");
+        parser.error('Expected assignment.');
     }
 
     return assign;
@@ -2664,7 +2679,7 @@ export function parseAfterPreprocessed(tokens: TokenObject[]): NodeScript {
         script.push(...parseScript(parser));
 
         if (parser.isEnd() === false) {
-            parser.error("Unexpected token.");
+            parser.error('Unexpected token.');
             parser.step();
         }
     }

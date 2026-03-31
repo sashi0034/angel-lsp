@@ -1,7 +1,5 @@
-import {
-    TokenObject
-} from "./tokenObject";
-import {TextLocation} from "./textLocation";
+import {TokenObject} from './tokenObject';
+import {TextLocation} from './textLocation';
 
 /**
  * Determines if a given sequence of tokens matches the specified string sequence.

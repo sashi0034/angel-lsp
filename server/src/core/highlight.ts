@@ -26,7 +26,7 @@ export enum HighlightForToken {
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
     // Custom Token Types
-    KeywordControl, // For keywords that affect control(for, while, etc.).
+    KeywordControl // For keywords that affect control(for, while, etc.).
 }
 
 export const highlightForTokenList = [
@@ -54,7 +54,7 @@ export const highlightForTokenList = [
     'number',
     'regexp',
     'operator',
-    'keywordControl',
+    'keywordControl'
 ];
 
 export enum HighlightForModifier {
@@ -68,7 +68,7 @@ export enum HighlightForModifier {
     Async, // For functions that are marked async.
     Modification, // For variable references where the variable is assigned to.
     Documentation, // For occurrences of symbols in documentation.
-    DefaultLibrary, // For symbols that are part of the standard library.
+    DefaultLibrary // For symbols that are part of the standard library.
 }
 
 export const highlightForModifierList = [
@@ -82,5 +82,5 @@ export const highlightForModifierList = [
     'async',
     'modification',
     'documentation',
-    'defaultLibrary',
+    'defaultLibrary'
 ];

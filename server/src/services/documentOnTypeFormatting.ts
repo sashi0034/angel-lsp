@@ -1,8 +1,8 @@
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {TextPosition, TextRange} from "../compiler_tokenizer/textLocation";
-import {findTokenContainingPosition} from "./utils";
-import * as lsp from "vscode-languageserver";
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {TextPosition, TextRange} from '../compiler_tokenizer/textLocation';
+import {findTokenContainingPosition} from './utils';
+import * as lsp from 'vscode-languageserver';
 
 export function documentOnTypeFormattingProvider(
     rawTokens: TokenObject[],
@@ -22,10 +22,7 @@ export function documentOnTypeFormattingProvider(
 
 // -----------------------------------------------
 
-function executeSmartBackspace(
-    rawTokens: TokenObject[],
-    caret: TextPosition,
-): lsp.TextEdit[] {
+function executeSmartBackspace(rawTokens: TokenObject[], caret: TextPosition): lsp.TextEdit[] {
     const caretLeft = caret.movedBy(0, -1);
 
     const token = findTokenContainingPosition(rawTokens, caretLeft);

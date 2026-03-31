@@ -1,4 +1,4 @@
-import {expectSuccess} from "./utils";
+import {expectSuccess} from './utils';
 
 describe('analyzer/globalVariable', () => {
     expectSuccess(`// Global variables can be defined with initializers.

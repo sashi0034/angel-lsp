@@ -1,15 +1,13 @@
-import {
-    SymbolFunction, SymbolFunctionHolder, SymbolObject, SymbolVariable,
-} from "./symbolObject";
-import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
-import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolScope";
-import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from "./resolvedType";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {evaluateTypeConversion} from "./typeConversion";
-import {NodeName} from "../compiler_parser/nodes";
-import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
+import {SymbolFunction, SymbolFunctionHolder, SymbolObject, SymbolVariable} from './symbolObject';
+import {stringifyResolvedType, stringifyResolvedTypes} from './symbolUtils';
+import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
+import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
+import {analyzerDiagnostic} from './analyzerDiagnostic';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
+import {evaluateTypeConversion} from './typeConversion';
+import {NodeName} from '../compiler_parser/nodes';
+import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
 
 interface CallerArgument {
     name: TokenObject | undefined; // Support for named arguments
@@ -25,7 +23,7 @@ interface FunctionCallArgs {
 
     // callee arguments
     calleeFuncHolder: SymbolFunctionHolder;
-    calleeTemplateTranslator: (TemplateTranslator | undefined);
+    calleeTemplateTranslator: TemplateTranslator | undefined;
     calleeDelegateVariable?: SymbolVariable; // This is required because the delegate is called by a variable.
 }
 
@@ -63,7 +61,7 @@ export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefi
 
 // -----------------------------------------------
 
-type TypeConversionSideEffect = (() => void);
+type TypeConversionSideEffect = () => void;
 
 interface BestMatching {
     function: SymbolFunction;
@@ -89,28 +87,34 @@ const mismatchPriority: Map<MismatchKind, number> = new Map([
     [MismatchKind.ParameterMismatch, 5]
 ]);
 
-type MismatchReason = {
-    reason: MismatchKind.TooManyArguments
-} | {
-    reason: MismatchKind.FewerArguments
-} | {
-    reason: MismatchKind.InvalidNamedArgumentOrder,
-    invalidArgumentIndex: number
-} | {
-    reason: MismatchKind.DuplicateNamedArgument
-    nameIndex: number
-} | {
-    reason: MismatchKind.NotFoundNamedArgument
-    nameIndex: number
-} | {
-    reason: MismatchKind.ParameterMismatch,
-    mismatchIndex: number,
-    expectedType: ResolvedType | undefined,
-    actualType: ResolvedType | undefined,
-}
+type MismatchReason =
+    | {
+          reason: MismatchKind.TooManyArguments;
+      }
+    | {
+          reason: MismatchKind.FewerArguments;
+      }
+    | {
+          reason: MismatchKind.InvalidNamedArgumentOrder;
+          invalidArgumentIndex: number;
+      }
+    | {
+          reason: MismatchKind.DuplicateNamedArgument;
+          nameIndex: number;
+      }
+    | {
+          reason: MismatchKind.NotFoundNamedArgument;
+          nameIndex: number;
+      }
+    | {
+          reason: MismatchKind.ParameterMismatch;
+          mismatchIndex: number;
+          expectedType: ResolvedType | undefined;
+          actualType: ResolvedType | undefined;
+      };
 
 function hasMismatchReason(reason: number | MismatchReason): reason is MismatchReason {
-    return typeof reason !== "number";
+    return typeof reason !== 'number';
 }
 
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
@@ -153,9 +157,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
                 bestMatching?.sideEffects.forEach(sideEffect => sideEffect());
 
                 // Add the reference to the function that was called.
-                getActiveGlobalScope().pushReference(({
-                    toSymbol: calleeDelegateVariable ?? bestMatching.function, fromToken: callerIdentifier
-                }));
+                getActiveGlobalScope().pushReference({
+                    toSymbol: calleeDelegateVariable ?? bestMatching.function,
+                    fromToken: callerIdentifier
+                });
 
                 pushReferenceToNamedArguments(args.callerArgs, bestMatching.function);
             }
@@ -170,9 +175,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 
                 // Although the function call resolution fails, a fallback symbol is added as a reference.
                 const fallbackCallee = calleeFuncHolder.first;
-                getActiveGlobalScope().pushReference(({
-                    toSymbol: calleeDelegateVariable ?? fallbackCallee, fromToken: callerIdentifier
-                }));
+                getActiveGlobalScope().pushReference({
+                    toSymbol: calleeDelegateVariable ?? fallbackCallee,
+                    fromToken: callerIdentifier
+                });
 
                 pushReferenceToNamedArguments(args.callerArgs, fallbackCallee);
             }
@@ -195,7 +201,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
         if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
 
         // Add a reference to the named argument in the callee function scope.
-        getActiveGlobalScope().pushReference(({toSymbol: toSymbol, fromToken: args.name}));
+        getActiveGlobalScope().pushReference({toSymbol: toSymbol, fromToken: args.name});
     }
 }
 
@@ -226,9 +232,10 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
             causeTypeConversionSideEffect(evaluation, callerArgs[0].type, delegateType, callerArgs[0].range);
 
             // Add the reference to the function that was called.
-            getActiveGlobalScope().pushReference(({
-                toSymbol: calleeFuncHolder.first, fromToken: callerIdentifier
-            }));
+            getActiveGlobalScope().pushReference({
+                toSymbol: calleeFuncHolder.first,
+                fromToken: callerIdentifier
+            });
 
             // Probably we do not need to add references to named arguments for delegates.
         }
@@ -238,7 +245,9 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
 // -----------------------------------------------
 
 function evaluateFunctionMatch(
-    args: FunctionCallArgs, callee: SymbolFunction, sideEffects: TypeConversionSideEffect[]
+    args: FunctionCallArgs,
+    callee: SymbolFunction,
+    sideEffects: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;
 
@@ -277,7 +286,9 @@ function evaluateFunctionMatch(
 }
 
 function evaluatePassingNamedArgument(
-    args: FunctionCallArgs, callee: SymbolFunction, sideEffectBuffer: TypeConversionSideEffect[]
+    args: FunctionCallArgs,
+    callee: SymbolFunction,
+    sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;
 
@@ -311,8 +322,7 @@ function evaluatePassingNamedArgument(
                 // Found a matching parameter name between the caller and callee
 
                 // Check the type of the passing argument
-                const cost =
-                    evaluatePassingArgument(args, argId, callee.parameterTypes[paramId], sideEffectBuffer);
+                const cost = evaluatePassingArgument(args, argId, callee.parameterTypes[paramId], sideEffectBuffer);
                 if (hasMismatchReason(cost)) {
                     return cost;
                 }
@@ -331,7 +341,9 @@ function evaluatePassingNamedArgument(
 }
 
 function evaluatePassingPositionalArgument(
-    args: FunctionCallArgs, callee: SymbolFunction, sideEffectBuffer: TypeConversionSideEffect[]
+    args: FunctionCallArgs,
+    callee: SymbolFunction,
+    sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;
     let totalCost = 0;
@@ -342,8 +354,10 @@ function evaluatePassingPositionalArgument(
             // Handle when the caller arguments are insufficient.
             // If the parameter has a default expression or is variadic (can accept zero args),
             // treat it as satisfied and stop checking further positional parameters.
-            if (callee.linkedNode.paramList[paramId].defaultExpr !== undefined ||
-                callee.linkedNode.paramList[paramId].isVariadic) {
+            if (
+                callee.linkedNode.paramList[paramId].defaultExpr !== undefined ||
+                callee.linkedNode.paramList[paramId].isVariadic
+            ) {
                 break;
             } else {
                 return {reason: MismatchKind.FewerArguments};
@@ -356,8 +370,7 @@ function evaluatePassingPositionalArgument(
         }
 
         // Check the type of the passing argument
-        const cost =
-            evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId], sideEffectBuffer);
+        const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId], sideEffectBuffer);
         if (hasMismatchReason(cost)) {
             return cost;
         }
@@ -369,8 +382,7 @@ function evaluatePassingPositionalArgument(
         // Check the rest of the caller's variadic arguments.
         // e.g. 'arg1', 'arg2' in 'format(fmt, arg0, arg1, arg2)' (arg0 has already been checked above);
         for (let paramId = callee.parameterTypes.length; paramId < callerArgs.length; paramId++) {
-            const cost =
-                evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1), sideEffectBuffer);
+            const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1), sideEffectBuffer);
             if (hasMismatchReason(cost)) {
                 return cost;
             }
@@ -389,8 +401,7 @@ function evaluatePassingArgument(
     sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs, calleeTemplateTranslator} = args;
-    const expectedType =
-        applyTemplateTranslator(calleeParam, calleeTemplateTranslator);
+    const expectedType = applyTemplateTranslator(calleeParam, calleeTemplateTranslator);
 
     const actualType = callerArgs[callerArgId].type;
 
@@ -441,12 +452,16 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
 
     if (calleeFuncHolder.count === 1) {
         const calleeFunction = calleeFuncHolder.first;
-        if (mismatchReason.reason === MismatchKind.TooManyArguments || mismatchReason.reason === MismatchKind.FewerArguments) {
+        if (
+            mismatchReason.reason === MismatchKind.TooManyArguments ||
+            mismatchReason.reason === MismatchKind.FewerArguments
+        ) {
             analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
                 `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
             );
-        } else { // lastMismatchReason.reason === MismatchKind.ParameterMismatch
+        } else {
+            // lastMismatchReason.reason === MismatchKind.ParameterMismatch
             const actualTypeMessage = stringifyResolvedType(mismatchReason.actualType);
             const expectedTypeMessage = stringifyResolvedType(mismatchReason.expectedType);
             const callerArgRange = callerArgs[mismatchReason.mismatchIndex].range;
@@ -462,8 +477,9 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
 
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {
-            const resolvedTypes =
-                overload.parameterTypes.map(t => applyTemplateTranslator(t, calleeTemplateTranslator));
+            const resolvedTypes = overload.parameterTypes.map(t =>
+                applyTemplateTranslator(t, calleeTemplateTranslator)
+            );
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
 

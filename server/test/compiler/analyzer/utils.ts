@@ -1,9 +1,5 @@
-import {DiagnosticSeverity} from "vscode-languageserver-types";
-import {
-    FileContents,
-    inspectFileContents,
-    InspectorTestEvent, makeFileContentList
-} from "../../inspectorUtils";
+import {DiagnosticSeverity} from 'vscode-languageserver-types';
+import {FileContents, inspectFileContents, InspectorTestEvent, makeFileContentList} from '../../inspectorUtils';
 
 function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): InspectorTestEvent {
     const fileContentList = makeFileContentList(fileContents);
@@ -18,12 +14,20 @@ function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): Inspe
         const inspector = inspectFileContents(fileContentList);
 
         const diagnostics = [
-            ...inspector.getRecord(targetUri).diagnosticsInParser.filter(
-                diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
-            ),
-            ...inspector.getRecord(targetUri).diagnosticsInAnalyzer.filter(
-                diagnostic => diagnostic.severity === DiagnosticSeverity.Error || diagnostic.severity === DiagnosticSeverity.Warning
-            )
+            ...inspector
+                .getRecord(targetUri)
+                .diagnosticsInParser.filter(
+                    diagnostic =>
+                        diagnostic.severity === DiagnosticSeverity.Error ||
+                        diagnostic.severity === DiagnosticSeverity.Warning
+                ),
+            ...inspector
+                .getRecord(targetUri)
+                .diagnosticsInAnalyzer.filter(
+                    diagnostic =>
+                        diagnostic.severity === DiagnosticSeverity.Error ||
+                        diagnostic.severity === DiagnosticSeverity.Warning
+                )
         ];
 
         const hasError = diagnostics.length > 0;
@@ -34,7 +38,7 @@ function testAnalyzer(fileContents: FileContents, expectSuccess: boolean): Inspe
             const character = diagnostic.range.start.character;
             throw new Error(`${message} (:${line}:${character})`);
         } else if (!expectSuccess && !hasError) {
-            throw new Error("Expecting error but got none.");
+            throw new Error('Expecting error but got none.');
         }
     });
 
@@ -48,4 +52,3 @@ export function expectSuccess(fileContents: FileContents) {
 export function expectError(fileContents: FileContents) {
     return testAnalyzer(fileContents, false);
 }
-

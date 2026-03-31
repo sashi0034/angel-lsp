@@ -1,7 +1,8 @@
-import {testCompletion} from "./utils";
+import {testCompletion} from './utils';
 
 describe('completion/function', () => {
-    testCompletion(`// Basic function completion
+    testCompletion(
+        `// Basic function completion
         void foo() { 
             int x = 1; 
         }
@@ -12,6 +13,7 @@ describe('completion/function', () => {
                 $C0$
             }
         }    
-        `, ["foo", "bar", "y"]
+        `,
+        ['foo', 'bar', 'y']
     );
 });

@@ -1,5 +1,5 @@
-import {expectError, expectSuccess} from "./utils";
-import {copyGlobalSettings, resetGlobalSettings} from "../../../src/core/settings";
+import {expectError, expectSuccess} from './utils';
+import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 
 describe('analyzer/unicodeIdentifier', () => {
     expectSuccess(`// Unicode identifiers are allowed if the setting is enabled.

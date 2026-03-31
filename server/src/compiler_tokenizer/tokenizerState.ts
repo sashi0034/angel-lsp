@@ -1,5 +1,5 @@
-import {diagnostic} from "../core/diagnostic";
-import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from "./textLocation";
+import {diagnostic} from '../core/diagnostic';
+import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from './textLocation';
 
 export class TokenizerState {
     // The content of the file to be tokenized
@@ -78,7 +78,7 @@ export class TokenizerState {
  * Buffer for strings that are not alphabets, numbers, or symbols
  */
 export class UnknownWordBuffer {
-    private _bufferText: string = "";
+    private _bufferText: string = '';
     private _bufferLocation: MutableTextRange | null = null;
 
     public append(cursor: TextRange, next: string) {
@@ -86,8 +86,8 @@ export class UnknownWordBuffer {
             // Initialize the location
             this._bufferLocation = MutableTextRange.create(cursor);
         } else if (
-            cursor.start.line !== this._bufferLocation.end.line_ // if the line is different
-            || cursor.start.character - this._bufferLocation.end.character_ > 1 // or if there is a space gap between the last token
+            cursor.start.line !== this._bufferLocation.end.line_ || // if the line is different
+            cursor.start.character - this._bufferLocation.end.character_ > 1 // or if there is a space gap between the last token
         ) {
             // Flushes the buffer
             this.flush();
@@ -107,6 +107,6 @@ export class UnknownWordBuffer {
 
         this._bufferLocation.end.character_++;
         diagnostic.error(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
-        this._bufferText = "";
+        this._bufferText = '';
     }
 }

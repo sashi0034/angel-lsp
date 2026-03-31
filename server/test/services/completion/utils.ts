@@ -1,11 +1,7 @@
-import {makeCaretListAndContent} from "../caretUtils";
-import {provideCompletion} from "../../../src/services/completion";
-import {
-    FileContents,
-    makeFileContentList,
-    inspectFileContents,
-} from "../../inspectorUtils";
-import {CaretMap} from "../caretMap";
+import {makeCaretListAndContent} from '../caretUtils';
+import {provideCompletion} from '../../../src/services/completion';
+import {FileContents, makeFileContentList, inspectFileContents} from '../../inspectorUtils';
+import {CaretMap} from '../caretMap';
 
 function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
@@ -30,13 +26,13 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
             const target = caretMap.get(i);
             const globalScope = inspector.getRecord(target.uri).analyzerScope.globalScope;
 
-            const expected =
-                expectedList[i]
-                    .sort().map(concatIndexAndItem).join(", ");
+            const expected = expectedList[i].sort().map(concatIndexAndItem).join(', ');
 
-            const completions =
-                provideCompletion(globalScope, target.position).map(c => c.item.label)
-                    .sort().map(concatIndexAndItem).join(", ");
+            const completions = provideCompletion(globalScope, target.position)
+                .map(c => c.item.label)
+                .sort()
+                .map(concatIndexAndItem)
+                .join(', ');
 
             if (completions !== expected) {
                 throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);

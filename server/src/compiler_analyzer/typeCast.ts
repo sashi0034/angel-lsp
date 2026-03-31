@@ -1,9 +1,9 @@
-import {stringifyResolvedType} from "./symbolUtils";
-import {ResolvedType} from "./resolvedType";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {evaluateTypeConversion} from "./typeConversion";
-import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
+import {stringifyResolvedType} from './symbolUtils';
+import {ResolvedType} from './resolvedType';
+import {analyzerDiagnostic} from './analyzerDiagnostic';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
+import {evaluateTypeConversion} from './typeConversion';
+import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
 
 /**
  * Ensure that a type cast is valid.
@@ -12,7 +12,7 @@ import {causeTypeConversionSideEffect} from "./typeConversionSideEffect";
 export function assertTypeCast(
     src: ResolvedType | undefined,
     dest: ResolvedType | undefined,
-    nodeRange: TokenRange,
+    nodeRange: TokenRange
 ): boolean {
     if (checkTypeCast(src, dest, nodeRange)) {
         return true;

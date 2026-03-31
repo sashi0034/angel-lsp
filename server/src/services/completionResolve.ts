@@ -1,17 +1,18 @@
-import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {stringifyResolvedType, stringifySymbolObject} from "../compiler_analyzer/symbolUtils";
-import {InsertTextFormat} from "vscode-languageserver";
-import {SymbolFunctionHolder, SymbolType, SymbolVariable} from "../compiler_analyzer/symbolObject";
-import {CompletionItemWrapper} from "./completion";
-import {NodeName} from "../compiler_parser/nodes";
+import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
+import {stringifyResolvedType, stringifySymbolObject} from '../compiler_analyzer/symbolUtils';
+import {InsertTextFormat} from 'vscode-languageserver';
+import {SymbolFunctionHolder, SymbolType, SymbolVariable} from '../compiler_analyzer/symbolObject';
+import {CompletionItemWrapper} from './completion';
+import {NodeName} from '../compiler_parser/nodes';
 import * as path from 'path';
 
 /**
  * Completion Resolve is invoked when the user sees the completion item.
  */
 export function provideCompletionResolve(
-    globalScope: SymbolGlobalScope, itemWrapper: CompletionItemWrapper
+    globalScope: SymbolGlobalScope,
+    itemWrapper: CompletionItemWrapper
 ): CompletionItem {
     const item = itemWrapper.item;
     const symbol = itemWrapper.symbol;

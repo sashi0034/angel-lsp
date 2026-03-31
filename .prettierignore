@@ -1,0 +1,7 @@
+*.md
+*.js
+*.txt
+**/out/
+**/node_modules/
+**/dist/
+**/bundle/

@@ -1,9 +1,10 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/templateSpecialization', () => {
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class Container<T> {
                 T item;
             }
@@ -12,19 +13,22 @@ describe('analyzer/templateSpecialization', () => {
                 int health;
             }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Generic type parameter resolves correctly for member access.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Generic type parameter resolves correctly for member access.
             void main() {
                 Container<Player> container;
                 container.item.health = 100;
             }
             `
-    }]);
+        }
+    ]);
 
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class Wrapper<T> {
                 T data;
             }
@@ -33,20 +37,23 @@ describe('analyzer/templateSpecialization', () => {
                 int x, y;
             }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Nested generic types resolve correctly.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Nested generic types resolve correctly.
             void main() {
                 Wrapper<Wrapper<Entity>> nested;
                 nested.data.data.x = 10;
                 nested.data.data.y = 20;
             }
             `
-    }]);
+        }
+    ]);
 
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class Box<T> {
                 T value;
             }
@@ -67,9 +74,10 @@ describe('analyzer/templateSpecialization', () => {
                 int damage;
             }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Template specialization is used when available.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Template specialization is used when available.
             void main() {
                 Box<Item> special;
                 special.specialWeight = 42;
@@ -78,11 +86,13 @@ describe('analyzer/templateSpecialization', () => {
                 generic.value.damage = 10;
             }
             `
-    }]);
+        }
+    ]);
 
-    expectError([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectError([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class Cache<T> {
                 T data;
             }
@@ -95,19 +105,22 @@ describe('analyzer/templateSpecialization', () => {
                 int capacity;
             }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Specialization does not have generic member 'data'.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Specialization does not have generic member 'data'.
             void main() {
                 Cache<Record> cache;
                 cache.data.id;
             }
             `
-    }]);
+        }
+    ]);
 
-    expectSuccess([{
-        uri: 'file:///path/to/as.predefined',
-        content: `
+    expectSuccess([
+        {
+            uri: 'file:///path/to/as.predefined',
+            content: `
             class Item {
                 int weight;
             }
@@ -121,13 +134,15 @@ describe('analyzer/templateSpecialization', () => {
                 return item;
             }
             `
-    }, {
-        uri: 'file:///path/to/file.as',
-        content: `// Explicit function template arguments resolve return types.
+        },
+        {
+            uri: 'file:///path/to/file.as',
+            content: `// Explicit function template arguments resolve return types.
             void main() {
                 auto itemBox = findItem<Box<Item>>(1);
                 Box<Item> itemBoxCopy = itemBox;
             }
             `
-    }]);
+        }
+    ]);
 });

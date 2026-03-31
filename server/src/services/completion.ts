@@ -1,17 +1,17 @@
-import {Position} from "vscode-languageserver";
-import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from "../compiler_analyzer/symbolObject";
-import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import {NodeName} from "../compiler_parser/nodes";
+import {Position} from 'vscode-languageserver';
+import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from '../compiler_analyzer/symbolObject';
+import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
+import {NodeName} from '../compiler_parser/nodes';
 import {
     collectScopeListWithParentAndUsingNamespace,
     SymbolGlobalScope,
     SymbolScope
-} from "../compiler_analyzer/symbolScope";
-import {AutocompleteInstanceMemberInfo} from "../compiler_analyzer/info";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {canAccessInstanceMember} from "../compiler_analyzer/symbolUtils";
-import {findScopeContainingPosition} from "../service/utils";
-import {getGlobalSettings} from "../core/settings";
+} from '../compiler_analyzer/symbolScope';
+import {AutocompleteInstanceMemberInfo} from '../compiler_analyzer/info';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
+import {findScopeContainingPosition} from '../service/utils';
+import {getGlobalSettings} from '../core/settings';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -21,9 +21,7 @@ export interface CompletionItemWrapper {
 /**
  * Returns the completion candidates for the specified position.
  */
-export function provideCompletion(
-    globalScope: SymbolGlobalScope, caret: TextPosition
-): CompletionItemWrapper[] {
+export function provideCompletion(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
     const items = provideCompletion_internal(globalScope, caret);
 
     // Assign sort keys to completion items.
@@ -34,9 +32,7 @@ export function provideCompletion(
     return items;
 }
 
-function provideCompletion_internal(
-    globalScope: SymbolGlobalScope, caret: TextPosition
-): CompletionItemWrapper[] {
+function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     const caretScope = findScopeContainingPosition(globalScope, caret).scope;
@@ -82,7 +78,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
         items.push({
             item: {
                 label: childName,
-                kind: CompletionItemKind.Module,
+                kind: CompletionItemKind.Module
             }
         });
     }
@@ -106,7 +102,11 @@ function hoistEnumParentScope(globalScope: SymbolGlobalScope, filter: ScopePath)
     return items;
 }
 
-function getCompletionMembersInScope(globalScope: SymbolScope, caretScope: SymbolScope, symbolScope: SymbolScope): CompletionItemWrapper[] {
+function getCompletionMembersInScope(
+    globalScope: SymbolScope,
+    caretScope: SymbolScope,
+    symbolScope: SymbolScope
+): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     // Completion of symbols in the scope
@@ -160,8 +160,10 @@ function autocompleteInstanceMember(
     // Find the scope to which the type to be completed belongs.
     if (completion.targetType.membersScopePath === undefined) return [];
 
-    const typeScope = globalScope.getGlobalScope().resolveScope(completion.targetType.scopePath)?.lookupScope(
-        completion.targetType.identifierToken.text);
+    const typeScope = globalScope
+        .getGlobalScope()
+        .resolveScope(completion.targetType.scopePath)
+        ?.lookupScope(completion.targetType.identifierToken.text);
     if (typeScope === undefined) return [];
 
     // Return the completion candidates in the scope.
@@ -185,7 +187,8 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
         }
     } else if (symbol.isFunctionHolder()) {
         item.kind = CompletionItemKind.Function;
-    } else { // Variable
+    } else {
+        // Variable
         item.kind = CompletionItemKind.Variable;
     }
 
@@ -197,7 +200,7 @@ function attackSortKey(item: CompletionItem) {
     const labelText: string = item.label;
 
     let underscoreCount = 0;
-    while (underscoreCount < labelText.length && labelText[underscoreCount] === "_") {
+    while (underscoreCount < labelText.length && labelText[underscoreCount] === '_') {
         underscoreCount++;
     }
 

@@ -1,6 +1,6 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
-describe("analyzer/opAddAssign", () => {
+describe('analyzer/opAddAssign', () => {
     expectSuccess(`// opAddAssign is defined
         class Foo {
             int opAddAssign(Foo foo) { return 0; }

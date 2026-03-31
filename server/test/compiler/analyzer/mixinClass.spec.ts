@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/mixinClass', () => {
     expectSuccess(`// Derived class can access all members of mixin class.

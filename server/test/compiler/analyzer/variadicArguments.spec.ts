@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/variadicArguments', () => {
     expectSuccess([
@@ -62,4 +62,3 @@ describe('analyzer/variadicArguments', () => {
         }
     ]);
 });
-

@@ -1,13 +1,13 @@
-import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from "./symbolScope";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {ResolvedType} from "./resolvedType";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {assertTypeCast} from "./typeCast";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {SymbolObjectHolder} from "./symbolObject";
-import {stringifyResolvedType} from "./symbolUtils";
-import {isFuncHeadConstructor, NodeFuncCall, NodeName} from "../compiler_parser/nodes";
-import * as assert from "node:assert";
+import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {ResolvedType} from './resolvedType';
+import {analyzerDiagnostic} from './analyzerDiagnostic';
+import {assertTypeCast} from './typeCast';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
+import {SymbolObjectHolder} from './symbolObject';
+import {stringifyResolvedType} from './symbolUtils';
+import {isFuncHeadConstructor, NodeFuncCall, NodeName} from '../compiler_parser/nodes';
+import * as assert from 'node:assert';
 
 export function findConstructorOfType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
     if (resolvedType?.scopePath === undefined) {
@@ -47,9 +47,10 @@ export function checkDefaultConstructorCall(
     if (calleeSymbol.isType() && calleeSymbol.isPrimitiveOrEnum()) {
         // A primitive type constructor only accepts one argument.
         if (callerArgTypes.length !== 1) {
-            const message = callerArgTypes.length === 0
-                ? `Primitive type '${constructorIdentifier.text}' requires an argument`
-                : `Too many arguments for type '${constructorIdentifier.text}'`;
+            const message =
+                callerArgTypes.length === 0
+                    ? `Primitive type '${constructorIdentifier.text}' requires an argument`
+                    : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         } else {
@@ -61,9 +62,10 @@ export function checkDefaultConstructorCall(
         // An object default constructor only accepts zero arguments.
         if (callerArgTypes.length !== 0) {
             const firstArgument = () => stringifyResolvedType(callerArgTypes[0]);
-            const message = callerArgTypes.length === 1
-                ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts the argument '${firstArgument()}'`
-                : `Too many arguments for type '${constructorIdentifier.text}'`;
+            const message =
+                callerArgTypes.length === 1
+                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts the argument '${firstArgument()}'`
+                    : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         }
@@ -91,10 +93,7 @@ export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: 
 
     const classSymbol = classScope.parentScope?.lookupSymbol(classScope.key);
     if (!classSymbol?.isType()) {
-        analyzerDiagnostic.error(
-            callerRange.getBoundingLocation(),
-            `Class '${classScope.key}' does not exist.`
-        );
+        analyzerDiagnostic.error(callerRange.getBoundingLocation(), `Class '${classScope.key}' does not exist.`);
         return;
     }
 

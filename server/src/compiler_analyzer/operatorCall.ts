@@ -1,37 +1,39 @@
-import {resolveActiveScope, SymbolScope} from "./symbolScope";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {ResolvedType} from "./resolvedType";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {evaluateFunctionCall} from "./functionCall";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {stringifyResolvedType, stringifyResolvedTypes} from "./symbolUtils";
-import assert = require("node:assert");
-import {checkTypeCast} from "./typeCast";
-import {resolvedBuiltinInt} from "./builtinType";
-import {canTypeConvert, normalizeType} from "./typeConversion";
-import {extendTokenLocation} from "../compiler_tokenizer/tokenUtils";
+import {resolveActiveScope, SymbolScope} from './symbolScope';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {ResolvedType} from './resolvedType';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
+import {evaluateFunctionCall} from './functionCall';
+import {analyzerDiagnostic} from './analyzerDiagnostic';
+import {stringifyResolvedType, stringifyResolvedTypes} from './symbolUtils';
+import assert = require('node:assert');
+import {checkTypeCast} from './typeCast';
+import {resolvedBuiltinInt} from './builtinType';
+import {canTypeConvert, normalizeType} from './typeConversion';
+import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 
-type OverloadedOperatorCallArgs = {
-    // For dual operators
-    callerOperator: TokenObject,
-    alias: string,
-    alias_r: string,
-    lhs: ResolvedType,
-    lhsRange: TokenRange,
-    rhs: ResolvedType,
-    rhsRange: TokenRange,
-    rhsArgNames?: undefined,
-} | {
-    // For the case where the alias_r is not defined.
-    callerOperator: TokenObject,
-    alias: string,
-    alias_r?: undefined, // The alias_r is not defined.
-    lhs: ResolvedType,
-    lhsRange: TokenRange,
-    rhs: ResolvedType | (ResolvedType | undefined)[], // If alias_r is not defined, the rhs can be an array.
-    rhsRange: TokenRange,
-    rhsArgNames?: (TokenObject | undefined)[] // Support for named arguments.
-}
+type OverloadedOperatorCallArgs =
+    | {
+          // For dual operators
+          callerOperator: TokenObject;
+          alias: string;
+          alias_r: string;
+          lhs: ResolvedType;
+          lhsRange: TokenRange;
+          rhs: ResolvedType;
+          rhsRange: TokenRange;
+          rhsArgNames?: undefined;
+      }
+    | {
+          // For the case where the alias_r is not defined.
+          callerOperator: TokenObject;
+          alias: string;
+          alias_r?: undefined; // The alias_r is not defined.
+          lhs: ResolvedType;
+          lhsRange: TokenRange;
+          rhs: ResolvedType | (ResolvedType | undefined)[]; // If alias_r is not defined, the rhs can be an array.
+          rhsRange: TokenRange;
+          rhsArgNames?: (TokenObject | undefined)[]; // Support for named arguments.
+      };
 
 /**
  * Check if the overloaded operator call is valid.
@@ -167,17 +169,20 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
 enum MismatchKind {
     MissingAliasOperator = 'MissingAliasOperator',
     MismatchOverload = 'MismatchOverload',
-    MismatchIndexedPropertyAccessor = 'MismatchIndexedPropertyAccessor',
+    MismatchIndexedPropertyAccessor = 'MismatchIndexedPropertyAccessor'
 }
 
-type MismatchReason = {
-    reason: MismatchKind.MissingAliasOperator,
-    foundButNotFunction?: boolean
-} | {
-    reason: MismatchKind.MismatchOverload,
-} | {
-    reason: MismatchKind.MismatchIndexedPropertyAccessor,
-}
+type MismatchReason =
+    | {
+          reason: MismatchKind.MissingAliasOperator;
+          foundButNotFunction?: boolean;
+      }
+    | {
+          reason: MismatchKind.MismatchOverload;
+      }
+    | {
+          reason: MismatchKind.MismatchIndexedPropertyAccessor;
+      };
 
 function hasMismatchReason(reason: ResolvedType | MismatchReason | undefined): reason is MismatchReason {
     if (reason === undefined) return false;
@@ -185,12 +190,12 @@ function hasMismatchReason(reason: ResolvedType | MismatchReason | undefined): r
 }
 
 interface LhsOperatorCallArgs {
-    callerOperator: TokenObject,
-    alias: string,
-    lhs: ResolvedType,
-    rhs: ResolvedType | (ResolvedType | undefined)[],
-    rhsRange: TokenRange,
-    rhsArgNames: (TokenObject | undefined)[] | undefined
+    callerOperator: TokenObject;
+    alias: string;
+    lhs: ResolvedType;
+    rhs: ResolvedType | (ResolvedType | undefined)[];
+    rhsRange: TokenRange;
+    rhsArgNames: (TokenObject | undefined)[] | undefined;
 }
 
 function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType | undefined | MismatchReason {
@@ -215,8 +220,7 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
         return {reason: MismatchKind.MissingAliasOperator};
     }
 
-    const aliasFunction =
-        resolveActiveScope(lhs.scopePath).lookupScope(lhs.identifierText)?.lookupSymbol(alias);
+    const aliasFunction = resolveActiveScope(lhs.scopePath).lookupScope(lhs.identifierText)?.lookupSymbol(alias);
     if (aliasFunction === undefined) {
         return {reason: MismatchKind.MissingAliasOperator};
     } else if (aliasFunction.isFunctionHolder() === false) {
@@ -250,7 +254,18 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
 }
 
 const widerNumberTable = [
-    'double', 'float', 'int64', 'uint64', 'int32', 'uint32', 'int', 'uint', 'int16', 'uint16', 'int8', 'uint8'
+    'double',
+    'float',
+    'int64',
+    'uint64',
+    'int32',
+    'uint32',
+    'int',
+    'uint',
+    'int16',
+    'uint16',
+    'int8',
+    'uint8'
 ];
 
 function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType {
@@ -268,4 +283,3 @@ function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType
 
     assert(false);
 }
-

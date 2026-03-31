@@ -3,7 +3,7 @@ import * as fs from 'fs';
 export class SimpleProfiler {
     private readonly _resultFile: string;
     private _sessionCount: number = 0;
-    private _sessions: Array<{ elapsedTime: number; memoryUsed: number }> = [];
+    private _sessions: Array<{elapsedTime: number; memoryUsed: number}> = [];
     private _startTime: number = 0;
     private _startMemory: number = 0;
 
@@ -27,7 +27,7 @@ export class SimpleProfiler {
     }
 
     public outputResult(): void {
-        let output = "Profiling Results:\n";
+        let output = 'Profiling Results:\n';
 
         this._sessions.forEach((session, index) => {
             output += `Session ${index + 1}: Elapsed Time: ${session.elapsedTime} ms, Memory Used: ${session.memoryUsed} bytes\n`;

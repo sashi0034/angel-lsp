@@ -1,18 +1,18 @@
-import * as lsp from "vscode-languageserver/node";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {NodeScript} from "../compiler_parser/nodes";
-import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {logger} from "../core/logger";
-import {Profiler} from "../core/profiler";
-import {tokenize} from "../compiler_tokenizer/tokenizer";
-import {preprocessAfterTokenized, PreprocessedOutput} from "../compiler_parser/parserPreprocess";
-import {parseAfterPreprocessed} from "../compiler_parser/parser";
-import {diagnostic} from "../core/diagnostic";
-import {AnalysisResolver, DiagnosticsCallback} from "./analysisResolver";
-import {AnalyzerScope} from "../compiler_analyzer/analyzerScope";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {findScopeContainingPosition} from "../service/utils";
-import {moveDiagnosticsByChanges} from "../service/contentChangeApplier";
+import * as lsp from 'vscode-languageserver/node';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {NodeScript} from '../compiler_parser/nodes';
+import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {logger} from '../core/logger';
+import {Profiler} from '../core/profiler';
+import {tokenize} from '../compiler_tokenizer/tokenizer';
+import {preprocessAfterTokenized, PreprocessedOutput} from '../compiler_parser/parserPreprocess';
+import {parseAfterPreprocessed} from '../compiler_parser/parser';
+import {diagnostic} from '../core/diagnostic';
+import {AnalysisResolver, DiagnosticsCallback} from './analysisResolver';
+import {AnalyzerScope} from '../compiler_analyzer/analyzerScope';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {findScopeContainingPosition} from '../service/utils';
+import {moveDiagnosticsByChanges} from '../service/contentChangeApplier';
 
 interface InspectRecord {
     content: string;
@@ -23,7 +23,7 @@ interface InspectRecord {
     rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
     ast: NodeScript;
-    isAnalyzerPending: boolean,
+    isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }
 
@@ -38,7 +38,7 @@ function createEmptyRecord(uri: string, content: string): InspectRecord {
         preprocessedOutput: {preprocessedTokens: [], includePathTokens: []},
         ast: [],
         isAnalyzerPending: false,
-        analyzerScope: new AnalyzerScope(uri, new SymbolGlobalScope(uri)),
+        analyzerScope: new AnalyzerScope(uri, new SymbolGlobalScope(uri))
     };
 }
 
@@ -50,7 +50,6 @@ interface InspectOption {
 }
 
 export class Inspector {
-
     private readonly _inspectRecords: Map<string, InspectRecord> = new Map();
 
     private _diagnosticsCallback: DiagnosticsCallback = () => {
@@ -60,7 +59,7 @@ export class Inspector {
     private readonly _analysisResolver: AnalysisResolver = new AnalysisResolver(
         this._inspectRecords,
         (uri, content) => this.inspectFile(uri, content),
-        (params) => this._diagnosticsCallback(params)
+        params => this._diagnosticsCallback(params)
     );
 
     public registerDiagnosticsCallback(callback: DiagnosticsCallback): void {
@@ -136,13 +135,14 @@ export class Inspector {
         // Send the diagnostics on the way to the client
         this._diagnosticsCallback({
             uri: uri,
-            diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer],
+            diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
         });
 
         // Request delayed execution of the analyzer
         this._analysisResolver.request(
             record,
-            shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes));
+            shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes)
+        );
 
         logger.message(`(${process.memoryUsage().heapUsed / 1024 / 1024} MB used)`);
     }
@@ -174,7 +174,10 @@ export class Inspector {
     }
 }
 
-function shouldReanalyzeDependents(globalScope: SymbolGlobalScope, change?: lsp.TextDocumentContentChangeEvent[]): boolean {
+function shouldReanalyzeDependents(
+    globalScope: SymbolGlobalScope,
+    change?: lsp.TextDocumentContentChangeEvent[]
+): boolean {
     if (change === undefined) return true;
 
     for (const changeEvent of change) {

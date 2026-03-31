@@ -1,8 +1,8 @@
-import {HighlightForModifier, HighlightForToken} from "../core/highlight";
-import {findAllReservedWordProperty, ReservedWordProperty} from "./reservedWord";
-import {TextLocation} from "./textLocation";
-import {TokenRange} from "./tokenRange";
-import assert = require("node:assert");
+import {HighlightForModifier, HighlightForToken} from '../core/highlight';
+import {findAllReservedWordProperty, ReservedWordProperty} from './reservedWord';
+import {TextLocation} from './textLocation';
+import {TokenRange} from './tokenRange';
+import assert = require('node:assert');
 
 /**
  * Tokenizer categorizes tokens into the following kinds.
@@ -13,7 +13,7 @@ export enum TokenKind {
     Identifier = 'Identifier',
     Number = 'Number',
     String = 'String',
-    Comment = 'Comment',
+    Comment = 'Comment'
 }
 
 interface HighlightInfo {
@@ -53,7 +53,7 @@ export abstract class TokenBase {
         // Initial highlight information for the token type
         highlightToken: HighlightForToken,
         // Initial highlight information for the token modifier
-        highlightModifier: HighlightForModifier = HighlightForModifier.Nothing,
+        highlightModifier: HighlightForModifier = HighlightForModifier.Nothing
     ) {
         if (location instanceof TextLocation) {
             this._location = location;
@@ -67,9 +67,7 @@ export abstract class TokenBase {
     public abstract get kind(): TokenKind;
 
     public get location(): TextLocation {
-        return this._location
-            ?? this._coveredRange?.getBoundingLocation()
-            ?? emptyLocation;
+        return this._location ?? this._coveredRange?.getBoundingLocation() ?? emptyLocation;
     }
 
     public setHighlight(token: HighlightForToken, modifier?: HighlightForModifier) {
@@ -171,18 +169,14 @@ export abstract class TokenBase {
 
     public equals(other: TokenBase | undefined): boolean {
         if (other === undefined) return false;
-        return this === other || (this.location.equals(other.location));
+        return this === other || this.location.equals(other.location);
     }
 }
 
 export class TokenReserved extends TokenBase {
     public readonly property: ReservedWordProperty;
 
-    public constructor(
-        text: string,
-        location: TextLocation | TokenRange | undefined,
-        property?: ReservedWordProperty,
-    ) {
+    public constructor(text: string, location: TextLocation | TokenRange | undefined, property?: ReservedWordProperty) {
         super(text, location, HighlightForToken.Keyword);
 
         this.property = property ?? findAllReservedWordProperty(text);
@@ -198,10 +192,7 @@ export class TokenReserved extends TokenBase {
 }
 
 export class TokenIdentifier extends TokenBase {
-    public constructor(
-        text: string,
-        location: TextLocation | TokenRange | undefined,
-    ) {
+    public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.Variable);
     }
 
@@ -217,14 +208,14 @@ export class TokenIdentifier extends TokenBase {
 export enum NumberLiteral {
     Integer = 'Integer',
     Float = 'Float',
-    Double = 'Double',
+    Double = 'Double'
 }
 
 export class TokenNumber extends TokenBase {
     public constructor(
         text: string,
         location: TextLocation,
-        public readonly numberLiteral: NumberLiteral,
+        public readonly numberLiteral: NumberLiteral
     ) {
         super(text, location, HighlightForToken.Number);
     }
@@ -235,10 +226,7 @@ export class TokenNumber extends TokenBase {
 }
 
 export class TokenString extends TokenBase {
-    public constructor(
-        text: string,
-        location: TextLocation | TokenRange | undefined,
-    ) {
+    public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.String);
     }
 
@@ -256,10 +244,7 @@ export class TokenString extends TokenBase {
 }
 
 export class TokenComment extends TokenBase {
-    public constructor(
-        text: string,
-        location: TextLocation,
-    ) {
+    public constructor(text: string, location: TextLocation) {
         super(text, location, HighlightForToken.Comment);
     }
 
@@ -271,4 +256,4 @@ export class TokenComment extends TokenBase {
 /**
  * TokenObject is a union type of all token types.
  */
-export type TokenObject = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment
+export type TokenObject = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;

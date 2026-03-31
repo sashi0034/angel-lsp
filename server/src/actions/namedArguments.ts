@@ -1,26 +1,28 @@
-import {CodeActionWrapper} from "./utils";
-import {SymbolGlobalScope} from "../compiler_analyzer/symbolScope";
-import {TextRange} from "../compiler_tokenizer/textLocation";
-import {SymbolFunction} from "../compiler_analyzer/symbolObject";
-import * as lsp from "vscode-languageserver";
-import {FunctionCallInfo} from "../compiler_analyzer/info";
+import {CodeActionWrapper} from './utils';
+import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {TextRange} from '../compiler_tokenizer/textLocation';
+import {SymbolFunction} from '../compiler_analyzer/symbolObject';
+import * as lsp from 'vscode-languageserver';
+import {FunctionCallInfo} from '../compiler_analyzer/info';
 
 export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: TextRange): CodeActionWrapper[] {
     for (const info of globalScope.info.functionCall) {
         if (info.callerIdentifier.location.intersects(range)) {
-            return [{
-                action: {
-                    title: 'Convert to named arguments',
-                    kind: lsp.CodeActionKind.RefactorRewrite,
-                },
-                resolver: (action) => {
-                    action.edit = {
-                        changes: {
-                            [info.callerIdentifier.location.path]: executeNamedArgumentsAction(globalScope, info)
-                        }
-                    };
+            return [
+                {
+                    action: {
+                        title: 'Convert to named arguments',
+                        kind: lsp.CodeActionKind.RefactorRewrite
+                    },
+                    resolver: action => {
+                        action.edit = {
+                            changes: {
+                                [info.callerIdentifier.location.path]: executeNamedArgumentsAction(globalScope, info)
+                            }
+                        };
+                    }
                 }
-            }];
+            ];
         }
     }
 
@@ -84,7 +86,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
         const closeParentheses = callerNode.nodeRange.end;
         edits.push({
             range: closeParentheses.location,
-            newText: tail + closeParentheses.text,
+            newText: tail + closeParentheses.text
         });
     }
 

@@ -1,16 +1,16 @@
-import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from "../compiler_tokenizer/tokenObject";
-import {numberTypeSet} from "../compiler_tokenizer/reservedWord";
-import {SymbolType} from "./symbolObject";
-import assert = require("node:assert");
-import {ResolvedType} from "./resolvedType";
-import {SymbolScope} from "./symbolScope";
+import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {numberTypeSet} from '../compiler_tokenizer/reservedWord';
+import {SymbolType} from './symbolObject';
+import assert = require('node:assert');
+import {ResolvedType} from './resolvedType';
+import {SymbolScope} from './symbolScope';
 
 function createBuiltinType(virtualToken: TokenObject): SymbolType {
     return SymbolType.create({
         identifierToken: virtualToken, // The built-in type uses a virtual token
         scopePath: [],
         linkedNode: undefined,
-        membersScopePath: undefined,
+        membersScopePath: undefined
     });
 }
 
@@ -58,8 +58,8 @@ export function tryGetBuiltinType(token: TokenObject): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) return undefined;
 
     const identifier = token.text;
-    if ((identifier === 'bool')) return builtinBoolType;
-    else if ((identifier === 'void')) return builtinVoidType;
+    if (identifier === 'bool') return builtinBoolType;
+    else if (identifier === 'void') return builtinVoidType;
     else if (identifier === '?') return builtinAnyType;
     else if (identifier === 'auto') return builtinAutoType;
     else if (token.isReservedToken() && token.property.isNumber) return assignBuiltinNumberType(identifier);

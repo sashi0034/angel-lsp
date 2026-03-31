@@ -1,4 +1,4 @@
-import * as lsp from "vscode-languageserver/node";
+import * as lsp from 'vscode-languageserver/node';
 
 export interface CodeActionWrapper {
     action: lsp.CodeAction;

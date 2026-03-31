@@ -1,4 +1,4 @@
-import {expectError, expectSuccess} from "./utils";
+import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/funcdef', () => {
     expectSuccess(`// Resolve function overloads with funcdef
@@ -37,5 +37,3 @@ describe('analyzer/funcdef', () => {
         }
     `);
 });
-
-

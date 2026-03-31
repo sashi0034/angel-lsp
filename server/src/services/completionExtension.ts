@@ -1,11 +1,11 @@
-import {findTokenContainingPosition} from "./utils";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {CompletionItem, CompletionItemKind} from "vscode-languageserver/node";
-import * as path from "node:path";
-import * as fs from "node:fs";
-import {fileURLToPath} from "node:url";
-import {getIncludeUriList} from "../service/fileUtils";
+import {findTokenContainingPosition} from './utils';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {getIncludeUriList} from '../service/fileUtils';
 
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
@@ -38,19 +38,23 @@ export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPo
 function provideFilepathCompletion(currentInput: string, uri: string): CompletionItem[] {
     const result: CompletionItem[] = [];
 
-    result.push(...autocompleteFilepath(uri, currentInput).map(name => {
-        return {label: name, kind: CompletionItemKind.File,};
-    }));
+    result.push(
+        ...autocompleteFilepath(uri, currentInput).map(name => {
+            return {label: name, kind: CompletionItemKind.File};
+        })
+    );
 
     for (const includeUri of getIncludeUriList()) {
-        result.push(...autocompleteFilepath(includeUri.uri, currentInput).map(name => {
-            return {
-                label: name,
-                kind: CompletionItemKind.File,
-                detail: '(include path) ' + includeUri.path,
-                sortText: '|' + name // '|' is a lower priority than normal characters
-            };
-        }));
+        result.push(
+            ...autocompleteFilepath(includeUri.uri, currentInput).map(name => {
+                return {
+                    label: name,
+                    kind: CompletionItemKind.File,
+                    detail: '(include path) ' + includeUri.path,
+                    sortText: '|' + name // '|' is a lower priority than normal characters
+                };
+            })
+        );
     }
 
     return result;
@@ -62,7 +66,10 @@ function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: numb
 
     if (caretTokenIndex >= 2) {
         // Check if the previous tokens are '#', 'include'.
-        const prev = rawTokens.slice(caretTokenIndex - 2, caretTokenIndex).map(token => token.text).join('');
+        const prev = rawTokens
+            .slice(caretTokenIndex - 2, caretTokenIndex)
+            .map(token => token.text)
+            .join('');
         if (prev === '#include') return true;
     }
 

@@ -35,4 +35,3 @@ export function safeWriteFile(filePathOrUrl: string, content: string): boolean {
         return false; // Failure
     }
 }
-

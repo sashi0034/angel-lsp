@@ -5,7 +5,7 @@ import {
     SymbolObjectHolder,
     SymbolType,
     TypeDefinitionNode
-} from "./symbolObject";
+} from './symbolObject';
 import {
     NodeClass,
     NodeDoWhile,
@@ -16,24 +16,26 @@ import {
     NodeIf,
     NodeInterface,
     NodeLambda,
-    NodeName, NodeNamespace,
+    NodeName,
+    NodeNamespace,
     NodeStatBlock,
     NodeTry,
     NodeUsing,
     NodeVirtualProp,
     NodeWhile
-} from "../compiler_parser/nodes";
+} from '../compiler_parser/nodes';
 import {
     AutoTypeResolutionInfo,
     FunctionCallInfo,
     AutocompleteInstanceMemberInfo,
     AutocompleteNamespaceAccessInfo,
-    ScopeRegionInfo, ReferenceInfo
-} from "./info";
-import {getGlobalSettings} from "../core/settings";
-import {analyzerDiagnostic} from "./analyzerDiagnostic";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import assert = require("node:assert");
+    ScopeRegionInfo,
+    ReferenceInfo
+} from './info';
+import {getGlobalSettings} from '../core/settings';
+import {analyzerDiagnostic} from './analyzerDiagnostic';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import assert = require('node:assert');
 
 export type ScopeTable = Map<string, SymbolScope>;
 
@@ -70,7 +72,7 @@ function createGlobalScopeContext(): GlobalScopeContext {
             autocompleteInstanceMember: [],
             autocompleteNamespaceAccess: [],
             functionCall: [],
-            autoTypeResolution: [],
+            autoTypeResolution: []
         }
     };
 }
@@ -80,7 +82,7 @@ function createGlobalScopeContext(): GlobalScopeContext {
  * Note: It does not contain NodeNamespace because a scope can have multiple namespaces.
  */
 export type ScopeLinkedNode =
-    NodeEnum
+    | NodeEnum
     | NodeClass
     | NodeVirtualProp
     | NodeInterface
@@ -140,7 +142,7 @@ export class SymbolScope {
         // The key of this scope. It is the identifier of the class, function, or block.
         public readonly key: string,
         // A node associated with this scope
-        private _linkedNode: ScopeLinkedNode | undefined,
+        private _linkedNode: ScopeLinkedNode | undefined
     ) {
         assert(parentScope !== undefined || this instanceof SymbolGlobalScope);
 
@@ -221,7 +223,9 @@ export class SymbolScope {
     }
 
     public takeParentByNode(nodeCandidates: NodeName[]): SymbolScope | undefined {
-        return this.takeParentBy(scope => scope.linkedNode !== undefined && nodeCandidates.includes(scope.linkedNode.nodeName));
+        return this.takeParentBy(
+            scope => scope.linkedNode !== undefined && nodeCandidates.includes(scope.linkedNode.nodeName)
+        );
     }
 
     public getGlobalScope(): SymbolGlobalScope {
@@ -359,9 +363,11 @@ export class SymbolScope {
 
         // Copy using namespaces from the external scope.
         for (const usingNamespace of externalScope._usingNamespaces) {
-            const filteredNodes = usingNamespace.linkedNodes.filter(
-                node => node.namespaceList.some(ns => ns.location.path === externalFilepath));
-            if (filteredNodes.length > 0 &&
+            const filteredNodes = usingNamespace.linkedNodes.filter(node =>
+                node.namespaceList.some(ns => ns.location.path === externalFilepath)
+            );
+            if (
+                filteredNodes.length > 0 &&
                 !this._usingNamespaces.some(elem => isScopePathEquals(elem.scopePath, usingNamespace.scopePath))
             ) {
                 this._usingNamespaces.push({
@@ -382,7 +388,8 @@ export class SymbolScope {
                 if (canInsertNode && otherChild.isFunctionScope()) {
                     this.insertScope(key, otherChild.linkedNode);
                 }
-            } else if (otherChild._symbolTable.size > 0 ||
+            } else if (
+                otherChild._symbolTable.size > 0 ||
                 otherChild._childScopeTable.size > 0 ||
                 otherChild._usingNamespaces.length > 0
             ) {
@@ -390,7 +397,6 @@ export class SymbolScope {
                 thisChild.includeExternalScope_internal(otherChild, externalFilepath);
             }
         }
-
     }
 }
 
@@ -450,10 +456,7 @@ export class SymbolGlobalScope extends SymbolScope {
 }
 
 function errorAlreadyDeclared(token: TokenObject) {
-    analyzerDiagnostic.error(
-        token.location,
-        `Symbol '${token.text}' is already declared in the scope.`
-    );
+    analyzerDiagnostic.error(token.location, `Symbol '${token.text}' is already declared in the scope.`);
 }
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
@@ -496,7 +499,7 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;
 
     // Check if the class has a metadata that indicates it is a built-in string type.
-    const builtinStringMetadata = "BuiltinString";
+    const builtinStringMetadata = 'BuiltinString';
     if (source.metadata.some(m => m.length === 1 && m[0].text === builtinStringMetadata)) {
         return true;
     }
@@ -536,7 +539,10 @@ export function collectScopeListWithParentAndUsingNamespace(scope: SymbolScope):
     return collectScopeListWithParentAndUsingNamespace_internal(scope, usingNamespaces);
 }
 
-function collectScopeListWithParentAndUsingNamespace_internal(scope: SymbolScope, usingNamespaces: ReadonlyArray<ScopeUsingNamespace>): SymbolScope[] {
+function collectScopeListWithParentAndUsingNamespace_internal(
+    scope: SymbolScope,
+    usingNamespaces: ReadonlyArray<ScopeUsingNamespace>
+): SymbolScope[] {
     const result: SymbolScope[] = [scope];
 
     // Add using namespaces to the end of the list.

@@ -1,6 +1,6 @@
-import {TextPosition} from "../compiler_tokenizer/textLocation";
-import {TokenObject} from "../compiler_tokenizer/tokenObject";
-import {SymbolObject} from "../compiler_analyzer/symbolObject";
+import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {SymbolObject} from '../compiler_analyzer/symbolObject';
 
 /**
  * Finds the token in the given list that contains the specified caret position.
@@ -15,9 +15,10 @@ function findTokenContainingPositionInternal(
     caret: TextPosition,
     start: number,
     end: number
-): { token: TokenObject, index: number } | undefined {
+): {token: TokenObject; index: number} | undefined {
     const length = end - start;
-    if (length <= 8) { // FIXME: Measure the benchmark of the magic number
+    if (length <= 8) {
+        // FIXME: Measure the benchmark of the magic number
         // Linear search for small lists
         for (let index = start; index < end; index++) {
             const token = tokenList[index];
@@ -52,7 +53,8 @@ export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start); // FIXME: mixin class is OK?
     } else if (symbol.isVariable()) {
         return getDocumentCommentOfToken(symbol.identifierToken);
-    } else { // Function
+    } else {
+        // Function
         if (symbol.linkedNode === undefined) return 'unknown function';
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start);
     }
@@ -67,7 +69,8 @@ function getNearCommentToken(token: TokenObject): TokenObject | undefined {
             // l2: ... --> 'token'
 
             const prevAboveLineToken = aboveLineToken?.prevRaw;
-            if (prevAboveLineToken?.isCommentToken() ||
+            if (
+                prevAboveLineToken?.isCommentToken() ||
                 prevAboveLineToken?.location.end.line !== aboveLineToken.location.start.line
             ) {
                 // l1: 'prevAboveLineToken: comment' --> 'aboveLineToken' -->
@@ -111,7 +114,7 @@ function getAboveLineRawToken(token: TokenObject): TokenObject | undefined {
 }
 
 export function getDocumentCommentOfToken(token: TokenObject) {
-    let documentComment = "";
+    let documentComment = '';
 
     let currentToken: TokenObject | undefined = getNearCommentToken(token);
 
@@ -125,16 +128,15 @@ export function getDocumentCommentOfToken(token: TokenObject) {
         if (commentText.startsWith('//')) {
             commentText = commentText.replace(/^\/+/, ''); // Remove the '/' characters
         } else if (commentText.startsWith('/*')) {
-            commentText = commentText.substring(2, commentText.length - 2)
-                .split("\n")
-                .map(line => line.replace(/^\s*\*? ?/, ""))
-                .join("\n\n")
+            commentText = commentText
+                .substring(2, commentText.length - 2)
+                .split('\n')
+                .map(line => line.replace(/^\s*\*? ?/, ''))
+                .join('\n\n')
                 .trim();
         }
 
-        documentComment = documentComment.length > 0
-            ? commentText + '\n\n' + documentComment
-            : commentText;
+        documentComment = documentComment.length > 0 ? commentText + '\n\n' + documentComment : commentText;
 
         if (currentToken.prevRaw === undefined) {
             break;

@@ -1,17 +1,12 @@
-import {describe, it, afterEach, beforeEach} from "mocha";
-import * as assert from "assert";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
-import {pathToFileURL} from "node:url";
-import {
-    isAngelScriptFile,
-    resolveUri,
-    resolveIncludeUri,
-    shouldExcludeFile
-} from "../../src/service/fileUtils";
-import {copyGlobalSettings, resetGlobalSettings} from "../../src/core/settings";
-import {getEditorState} from "../../src/core/editorState";
+import {describe, it, afterEach, beforeEach} from 'mocha';
+import * as assert from 'assert';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import {pathToFileURL} from 'node:url';
+import {isAngelScriptFile, resolveUri, resolveIncludeUri, shouldExcludeFile} from '../../src/service/fileUtils';
+import {copyGlobalSettings, resetGlobalSettings} from '../../src/core/settings';
+import {getEditorState} from '../../src/core/editorState';
 
 describe('fileUtils', () => {
     let tempDir: string;

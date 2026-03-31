@@ -1,8 +1,8 @@
-import {NodeScript} from "../compiler_parser/nodes";
-import {Position} from "vscode-languageserver";
-import {TextEdit} from "vscode-languageserver-types/lib/esm/main";
-import {TokenBase, TokenObject} from "../compiler_tokenizer/tokenObject";
-import {getGlobalSettings} from "../core/settings";
+import {NodeScript} from '../compiler_parser/nodes';
+import {Position} from 'vscode-languageserver';
+import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
+import {TokenBase, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {getGlobalSettings} from '../core/settings';
 
 interface IndentState {
     line: number;
@@ -156,7 +156,6 @@ export function stepCursorAlongLines(lines: string[], cursor: Position): Positio
     }
 
     return c;
-
 }
 
 function splitContent(content: string): string[] {
@@ -165,7 +164,7 @@ function splitContent(content: string): string[] {
     const result = [];
     for (let i = 0; i < parts.length; i += 2) {
         const text = parts[i];
-        const newline = i + 1 < parts.length ? parts[i + 1] : "";
+        const newline = i + 1 < parts.length ? parts[i + 1] : '';
         result.push(text + newline);
     }
 

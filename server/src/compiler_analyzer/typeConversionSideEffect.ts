@@ -1,7 +1,7 @@
-import {ResolvedType} from "./resolvedType";
-import {getActiveGlobalScope, resolveActiveScope} from "./symbolScope";
-import {TokenRange} from "../compiler_tokenizer/tokenRange";
-import {ConversionEvaluation} from "./typeConversion";
+import {ResolvedType} from './resolvedType';
+import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
+import {TokenRange} from '../compiler_tokenizer/tokenRange';
+import {ConversionEvaluation} from './typeConversion';
 
 export function causeTypeConversionSideEffect(
     evaluation: ConversionEvaluation,
@@ -15,9 +15,10 @@ export function causeTypeConversionSideEffect(
 
     if (evaluation.resolvedOverload !== undefined && src.accessSourceToken !== undefined) {
         // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
-        getActiveGlobalScope().pushReference(({
-            toSymbol: evaluation.resolvedOverload, fromToken: src.accessSourceToken
-        }));
+        getActiveGlobalScope().pushReference({
+            toSymbol: evaluation.resolvedOverload,
+            fromToken: src.accessSourceToken
+        });
     }
 
     // Resolved the type of the ambiguous enum member
@@ -26,7 +27,8 @@ export function causeTypeConversionSideEffect(
         const enumMember = enumScope?.lookupSymbol(src.typeOrFunc.identifierText);
         if (enumMember?.isVariable()) {
             getActiveGlobalScope().pushReference({
-                fromToken: src.typeOrFunc.identifierToken, toSymbol: enumMember,
+                fromToken: src.typeOrFunc.identifierToken,
+                toSymbol: enumMember
             });
         }
     }

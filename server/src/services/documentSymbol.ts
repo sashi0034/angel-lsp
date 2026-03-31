@@ -1,5 +1,5 @@
-import {isAnonymousIdentifier, ScopeLinkedNode, SymbolGlobalScope, SymbolScope} from "../compiler_analyzer/symbolScope";
-import {NodeName} from "../compiler_parser/nodes";
+import {isAnonymousIdentifier, ScopeLinkedNode, SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
+import {NodeName} from '../compiler_parser/nodes';
 import * as lsp from 'vscode-languageserver';
 
 export function provideDocumentSymbol(globalScope: SymbolGlobalScope) {
@@ -64,18 +64,18 @@ function provideDocumentSymbolInternal(filepath: string, scope: SymbolScope) {
 
 function nodeToSymbolKind(node: ScopeLinkedNode) {
     switch (node.nodeName) {
-    case NodeName.Enum:
-        return lsp.SymbolKind.Enum;
-    case NodeName.Class:
-        return lsp.SymbolKind.Class;
-    case NodeName.VirtualProp:
-        return lsp.SymbolKind.Property;
-    case NodeName.Interface:
-        return lsp.SymbolKind.Interface;
-    case NodeName.Func:
-        return lsp.SymbolKind.Function;
-    case NodeName.Lambda: // FIXME: Check
-        return lsp.SymbolKind.Function;
+        case NodeName.Enum:
+            return lsp.SymbolKind.Enum;
+        case NodeName.Class:
+            return lsp.SymbolKind.Class;
+        case NodeName.VirtualProp:
+            return lsp.SymbolKind.Property;
+        case NodeName.Interface:
+            return lsp.SymbolKind.Interface;
+        case NodeName.Func:
+            return lsp.SymbolKind.Function;
+        case NodeName.Lambda: // FIXME: Check
+            return lsp.SymbolKind.Function;
     }
 
     return undefined;

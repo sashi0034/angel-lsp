@@ -1,13 +1,13 @@
-import {tokenize} from "../../src/compiler_tokenizer/tokenizer";
-import {parseAfterPreprocessed} from "../../src/compiler_parser/parser";
+import {tokenize} from '../../src/compiler_tokenizer/tokenizer';
+import {parseAfterPreprocessed} from '../../src/compiler_parser/parser';
 import {diagnostic} from '../../src/core/diagnostic';
-import {preprocessAfterTokenized} from "../../src/compiler_parser/parserPreprocess";
+import {preprocessAfterTokenized} from '../../src/compiler_parser/parserPreprocess';
 
 function testParser(content: string, expectSuccess: boolean) {
     it(`parses: ${content}`, () => {
         diagnostic.beginSession();
 
-        const uri = "/foo/bar.as";
+        const uri = '/foo/bar.as';
         const rawTokens = tokenize(uri, content);
         const preprocessedTokens = preprocessAfterTokenized(rawTokens);
         parseAfterPreprocessed(preprocessedTokens.preprocessedTokens);
@@ -35,12 +35,12 @@ function expectFailure(content: string) {
 
 // TODO: Separate tests for as.predefined?
 
-describe("Parser", () => {
-    expectSuccess("void foo() {}");
+describe('Parser', () => {
+    expectSuccess('void foo() {}');
 
-    expectSuccess("int MyValue = 0; float MyFloat = 15.f;");
+    expectSuccess('int MyValue = 0; float MyFloat = 15.f;');
 
-    expectSuccess("const uint Flag1 = 0x01;");
+    expectSuccess('const uint Flag1 = 0x01;');
 
     expectSuccess(`
         class Foo
@@ -75,9 +75,9 @@ describe("Parser", () => {
         }
     `);
 
-    expectSuccess("funcdef bool CALLBACK(int, int);");
+    expectSuccess('funcdef bool CALLBACK(int, int);');
 
-    expectSuccess("typedef double real64;");
+    expectSuccess('typedef double real64;');
 
     expectSuccess(`
         namespace A
@@ -105,10 +105,9 @@ describe("Parser", () => {
     expectSuccess(`bool foo = not true; bool bar = not not false;`);
 
     expectSuccess(`\uFEFF // <-- BOM
-        void foo() { }`
-    );
+        void foo() { }`);
 
     expectFailure(`funcdef`);
 
-    expectFailure("void foo(");
+    expectFailure('void foo(');
 });

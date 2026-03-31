@@ -1,4 +1,4 @@
-import {string} from "vscode-languageserver/lib/common/utils/is";
+import {string} from 'vscode-languageserver/lib/common/utils/is';
 
 /**
  * LanguageServer settings.
@@ -44,10 +44,10 @@ const defaultSettings: LanguageServerSettings = {
     characterLiterals: false,
     supportsTypedEnumerations: false,
     supportsDigitSeparators: false,
-    builtinStringType: "string",
-    builtinArrayType: "array",
+    builtinStringType: 'string',
+    builtinArrayType: 'array',
     files: {
-        angelScript: ["*.as"],
+        angelScript: ['*.as'],
         exclude: []
     },
     formatter: {
