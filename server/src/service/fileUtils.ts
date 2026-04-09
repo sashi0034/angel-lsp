@@ -8,14 +8,14 @@ import {getEditorState} from '../core/editorState';
 
 export function isAngelScriptFile(relativeOrAbsolute: string): boolean {
     // FIXME?
-    const patterns = getGlobalSettings().files.angelScript;
+    const patterns = getGlobalSettings().files?.angelScript ?? ['*.as'];
     const fileName = path.basename(relativeOrAbsolute);
     return patterns.some(pattern => minimatch(fileName, pattern) || minimatch(relativeOrAbsolute, pattern));
 }
 
 export function shouldExcludeFile(uri: string): boolean {
     // TODO: Optimize
-    const patterns = getGlobalSettings().files.exclude;
+    const patterns = getGlobalSettings().files?.exclude ?? [];
     const cwd = (getEditorState().workspaceFolderUris[0] ?? '') + '/';
     return patterns.some(pattern => minimatch(uri, pattern) || minimatch(uri, resolveUri(cwd, pattern)));
 }
@@ -82,7 +82,7 @@ export function resolveIncludeUri(baseUri: string, relativeOrAbsolute: string): 
     if (!isAngelScriptFile(relativeOrAbsolute) && !relativeOrAbsolute.endsWith('as.predefined')) {
         // If the file does not match any pattern, try to extract extension from first file pattern
         // and append it (defaults to .as)
-        const defaultExt = extractExtensionFromPattern(getGlobalSettings().files.angelScript[0] || '*.as');
+        const defaultExt = extractExtensionFromPattern((getGlobalSettings().files?.angelScript?.[0]) || '*.as');
         if (defaultExt) {
             relativeOrAbsolute = relativeOrAbsolute + defaultExt;
         }
