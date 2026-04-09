@@ -140,6 +140,7 @@ export interface NodeNamespace extends NodeBase {
 export interface NodeEnum extends NodeBase {
     readonly nodeName: NodeName.Enum;
     readonly scopeRange: TokenRange;
+    readonly metadata: TokenObject[][];
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];

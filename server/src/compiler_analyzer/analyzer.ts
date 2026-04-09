@@ -1367,6 +1367,7 @@ function analyzeEnumMemberAccess(
             nodeName: NodeName.Enum,
             nodeRange: new TokenRange(varIdentifier, varIdentifier),
             scopeRange: new TokenRange(varIdentifier, varIdentifier),
+            metadata: [],
             entity: undefined,
             identifier: varIdentifier,
             memberList: [],

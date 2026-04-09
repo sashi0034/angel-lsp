@@ -281,6 +281,8 @@ function expectContextualKeyword(parser: ParserState, keyword: string): boolean 
 function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
     const rangeStart = parser.next();
 
+    const metadata = parseMetadata(parser);
+
     const entity = parseEntityAttribute(parser);
 
     if (parser.next().text !== 'enum') {
@@ -318,6 +320,7 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
         nodeName: NodeName.Enum,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         scopeRange: new TokenRange(scopeStart, parser.prev()),
+        metadata,
         entity: entity,
         identifier: identifier,
         memberList: memberList,
