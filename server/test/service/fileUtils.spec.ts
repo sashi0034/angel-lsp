@@ -24,6 +24,7 @@ describe('fileUtils', () => {
         if (tempDir && fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, {recursive: true, force: true});
         }
+
         resetGlobalSettings(undefined);
         getEditorState().workspaceFolderUris = [];
     });

@@ -12,7 +12,9 @@ import {getIncludeUriList} from '../service/fileUtils';
  */
 export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
     const tokenOnCaret = findTokenContainingPosition(rawTokens, caret);
-    if (tokenOnCaret === undefined) return undefined;
+    if (tokenOnCaret === undefined) {
+        return undefined;
+    }
 
     const uri = tokenOnCaret.token.location.path;
 
@@ -62,7 +64,9 @@ function provideFilepathCompletion(currentInput: string, uri: string): Completio
 
 function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: number): boolean {
     const stringToken = rawTokens[caretTokenIndex];
-    if (stringToken.isStringToken() === false) return false;
+    if (stringToken.isStringToken() === false) {
+        return false;
+    }
 
     if (caretTokenIndex >= 2) {
         // Check if the previous tokens are '#', 'include'.
@@ -70,7 +74,9 @@ function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: numb
             .slice(caretTokenIndex - 2, caretTokenIndex)
             .map(token => token.text)
             .join('');
-        if (prev === '#include') return true;
+        if (prev === '#include') {
+            return true;
+        }
     }
 
     // Check if the string token starts with './' or '../'.

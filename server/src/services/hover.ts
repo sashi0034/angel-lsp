@@ -8,7 +8,9 @@ import * as lsp from 'vscode-languageserver';
 
 export function provideHover(globalScope: SymbolGlobalScope, caret: TextPosition): lsp.Hover | undefined {
     const definition = provideDefinition(globalScope, caret);
-    if (definition === undefined) return undefined;
+    if (definition === undefined) {
+        return undefined;
+    }
 
     const documentComment = getDocumentCommentOfSymbol(definition);
 

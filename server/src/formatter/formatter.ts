@@ -96,7 +96,9 @@ function formatUsing(format: FormatterState, nodeUsing: NodeUsing) {
     formatTargetBy(format, 'namespace', {});
 
     for (let i = 0; i < nodeUsing.namespaceList.length; i++) {
-        if (i > 0) formatTargetBy(format, '::', {condenseSides: true});
+        if (i > 0) {
+            formatTargetBy(format, '::', {condenseSides: true});
+        }
 
         const namespaceIdentifier = nodeUsing.namespaceList[i];
         formatTargetBy(format, namespaceIdentifier.text, {});
@@ -114,11 +116,14 @@ function formatNamespace(format: FormatterState, nodeNamespace: NodeNamespace) {
 
     format.pushIndent();
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
-        if (i > 0) formatTargetBy(format, '::', {condenseSides: true});
+        if (i > 0) {
+            formatTargetBy(format, '::', {condenseSides: true});
+        }
 
         const namespaceIdentifier = nodeNamespace.namespaceList[i];
         formatTargetBy(format, namespaceIdentifier.text, {});
     }
+
     format.popIndent();
 
     formatBraceBlock(format, () => {
@@ -127,15 +132,21 @@ function formatNamespace(format: FormatterState, nodeNamespace: NodeNamespace) {
 }
 
 function formatBraceBlock(format: FormatterState, action: () => void, isIndent: boolean = true) {
-    if (formatTargetBy(format, '{', {connectTail: true}) === false) return;
+    if (formatTargetBy(format, '{', {connectTail: true}) === false) {
+        return;
+    }
 
     const startLine = format.getCursor().line;
 
-    if (isIndent) format.pushIndent();
+    if (isIndent) {
+        format.pushIndent();
+    }
 
     action();
 
-    if (isIndent) format.popIndent();
+    if (isIndent) {
+        format.popIndent();
+    }
 
     const endWrap = startLine !== format.getCursor().line || isEditedWrapAt(format.getResult(), startLine);
     formatTargetBy(format, '}', {forceWrap: endWrap});
@@ -154,7 +165,9 @@ function formatEnum(format: FormatterState, nodeEnum: NodeEnum) {
 
     formatBraceBlock(format, () => {
         for (let i = 0; i < nodeEnum.memberList.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
 
             formatTargetBy(format, nodeEnum.memberList[i].identifier.text, {});
 
@@ -221,7 +234,9 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
 
     if (isFuncHeadReturnValue(nodeFunc.head)) {
         formatType(format, nodeFunc.head.returnType);
-        if (nodeFunc.head.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+        if (nodeFunc.head.isRef) {
+            formatTargetBy(format, '&', {condenseLeft: true});
+        }
     } else if (nodeFunc.head === funcHeadDestructor) {
         formatTargetBy(format, '~', {condenseRight: true});
     }
@@ -232,7 +247,9 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
 
     formatParamList(format, nodeFunc.paramList);
 
-    if (nodeFunc.isConst) formatTargetBy(format, 'const', {});
+    if (nodeFunc.isConst) {
+        formatTargetBy(format, 'const', {});
+    }
 
     formatFuncAttr(format);
 
@@ -247,17 +264,25 @@ function formatFunc(format: FormatterState, nodeFunc: NodeFunc) {
 function formatEntityModifier(format: FormatterState) {
     for (;;) {
         const next = formatMoveToNonComment(format);
-        if (next === undefined) return;
+        if (next === undefined) {
+            return;
+        }
+
         if (next.text === 'shared' || next.text === 'abstract' || next.text === 'final' || next.text === 'external') {
             formatTargetBy(format, next.text, {});
-        } else return;
+        } else {
+            return;
+        }
     }
 }
 
 // ['private' | 'protected']
 function formatAccessModifier(format: FormatterState) {
     const next = formatMoveToNonComment(format);
-    if (next === undefined) return;
+    if (next === undefined) {
+        return;
+    }
+
     if (next.text === 'private' || next.text === 'protected') {
         formatTargetBy(format, next.text, {});
     }
@@ -298,12 +323,17 @@ function formatVar(format: FormatterState, nodeVar: NodeVar) {
     formatType(format, nodeVar.type);
 
     for (let i = 0; i < nodeVar.variables.length; i++) {
-        if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+        if (i > 0) {
+            formatTargetBy(format, ',', {condenseLeft: true});
+        }
 
         formatTargetBy(format, nodeVar.variables[i].identifier.text, {});
 
         const initializer = nodeVar.variables[i].initializer;
-        if (initializer === undefined) continue;
+        if (initializer === undefined) {
+            continue;
+        }
+
         if (initializer.nodeName === NodeName.InitList) {
             formatTargetBy(format, '=', {});
             formatInitList(format, initializer);
@@ -331,7 +361,9 @@ function formatImport(format: FormatterState, nodeImport: NodeImport) {
 
     formatType(format, nodeImport.type);
 
-    if (nodeImport.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+    if (nodeImport.isRef) {
+        formatTargetBy(format, '&', {condenseLeft: true});
+    }
 
     formatTargetBy(format, nodeImport.identifier.text, {});
 
@@ -357,7 +389,9 @@ function formatFuncDef(format: FormatterState, funcDef: NodeFuncDef) {
 
     formatType(format, funcDef.returnType);
 
-    if (funcDef.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+    if (funcDef.isRef) {
+        formatTargetBy(format, '&', {condenseLeft: true});
+    }
 
     formatTargetBy(format, funcDef.identifier.text, {});
 
@@ -375,7 +409,9 @@ function formatVirtualProp(format: FormatterState, virtualProp: NodeVirtualProp)
 
     formatType(format, virtualProp.type);
 
-    if (virtualProp.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+    if (virtualProp.isRef) {
+        formatTargetBy(format, '&', {condenseLeft: true});
+    }
 
     formatTargetBy(format, virtualProp.identifier.text, {});
 
@@ -399,7 +435,9 @@ function formatVirtualProp(format: FormatterState, virtualProp: NodeVirtualProp)
 
 // ['const'] FUNCATTR (STATBLOCK | ';')
 function formatGetterSetterStatement(format: FormatterState, isConst: boolean, statBlock: NodeStatBlock | undefined) {
-    if (isConst) formatTargetBy(format, 'const', {});
+    if (isConst) {
+        formatTargetBy(format, 'const', {});
+    }
 
     formatFuncAttr(format);
 
@@ -427,15 +465,21 @@ function formatIntfMethod(format: FormatterState, intfMethod: NodeIntfMethod) {
 
     formatType(format, intfMethod.returnType);
 
-    if (intfMethod.isRef) formatTargetBy(format, '&', {condenseLeft: true});
+    if (intfMethod.isRef) {
+        formatTargetBy(format, '&', {condenseLeft: true});
+    }
 
     formatTargetBy(format, intfMethod.identifier.text, {});
 
     formatParamList(format, intfMethod.paramList);
 
-    if (intfMethod.isConst) formatTargetBy(format, 'const', {});
+    if (intfMethod.isConst) {
+        formatTargetBy(format, 'const', {});
+    }
 
-    if (intfMethod.funcAttr) formatFuncAttr(format);
+    if (intfMethod.funcAttr) {
+        formatFuncAttr(format);
+    }
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
@@ -448,7 +492,9 @@ function formatStatBlock(format: FormatterState, statBlock: NodeStatBlock) {
 
     formatBraceBlock(format, () => {
         for (const statement of statBlock.statementList) {
-            if (isOneLine === false) format.pushWrap();
+            if (isOneLine === false) {
+                format.pushWrap();
+            }
 
             if (statement.nodeName === NodeName.Var) {
                 formatVar(format, statement);
@@ -469,7 +515,10 @@ function formatParamList(format: FormatterState, paramList: NodeParamList) {
         }
 
         for (let i = 0; i < paramList.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
+
             formatType(format, paramList[i].type);
             formatTypeMod(format);
 
@@ -489,7 +538,9 @@ function formatParamList(format: FormatterState, paramList: NodeParamList) {
 }
 
 function formatParenthesesBlock(format: FormatterState, action: () => void, condenseLeft: boolean = true) {
-    if (formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true}) === false) return;
+    if (formatTargetBy(format, '(', {condenseLeft: condenseLeft, condenseRight: true}) === false) {
+        return;
+    }
 
     format.pushIndent();
     action();
@@ -501,12 +552,18 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
 // BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 function formatTypeMod(format: FormatterState) {
     const next = formatMoveToNonComment(format);
-    if (next === undefined) return;
+    if (next === undefined) {
+        return;
+    }
+
     if (next.text === '&') {
         formatTargetBy(format, '&', {condenseLeft: true});
 
         const next2 = formatMoveToNonComment(format);
-        if (next2 === undefined) return;
+        if (next2 === undefined) {
+            return;
+        }
+
         if (next2.text === 'in' || next2.text === 'out' || next2.text === 'inout') {
             formatTargetBy(format, next.text, {});
         }
@@ -517,9 +574,13 @@ function formatTypeMod(format: FormatterState) {
 function formatType(format: FormatterState, nodeType: NodeType) {
     formatMoveUntilNodeStart(format, nodeType);
 
-    if (nodeType.isConst) formatTargetBy(format, 'const', {});
+    if (nodeType.isConst) {
+        formatTargetBy(format, 'const', {});
+    }
 
-    if (nodeType.scope !== undefined) formatScope(format, nodeType.scope);
+    if (nodeType.scope !== undefined) {
+        formatScope(format, nodeType.scope);
+    }
 
     formatDataType(format, nodeType.dataType);
 
@@ -540,18 +601,26 @@ function formatType(format: FormatterState, nodeType: NodeType) {
 
 // ['<' TYPE {',' TYPE} '>']
 function formatTypeTemplates(format: FormatterState, templates: NodeType[]) {
-    if (templates.length === 0) return;
+    if (templates.length === 0) {
+        return;
+    }
 
     formatChevronsBlock(format, () => {
         for (let i = 0; i < templates.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
+
             formatType(format, templates[i]);
         }
     });
 }
 
 function formatChevronsBlock(format: FormatterState, action: () => void) {
-    if (formatTargetBy(format, '<', {condenseSides: true}) === false) return;
+    if (formatTargetBy(format, '<', {condenseSides: true}) === false) {
+        return;
+    }
+
     format.pushIndent();
 
     action();
@@ -566,7 +635,9 @@ function formatInitList(format: FormatterState, initList: NodeInitList) {
 
     formatBraceBlock(format, () => {
         for (let i = 0; i < initList.initList.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
 
             const item = initList.initList[i];
             if (item.nodeName === NodeName.InitList) {
@@ -582,7 +653,9 @@ function formatInitList(format: FormatterState, initList: NodeInitList) {
 function formatScope(format: FormatterState, scope: NodeScope) {
     formatMoveUntilNodeStart(format, scope);
 
-    if (scope.isGlobal) formatTargetBy(format, '::', {condenseSides: true});
+    if (scope.isGlobal) {
+        formatTargetBy(format, '::', {condenseSides: true});
+    }
 
     for (let i = 0; i < scope.scopeList.length; i++) {
         const scopeIdentifier = scope.scopeList[i];
@@ -604,17 +677,24 @@ function formatDataType(format: FormatterState, dataType: NodeDataType) {
 function formatFuncAttr(format: FormatterState) {
     for (;;) {
         const next = formatMoveToNonComment(format);
-        if (next === undefined) return;
+        if (next === undefined) {
+            return;
+        }
+
         if (next.text === 'override' || next.text === 'final' || next.text === 'explicit' || next.text === 'property') {
             formatTargetBy(format, next.text, {});
-        } else return;
+        } else {
+            return;
+        }
     }
 }
 
 // BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function formatStatement(format: FormatterState, statement: NodeStatement, canIndent: boolean = false) {
     const isIndented = canIndent && statement.nodeName !== NodeName.StatBlock;
-    if (isIndented) format.pushIndent();
+    if (isIndented) {
+        format.pushIndent();
+    }
 
     switch (statement.nodeName) {
         case NodeName.If:
@@ -652,7 +732,9 @@ function formatStatement(format: FormatterState, statement: NodeStatement, canIn
             break;
     }
 
-    if (isIndented) format.popIndent();
+    if (isIndented) {
+        format.popIndent();
+    }
 }
 
 // BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
@@ -700,7 +782,9 @@ function formatFor(format: FormatterState, nodeFor: NodeFor) {
                 formatExprStat(format, nodeFor.initial);
             }
 
-            if (nodeFor.condition !== undefined) formatExprStat(format, nodeFor.condition);
+            if (nodeFor.condition !== undefined) {
+                formatExprStat(format, nodeFor.condition);
+            }
 
             for (const increment of nodeFor.incrementList) {
                 formatAssign(format, increment);
@@ -709,7 +793,9 @@ function formatFor(format: FormatterState, nodeFor: NodeFor) {
         false
     );
 
-    if (nodeFor.statement !== undefined) formatStatement(format, nodeFor.statement, true);
+    if (nodeFor.statement !== undefined) {
+        formatStatement(format, nodeFor.statement, true);
+    }
 }
 
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -726,7 +812,9 @@ function formatWhile(format: FormatterState, nodeWhile: NodeWhile) {
         false
     );
 
-    if (nodeWhile.statement !== undefined) formatStatement(format, nodeWhile.statement, true);
+    if (nodeWhile.statement !== undefined) {
+        formatStatement(format, nodeWhile.statement, true);
+    }
 }
 
 // BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
@@ -735,14 +823,18 @@ function formatDoWhile(format: FormatterState, doWhile: NodeDoWhile) {
 
     formatTargetBy(format, 'do', {});
 
-    if (doWhile.statement !== undefined) formatStatement(format, doWhile.statement, true);
+    if (doWhile.statement !== undefined) {
+        formatStatement(format, doWhile.statement, true);
+    }
 
     formatTargetBy(format, 'while', {connectTail: true});
 
     formatParenthesesBlock(
         format,
         () => {
-            if (doWhile.assign !== undefined) formatAssign(format, doWhile.assign);
+            if (doWhile.assign !== undefined) {
+                formatAssign(format, doWhile.assign);
+            }
         },
         false
     );
@@ -785,7 +877,9 @@ function formatContinue(format: FormatterState, nodeContinue: NodeContinue) {
 function formatExprStat(format: FormatterState, exprStat: NodeExprStat) {
     formatMoveUntilNodeStart(format, exprStat);
 
-    if (exprStat.assign !== undefined) formatAssign(format, exprStat.assign);
+    if (exprStat.assign !== undefined) {
+        formatAssign(format, exprStat.assign);
+    }
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
@@ -800,7 +894,9 @@ function formatTry(format: FormatterState, nodeTry: NodeTry) {
 
     formatTargetBy(format, 'catch', {connectTail: true});
 
-    if (nodeTry.catchBlock !== undefined) formatStatBlock(format, nodeTry.catchBlock);
+    if (nodeTry.catchBlock !== undefined) {
+        formatStatBlock(format, nodeTry.catchBlock);
+    }
 }
 
 // BNF: RETURN        ::= 'return' [ASSIGN] ';'
@@ -837,6 +933,7 @@ function formatCase(format: FormatterState, nodeCase: NodeCase) {
     for (const statement of nodeCase.statementList) {
         formatStatement(format, statement, false);
     }
+
     format.popIndent();
 }
 
@@ -939,7 +1036,9 @@ function formatExprPostOp(format: FormatterState, postOp: NodeExprPostOp) {
     } else if (postOp.postOp === 2) {
         formatBracketsBlock(format, () => {
             for (let i = 0; i < postOp.indexingList.length; i++) {
-                if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+                if (i > 0) {
+                    formatTargetBy(format, ',', {condenseLeft: true});
+                }
 
                 const index = postOp.indexingList[i];
                 if (index.identifier !== undefined) {
@@ -960,7 +1059,9 @@ function formatExprPostOp(format: FormatterState, postOp: NodeExprPostOp) {
 }
 
 function formatBracketsBlock(format: FormatterState, action: () => void) {
-    if (formatTargetBy(format, '[', {condenseSides: true}) === false) return;
+    if (formatTargetBy(format, '[', {condenseSides: true}) === false) {
+        return;
+    }
 
     format.pushIndent();
     action();
@@ -992,10 +1093,15 @@ function formatLambda(format: FormatterState, nodeLambda: NodeLambda) {
 
     formatParenthesesBlock(format, () => {
         for (let i = 0; i < nodeLambda.paramList.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
 
             const param = nodeLambda.paramList[i];
-            if (param.type !== undefined) formatType(format, param.type);
+            if (param.type !== undefined) {
+                formatType(format, param.type);
+            }
+
             formatTypeMod(format);
 
             if (param.identifier !== undefined) {
@@ -1004,7 +1110,9 @@ function formatLambda(format: FormatterState, nodeLambda: NodeLambda) {
         }
     });
 
-    if (nodeLambda.statBlock !== undefined) formatStatBlock(format, nodeLambda.statBlock);
+    if (nodeLambda.statBlock !== undefined) {
+        formatStatBlock(format, nodeLambda.statBlock);
+    }
 }
 
 // BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
@@ -1045,7 +1153,9 @@ function formatArgList(format: FormatterState, nodeArgList: NodeArgList) {
 
     formatParenthesesBlock(format, () => {
         for (let i = 0; i < nodeArgList.argList.length; i++) {
-            if (i > 0) formatTargetBy(format, ',', {condenseLeft: true});
+            if (i > 0) {
+                formatTargetBy(format, ',', {condenseLeft: true});
+            }
 
             const arg = nodeArgList.argList[i];
             if (arg.identifier !== undefined) {

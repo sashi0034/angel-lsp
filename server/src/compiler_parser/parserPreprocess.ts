@@ -26,7 +26,9 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
     // Concatenate continuous strings.
     for (let i = actualTokens.length - 1; i >= 1; i--) {
         const canCombine = actualTokens[i - 1].isStringToken() && actualTokens[i].isStringToken(); // "string" --> "string"
-        if (canCombine === false) continue;
+        if (canCombine === false) {
+            continue;
+        }
 
         // Create a new token with the combined elements.
         actualTokens[i - 1] = createCombinedStringToken(
@@ -53,7 +55,10 @@ function preprocessDirectives(tokens: TokenObject[]): TokenString[] {
 
     // Handle preprocessor directives starting with '#'
     for (let i = 0; i < tokens.length; i++) {
-        if (tokens[i].text !== '#') continue;
+        if (tokens[i].text !== '#') {
+            continue;
+        }
+
         const directiveTokens = sliceTokenListBySameLine(tokens, i);
 
         handleDirectiveTokens(directiveTokens, includeFiles);
@@ -88,7 +93,9 @@ function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: Tok
 
         includeFiles.push(fileName);
     } else {
-        if (directiveTokens[1] != null) directiveTokens[1].setHighlight(HighlightForToken.Label);
+        if (directiveTokens[1] != null) {
+            directiveTokens[1].setHighlight(HighlightForToken.Label);
+        }
     }
 }
 

@@ -100,7 +100,9 @@ export class AnalysisResolver {
     // Pop and analyze the file in the queue
     private popAndAnalyze() {
         const element = this._analysisQueue.frontPop();
-        if (element === undefined) return;
+        if (element === undefined) {
+            return;
+        }
 
         this.analyzeFile(element.record);
 
@@ -131,7 +133,9 @@ export class AnalysisResolver {
         } else if (this._analysisQueue.isInQueue(uri)) {
             // If the file is in the reanalysis queue, move it to the front of the direct queue and reanalyze it.
             const frontRecord = this._inspectRecords.get(uri);
-            if (frontRecord === undefined) return;
+            if (frontRecord === undefined) {
+                return;
+            }
 
             this._analysisQueue.frontPushDirect({record: frontRecord, reanalyzeDependents: false});
 
@@ -191,7 +195,9 @@ export class AnalysisResolver {
         targetUri: string,
         reanalyzeDependents: boolean
     ) {
-        if (resolvedSet.has(targetUri)) return;
+        if (resolvedSet.has(targetUri)) {
+            return;
+        }
 
         const dependentFiles = Array.from(this._inspectRecords.values()) // Get all records
             .filter(
@@ -255,7 +261,10 @@ export class AnalysisResolver {
     }
 
     private resolveIncludeAbsolutePathsInternal(includeSet: Set<string>, record: PartialInspectRecord) {
-        if (includeSet.has(record.uri)) return;
+        if (includeSet.has(record.uri)) {
+            return;
+        }
+
         includeSet.add(record.uri);
 
         // Add include paths from include directives
@@ -293,7 +302,9 @@ export class AnalysisResolver {
 
             if (targetUri !== predefinedUri) {
                 const content = readFileContent(predefinedUri);
-                if (content === undefined) continue;
+                if (content === undefined) {
+                    continue;
+                }
 
                 // If the file is found, inspect it
                 this._inspectRequest(predefinedUri, content);
@@ -323,7 +334,9 @@ export class AnalysisResolver {
                 this.inspectUnderDirectory(`${fileUri}/`);
             } else if (entry.isFile() && isAngelScriptFile(fileUri)) {
                 const content = readFileContent(fileUri);
-                if (content !== undefined) this._inspectRequest(fileUri, content);
+                if (content !== undefined) {
+                    this._inspectRequest(fileUri, content);
+                }
             }
         }
     }

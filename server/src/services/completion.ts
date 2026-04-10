@@ -40,7 +40,9 @@ function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextP
     // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
     // e.g., Methods of the instance object.
     const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
-    if (prioritizedCompletion !== undefined) return prioritizedCompletion;
+    if (prioritizedCompletion !== undefined) {
+        return prioritizedCompletion;
+    }
 
     // Return the completion candidates for the symbols in the scope itself and its parent scope.
     // e.g., Defined classes or functions in the scope.
@@ -60,7 +62,9 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
     for (const [symbolName, symbol] of scope.symbolTable) {
         if (includeInstanceMember === false) {
             // Skip instance members
-            if (isSymbolInstanceMember(symbol)) continue;
+            if (isSymbolInstanceMember(symbol)) {
+                continue;
+            }
 
             if (symbol.isVariable() && symbol.identifierToken.isVirtual() && symbol.identifierText === 'this') {
                 // FIXME: Probably something is wrong
@@ -73,7 +77,9 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
 
     // Completion of namespace
     for (const [childName, childScope] of scope.childScopeTable) {
-        if (childScope.isPureNamespaceScope() === false) continue;
+        if (childScope.isPureNamespaceScope() === false) {
+            continue;
+        }
 
         items.push({
             item: {
@@ -87,12 +93,16 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
 }
 
 function hoistEnumParentScope(globalScope: SymbolGlobalScope, filter: ScopePath) {
-    if (getGlobalSettings().hoistEnumParentScope === false) return [];
+    if (getGlobalSettings().hoistEnumParentScope === false) {
+        return [];
+    }
 
     const items: CompletionItemWrapper[] = [];
 
     for (const enumScope of globalScope.getContext().enumScopeList) {
-        if (filter.every((key, i) => key === enumScope.scopePath[i]) === false) continue;
+        if (filter.every((key, i) => key === enumScope.scopePath[i]) === false) {
+            continue;
+        }
 
         for (const [key, symbol] of enumScope.symbolTable) {
             items.push(makeCompletionItem(key, symbol));
@@ -111,8 +121,13 @@ function getCompletionMembersInScope(
 
     // Completion of symbols in the scope
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
-        if (isSymbolInstanceMember(symbol) === false) continue;
-        if (canAccessInstanceMember(caretScope, symbol) === false) continue;
+        if (isSymbolInstanceMember(symbol) === false) {
+            continue;
+        }
+
+        if (canAccessInstanceMember(caretScope, symbol) === false) {
+            continue;
+        }
 
         items.push(makeCompletionItem(symbolName, symbol));
     }
@@ -158,13 +173,17 @@ function autocompleteInstanceMember(
     completion: AutocompleteInstanceMemberInfo
 ) {
     // Find the scope to which the type to be completed belongs.
-    if (completion.targetType.membersScopePath === undefined) return [];
+    if (completion.targetType.membersScopePath === undefined) {
+        return [];
+    }
 
     const typeScope = globalScope
         .getGlobalScope()
         .resolveScope(completion.targetType.scopePath)
         ?.lookupScope(completion.targetType.identifierToken.text);
-    if (typeScope === undefined) return [];
+    if (typeScope === undefined) {
+        return [];
+    }
 
     // Return the completion candidates in the scope.
     return getCompletionMembersInScope(globalScope, caretScope, typeScope);

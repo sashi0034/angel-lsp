@@ -6,7 +6,10 @@ import {logger} from '../core/logger';
 import {getGlobalSettings} from '../core/settings';
 
 function isNullOrWhitespace(char: string | undefined): boolean {
-    if (char === undefined) return false;
+    if (char === undefined) {
+        return false;
+    }
+
     return /\s/.test(char);
 }
 
@@ -15,7 +18,10 @@ function walkBackUntilWhitespace(format: FormatterState, cursor: Position): Posi
     let character = cursor.character;
 
     while (character > 0) {
-        if (isNullOrWhitespace(format.getText(line, character - 1)) === false) break;
+        if (isNullOrWhitespace(format.getText(line, character - 1)) === false) {
+            break;
+        }
+
         character--;
     }
 
@@ -48,7 +54,9 @@ function canInsertEditSpace(backToken: TokenObject | undefined, frontToken: Toke
     }
 
     // ディレクティブの後ろにスペースを入れない
-    if (backToken?.text === '#') return false;
+    if (backToken?.text === '#') {
+        return false;
+    }
 
     return true;
 }
@@ -120,6 +128,7 @@ export function formatMoveToNonComment(format: FormatterState): TokenObject | un
 
         return next;
     }
+
     return undefined;
 }
 
@@ -178,7 +187,9 @@ function executeFormatTargetWith(
     const isCondenseLeft: boolean =
         format.popCondense() || option.condenseSides === true || option.condenseLeft === true;
     const isCondenseRight: boolean = option.condenseSides === true || option.condenseRight === true;
-    if (isCondenseRight) format.pushCondense();
+    if (isCondenseRight) {
+        format.pushCondense();
+    }
 
     const forceWrap: boolean = format.popWrap() || option.forceWrap === true;
 

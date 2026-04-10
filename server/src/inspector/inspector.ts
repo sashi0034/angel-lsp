@@ -77,7 +77,10 @@ export class Inspector {
      */
     public getRecord(uri: string): Readonly<InspectRecord> {
         const result = this._inspectRecords.get(uri);
-        if (result === undefined) return createEmptyRecord(uri, '');
+        if (result === undefined) {
+            return createEmptyRecord(uri, '');
+        }
+
         return result;
     }
 
@@ -178,7 +181,9 @@ function shouldReanalyzeDependents(
     globalScope: SymbolGlobalScope,
     change?: lsp.TextDocumentContentChangeEvent[]
 ): boolean {
-    if (change === undefined) return true;
+    if (change === undefined) {
+        return true;
+    }
 
     for (const changeEvent of change) {
         if (isChangeInAnonymousScope(globalScope, changeEvent) === false) {

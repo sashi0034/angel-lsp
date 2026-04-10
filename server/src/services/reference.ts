@@ -9,7 +9,9 @@ export function provideReferences(
     caret: TextPosition
 ): TokenObject[] {
     const targetDefinition = provideDefinitionAsToken(globalScope, allGlobalScopes, caret);
-    if (targetDefinition === undefined) return [];
+    if (targetDefinition === undefined) {
+        return [];
+    }
 
     const result = allGlobalScopes.flatMap(scope => collectSymbolReferencesInScope(scope, targetDefinition));
 
@@ -60,7 +62,9 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
 
     // Recursively search for namespace references in the child scopes
     for (const [key, child] of scope.childScopeTable) {
-        if (child.isAnonymousScope()) continue;
+        if (child.isAnonymousScope()) {
+            continue;
+        }
 
         references.push(...collectNamespaceReferenceInScope(child, toToken));
     }

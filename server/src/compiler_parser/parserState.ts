@@ -69,7 +69,10 @@ export class ParserState {
     }
 
     public next(step: number = 0): TokenObject {
-        if (this._cursorIndex + step >= this._tokens.length) return this._eofToken;
+        if (this._cursorIndex + step >= this._tokens.length) {
+            return this._eofToken;
+        }
+
         return this._tokens[this._cursorIndex + step];
     }
 
@@ -78,7 +81,10 @@ export class ParserState {
     }
 
     public prev(): TokenObject {
-        if (this._cursorIndex <= 0) return this._sofToken;
+        if (this._cursorIndex <= 0) {
+            return this._sofToken;
+        }
+
         return this._tokens[this._cursorIndex - 1];
     }
 
@@ -91,7 +97,9 @@ export class ParserState {
      */
     public commit(highlightForToken: HighlightForToken) {
         const next = this.next();
-        if (next.isVirtual() === false) next.setHighlight(highlightForToken);
+        if (next.isVirtual() === false) {
+            next.setHighlight(highlightForToken);
+        }
 
         this.step();
     }
@@ -116,7 +124,9 @@ export class ParserState {
     }
 
     public error(message: string) {
-        if (this._lastTokenAtError === this.next()) return;
+        if (this._lastTokenAtError === this.next()) {
+            return;
+        }
 
         diagnostic.error(this.next().location, message);
         this._lastTokenAtError = this.next();
@@ -135,11 +145,12 @@ export class ParserState {
         const data = this._caches[rangeStart];
 
         let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
-        if (data !== undefined && data.kind === key)
+        if (data !== undefined && data.kind === key) {
             restore = () => {
                 this._cursorIndex = data.rangeEnd;
                 return data.data as ParserCacheTargets<T> | undefined;
             };
+        }
 
         const store = (cache: ParserCacheTargets<T> | undefined) => {
             this._caches[rangeStart] = {

@@ -28,7 +28,10 @@ function countLineBreaksAndLength(str: string) {
         if (char === '\r') {
             // if (lineBreaks === 0) firstLineLength = currentLineLength;
 
-            if (str[i + 1] === '\n') i++; // Handle CRLF as one line break
+            if (str[i + 1] === '\n') {
+                i++;
+            } // Handle CRLF as one line break
+
             lineBreaks++;
             currentLineLength = 0;
         } else if (char === '\n') {

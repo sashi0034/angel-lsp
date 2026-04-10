@@ -48,13 +48,18 @@ export class TokenizerState {
     }
 
     public stepNext() {
-        if (this.isEnd()) return;
+        if (this.isEnd()) {
+            return;
+        }
 
         if (this.isNextWrap()) {
             this._cursorPosition.line_++;
             this._cursorPosition.character_ = 0;
-            if (this.isNext('\r\n')) this._cursorOffset += 2;
-            else this._cursorOffset += 1;
+            if (this.isNext('\r\n')) {
+                this._cursorOffset += 2;
+            } else {
+                this._cursorOffset += 1;
+            }
         } else {
             this._cursorPosition.character_++;
             this._cursorOffset += 1;
@@ -102,8 +107,13 @@ export class UnknownWordBuffer {
      * Flushes the buffer and reports an error if the buffer is not empty
      */
     public flush() {
-        if (this._bufferText.length === 0) return;
-        if (this._bufferLocation === null) return;
+        if (this._bufferText.length === 0) {
+            return;
+        }
+
+        if (this._bufferLocation === null) {
+            return;
+        }
 
         this._bufferLocation.end.character_++;
         diagnostic.error(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);

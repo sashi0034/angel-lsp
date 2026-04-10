@@ -187,18 +187,27 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
 }
 
 function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: SymbolFunction) {
-    if (callee.functionScopePath === undefined) return;
+    if (callee.functionScopePath === undefined) {
+        return;
+    }
+
     const functionScope = resolveActiveScope(callee.functionScopePath);
 
     for (const args of callerArgs) {
-        if (args.name === undefined) continue;
+        if (args.name === undefined) {
+            continue;
+        }
 
         const name = args.name.text;
         const paramId = callee.linkedNode.paramList.findIndex(p => p.identifier?.text === name);
-        if (paramId === -1) continue;
+        if (paramId === -1) {
+            continue;
+        }
 
         const toSymbol = functionScope.lookupSymbol(name);
-        if (toSymbol === undefined || toSymbol.isVariable() === false) continue;
+        if (toSymbol === undefined || toSymbol.isVariable() === false) {
+            continue;
+        }
 
         // Add a reference to the named argument in the callee function scope.
         getActiveGlobalScope().pushReference({toSymbol: toSymbol, fromToken: args.name});
@@ -208,7 +217,9 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Sym
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
     const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
 
-    if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) return undefined;
+    if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) {
+        return undefined;
+    }
 
     // If the callee is a delegate, check if it can be cast to a delegate.
     const delegateType = ResolvedType.create({

@@ -18,7 +18,9 @@ export function provideDefinitionFallback(
     const tokenOnCaret = findTokenContainingPosition(rawTokens, caret);
     if (tokenOnCaret?.token.isStringToken()) {
         const fileDefinition = provideFileDefinition(uri, tokenOnCaret.token);
-        if (fileDefinition !== undefined) return fileDefinition;
+        if (fileDefinition !== undefined) {
+            return fileDefinition;
+        }
     }
 
     return undefined;
@@ -28,7 +30,9 @@ export function provideDefinitionFallback(
 
 function provideFileDefinition(uri: string, token: TokenString): lsp.Definition | undefined {
     const definitionUri = resolveIncludeUri(uri, token.getStringContent());
-    if (isFileUri(definitionUri) === false) return undefined;
+    if (isFileUri(definitionUri) === false) {
+        return undefined;
+    }
 
     return {
         uri: definitionUri,

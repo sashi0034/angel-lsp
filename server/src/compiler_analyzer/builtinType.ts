@@ -19,6 +19,7 @@ const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
     for (const name of numberTypeSet) {
         map.set(name, createBuiltinType(TokenReserved.createVirtual(name)));
     }
+
     return map;
 })();
 
@@ -40,7 +41,10 @@ export const resolvedBuiltinDouble: ResolvedType = new ResolvedType(builtinDoubl
 
 function assignBuiltinNumberType(key: string): SymbolType {
     const type = builtinNumberTypeMap.get(key);
-    if (type !== undefined) return type;
+    if (type !== undefined) {
+        return type;
+    }
+
     assert(false);
 }
 
@@ -55,14 +59,22 @@ export const builtinAnyType: SymbolType = createBuiltinType(TokenReserved.create
 export const builtinAutoType: SymbolType = createBuiltinType(TokenReserved.createVirtual('auto'));
 
 export function tryGetBuiltinType(token: TokenObject): SymbolType | undefined {
-    if (token.kind !== TokenKind.Reserved) return undefined;
+    if (token.kind !== TokenKind.Reserved) {
+        return undefined;
+    }
 
     const identifier = token.text;
-    if (identifier === 'bool') return builtinBoolType;
-    else if (identifier === 'void') return builtinVoidType;
-    else if (identifier === '?') return builtinAnyType;
-    else if (identifier === 'auto') return builtinAutoType;
-    else if (token.isReservedToken() && token.property.isNumber) return assignBuiltinNumberType(identifier);
+    if (identifier === 'bool') {
+        return builtinBoolType;
+    } else if (identifier === 'void') {
+        return builtinVoidType;
+    } else if (identifier === '?') {
+        return builtinAnyType;
+    } else if (identifier === 'auto') {
+        return builtinAutoType;
+    } else if (token.isReservedToken() && token.property.isNumber) {
+        return assignBuiltinNumberType(identifier);
+    }
 
     return undefined;
 }

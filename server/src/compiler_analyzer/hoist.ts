@@ -90,7 +90,9 @@ function hoistNamespace(
     analyzeQueue: AnalyzeQueue,
     hoistQueue: HoistQueue
 ) {
-    if (nodeNamespace.namespaceList.length === 0) return;
+    if (nodeNamespace.namespaceList.length === 0) {
+        return;
+    }
 
     let scopeIterator = parentScope;
     for (let i = 0; i < nodeNamespace.namespaceList.length; i++) {
@@ -113,7 +115,9 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
         membersScopePath: undefined
     });
 
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
     const scope = parentScope.insertScopeAndCheck(nodeEnum.identifier, nodeEnum);
     symbol.assignMembersScopePath(scope.scopePath);
@@ -162,7 +166,9 @@ function hoistClass(
         membersScopePath: undefined,
         isMixin: isMixin
     });
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(identifierToken, nodeClass);
     symbol.assignMembersScopePath(scope.scopePath);
@@ -178,7 +184,9 @@ function hoistClass(
 
     if (!isSpecialization) {
         const templateTypes = hoistClassTemplateTypes(scope, nodeClass.typeTemplates);
-        if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
+        if (templateTypes.length > 0) {
+            symbol.assignTemplateTypes(templateTypes);
+        }
     }
 
     symbol.assignBaseList(hoistBaseList(scope, nodeClass));
@@ -187,7 +195,9 @@ function hoistClass(
         hoistClassMembers(scope, nodeClass, analyzeQueue, hoistQueue);
 
         hoistQueue.push(() => {
-            if (symbol.baseList === undefined) return;
+            if (symbol.baseList === undefined) {
+                return;
+            }
 
             // Copy the members of the base class
             copyBaseMembers(scope, symbol.baseList);
@@ -240,6 +250,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
 
         templateTypes.push(getIdentifierInNodeType(type));
     }
+
     return templateTypes;
 }
 
@@ -247,7 +258,9 @@ function hoistBaseList(
     scope: SymbolScope,
     nodeClass: NodeClass | NodeInterface
 ): (ResolvedType | undefined)[] | undefined {
-    if (nodeClass.baseList.length === 0) return undefined;
+    if (nodeClass.baseList.length === 0) {
+        return undefined;
+    }
 
     const baseList: (ResolvedType | undefined)[] = [];
     for (const basePart of nodeClass.baseList) {
@@ -278,23 +291,33 @@ function hoistBaseList(
             });
         }
     }
+
     return baseList;
 }
 
 function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined)[], outputError = true) {
     // Iterate over each base class
     for (const baseType of baseList) {
-        if (baseType === undefined) continue;
-        if (baseType.typeOrFunc.isFunction()) continue;
+        if (baseType === undefined) {
+            continue;
+        }
+
+        if (baseType.typeOrFunc.isFunction()) {
+            continue;
+        }
 
         const baseScope = tryResolveActiveScope(baseType.typeOrFunc.membersScopePath);
-        if (baseScope === undefined) continue;
+        if (baseScope === undefined) {
+            continue;
+        }
 
         const isMixin = baseType.typeOrFunc.isMixin;
 
         // Insert each base class member if possible
         for (const [key, symbolHolder] of baseScope.symbolTable) {
-            if (key === 'this') continue;
+            if (key === 'this') {
+                continue;
+            }
 
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.isFunction() || symbol.isVariable()) {
@@ -304,7 +327,9 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
                 }
 
                 const alreadyExists = scope.insertSymbol(symbol);
-                if (alreadyExists === undefined) continue;
+                if (alreadyExists === undefined) {
+                    continue;
+                }
 
                 const isVirtualProperty = symbol.isVariable() && symbol.isVirtualProperty;
                 if (outputError && isVirtualProperty === false) {
@@ -341,7 +366,9 @@ function hoistClassMembers(
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
     const builtInType = tryGetBuiltinType(typeDef.type);
-    if (builtInType === undefined) return;
+    if (builtInType === undefined) {
+        return;
+    }
 
     const symbol: SymbolType = SymbolType.create({
         identifierToken: typeDef.identifier,
@@ -360,7 +387,9 @@ function hoistFunc(
     hoistQueue: HoistQueue,
     isInstanceMember: boolean
 ) {
-    if (nodeFunc.head === funcHeadDestructor) return;
+    if (nodeFunc.head === funcHeadDestructor) {
+        return;
+    }
 
     // Function holder scope (with no node)
     // |-- Anonymous scope of one of the overloads (with NodeFunc)
@@ -384,9 +413,13 @@ function hoistFunc(
     });
 
     const templateTypes = hoistClassTemplateTypes(functionScope, nodeFunc.typeTemplates);
-    if (templateTypes.length > 0) symbol.assignTemplateTypes(templateTypes);
+    if (templateTypes.length > 0) {
+        symbol.assignTemplateTypes(templateTypes);
+    }
 
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
     hoistQueue.push(() => {
         const returnType = isFuncHeadReturnValue(nodeFunc.head)
@@ -463,17 +496,23 @@ function hoistInterface(
         linkedNode: nodeInterface,
         membersScopePath: undefined
     });
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
     const scope: SymbolScope = parentScope.insertScopeAndCheck(nodeInterface.identifier, nodeInterface);
     symbol.assignMembersScopePath(scope.scopePath);
 
     const baseList = hoistBaseList(scope, nodeInterface);
-    if (baseList !== undefined) symbol.assignBaseList(baseList);
+    if (baseList !== undefined) {
+        symbol.assignBaseList(baseList);
+    }
 
     hoistQueue.push(() => {
         hoistInterfaceMembers(scope, nodeInterface, analyzeQueue, hoistQueue);
-        if (baseList !== undefined) copyBaseMembers(scope, baseList);
+        if (baseList !== undefined) {
+            copyBaseMembers(scope, baseList);
+        }
     });
 
     pushScopeRegionInfo(scope, nodeInterface.nodeRange);
@@ -512,7 +551,10 @@ function hoistVar(
         analyzeQueue.push(() => {
             for (const declaredVar of nodeVar.variables) {
                 const initializer = declaredVar.initializer;
-                if (initializer === undefined) continue;
+                if (initializer === undefined) {
+                    continue;
+                }
+
                 analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
             }
         });
@@ -538,7 +580,9 @@ function hoistFuncDef(
         isInstanceMember: false,
         accessRestriction: undefined
     });
-    if (parentScope.insertSymbolAndCheck(symbol) === false) return;
+    if (parentScope.insertSymbolAndCheck(symbol) === false) {
+        return;
+    }
 
     hoistQueue.push(() => {
         symbol.assignReturnType(analyzeType(parentScope, funcDef.returnType));
@@ -666,6 +710,7 @@ function hoistParamList(
             })
         );
     }
+
     return resolvedTypes;
 }
 
@@ -798,7 +843,9 @@ export function hoistAfterParsed(ast: NodeScript, globalScope: SymbolGlobalScope
     hoistScript(globalScope, ast, analyzeQueue, hoistQueue);
     while (hoistQueue.length > 0) {
         const next = hoistQueue.shift();
-        if (next !== undefined) next();
+        if (next !== undefined) {
+            next();
+        }
     }
 
     return {globalScope, analyzeQueue};

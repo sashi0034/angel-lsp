@@ -62,7 +62,10 @@ function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) 
     const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
     for (;;) {
-        if (tokenizer.isEnd() || tokenizer.isNextWrap()) break;
+        if (tokenizer.isEnd() || tokenizer.isNextWrap()) {
+            break;
+        }
+
         tokenizer.stepNext();
     }
 
@@ -73,11 +76,15 @@ function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation)
     const start = tokenizer.getCursorOffset();
     tokenizer.stepFor(2);
     for (;;) {
-        if (tokenizer.isEnd()) break;
+        if (tokenizer.isEnd()) {
+            break;
+        }
+
         if (tokenizer.isNext('*/')) {
             tokenizer.stepFor(2);
             break;
         }
+
         tokenizer.stepNext();
     }
 
@@ -90,7 +97,9 @@ function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumb
 
     const numberLiteral = consumeNumber(tokenizer);
 
-    if (start === tokenizer.getCursorOffset()) return undefined;
+    if (start === tokenizer.getCursorOffset()) {
+        return undefined;
+    }
 
     return new TokenNumber(
         tokenizer.substrToCursor(start),
@@ -101,36 +110,56 @@ function tryNumber(tokenizer: TokenizerState, location: TextLocation): TokenNumb
 
 function consumeNumber(tokenizer: TokenizerState) {
     // Fails if the next token is not a number or a dot.
-    if (/^[0-9.]/.test(tokenizer.next()) === false) return NumberLiteral.Integer;
+    if (/^[0-9.]/.test(tokenizer.next()) === false) {
+        return NumberLiteral.Integer;
+    }
 
     // Fails if the token after a dot is another dot
-    if (tokenizer.next() === '.' && tokenizer.next(1) === '.') return NumberLiteral.Integer;
+    if (tokenizer.next() === '.' && tokenizer.next(1) === '.') {
+        return NumberLiteral.Integer;
+    }
 
     // Fails if the next tokens are '.f' or '.F'
-    if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) return NumberLiteral.Integer;
+    if (tokenizer.next(0) === '.' && /^[fF]$/.test(tokenizer.next(1))) {
+        return NumberLiteral.Integer;
+    }
 
     if (tokenizer.next(0) === '0') {
         if (/^[bB]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isBinChara(tokenizer)) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isBinChara(tokenizer)) {
+                tokenizer.stepNext();
+            }
+
             return NumberLiteral.Integer;
         } else if (/^[oO]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isOctChara(tokenizer)) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isOctChara(tokenizer)) {
+                tokenizer.stepNext();
+            }
+
             return NumberLiteral.Integer;
         } else if (/^[dD]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isDigit(tokenizer)) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isDigit(tokenizer)) {
+                tokenizer.stepNext();
+            }
+
             return NumberLiteral.Integer;
         } else if (/^[xX]$/.test(tokenizer.next(1))) {
             tokenizer.stepFor(2);
-            while (tokenizer.isEnd() === false && isHexChar(tokenizer)) tokenizer.stepNext();
+            while (tokenizer.isEnd() === false && isHexChar(tokenizer)) {
+                tokenizer.stepNext();
+            }
+
             return NumberLiteral.Integer;
         }
     }
 
     // Read until it is 0-9.
-    while (tokenizer.isEnd() === false && isDigit(tokenizer)) tokenizer.stepNext();
+    while (tokenizer.isEnd() === false && isDigit(tokenizer)) {
+        tokenizer.stepNext();
+    }
 
     let numberLiteral = NumberLiteral.Integer;
 
@@ -138,7 +167,10 @@ function consumeNumber(tokenizer: TokenizerState) {
     let f = 0;
     if (tokenizer.next() === '.') {
         f++;
-        while (isDigit(tokenizer, f)) f++;
+        while (isDigit(tokenizer, f)) {
+            f++;
+        }
+
         numberLiteral = NumberLiteral.Double;
     }
 
@@ -146,7 +178,10 @@ function consumeNumber(tokenizer: TokenizerState) {
     // e.g. 1e+3, 1E-3
     if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2)) {
         f += 3;
-        while (isDigit(tokenizer, f)) f++;
+        while (isDigit(tokenizer, f)) {
+            f++;
+        }
+
         numberLiteral = NumberLiteral.Double;
     }
 
@@ -168,17 +203,26 @@ function consumeNumber(tokenizer: TokenizerState) {
 // Check if the next token is a string and tokenize it.
 function tryString(tokenizer: TokenizerState, location: TextLocation): TokenString | undefined {
     const start = tokenizer.getCursorOffset();
-    if (tokenizer.next() !== "'" && tokenizer.next() !== '"') return undefined;
+    if (tokenizer.next() !== "'" && tokenizer.next() !== '"') {
+        return undefined;
+    }
+
     const startQuote: "'" | '"' | '"""' = (() => {
-        if (tokenizer.isNext('"""')) return '"""';
-        else if (tokenizer.isNext('"')) return '"';
+        if (tokenizer.isNext('"""')) {
+            return '"""';
+        } else if (tokenizer.isNext('"')) {
+            return '"';
+        }
+
         return "'";
     })();
     tokenizer.stepFor(startQuote.length);
 
     let isEscaping = false;
     for (;;) {
-        if (tokenizer.isEnd()) break;
+        if (tokenizer.isEnd()) {
+            break;
+        }
 
         if (startQuote !== '"""' && tokenizer.isNextWrap()) {
             diagnostic.error(
@@ -198,6 +242,7 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
             } else {
                 isEscaping = false;
             }
+
             tokenizer.stepNext();
         }
     }
@@ -208,7 +253,9 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): TokenStri
 // Check if the next token is a mark and tokenize it.
 function tryMark(tokenizer: TokenizerState, location: TextLocation): TokenReserved | undefined {
     const mark = findReservedAtomicMarkProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
-    if (mark === undefined) return undefined;
+    if (mark === undefined) {
+        return undefined;
+    }
 
     tokenizer.stepFor(mark.key.length);
 
@@ -249,12 +296,16 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
     }
 
     const identifier = tokenizer.substrToCursor(start);
-    if (identifier === '') return undefined;
+    if (identifier === '') {
+        return undefined;
+    }
 
     const tokenLocation = location.withEnd(tokenizer.getCursorPosition());
 
     const reserved = findReservedKeywordProperty(identifier);
-    if (reserved !== undefined) return createTokenReserved(identifier, reserved, tokenLocation);
+    if (reserved !== undefined) {
+        return createTokenReserved(identifier, reserved, tokenLocation);
+    }
 
     return new TokenIdentifier(identifier, tokenLocation);
 }
@@ -270,7 +321,10 @@ export function tokenize(path: string, content: string): TokenObject[] {
     const unknownWordBuffer = new UnknownWordBuffer();
 
     for (;;) {
-        if (tokenizer.isEnd()) break;
+        if (tokenizer.isEnd()) {
+            break;
+        }
+
         if (tokenizer.isNextWrap() || tokenizer.isNextWhitespace()) {
             tokenizer.stepNext();
             continue;
