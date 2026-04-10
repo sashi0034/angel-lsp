@@ -53,7 +53,7 @@ import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
-// BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, scriptNode: Node_Script) {
     for (const node of scriptNode) {
         const name = node.nodeName;
@@ -86,7 +86,7 @@ function formatScript(format: FormatterState, scriptNode: Node_Script) {
     }
 }
 
-// BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF**: USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 function formatUsing(format: FormatterState, usingNode: Node_Using) {
     formatMoveUntilNodeStart(format, usingNode);
     format.pushWrap();
@@ -107,7 +107,7 @@ function formatUsing(format: FormatterState, usingNode: Node_Using) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: NAMESPACE     ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// **BNF**: NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatterState, namespaceNode: Node_Namespace) {
     formatMoveUntilNodeStart(format, namespaceNode);
     format.pushWrap();
@@ -152,7 +152,7 @@ function formatBraceBlock(format: FormatterState, action: () => void, isIndent: 
     formatTargetBy(format, '}', {forceWrap: endWrap});
 }
 
-// BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// **BNF**: ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function formatEnum(format: FormatterState, enumNode: Node_Enum) {
     formatMoveUntilNodeStart(format, enumNode);
     format.pushWrap();
@@ -180,7 +180,7 @@ function formatEnum(format: FormatterState, enumNode: Node_Enum) {
     });
 }
 
-// BNF: CLASS         ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
 function formatClass(format: FormatterState, classNode: Node_Class) {
     formatMoveUntilNodeStart(format, classNode);
     format.pushWrap();
@@ -210,7 +210,7 @@ function formatClass(format: FormatterState, classNode: Node_Class) {
     }
 }
 
-// BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
     formatMoveUntilNodeStart(format, typeDef);
     format.pushWrap();
@@ -223,8 +223,13 @@ function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// TODO: IMPLEMENT IT!
 
-// BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// TODO: IMPLEMENT IT!
+
+// **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatMoveUntilNodeStart(format, funcNode);
     format.pushWrap(); // TODO: Move to the caller?
@@ -288,7 +293,7 @@ function formatAccessModifier(format: FormatterState) {
     }
 }
 
-// BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 function formatInterface(format: FormatterState, interfaceNode: Node_Interface) {
     formatMoveUntilNodeStart(format, interfaceNode);
     format.pushWrap();
@@ -314,7 +319,7 @@ function formatInterface(format: FormatterState, interfaceNode: Node_Interface) 
     }
 }
 
-// BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function formatVar(format: FormatterState, varNode: Node_Var) {
     formatMoveUntilNodeStart(format, varNode);
 
@@ -352,7 +357,7 @@ function formatVar(format: FormatterState, varNode: Node_Var) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: IMPORT        ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+// **BNF**: IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 function formatImport(format: FormatterState, importNode: Node_Import) {
     formatMoveUntilNodeStart(format, importNode);
     format.pushWrap();
@@ -378,7 +383,7 @@ function formatImport(format: FormatterState, importNode: Node_Import) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: FUNCDEF       ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+// **BNF**: FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function formatFuncDef(format: FormatterState, funcDef: Node_FuncDef) {
     formatMoveUntilNodeStart(format, funcDef);
     format.pushWrap();
@@ -400,7 +405,7 @@ function formatFuncDef(format: FormatterState, funcDef: Node_FuncDef) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: VIRTPROP      ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function formatVirtualProp(format: FormatterState, virtualProp: Node_VirtualProp) {
     formatMoveUntilNodeStart(format, virtualProp);
     format.pushWrap();
@@ -448,7 +453,7 @@ function formatGetterSetterStatement(format: FormatterState, isConst: boolean, s
     }
 }
 
-// BNF: MIXIN         ::= 'mixin' CLASS
+// **BNF**: MIXIN ::= 'mixin' CLASS
 function formatMixin(format: FormatterState, mixin: Node_Mixin) {
     formatMoveUntilNodeStart(format, mixin);
     format.pushWrap();
@@ -458,7 +463,7 @@ function formatMixin(format: FormatterState, mixin: Node_Mixin) {
     formatClass(format, mixin.mixinClass);
 }
 
-// BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function formatIntfMethod(format: FormatterState, intfMethod: Node_IntfMethod) {
     formatMoveUntilNodeStart(format, intfMethod);
     format.pushWrap();
@@ -484,7 +489,7 @@ function formatIntfMethod(format: FormatterState, intfMethod: Node_IntfMethod) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
+// **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
     formatMoveUntilNodeStart(format, statBlock);
 
@@ -507,7 +512,7 @@ function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
     });
 }
 
-// BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function formatParamList(format: FormatterState, paramList: Node_ParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -549,7 +554,7 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     formatTargetBy(format, ')', {condenseLeft: true});
 }
 
-// BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 function formatTypeMod(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) {
@@ -570,7 +575,7 @@ function formatTypeMod(format: FormatterState) {
     }
 }
 
-// BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+// **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function formatType(format: FormatterState, typeNode: Node_Type) {
     formatMoveUntilNodeStart(format, typeNode);
 
@@ -629,7 +634,7 @@ function formatChevronsBlock(format: FormatterState, action: () => void) {
     formatTargetBy(format, '>', {condenseLeft: true});
 }
 
-// BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+// **BNF**: INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 function formatInitList(format: FormatterState, initList: Node_InitList) {
     formatMoveUntilNodeStart(format, initList);
 
@@ -649,7 +654,7 @@ function formatInitList(format: FormatterState, initList: Node_InitList) {
     });
 }
 
-// BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+// **BNF**: SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function formatScope(format: FormatterState, scope: Node_Scope) {
     formatMoveUntilNodeStart(format, scope);
 
@@ -664,16 +669,16 @@ function formatScope(format: FormatterState, scope: Node_Scope) {
     }
 }
 
-// BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
 function formatDataType(format: FormatterState, dataType: Node_DataType) {
     formatMoveUntilNodeStart(format, dataType);
 
     formatTargetBy(format, dataType.identifier.text, {});
 }
 
-// BNF: PRIMTYPE      ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
-// BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function formatFuncAttr(format: FormatterState) {
     for (;;) {
         const next = formatMoveToNonComment(format);
@@ -689,7 +694,7 @@ function formatFuncAttr(format: FormatterState) {
     }
 }
 
-// BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// **BNF**: STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function formatStatement(format: FormatterState, statement: Node_Statement, canIndent: boolean = false) {
     const isIndented = canIndent && statement.nodeName !== NodeName.StatBlock;
     if (isIndented) {
@@ -737,7 +742,7 @@ function formatStatement(format: FormatterState, statement: Node_Statement, canI
     }
 }
 
-// BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+// **BNF**: SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 function formatSwitch(format: FormatterState, switchNode: Node_Switch) {
     formatMoveUntilNodeStart(format, switchNode);
 
@@ -758,7 +763,7 @@ function formatSwitch(format: FormatterState, switchNode: Node_Switch) {
     );
 }
 
-// BNF: BREAK         ::= 'break' ';'
+// **BNF**: BREAK ::= 'break' ';'
 function formatBreak(format: FormatterState, breakNode: Node_Break) {
     formatMoveUntilNodeStart(format, breakNode);
 
@@ -767,7 +772,7 @@ function formatBreak(format: FormatterState, breakNode: Node_Break) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+// **BNF**: FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function formatFor(format: FormatterState, forNode: Node_For) {
     formatMoveUntilNodeStart(format, forNode);
 
@@ -797,8 +802,10 @@ function formatFor(format: FormatterState, forNode: Node_For) {
         formatStatement(format, forNode.statement, true);
     }
 }
+// **BNF**: FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// TODO: IMPLEMENT IT!
 
-// BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
+// **BNF**: WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
 function formatWhile(format: FormatterState, whileNode: Node_While) {
     formatMoveUntilNodeStart(format, whileNode);
 
@@ -817,7 +824,7 @@ function formatWhile(format: FormatterState, whileNode: Node_While) {
     }
 }
 
-// BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+// **BNF**: DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 function formatDoWhile(format: FormatterState, doWhile: Node_DoWhile) {
     formatMoveUntilNodeStart(format, doWhile);
 
@@ -842,7 +849,7 @@ function formatDoWhile(format: FormatterState, doWhile: Node_DoWhile) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+// **BNF**: IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
 function formatIf(format: FormatterState, ifNode: Node_If) {
     formatMoveUntilNodeStart(format, ifNode);
 
@@ -866,14 +873,14 @@ function formatIf(format: FormatterState, ifNode: Node_If) {
     }
 }
 
-// BNF: CONTINUE      ::= 'continue' ';'
+// **BNF**: CONTINUE ::= 'continue' ';'
 function formatContinue(format: FormatterState, continueNode: Node_Continue) {
     formatMoveUntilNodeStart(format, continueNode);
     formatTargetBy(format, 'continue', {});
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: EXPRSTAT      ::= [ASSIGN] ';'
+// **BNF**: EXPRSTAT ::= [ASSIGN] ';'
 function formatExprStat(format: FormatterState, exprStat: Node_ExprStat) {
     formatMoveUntilNodeStart(format, exprStat);
 
@@ -884,7 +891,7 @@ function formatExprStat(format: FormatterState, exprStat: Node_ExprStat) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
+// **BNF**: TRY ::= 'try' STATBLOCK 'catch' STATBLOCK
 function formatTry(format: FormatterState, tryNode: Node_Try) {
     formatMoveUntilNodeStart(format, tryNode);
 
@@ -899,7 +906,7 @@ function formatTry(format: FormatterState, tryNode: Node_Try) {
     }
 }
 
-// BNF: RETURN        ::= 'return' [ASSIGN] ';'
+// **BNF**: RETURN ::= 'return' [ASSIGN] ';'
 function formatReturn(format: FormatterState, returnNode: Node_Return) {
     formatMoveUntilNodeStart(format, returnNode);
 
@@ -916,7 +923,7 @@ function formatReturn(format: FormatterState, returnNode: Node_Return) {
     format.popIndent();
 }
 
-// BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+// **BNF**: CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 function formatCase(format: FormatterState, caseNode: Node_Case) {
     formatMoveUntilNodeStart(format, caseNode);
 
@@ -937,7 +944,7 @@ function formatCase(format: FormatterState, caseNode: Node_Case) {
     format.popIndent();
 }
 
-// BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
+// **BNF**: EXPR ::= EXPRTERM {EXPROP EXPRTERM}
 function formatExpr(format: FormatterState, exprNode: Node_Expr) {
     formatMoveUntilNodeStart(format, exprNode);
 
@@ -954,7 +961,7 @@ function formatExpr(format: FormatterState, exprNode: Node_Expr) {
     }
 }
 
-// BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+// **BNF**: EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
 function formatExprTerm(format: FormatterState, exprTerm: Node_ExprTerm) {
     formatMoveUntilNodeStart(format, exprTerm);
 
@@ -979,7 +986,7 @@ function formatExprTerm(format: FormatterState, exprTerm: Node_ExprTerm) {
     }
 }
 
-// BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function formatExprValue(format: FormatterState, exprValue: Node_ExprValue) {
     // formatMoveUntilNodeStart(formatter, exprValue);
 
@@ -1006,7 +1013,7 @@ function formatExprValue(format: FormatterState, exprValue: Node_ExprValue) {
     }
 }
 
-// BNF: CONSTRUCTCALL ::= TYPE ARGLIST
+// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
 function formatConstructCall(format: FormatterState, constructCall: Node_ConstructCall) {
     formatMoveUntilNodeStart(format, constructCall);
 
@@ -1015,9 +1022,9 @@ function formatConstructCall(format: FormatterState, constructCall: Node_Constru
     formatArgList(format, constructCall.argList);
 }
 
-// BNF: EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 
-// BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
+// **BNF**: EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
     formatMoveUntilNodeStart(format, postOp);
 
@@ -1070,7 +1077,7 @@ function formatBracketsBlock(format: FormatterState, action: () => void) {
     formatTargetBy(format, ']', {condenseLeft: true});
 }
 
-// BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+// **BNF**: CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function formatCast(format: FormatterState, castNode: Node_Cast) {
     formatMoveUntilNodeStart(format, castNode);
 
@@ -1085,7 +1092,7 @@ function formatCast(format: FormatterState, castNode: Node_Cast) {
     });
 }
 
-// BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
     formatMoveUntilNodeStart(format, lambdaNode);
 
@@ -1115,9 +1122,9 @@ function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
     }
 }
 
-// BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF**: LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 
-// BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
+// **BNF**: FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
 function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
     formatMoveUntilNodeStart(format, funcCall);
 
@@ -1134,7 +1141,7 @@ function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
     formatArgList(format, funcCall.argList);
 }
 
-// BNF: VARACCESS     ::= SCOPE IDENTIFIER
+// **BNF**: VARACCESS ::= SCOPE IDENTIFIER
 function formatVarAccess(format: FormatterState, varAccess: Node_VarAccess) {
     formatMoveUntilNodeStart(format, varAccess);
 
@@ -1147,7 +1154,7 @@ function formatVarAccess(format: FormatterState, varAccess: Node_VarAccess) {
     }
 }
 
-// BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+// **BNF**: ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 function formatArgList(format: FormatterState, argListNode: Node_ArgList) {
     formatMoveUntilNodeStart(format, argListNode);
 
@@ -1168,7 +1175,7 @@ function formatArgList(format: FormatterState, argListNode: Node_ArgList) {
     });
 }
 
-// BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
+// **BNF**: ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
 function formatAssign(format: FormatterState, assignNode: Node_Assign) {
     formatMoveUntilNodeStart(format, assignNode);
 
@@ -1181,7 +1188,7 @@ function formatAssign(format: FormatterState, assignNode: Node_Assign) {
     }
 }
 
-// BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
+// **BNF**: CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
 function formatCondition(format: FormatterState, condition: Node_Condition) {
     formatMoveUntilNodeStart(format, condition);
 
@@ -1200,18 +1207,18 @@ function formatCondition(format: FormatterState, condition: Node_Condition) {
     }
 }
 
-// BNF: EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
-// BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
-// BNF: MATHOP        ::= '+' | '-' | '*' | '/' | '%' | '**'
-// BNF: COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
-// BNF: LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
-// BNF: ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
-// BNF: IDENTIFIER    ::= single token:  starts with letter or _, can include any letter and digit, same as in C++
-// BNF: NUMBER        ::= single token:  includes integers and real numbers, same as C++
-// BNF: STRING        ::= single token:  single quoted ', double quoted ", or heredoc multi-line string """
-// BNF: BITS          ::= single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
-// BNF: COMMENT       ::= single token:  starts with // and ends with new line or starts with /* and ends with */
-// BNF: WHITESPACE    ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
+// **BNF**: EXPROP ::= MATHOP | COMPOP | LOGICOP | BITOP
+// **BNF**: BITOP ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+// **BNF**: MATHOP ::= '+' | '-' | '*' | '/' | '%' | '**'
+// **BNF**: COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+// **BNF**: LOGICOP ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+// **BNF**: ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+// **BNF**: IDENTIFIER ::= single token:  starts with letter or _, can include any letter and digit, same as in C++
+// **BNF**: NUMBER ::= single token:  includes integers and real numbers, same as C++
+// **BNF**: STRING ::= single token:  single quoted ', double quoted ", or heredoc multi-line string """
+// **BNF**: BITS ::= single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
+// **BNF**: COMMENT ::= single token:  starts with // and ends with new line or starts with /* and ends with */
+// **BNF**: WHITESPACE ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
 export function formatFile(content: string, tokens: TokenObject[], ast: Node_Script): TextEdit[] {
     const format = new FormatterState(content, tokens, ast);
