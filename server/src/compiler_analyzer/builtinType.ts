@@ -1,4 +1,4 @@
-import {TokenIdentifier, TokenKind, TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {IdentifierToken, TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {numberTypeSet} from '../compiler_tokenizer/reservedWord';
 import {SymbolType} from './symbolObject';
 import assert = require('node:assert');
@@ -17,7 +17,7 @@ function createBuiltinType(virtualToken: TokenObject): SymbolType {
 const builtinNumberTypeMap: Map<string, SymbolType> = (() => {
     const map = new Map<string, SymbolType>();
     for (const name of numberTypeSet) {
-        map.set(name, createBuiltinType(TokenReserved.createVirtual(name)));
+        map.set(name, createBuiltinType(ReservedToken.createVirtual(name)));
     }
 
     return map;
@@ -48,15 +48,15 @@ function assignBuiltinNumberType(key: string): SymbolType {
     assert(false);
 }
 
-export const builtinBoolType: SymbolType = createBuiltinType(TokenReserved.createVirtual('bool'));
+export const builtinBoolType: SymbolType = createBuiltinType(ReservedToken.createVirtual('bool'));
 
 export const resolvedBuiltinBool: ResolvedType = new ResolvedType(builtinBoolType);
 
-export const builtinVoidType: SymbolType = createBuiltinType(TokenReserved.createVirtual('void'));
+export const builtinVoidType: SymbolType = createBuiltinType(ReservedToken.createVirtual('void'));
 
-export const builtinAnyType: SymbolType = createBuiltinType(TokenReserved.createVirtual('?'));
+export const builtinAnyType: SymbolType = createBuiltinType(ReservedToken.createVirtual('?'));
 
-export const builtinAutoType: SymbolType = createBuiltinType(TokenReserved.createVirtual('auto'));
+export const builtinAutoType: SymbolType = createBuiltinType(ReservedToken.createVirtual('auto'));
 
 export function tryGetBuiltinType(token: TokenObject): SymbolType | undefined {
     if (token.kind !== TokenKind.Reserved) {
@@ -79,6 +79,6 @@ export function tryGetBuiltinType(token: TokenObject): SymbolType | undefined {
     return undefined;
 }
 
-export const builtinThisToken = TokenIdentifier.createVirtual('this');
+export const builtinThisToken = IdentifierToken.createVirtual('this');
 
-export const builtinSetterValueToken = TokenIdentifier.createVirtual('value');
+export const builtinSetterValueToken = IdentifierToken.createVirtual('value');

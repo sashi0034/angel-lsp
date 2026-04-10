@@ -1,5 +1,5 @@
 import * as lsp from 'vscode-languageserver/node';
-import {TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
+import {TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
 import {NodeScript} from '../compiler_parser/nodes';
 import {DelayedTask} from '../utils/delayedTask';
 import {PublishDiagnosticsParams} from 'vscode-languageserver-protocol';
@@ -48,7 +48,7 @@ const shortWaitTime = 100; // ms
 
 const veryShortWaitTime = 10; // ms
 
-function getAbsolutePathFromIncludeToken(baseUri: string, token: TokenString) {
+function getAbsolutePathFromIncludeToken(baseUri: string, token: StringToken) {
     return resolveIncludeUri(baseUri, token.getStringContent());
 }
 

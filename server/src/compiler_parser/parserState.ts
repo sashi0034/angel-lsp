@@ -1,6 +1,6 @@
 import {HighlightForToken} from '../core/highlight';
 import {diagnostic} from '../core/diagnostic';
-import {TokenComment, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {CommentToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {ParserCachedData, ParserCacheKind, ParserCacheServices, ParserCacheTargets} from './parserCache';
 import {MutableTextPosition, TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
 
@@ -169,24 +169,24 @@ export class ParserState {
 
 function makeSofToken(firstToken: TokenObject | undefined) {
     if (firstToken === undefined) {
-        return new TokenComment('', TextLocation.createEmpty());
+        return new CommentToken('', TextLocation.createEmpty());
     }
 
     const start = new TextPosition(0, 0);
     // FIXME: Maybe we should create a special token separately
-    return new TokenComment('', new TextLocation(firstToken.location.path, start, start));
+    return new CommentToken('', new TextLocation(firstToken.location.path, start, start));
 }
 
 function makeEofToken(lastToken: TokenObject | undefined) {
     if (lastToken === undefined) {
-        return new TokenComment('', TextLocation.createEmpty());
+        return new CommentToken('', TextLocation.createEmpty());
     }
 
     const end0 = MutableTextPosition.create(lastToken.location.end);
     end0.character_ += 1;
     const end = end0.freeze();
     // FIXME: Maybe we should create a special token separately
-    const token = new TokenComment('', new TextLocation(lastToken.location.path, end, end));
+    const token = new CommentToken('', new TextLocation(lastToken.location.path, end, end));
     token.bindPreprocessedToken(lastToken.index + 1, undefined);
     return token;
 }

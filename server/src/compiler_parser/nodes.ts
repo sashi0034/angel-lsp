@@ -1,4 +1,4 @@
-import {TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 export enum AccessModifier {
@@ -144,7 +144,7 @@ export interface NodeEnum extends NodeBase {
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly memberList: ParsedEnumMember[];
-    readonly enumType: TokenReserved | undefined;
+    readonly enumType: ReservedToken | undefined;
 }
 
 export interface ParsedEnumMember {

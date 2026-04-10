@@ -51,7 +51,7 @@ import {
     SymbolType,
     SymbolVariable
 } from './symbolObject';
-import {NumberLiteral, TokenIdentifier, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {NumberLiteral, IdentifierToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {
     createAnonymousIdentifier,
     getActiveGlobalScope,
@@ -220,7 +220,7 @@ export function analyzeVarInitializer(
         }
 
         // FIXME: Think of a better way.
-        const callerIdentifier = TokenIdentifier.createVirtual(varType.identifierText);
+        const callerIdentifier = IdentifierToken.createVirtual(varType.identifierText);
 
         return analyzeConstructorCall(scope, callerIdentifier, initializer, varType);
     }

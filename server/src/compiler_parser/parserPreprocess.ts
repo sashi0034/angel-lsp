@@ -1,4 +1,4 @@
-import {TokenKind, TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
+import {TokenKind, TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
 import {diagnostic} from '../core/diagnostic';
 import {HighlightForToken} from '../core/highlight';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
@@ -8,7 +8,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
  */
 export interface PreprocessedOutput {
     readonly preprocessedTokens: TokenObject[];
-    readonly includePathTokens: TokenString[];
+    readonly includePathTokens: StringToken[];
 }
 
 /**
@@ -32,8 +32,8 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
 
         // Create a new token with the combined elements.
         actualTokens[i - 1] = createCombinedStringToken(
-            actualTokens[i - 1] as TokenString,
-            actualTokens[i] as TokenString
+            actualTokens[i - 1] as StringToken,
+            actualTokens[i] as StringToken
         ); // "stringstring"
         actualTokens.splice(i, 1);
     }
@@ -49,8 +49,8 @@ export function preprocessAfterTokenized(tokens: TokenObject[]): PreprocessedOut
     };
 }
 
-function preprocessDirectives(tokens: TokenObject[]): TokenString[] {
-    const includeFiles: TokenString[] = [];
+function preprocessDirectives(tokens: TokenObject[]): StringToken[] {
+    const includeFiles: StringToken[] = [];
     const directiveRanges: [number, number][] = [];
 
     // Handle preprocessor directives starting with '#'
@@ -73,7 +73,7 @@ function preprocessDirectives(tokens: TokenObject[]): TokenString[] {
     return includeFiles;
 }
 
-function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: TokenString[]) {
+function handleDirectiveTokens(directiveTokens: TokenObject[], includeFiles: StringToken[]) {
     directiveTokens[0].setHighlight(HighlightForToken.Macro);
 
     if (directiveTokens[1]?.text === 'include') {
@@ -112,7 +112,7 @@ function sliceTokenListBySameLine(tokens: TokenObject[], head: number): TokenObj
     return tokens.slice(head, tail + 1);
 }
 
-function createCombinedStringToken(lhs: TokenString, rhs: TokenString): TokenObject {
+function createCombinedStringToken(lhs: StringToken, rhs: StringToken): TokenObject {
     const tokenText = '"' + lhs.getStringContent() + rhs.getStringContent() + '"'; // FIXME?
-    return TokenString.createVirtual(tokenText, new TokenRange(lhs, rhs));
+    return StringToken.createVirtual(tokenText, new TokenRange(lhs, rhs));
 }

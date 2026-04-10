@@ -31,7 +31,7 @@ import {findSymbolWithParent, getFullIdentifierOfSymbol} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
-import {TokenIdentifier, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {buildTemplateSignature, getIdentifierInNodeType} from '../compiler_parser/nodesUtils';
 import {
     analyzeFunc,
@@ -156,7 +156,7 @@ function hoistClass(
 
     // Preserve the original location so the symbol can be copied to other scopes
     const identifierToken = specializationSig
-        ? new TokenIdentifier(symbolKey, nodeClass.identifier.location)
+        ? new IdentifierToken(symbolKey, nodeClass.identifier.location)
         : nodeClass.identifier;
 
     const symbol: SymbolType = SymbolType.create({
@@ -208,7 +208,7 @@ function hoistClass(
             if (baseConstructorHolder?.isFunctionHolder()) {
                 for (const baseConstructor of baseConstructorHolder.toList()) {
                     const superConstructor = baseConstructor.clone({
-                        identifierToken: TokenIdentifier.createVirtual(
+                        identifierToken: IdentifierToken.createVirtual(
                             'super',
                             new TokenRange(baseConstructor.identifierToken, baseConstructor.identifierToken)
                         ),
@@ -451,7 +451,7 @@ function tryInsertVirtualSetterOrGetter(
     if (isGetter || isSetter) {
         if (node.funcAttr?.isProperty || !getGlobalSettings().explicitPropertyAccessor) {
             // FIXME?
-            const identifier: TokenObject = TokenIdentifier.createVirtual(
+            const identifier: TokenObject = IdentifierToken.createVirtual(
                 node.identifier.text.substring(4),
                 new TokenRange(node.identifier, node.identifier)
             );

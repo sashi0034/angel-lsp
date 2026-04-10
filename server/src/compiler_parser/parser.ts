@@ -74,7 +74,7 @@ import {
     TypeModifier
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
-import {TokenKind, TokenObject, TokenReserved} from '../compiler_tokenizer/tokenObject';
+import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';
 import {ParserCacheKind} from './parserCache';
 import {areTokensJoinedBy} from '../compiler_tokenizer/tokenUtils';
@@ -338,7 +338,7 @@ function parseEnum(parser: ParserState): ParseResult<NodeEnum> {
         return ParseFailure.Pending;
     }
 
-    let enumType: TokenReserved | undefined;
+    let enumType: ReservedToken | undefined;
     if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         const typeIdentifier = parsePrimeType(parser);
@@ -3042,7 +3042,7 @@ function parseNotIsOperator(parser: ParserState) {
     parser.commit(HighlightForToken.Keyword);
     parser.commit(HighlightForToken.Keyword);
 
-    return TokenReserved.createVirtual('!is', coveredRange);
+    return ReservedToken.createVirtual('!is', coveredRange);
 }
 
 // BNF: BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
@@ -3087,7 +3087,7 @@ function handleGreaterThanAndGetNext(parser: ParserState) {
             parser.commit(HighlightForToken.Operator);
         }
 
-        return TokenReserved.createVirtual(combinedText, coveredRange);
+        return ReservedToken.createVirtual(combinedText, coveredRange);
     };
 
     // '>='

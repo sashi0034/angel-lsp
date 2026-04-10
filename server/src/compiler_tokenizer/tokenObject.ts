@@ -90,19 +90,19 @@ export abstract class TokenBase {
         return this._location === undefined;
     }
 
-    public isReservedToken(): this is TokenReserved {
+    public isReservedToken(): this is ReservedToken {
         return this.kind === TokenKind.Reserved;
     }
 
-    public isNumberToken(): this is TokenNumber {
+    public isNumberToken(): this is NumberToken {
         return this.kind === TokenKind.Number;
     }
 
-    public isStringToken(): this is TokenString {
+    public isStringToken(): this is StringToken {
         return this.kind === TokenKind.String;
     }
 
-    public isCommentToken(): this is TokenComment {
+    public isCommentToken(): this is CommentToken {
         return this.kind === TokenKind.Comment;
     }
 
@@ -180,7 +180,7 @@ export abstract class TokenBase {
     }
 }
 
-export class TokenReserved extends TokenBase {
+export class ReservedToken extends TokenBase {
     public readonly property: ReservedWordProperty;
 
     public constructor(text: string, location: TextLocation | TokenRange | undefined, property?: ReservedWordProperty) {
@@ -189,8 +189,8 @@ export class TokenReserved extends TokenBase {
         this.property = property ?? findAllReservedWordProperty(text);
     }
 
-    public static createVirtual(text: string, coveredRange?: TokenRange): TokenReserved {
-        return new TokenReserved(text, coveredRange);
+    public static createVirtual(text: string, coveredRange?: TokenRange): ReservedToken {
+        return new ReservedToken(text, coveredRange);
     }
 
     public get kind(): TokenKind {
@@ -198,13 +198,13 @@ export class TokenReserved extends TokenBase {
     }
 }
 
-export class TokenIdentifier extends TokenBase {
+export class IdentifierToken extends TokenBase {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.Variable);
     }
 
-    public static createVirtual(text: string, coveredRange?: TokenRange): TokenIdentifier {
-        return new TokenIdentifier(text, coveredRange);
+    public static createVirtual(text: string, coveredRange?: TokenRange): IdentifierToken {
+        return new IdentifierToken(text, coveredRange);
     }
 
     public get kind(): TokenKind {
@@ -218,7 +218,7 @@ export enum NumberLiteral {
     Double = 'Double'
 }
 
-export class TokenNumber extends TokenBase {
+export class NumberToken extends TokenBase {
     public constructor(
         text: string,
         location: TextLocation,
@@ -232,13 +232,13 @@ export class TokenNumber extends TokenBase {
     }
 }
 
-export class TokenString extends TokenBase {
+export class StringToken extends TokenBase {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.String);
     }
 
-    public static createVirtual(text: string, coveredRange?: TokenRange): TokenString {
-        return new TokenString(text, coveredRange);
+    public static createVirtual(text: string, coveredRange?: TokenRange): StringToken {
+        return new StringToken(text, coveredRange);
     }
 
     public get kind(): TokenKind {
@@ -250,7 +250,7 @@ export class TokenString extends TokenBase {
     }
 }
 
-export class TokenComment extends TokenBase {
+export class CommentToken extends TokenBase {
     public constructor(text: string, location: TextLocation) {
         super(text, location, HighlightForToken.Comment);
     }
@@ -263,4 +263,4 @@ export class TokenComment extends TokenBase {
 /**
  * TokenObject is a union type of all token types.
  */
-export type TokenObject = TokenReserved | TokenIdentifier | TokenNumber | TokenString | TokenComment;
+export type TokenObject = ReservedToken | IdentifierToken | NumberToken | StringToken | CommentToken;
