@@ -7,8 +7,8 @@ import {
 } from './symbolScope';
 import {
     AccessModifier,
-    funcHeadDestructor,
-    isFuncHeadReturnValue,
+    destructorFuncHead,
+    hasFuncReturnValue,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -24,7 +24,7 @@ import {
     Node_TypeDef,
     Node_Var,
     Node_VirtualProp,
-    ParsedEnumMember
+    IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
 import {FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent, getFullIdentifierOfSymbol} from './symbolUtils';
@@ -125,7 +125,7 @@ function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum) {
     hoistEnumMembers(scope, enumNode.memberList, new ResolvedType(symbol));
 }
 
-function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
+function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOptionalExpr[], type: ResolvedType) {
     for (const member of memberList) {
         parentScope.insertSymbolAndCheck(
             VariableSymbol.create({
@@ -392,7 +392,7 @@ function hoistFunc(
     hoistQueue: HoistQueue,
     isInstanceMember: boolean
 ) {
-    if (funcNode.head === funcHeadDestructor) {
+    if (funcNode.head === destructorFuncHead) {
         return;
     }
 
@@ -427,7 +427,7 @@ function hoistFunc(
     }
 
     hoistQueue.push(() => {
-        const returnType = isFuncHeadReturnValue(funcNode.head)
+        const returnType = hasFuncReturnValue(funcNode.head)
             ? analyzeType(functionScope, funcNode.head.returnType)
             : undefined;
         symbol.assignReturnType(returnType);

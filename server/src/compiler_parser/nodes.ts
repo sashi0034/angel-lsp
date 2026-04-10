@@ -107,9 +107,9 @@ export interface NodeBase {
 }
 
 // **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
-export type Node_Script = Node_ScriptMember[];
+export type Node_Script = ScriptElement[];
 
-export type Node_ScriptMember =
+export type ScriptElement =
     | Node_Import
     | Node_Enum
     | Node_TypeDef
@@ -143,11 +143,11 @@ export interface Node_Enum extends NodeBase {
     readonly metadata: TokenObject[][];
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
-    readonly memberList: ParsedEnumMember[];
+    readonly memberList: IdentifierAndOptionalExpr[];
     readonly enumType: ReservedToken | undefined;
 }
 
-export interface ParsedEnumMember {
+export interface IdentifierAndOptionalExpr {
     readonly identifier: TokenObject;
     readonly expr: Node_Expr | undefined;
 }
@@ -175,6 +175,7 @@ export interface Node_TypeDef extends NodeBase {
     readonly type: TokenObject;
     readonly identifier: TokenObject;
 }
+
 // **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 // TODO: IMPLEMENT IT!
 
@@ -196,29 +197,29 @@ export interface Node_Func extends NodeBase {
     readonly listPattern: Node_ListPattern | undefined;
 }
 
-export interface FuncHeadReturnValue {
+export interface FuncReturnValue {
     readonly returnType: Node_Type;
     readonly isRef: boolean;
 }
 
-export const funcHeadDestructor = Symbol();
-export type FuncHeadDestructor = typeof funcHeadDestructor;
+export const destructorFuncHead = Symbol();
+export type DestructorFuncHead = typeof destructorFuncHead;
 
-export const funcHeadConstructor = Symbol();
-export type FuncHeadConstructor = typeof funcHeadConstructor;
+export const constructorFuncHead = Symbol();
+export type ConstructorFuncHead = typeof constructorFuncHead;
 
-export type FuncHead = FuncHeadReturnValue | FuncHeadDestructor | FuncHeadConstructor;
+export type FuncHead = FuncReturnValue | DestructorFuncHead | ConstructorFuncHead;
 
-export function isFuncHeadConstructor(head: FuncHead): head is FuncHeadConstructor {
-    return head === funcHeadConstructor;
+export function isConstructorFunc(head: FuncHead): head is ConstructorFuncHead {
+    return head === constructorFuncHead;
 }
 
-export function isFuncHeadDestructor(head: FuncHead): head is FuncHeadDestructor {
-    return head === funcHeadDestructor;
+export function isDestructorFunc(head: FuncHead): head is DestructorFuncHead {
+    return head === destructorFuncHead;
 }
 
-export function isFuncHeadReturnValue(head: FuncHead): head is FuncHeadReturnValue {
-    return head !== funcHeadDestructor && head !== funcHeadConstructor;
+export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
+    return head !== destructorFuncHead && head !== constructorFuncHead;
 }
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
@@ -235,11 +236,11 @@ export interface Node_Var extends NodeBase {
     readonly nodeName: NodeName.Var;
     readonly accessor: AccessModifier | undefined;
     readonly type: Node_Type;
-    readonly variables: ParsedVariableInitializer[];
+    readonly variables: IdentifierAndInitializer[];
 }
 
 // IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]}
-export interface ParsedVariableInitializer {
+export interface IdentifierAndInitializer {
     readonly identifier: TokenObject;
     readonly initializer: Node_InitList | Node_Assign | Node_ArgList | undefined;
 }
@@ -272,11 +273,11 @@ export interface Node_VirtualProp extends NodeBase {
     readonly type: Node_Type;
     readonly isRef: boolean;
     readonly identifier: TokenObject;
-    readonly getter: ParsedGetterSetter | undefined;
-    readonly setter: ParsedGetterSetter | undefined;
+    readonly getter: GetterOrSetter | undefined;
+    readonly setter: GetterOrSetter | undefined;
 }
 
-export interface ParsedGetterSetter {
+export interface GetterOrSetter {
     readonly isConst: boolean;
     readonly funcAttr: FunctionAttribute | undefined;
     readonly statBlock: Node_StatBlock | undefined;
@@ -351,6 +352,7 @@ export interface Node_ListPattern extends NodeBase {
     readonly nodeName: NodeName.ListPattern;
     readonly operators: NodeListValidOperators[];
 }
+
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 // TODO: IMPLEMENT IT!
 
@@ -379,9 +381,9 @@ export interface Node_ListPattern extends NodeBase {
 // TODO: IMPLEMENT IT!
 
 // **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
-export type Node_ParamList = ParsedTypeIdentifier[];
+export type Node_ParamList = ElementInParamList[];
 
-export interface ParsedTypeIdentifier {
+export interface ElementInParamList {
     readonly type: Node_Type;
     readonly modifier: TypeModifier | undefined;
     readonly identifier: TokenObject | undefined;
@@ -462,19 +464,19 @@ export interface Node_For extends NodeBase {
     readonly statement: Node_Statement | undefined;
 }
 
-// like Node_Var but no initializer or modifier
-export interface Node_ForEachVar extends NodeBase {
-    readonly nodeName: NodeName.ForEachVar;
-    readonly type: Node_Type;
-    readonly identifier: TokenObject;
-}
-
 // **BNF**: FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
 export interface Node_ForEach extends NodeBase {
     readonly nodeName: NodeName.ForEach;
-    readonly variables: Node_ForEachVar[];
+    readonly variables: VariableInForEach[];
     readonly assign: Node_Assign | undefined;
     readonly statement: Node_Statement | undefined;
+}
+
+// like Node_Var but no initializer or modifier
+export interface VariableInForEach extends NodeBase {
+    readonly nodeName: NodeName.ForEachVar;
+    readonly type: Node_Type;
+    readonly identifier: TokenObject;
 }
 
 // **BNF**: WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -534,7 +536,7 @@ export interface Node_Case extends NodeBase {
 export interface Node_Expr extends NodeBase {
     readonly nodeName: NodeName.Expr;
     readonly head: Node_ExprTerm;
-    readonly tail: ParsedOpExpr | undefined;
+    readonly tail: OperatorAndExpr | undefined;
 }
 
 // EXPRVOID      ::= 'void'
@@ -542,9 +544,9 @@ export interface Node_ExprVoid extends NodeBase {
     readonly nodeName: NodeName.ExprVoid;
 }
 
-export interface ParsedOpExpr {
+export interface OperatorAndExpr {
     readonly operator: TokenObject;
-    readonly expression: Node_Expr;
+    readonly expr: Node_Expr;
 }
 
 // **BNF**: EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
@@ -604,10 +606,10 @@ export function isMemberMethodInPostOp(member: Node_FuncCall | TokenObject | und
 export interface Node_ExprPostOp2 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
     readonly postOp: 2;
-    readonly indexingList: ParsedPostIndexing[];
+    readonly indexingList: OptionalIdentifierAndAssign[];
 }
 
-export interface ParsedPostIndexing {
+export interface OptionalIdentifierAndAssign {
     readonly identifier: TokenObject | undefined;
     readonly assign: Node_Assign;
 }
@@ -636,11 +638,11 @@ export interface Node_Cast extends NodeBase {
 // **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 export interface Node_Lambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
-    readonly paramList: ParsedLambdaParams[];
+    readonly paramList: ParamListInLambda[];
     readonly statBlock: Node_StatBlock | undefined;
 }
 
-export interface ParsedLambdaParams {
+export interface ParamListInLambda {
     readonly type: Node_Type | undefined;
     readonly typeMod: TypeModifier | undefined;
     readonly identifier: TokenObject | undefined;
@@ -671,22 +673,17 @@ export interface Node_VarAccess extends NodeBase {
 // **BNF**: ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 export interface Node_ArgList extends NodeBase {
     readonly nodeName: NodeName.ArgList;
-    readonly argList: ParsedArgument[];
-}
-
-export interface ParsedArgument {
-    readonly identifier: TokenObject | undefined;
-    readonly assign: Node_Assign;
+    readonly argList: OptionalIdentifierAndAssign[];
 }
 
 // **BNF**: ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
 export interface Node_Assign extends NodeBase {
     readonly nodeName: NodeName.Assign;
     readonly condition: Node_Condition;
-    readonly tail: ParsedAssignTail | undefined;
+    readonly tail: OperatorAndAssign | undefined;
 }
 
-export interface ParsedAssignTail {
+export interface OperatorAndAssign {
     readonly operator: TokenObject;
     readonly assign: Node_Assign;
 }
@@ -695,10 +692,10 @@ export interface ParsedAssignTail {
 export interface Node_Condition extends NodeBase {
     readonly nodeName: NodeName.Condition;
     readonly expr: Node_Expr;
-    readonly ternary: ParsedTernary | undefined;
+    readonly ternary: TernaryAssigns | undefined;
 }
 
-export interface ParsedTernary {
+export interface TernaryAssigns {
     readonly trueAssign: Node_Assign;
     readonly falseAssign: Node_Assign;
 }
