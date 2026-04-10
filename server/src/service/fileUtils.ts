@@ -30,10 +30,12 @@ function extractExtensionFromPattern(pattern: string): string {
     if (match && match[1]) {
         return match[1];
     }
+
     // For exact filenames like "as.predefined", return empty (no extension to append)
     if (!pattern.includes('*')) {
         return '';
     }
+
     // Default fallback
     return '.as';
 }
@@ -130,7 +132,9 @@ export function isFileUri(uri: string): boolean {
 export function readFileContent(uri: string): string | undefined {
     try {
         const path = fileURLToPath(uri);
-        if (fs.existsSync(path) === false) return undefined;
+        if (fs.existsSync(path) === false) {
+            return undefined;
+        }
 
         return fs.readFileSync(path, 'utf8');
     } catch (error) {
@@ -141,7 +145,9 @@ export function readFileContent(uri: string): string | undefined {
 export function getParentDirectoryList(uri: string): string[] {
     const parsedUrl = url.parse(uri);
     const currentPath = parsedUrl.pathname;
-    if (currentPath === null) return [];
+    if (currentPath === null) {
+        return [];
+    }
 
     const directories: string[] = [];
     let parentPath = currentPath;

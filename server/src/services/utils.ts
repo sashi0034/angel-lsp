@@ -49,13 +49,19 @@ function findTokenContainingPositionInternal(
 
 export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
     if (symbol.isType()) {
-        if (symbol.linkedNode === undefined) return 'unknown type';
+        if (symbol.linkedNode === undefined) {
+            return 'unknown type';
+        }
+
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start); // FIXME: mixin class is OK?
     } else if (symbol.isVariable()) {
         return getDocumentCommentOfToken(symbol.identifierToken);
     } else {
         // Function
-        if (symbol.linkedNode === undefined) return 'unknown function';
+        if (symbol.linkedNode === undefined) {
+            return 'unknown function';
+        }
+
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start);
     }
 }
@@ -106,7 +112,10 @@ function getAboveLineRawToken(token: TokenObject): TokenObject | undefined {
     let currentToken: TokenObject | undefined = token;
     const line = token.location.start.line;
     while (currentToken !== undefined) {
-        if (currentToken.location.end.line !== line) return currentToken;
+        if (currentToken.location.end.line !== line) {
+            return currentToken;
+        }
+
         currentToken = currentToken.prevRaw;
     }
 
@@ -120,8 +129,13 @@ export function getDocumentCommentOfToken(token: TokenObject) {
 
     const maxDocumentLines = 16;
     for (let i = 0; i < maxDocumentLines; i++) {
-        if (currentToken === undefined) break;
-        if (currentToken.isCommentToken() === false) break;
+        if (currentToken === undefined) {
+            break;
+        }
+
+        if (currentToken.isCommentToken() === false) {
+            break;
+        }
 
         // Extract the comment text
         let commentText = currentToken.text;

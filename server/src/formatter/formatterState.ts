@@ -52,7 +52,10 @@ export class FormatterState {
     }
 
     public getText(line: number, character: number | undefined, length: number = 1): string | undefined {
-        if (character === undefined) return this.textLines[line];
+        if (character === undefined) {
+            return this.textLines[line];
+        }
+
         return this.textLines[line].substring(character, character + length);
     }
 
@@ -147,7 +150,9 @@ export class FormatterState {
 
 export function stepCursorAlongLines(lines: string[], cursor: Position): Position {
     const c: Position = {character: cursor.character, line: cursor.line};
-    if (c.line >= lines.length) return c;
+    if (c.line >= lines.length) {
+        return c;
+    }
 
     c.character++;
     if (c.character >= lines[c.line].length) {

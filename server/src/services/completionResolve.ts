@@ -55,9 +55,18 @@ function resolveTypeItem(globalScope: SymbolGlobalScope, item: CompletionItem, s
 
 function getTypeNodeName(symbol: SymbolType) {
     const nodeName = symbol.linkedNode?.nodeName;
-    if (nodeName === NodeName.Enum) return 'enum';
-    if (nodeName === NodeName.Class) return 'class';
-    if (nodeName === NodeName.Interface) return 'interface';
+    if (nodeName === NodeName.Enum) {
+        return 'enum';
+    }
+
+    if (nodeName === NodeName.Class) {
+        return 'class';
+    }
+
+    if (nodeName === NodeName.Interface) {
+        return 'interface';
+    }
+
     return 'type';
 }
 
@@ -93,7 +102,9 @@ function resolveFunctionItem(item: CompletionItem, symbol: SymbolFunctionHolder)
 }
 
 function hasFunctionArguments(functionHolder: SymbolFunctionHolder) {
-    if (functionHolder.toList().length !== 1) return true;
+    if (functionHolder.toList().length !== 1) {
+        return true;
+    }
 
     return functionHolder.first.parameterTypes.length > 0;
 }

@@ -23,7 +23,9 @@ export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Posi
             const expectedCallee = globalScope
                 .resolveScope(callee.scopePath)
                 ?.lookupSymbolWithParent(callee.actualIdentifierToken.text);
-            if (!expectedCallee?.isFunctionHolder()) continue;
+            if (!expectedCallee?.isFunctionHolder()) {
+                continue;
+            }
 
             for (const callee of expectedCallee.overloadList) {
                 signatures.push(getFunctionSignature(info, callee, new TextPosition(caret.line, caret.character)));
@@ -50,16 +52,24 @@ function getFunctionSignature(info: FunctionCallInfo, expectedCallee: SymbolFunc
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(applyTemplateTranslator(paramType, info.calleeTemplateTranslator));
-        if (paramIdentifier.identifier !== undefined) label += ' ' + paramIdentifier.identifier?.text;
+        if (paramIdentifier.identifier !== undefined) {
+            label += ' ' + paramIdentifier.identifier?.text;
+        }
+
         const parameter: ParameterInformation = {label: label};
 
-        if (i > 0) signatureLabel += ', ';
+        if (i > 0) {
+            signatureLabel += ', ';
+        }
+
         signatureLabel += label;
 
         const passingRanges = info.callerArgumentsNode.argList.map(arg => arg.assign.nodeRange);
         if (i < passingRanges.length && caret.isLessThan(passingRanges[i].start.location.start) === false) {
             activeIndex = i;
-            if (passingRanges[i].end.next?.text === ',') activeIndex++;
+            if (passingRanges[i].end.next?.text === ',') {
+                activeIndex++;
+            }
         }
 
         parameters.push(parameter);

@@ -23,8 +23,10 @@ export class Trie<T> {
             if (node.children.has(char) === false) {
                 node.children.set(char, new TrieNode<T>(undefined));
             }
+
             node = node.children.get(char)!;
         }
+
         node.value = value;
     }
 
@@ -42,7 +44,10 @@ export class Trie<T> {
             }
         }
 
-        if (node.value === undefined) return undefined;
+        if (node.value === undefined) {
+            return undefined;
+        }
+
         return {key: prefix, value: node.value};
     }
 }

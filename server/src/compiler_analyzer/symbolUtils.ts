@@ -27,6 +27,7 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
         if (isAnonymousIdentifier(scopeIterator.key) === false) {
             suffix = suffix.length === 0 ? scopeIterator.key : scopeIterator.key + '::' + suffix;
         }
+
         scopeIterator = scopeIterator.parentScope;
     }
 
@@ -34,10 +35,14 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
 }
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {
-    if (type === undefined) return '(undefined)';
+    if (type === undefined) {
+        return '(undefined)';
+    }
 
     let suffix = '';
-    if (type.isHandler === true) suffix = `${suffix}@`;
+    if (type.isHandler === true) {
+        suffix = `${suffix}@`;
+    }
 
     if (type.typeOrFunc.isFunction()) {
         const func: SymbolFunction = type.typeOrFunc;
@@ -112,7 +117,10 @@ export function printSymbolScope(scope: SymbolScope, indent: string = ''): strin
         }
 
         let childPrint = printSymbolScope(childScope, indent + '│   ');
-        if (childPrint.length > 0) childPrint = '\n' + childPrint;
+        if (childPrint.length > 0) {
+            childPrint = '\n' + childPrint;
+        }
+
         elements.push(`${indent}${head}${key}::(${locations.join(', ')})` + childPrint);
     }
 
@@ -135,15 +143,24 @@ export function getSymbolAndScopeIfExist(
     symbol: SymbolObjectHolder | undefined,
     scope: SymbolScope
 ): SymbolAndScope | undefined {
-    if (symbol === undefined) return undefined;
+    if (symbol === undefined) {
+        return undefined;
+    }
+
     return {symbol: symbol, scope: scope};
 }
 
 // obsolete
 export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
     const symbol = scope.symbolTable.get(identifier);
-    if (symbol !== undefined) return {symbol: symbol, scope: scope};
-    if (scope.parentScope === undefined) return undefined;
+    if (symbol !== undefined) {
+        return {symbol: symbol, scope: scope};
+    }
+
+    if (scope.parentScope === undefined) {
+        return undefined;
+    }
+
     return findSymbolWithParent(scope.parentScope, identifier);
 }
 
@@ -155,9 +172,13 @@ export function findSymbolWithParent(scope: SymbolScope, identifier: string): Sy
 export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember: SymbolObjectHolder): boolean {
     const instanceMemberSymbol = instanceMember.toList()[0]; // FIXME: What if there are multiple functions?
 
-    if (instanceMemberSymbol.isType()) return true;
+    if (instanceMemberSymbol.isType()) {
+        return true;
+    }
 
-    if (instanceMemberSymbol.accessRestriction === undefined) return true;
+    if (instanceMemberSymbol.accessRestriction === undefined) {
+        return true;
+    }
 
     const scopeOfInstanceMember = resolveActiveScope(instanceMemberSymbol.scopePath);
 
@@ -175,19 +196,30 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
     if (accessRestriction === AccessModifier.Private) {
         return isScopeChildOrGrandchild(accessScope, scopeOfInstanceMember);
     } else if (accessRestriction === AccessModifier.Protected) {
-        if (scopeOfInstanceMember.linkedNode === undefined) return false;
+        if (scopeOfInstanceMember.linkedNode === undefined) {
+            return false;
+        }
 
         const nearestClassScope = accessScope.takeParentByNode([NodeName.Class, NodeName.Interface]);
-        if (nearestClassScope === undefined || nearestClassScope.parentScope === undefined) return false;
+        if (nearestClassScope === undefined || nearestClassScope.parentScope === undefined) {
+            return false;
+        }
 
         // Get the symbol of the class to which the accessing scope belongs.
         const nearestClassSymbol = nearestClassScope.parentScope.lookupSymbol(nearestClassScope.key);
-        if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) return false;
+        if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) {
+            return false;
+        }
 
         // Get the symbol of the class to which the instance member belongs.
-        if (scopeOfInstanceMember.parentScope === undefined) return false;
+        if (scopeOfInstanceMember.parentScope === undefined) {
+            return false;
+        }
+
         const instanceClassSymbol = scopeOfInstanceMember.parentScope.lookupSymbol(scopeOfInstanceMember.key);
-        if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) return false;
+        if (instanceClassSymbol === undefined || instanceClassSymbol.isType() === false) {
+            return false;
+        }
 
         return canDownCast(nearestClassSymbol, instanceClassSymbol);
     } else {

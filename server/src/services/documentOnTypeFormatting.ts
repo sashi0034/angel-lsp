@@ -26,7 +26,9 @@ function executeSmartBackspace(rawTokens: TokenObject[], caret: TextPosition): l
     const caretLeft = caret.movedBy(0, -1);
 
     const token = findTokenContainingPosition(rawTokens, caretLeft);
-    if (token !== undefined) return [];
+    if (token !== undefined) {
+        return [];
+    }
 
     // No token found.
     // const canSmartBackspace =

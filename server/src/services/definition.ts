@@ -61,7 +61,9 @@ function provideIdenticalDefinitionInternal(
     // At this point, search in child scopes because the symbol is not found in the current scope
     for (const [key, child] of scope.childScopeTable) {
         const jump = provideIdenticalDefinitionInternal(filepath, child, caret);
-        if (jump !== undefined) return jump;
+        if (jump !== undefined) {
+            return jump;
+        }
     }
 
     return undefined;
@@ -117,7 +119,9 @@ function provideNamespaceDefinition(
     for (const scope of [globalScope, ...allGlobalScopes]) {
         // Search from the current global scope
         const namespaceToken = findNamespaceTokenNearPosition(scope, accessScope.scopePath, new TextPosition(0, 0));
-        if (namespaceToken !== undefined) return namespaceToken;
+        if (namespaceToken !== undefined) {
+            return namespaceToken;
+        }
     }
 
     return undefined;
@@ -132,10 +136,14 @@ function findNamespaceDeclarationToken(scope: SymbolScope, caret: Position): Tok
     }
 
     for (const [key, child] of scope.childScopeTable) {
-        if (scope.isAnonymousScope()) continue;
+        if (scope.isAnonymousScope()) {
+            continue;
+        }
 
         const result = findNamespaceDeclarationToken(child, caret);
-        if (result !== undefined) return result;
+        if (result !== undefined) {
+            return result;
+        }
     }
 
     return undefined;
@@ -166,7 +174,9 @@ function findNamespaceTokenNearPosition(
     position: TextPosition
 ): TokenObject | undefined {
     const namespaceScope = globalScope.resolveScope(scopePath);
-    if (namespaceScope === undefined) return undefined;
+    if (namespaceScope === undefined) {
+        return undefined;
+    }
 
     let result: TokenObject | undefined;
     if (isNodeEnumOrClassOrInterface(namespaceScope.linkedNode)) {

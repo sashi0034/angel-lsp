@@ -6,8 +6,14 @@ export function takeNarrowestScopeRegion(lhs: ScopeRegionInfo, rhs: ScopeRegionI
     const lhsDiff = lhs.boundingLocation.getDifference();
     const rhsDiff = rhs.boundingLocation.getDifference();
 
-    if (lhsDiff.line < rhsDiff.line) return lhs;
-    if (lhsDiff.line > rhsDiff.line) return rhs;
+    if (lhsDiff.line < rhsDiff.line) {
+        return lhs;
+    }
+
+    if (lhsDiff.line > rhsDiff.line) {
+        return rhs;
+    }
+
     return lhsDiff.character < rhsDiff.character ? lhs : rhs;
 }
 
@@ -25,7 +31,9 @@ export function findScopeContainingPosition(globalScope: SymbolGlobalScope, care
     let found: ScopeRegionInfo | undefined = undefined;
     for (const info of globalScope.info.scopeRegion) {
         const location = info.boundingLocation;
-        if (location.path !== path) continue;
+        if (location.path !== path) {
+            continue;
+        }
 
         if (location.positionInRange(caret)) {
             found = found === undefined ? info : takeNarrowestScopeRegion(found, info);

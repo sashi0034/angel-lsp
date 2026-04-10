@@ -108,13 +108,17 @@ export abstract class TokenBase {
 
     public bindRawToken(next: TokenObject | undefined) {
         this._nextRawToken = next;
-        if (next !== undefined) next._prevRawToken = this;
+        if (next !== undefined) {
+            next._prevRawToken = this;
+        }
     }
 
     public bindPreprocessedToken(index: number, next: TokenObject | undefined) {
         this._indexInPreprocessedTokenList = index;
         this._nextPreprocessedToken = next;
-        if (next !== undefined) next._prevPreprocessedToken = this;
+        if (next !== undefined) {
+            next._prevPreprocessedToken = this;
+        }
     }
 
     /**
@@ -168,7 +172,10 @@ export abstract class TokenBase {
     }
 
     public equals(other: TokenBase | undefined): boolean {
-        if (other === undefined) return false;
+        if (other === undefined) {
+            return false;
+        }
+
         return this === other || this.location.equals(other.location);
     }
 }

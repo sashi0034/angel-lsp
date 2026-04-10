@@ -60,9 +60,13 @@ export function evaluateNumberOperatorCall(lhs: ResolvedType, rhs: ResolvedType)
     }
 
     if (lhs.typeOrFunc.isNumberType()) {
-        if (checkTypeCast(rhs, lhs)) return lhs;
+        if (checkTypeCast(rhs, lhs)) {
+            return lhs;
+        }
     } else if (rhs.typeOrFunc.isNumberType()) {
-        if (checkTypeCast(lhs, rhs)) return rhs;
+        if (checkTypeCast(lhs, rhs)) {
+            return rhs;
+        }
     }
 
     return undefined;
@@ -73,8 +77,14 @@ export function evaluateNumberOperatorCall(lhs: ResolvedType, rhs: ResolvedType)
  */
 export function canComparisonOperatorCall(lhs: ResolvedType, rhs: ResolvedType): ResolvedType | undefined {
     // FIXME: Probably it is wrong.
-    if (checkTypeCast(lhs, rhs)) return lhs;
-    if (checkTypeCast(rhs, lhs)) return rhs;
+    if (checkTypeCast(lhs, rhs)) {
+        return lhs;
+    }
+
+    if (checkTypeCast(rhs, lhs)) {
+        return rhs;
+    }
+
     return undefined;
 }
 
@@ -185,7 +195,10 @@ type MismatchReason =
       };
 
 function hasMismatchReason(reason: ResolvedType | MismatchReason | undefined): reason is MismatchReason {
-    if (reason === undefined) return false;
+    if (reason === undefined) {
+        return false;
+    }
+
     return 'reason' in reason;
 }
 
@@ -277,8 +290,13 @@ function takeWiderNumberType(lhs: ResolvedType, rhs: ResolvedType): ResolvedType
 
     // Take the wider number type.
     for (const type of widerNumberTable) {
-        if (lhs.identifierText === type) return lhs;
-        if (rhs.identifierText === type) return rhs;
+        if (lhs.identifierText === type) {
+            return lhs;
+        }
+
+        if (rhs.identifierText === type) {
+            return rhs;
+        }
     }
 
     assert(false);

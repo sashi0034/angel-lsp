@@ -217,8 +217,14 @@ export class SymbolScope {
      * Find the parent scope (including itself) that satisfies the condition.
      */
     public takeParentBy(filter: (scope: SymbolScope) => boolean): SymbolScope | undefined {
-        if (filter(this)) return this;
-        if (this.parentScope === undefined) return undefined;
+        if (filter(this)) {
+            return this;
+        }
+
+        if (this.parentScope === undefined) {
+            return undefined;
+        }
+
         return this.parentScope.takeParentBy(filter);
     }
 
@@ -229,7 +235,9 @@ export class SymbolScope {
     }
 
     public getGlobalScope(): SymbolGlobalScope {
-        if (this.isGlobalScope()) return this;
+        if (this.isGlobalScope()) {
+            return this;
+        }
 
         assert(this.parentScope !== undefined);
         return this.parentScope.getGlobalScope();
@@ -271,7 +279,10 @@ export class SymbolScope {
     public insertScope(identifier: string, linkedNode: ScopeLinkedNode | undefined): SymbolScope {
         const alreadyExists = this._childScopeTable.get(identifier);
         if (alreadyExists !== undefined) {
-            if (alreadyExists.linkedNode === undefined) alreadyExists.setLinkedNode(linkedNode);
+            if (alreadyExists.linkedNode === undefined) {
+                alreadyExists.setLinkedNode(linkedNode);
+            }
+
             return alreadyExists;
         }
 
@@ -292,7 +303,10 @@ export class SymbolScope {
 
     public lookupScopeWithParent(identifier: string): SymbolScope | undefined {
         const child = this._childScopeTable.get(identifier);
-        if (child !== undefined) return child;
+        if (child !== undefined) {
+            return child;
+        }
+
         return this.parentScope === undefined ? undefined : this.parentScope.lookupScopeWithParent(identifier);
     }
 
@@ -301,9 +315,15 @@ export class SymbolScope {
     }
 
     public resolveRelativeScope(path: ScopePath): SymbolScope | undefined {
-        if (path.length === 0) return this;
+        if (path.length === 0) {
+            return this;
+        }
+
         const child = this._childScopeTable.get(path[0]);
-        if (child === undefined) return undefined;
+        if (child === undefined) {
+            return undefined;
+        }
+
         return child.resolveRelativeScope(path.slice(1));
     }
 
@@ -321,7 +341,9 @@ export class SymbolScope {
         }
 
         const canOverload = symbol.isFunction() && alreadyExists.isFunctionHolder();
-        if (canOverload === false) return alreadyExists;
+        if (canOverload === false) {
+            return alreadyExists;
+        }
 
         // Functions can be added as overloads
         alreadyExists.pushOverload(symbol);
@@ -347,7 +369,10 @@ export class SymbolScope {
 
     public lookupSymbolWithParent(identifier: string): SymbolObjectHolder | undefined {
         const symbol = this.lookupSymbol(identifier);
-        if (symbol !== undefined) return symbol;
+        if (symbol !== undefined) {
+            return symbol;
+        }
+
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
     }
 
@@ -461,14 +486,20 @@ function errorAlreadyDeclared(token: TokenObject) {
 
 function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
     for (const [key, symbol] of scope.symbolTable) {
-        if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) return symbol;
+        if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) {
+            return symbol;
+        }
     }
 
     for (const [key, child] of scope.childScopeTable) {
-        if (child.isAnonymousScope()) continue;
+        if (child.isAnonymousScope()) {
+            continue;
+        }
 
         const found = findBuiltinStringType(child);
-        if (found !== undefined) return found;
+        if (found !== undefined) {
+            return found;
+        }
     }
 
     return undefined;
@@ -494,8 +525,13 @@ function collectEnumScopeList(scope: SymbolScope): SymbolScope[] {
 
 // Judge if the class has a metadata that indicates it is a built-in string type.
 function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean {
-    if (source === undefined) return false;
-    if (source.nodeName != NodeName.Class) return false;
+    if (source === undefined) {
+        return false;
+    }
+
+    if (source.nodeName != NodeName.Class) {
+        return false;
+    }
     // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;
 
     // Check if the class has a metadata that indicates it is a built-in string type.
@@ -582,15 +618,24 @@ export function resolveActiveScope(path: ScopePath): SymbolScope {
 
 /** @internal */
 export function tryResolveActiveScope(path: ScopePath | undefined): SymbolScope | undefined {
-    if (path === undefined) return getActiveGlobalScope();
+    if (path === undefined) {
+        return getActiveGlobalScope();
+    }
+
     return getActiveGlobalScope().resolveScope(path);
 }
 
 // -----------------------------------------------
 
 export function isScopeChildOrGrandchild(childScope: SymbolScope, parentScope: SymbolScope): boolean {
-    if (parentScope === childScope) return true;
-    if (childScope.parentScope === undefined) return false;
+    if (parentScope === childScope) {
+        return true;
+    }
+
+    if (childScope.parentScope === undefined) {
+        return false;
+    }
+
     return isScopeChildOrGrandchild(childScope.parentScope, parentScope);
 }
 

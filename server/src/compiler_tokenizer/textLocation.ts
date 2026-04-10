@@ -26,7 +26,10 @@ export class TextPosition implements lsp.Position {
      * Returns true if this position is ahead of the other position.
      */
     public isLessThan(other: lsp.Position): boolean {
-        if (this.line < other.line) return true;
+        if (this.line < other.line) {
+            return true;
+        }
+
         return this.line === other.line && this.character < other.character;
     }
 
@@ -37,13 +40,23 @@ export class TextPosition implements lsp.Position {
         const lhsLineDiff = Math.abs(lhs.line - this.line);
         const rhsLineDiff = Math.abs(rhs.line - this.line);
 
-        if (lhsLineDiff < rhsLineDiff) return -1;
-        if (lhsLineDiff > rhsLineDiff) return 1;
+        if (lhsLineDiff < rhsLineDiff) {
+            return -1;
+        }
+
+        if (lhsLineDiff > rhsLineDiff) {
+            return 1;
+        }
 
         const lhsCharacterDiff = Math.abs(lhs.character - this.character);
         const rhsCharacterDiff = Math.abs(rhs.character - this.character);
-        if (lhsCharacterDiff < rhsCharacterDiff) return -1;
-        if (lhsCharacterDiff > rhsCharacterDiff) return 1;
+        if (lhsCharacterDiff < rhsCharacterDiff) {
+            return -1;
+        }
+
+        if (lhsCharacterDiff > rhsCharacterDiff) {
+            return 1;
+        }
 
         return 0;
     }
@@ -57,10 +70,14 @@ export class TextPosition implements lsp.Position {
      */
     public movedBy(line: number, count: number): TextPosition {
         let newLine = this.line + line;
-        if (newLine < 0) newLine = 0;
+        if (newLine < 0) {
+            newLine = 0;
+        }
 
         let newCharacter = this.character + count;
-        if (newCharacter < 0) newCharacter = 0;
+        if (newCharacter < 0) {
+            newCharacter = 0;
+        }
 
         return new TextPosition(newLine, newCharacter);
     }
@@ -100,9 +117,17 @@ export class TextRange implements lsp.Range {
      * Returns true if the specified position is within this range inclusively.
      */
     public positionInRange(position: lsp.Position): boolean {
-        if (position.line < this.start.line || position.line > this.end.line) return false;
-        if (position.line === this.start.line && position.character < this.start.character) return false;
-        if (position.line === this.end.line && position.character > this.end.character) return false;
+        if (position.line < this.start.line || position.line > this.end.line) {
+            return false;
+        }
+
+        if (position.line === this.start.line && position.character < this.start.character) {
+            return false;
+        }
+
+        if (position.line === this.end.line && position.character > this.end.character) {
+            return false;
+        }
 
         return true;
     }
@@ -117,7 +142,10 @@ export class TextRange implements lsp.Range {
     }
 
     public intersects(other: TextRange): boolean {
-        if (this.end.isLessThan(other.start) || other.end.isLessThan(this.start)) return false;
+        if (this.end.isLessThan(other.start) || other.end.isLessThan(this.start)) {
+            return false;
+        }
+
         return true;
     }
 

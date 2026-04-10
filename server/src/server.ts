@@ -295,7 +295,9 @@ s_connection.onDefinition(params => {
     const caret = TextPosition.create(params.position);
 
     const definition = provideDefinitionAsToken(globalScope, getAllGlobalScopes(), caret);
-    if (definition !== undefined) return definition.location.toServerLocation();
+    if (definition !== undefined) {
+        return definition.location.toServerLocation();
+    }
 
     return provideDefinitionFallback(record.rawTokens, globalScope, caret);
 });
@@ -365,7 +367,10 @@ s_connection.onRenameRequest(params => {
     const changes: {[uri: string]: TextEdit[]} = {};
     locations.forEach(location => {
         const uri = location.uri;
-        if (changes[uri] === undefined) changes[uri] = [];
+        if (changes[uri] === undefined) {
+            changes[uri] = [];
+        }
+
         changes[uri].push({
             range: location.range,
             newText: params.newName
@@ -428,7 +433,9 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
 s_connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
     const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope.globalScope;
 
-    if (typeof item.data !== 'number') return item;
+    if (typeof item.data !== 'number') {
+        return item;
+    }
 
     const itemWrapper = s_lastCompletion.items[item.data];
     if (itemWrapper.item.label !== item.label) {
@@ -446,7 +453,9 @@ s_connection.onSignatureHelp(params => {
     s_inspector.flushRecord(uri);
 
     const diagnosedScope = s_inspector.getRecord(uri).analyzerScope;
-    if (diagnosedScope === undefined) return null;
+    if (diagnosedScope === undefined) {
+        return null;
+    }
 
     return provideSignatureHelp(diagnosedScope.globalScope, params.position, uri);
 });

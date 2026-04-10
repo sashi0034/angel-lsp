@@ -31,12 +31,16 @@ export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: 
 
 function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: FunctionCallInfo) {
     const callerNode = info.callerArgumentsNode;
-    if (callerNode === undefined) return [];
+    if (callerNode === undefined) {
+        return [];
+    }
     // -----------------------------------------------
 
     let calleeFunction: SymbolFunction | undefined = undefined;
     for (const reference of globalScope.info.reference) {
-        if (reference.toSymbol.isFunction() === false) continue;
+        if (reference.toSymbol.isFunction() === false) {
+            continue;
+        }
 
         if (reference.fromToken === info.callerIdentifier) {
             calleeFunction = reference.toSymbol;
@@ -44,7 +48,9 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
         }
     }
 
-    if (calleeFunction === undefined) return [];
+    if (calleeFunction === undefined) {
+        return [];
+    }
     // -----------------------------------------------
 
     // 'caller' --> '(' --> 'arg[0]' --> ',' ---> 'arg[1]' --> ',' --> ... --> ')'
@@ -52,7 +58,9 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     const edits: lsp.TextEdit[] = [];
     const calleeeParams = calleeFunction.linkedNode.paramList;
     for (let paramId = 0; paramId < calleeeParams.length; ++paramId) {
-        if (calleeeParams[paramId].identifier === undefined) continue;
+        if (calleeeParams[paramId].identifier === undefined) {
+            continue;
+        }
 
         if (callerNode.argList.length <= paramId) {
             break;
@@ -72,7 +80,9 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     // 'caller' --> '(' --> 'name: arg[0]' --> ',' ---> 'name: arg[1]' --> ',' --> ... --> 'name: name, name: name)'
     let tail = '';
     for (let paramId = callerNode.argList.length; paramId < calleeeParams.length; ++paramId) {
-        if (calleeeParams[paramId].identifier === undefined) continue;
+        if (calleeeParams[paramId].identifier === undefined) {
+            continue;
+        }
 
         if (paramId > 0) {
             tail += ', ';

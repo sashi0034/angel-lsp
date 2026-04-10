@@ -340,6 +340,7 @@ function createAtomicMarkPropertyTrie() {
     for (const mark of reservedAtomicMarkArray) {
         markMap.insert(mark, reservedWordProperties.get(mark)!);
     }
+
     return markMap;
 }
 
@@ -360,6 +361,7 @@ function createKeywordPropertyMap() {
     for (const keyword of reservedKeywordArray) {
         keywordMap.set(keyword, reservedWordProperties.get(keyword)!);
     }
+
     return keywordMap;
 }
 
@@ -377,6 +379,9 @@ export function findReservedKeywordProperty(str: string) {
  */
 export function findAllReservedWordProperty(str: string) {
     const result = reservedWordProperties.get(str);
-    if (result !== undefined) return result;
+    if (result !== undefined) {
+        return result;
+    }
+
     assert(false);
 }

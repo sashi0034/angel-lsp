@@ -19,12 +19,18 @@ import assert = require('node:assert');
 export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
 
 export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is NodeClass {
-    if (type === undefined) return false;
+    if (type === undefined) {
+        return false;
+    }
+
     return type.nodeName === NodeName.Enum || type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
 export function isNodeClassOrInterface(type: NodeBase | undefined): type is NodeClass {
-    if (type === undefined) return false;
+    if (type === undefined) {
+        return false;
+    }
+
     return type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
@@ -37,9 +43,14 @@ export enum SymbolKind {
 export type ScopePath = ReadonlyArray<string>;
 
 export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
-    if (lhs.length !== rhs.length) return false;
+    if (lhs.length !== rhs.length) {
+        return false;
+    }
+
     for (let i = 0; i < lhs.length; i++) {
-        if (lhs[i] !== rhs[i]) return false;
+        if (lhs[i] !== rhs[i]) {
+            return false;
+        }
     }
 
     return true;
@@ -314,8 +325,14 @@ export class SymbolFunction extends SymbolBase {
 
     public clone(option?: {identifierToken?: TokenObject; accessRestriction?: AccessModifier}): this {
         const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
-        if (option?.identifierToken !== undefined) clone.identifierToken = option.identifierToken;
-        if (option?.accessRestriction !== undefined) clone.accessRestriction = option.accessRestriction;
+        if (option?.identifierToken !== undefined) {
+            clone.identifierToken = option.identifierToken;
+        }
+
+        if (option?.accessRestriction !== undefined) {
+            clone.accessRestriction = option.accessRestriction;
+        }
+
         return clone;
     }
 
@@ -418,7 +435,9 @@ export class SymbolFunctionHolder implements SymbolHolder {
 
 export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is SymbolFunctionHolder | SymbolVariable {
     const canBeMember = symbol.isFunctionHolder() || symbol.isVariable();
-    if (canBeMember === false) return false;
+    if (canBeMember === false) {
+        return false;
+    }
 
     return symbol.toList()[0].isInstanceMember;
 }
