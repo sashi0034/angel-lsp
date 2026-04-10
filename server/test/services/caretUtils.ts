@@ -6,8 +6,8 @@ interface CaretAndContent {
 }
 
 /**
- * Returns the caret position and the content of the specified string.
- * Caret should be represented by "$C$".
+ * Return the caret position and the content for the given string.
+ * Represent the caret with `$C$`.
  */
 export function makeCaretAndContent(rawContent: string): CaretAndContent {
     const lines = rawContent.split(/\r?\n/);
@@ -32,16 +32,16 @@ interface CaretListAndContent {
 }
 
 /**
- * Returns the list of caret positions and the content of the specified string.
- * Caret should be represented by "$C0$", "$C1$", "$C2$", etc.
+ * Return the caret positions and content for the given string.
+ * Represent carets with `$C0$`, `$C1$`, `$C2$`, and so on.
  */
 export function makeCaretListAndContent(rawContent: string): CaretListAndContent {
     const lines = rawContent.split(/\r?\n/);
     const caretList: Map<number, TextPosition> = new Map();
-    // Regex to match markers like $C0$, $C1$, $C2$, etc.
+    // Match markers such as $C0$, $C1$, $C2$, and so on.
     const markerRegex = /\$C(\d+)\$/;
     const newLines = lines.map((line, lineNumber) => {
-        // For each match in the line, record its position.
+        // Record the position of each marker in the line.
         let match: RegExpExecArray | null;
         while ((match = markerRegex.exec(line)) !== null) {
             const markerNumber = parseInt(match[1], 10);

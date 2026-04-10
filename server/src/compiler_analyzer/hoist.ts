@@ -154,7 +154,7 @@ function hoistClass(
         isSpecialization && classNode.typeTemplates ? buildTemplateSignature(classNode.typeTemplates) : undefined;
     const symbolKey = specializationSig ? baseIdentifier + specializationSig : baseIdentifier;
 
-    // Preserve the original location so the symbol can be copied to other scopes
+    // Preserve the original location so the symbol can be copied into other scopes.
     const identifierToken = specializationSig
         ? new IdentifierToken(symbolKey, classNode.identifier.location)
         : classNode.identifier;
@@ -199,10 +199,10 @@ function hoistClass(
                 return;
             }
 
-            // Copy the members of the base class
+            // Copy members from the base class.
             copyBaseMembers(scope, symbol.baseList);
 
-            // Insert the super constructor
+            // Insert the `super` constructor.
             const primeBase = symbol.baseList.length >= 1 ? symbol.baseList[0] : undefined;
             const baseConstructorHolder = findConstructorOfType(primeBase);
             if (baseConstructorHolder?.isFunctionHolder()) {
@@ -383,7 +383,6 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
 
 // **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 // TODO: IMPLEMENT IT!
-
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(

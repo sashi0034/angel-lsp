@@ -21,7 +21,7 @@ export function causeTypeConversionSideEffect(
         });
     }
 
-    // Resolved the type of the ambiguous enum member
+    // Resolve the type of an ambiguous enum member.
     if (src.typeOrFunc.isType() && src.typeOrFunc.multipleEnumCandidates !== undefined) {
         const enumScope = resolveActiveScope(dest.scopePath ?? []).lookupScope(dest.identifierText);
         const enumMember = enumScope?.lookupSymbol(src.typeOrFunc.identifierText);
@@ -33,5 +33,5 @@ export function causeTypeConversionSideEffect(
         }
     }
 
-    // TODO: Implement output warning for type conversion.
+    // TODO: Emit a warning for type conversions.
 }

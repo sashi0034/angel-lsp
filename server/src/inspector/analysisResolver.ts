@@ -158,7 +158,7 @@ export class AnalysisResolver {
         // -----------------------------------------------
         analyzerDiagnostic.beginSession();
 
-        // Collect scopes in included files
+        // Collect scopes from included files.
         const includeScopes = this.collectIncludeScope(record, predefinedUri);
 
         const profiler = new Profiler();
@@ -358,7 +358,7 @@ export class AnalysisResolver {
 
         const includedScopes = [];
 
-        // Get the analyzed scope of included files
+        // Use the analyzed scopes of included files.
         for (const uri of includePaths) {
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
@@ -366,14 +366,14 @@ export class AnalysisResolver {
                 continue;
             }
 
-            // If the file has not been analyzed, start inspecting it
+            // If the file has not been analyzed yet, start inspecting it.
             const content = readFileContent(uri);
             if (content !== undefined) {
                 this._inspectRequest(uri, content);
                 continue;
             }
 
-            // If the file is not found, notify the error
+            // If the file cannot be found, report an error.
             const includePathToken = preprocessOutput.includePathTokens.find(
                 token => getAbsolutePathFromIncludeToken(targetUri, token) === uri
             );

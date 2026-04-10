@@ -24,7 +24,7 @@ export interface CompletionItemWrapper {
 export function provideCompletion(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
     const items = provideCompletion_internal(globalScope, caret);
 
-    // Assign sort keys to completion items.
+    // Assign sort keys to the completion items.
     for (const item of items) {
         attackSortKey(item.item);
     }
@@ -37,15 +37,15 @@ function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextP
 
     const caretScope = findScopeContainingPosition(globalScope, caret).scope;
 
-    // If there is a completion target within the scope that should be prioritized, return the completion candidates for it.
-    // e.g., Methods of the instance object.
+    // If there is a higher-priority completion target in this scope, return its candidates first.
+    // e.g., instance methods on an object.
     const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
     if (prioritizedCompletion !== undefined) {
         return prioritizedCompletion;
     }
 
-    // Return the completion candidates for the symbols in the scope itself and its parent scope.
-    // e.g., Defined classes or functions in the scope.
+    // Return completion candidates from this scope and its parent scopes.
+    // e.g., classes or functions defined in the current context.
     for (const scope of collectScopeListWithParentAndUsingNamespace(caretScope)) {
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
@@ -58,10 +58,10 @@ function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextP
 function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
-    // Completion of symbols in the scope
+    // Complete symbols declared in this scope.
     for (const [symbolName, symbol] of scope.symbolTable) {
         if (includeInstanceMember === false) {
-            // Skip instance members
+            // Skip instance members.
             if (isSymbolInstanceMember(symbol)) {
                 continue;
             }
@@ -75,7 +75,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
         items.push(makeCompletionItem(symbolName, symbol));
     }
 
-    // Completion of namespace
+    // Complete namespaces.
     for (const [childName, childScope] of scope.childScopeTable) {
         if (childScope.isPureNamespaceScope() === false) {
             continue;
@@ -119,7 +119,7 @@ function getCompletionMembersInScope(
 ): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
-    // Completion of symbols in the scope
+    // Complete symbols declared in this scope.
     for (const [symbolName, symbol] of symbolScope.symbolTable) {
         if (isSymbolInstanceMember(symbol) === false) {
             continue;
@@ -137,10 +137,10 @@ function getCompletionMembersInScope(
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
     for (const info of globalScope.info.autocompleteInstanceMember) {
-        // Check if the completion target to be prioritized is at the cursor position in the scope.
+        // Check whether this higher-priority completion target is at the cursor position.
         const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
-            // Return the completion target to be prioritized.
+            // Return the higher-priority completion target.
             const result = autocompleteInstanceMember(globalScope, caretScope, info);
             if (result !== undefined && result.length > 0) {
                 return result;
@@ -149,10 +149,10 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
     }
 
     for (const info of globalScope.info.autocompleteNamespaceAccess) {
-        // Check if the completion target to be prioritized is at the cursor position in the scope.
+        // Check whether this higher-priority completion target is at the cursor position.
         const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
-            // Return the completion target to be prioritized.
+            // Return the higher-priority completion target.
             const result = getCompletionSymbolsInScope(info.accessScope, false);
             if (result !== undefined && result.length > 0) {
                 if (info.accessScope.linkedNode?.nodeName !== NodeName.Enum) {
@@ -172,7 +172,7 @@ function autocompleteInstanceMember(
     caretScope: SymbolScope,
     completion: AutocompleteInstanceMemberInfo
 ) {
-    // Find the scope to which the type to be completed belongs.
+    // Find the scope that owns the type being completed.
     if (completion.targetType.membersScopePath === undefined) {
         return [];
     }
@@ -185,7 +185,7 @@ function autocompleteInstanceMember(
         return [];
     }
 
-    // Return the completion candidates in the scope.
+    // Return completion candidates from that scope.
     return getCompletionMembersInScope(globalScope, caretScope, typeScope);
 }
 
@@ -214,7 +214,7 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
     return {item, symbol};
 }
 
-// Symbols with underscores are sorted to the back.
+// Sort symbols with leading underscores toward the end.
 function attackSortKey(item: CompletionItem) {
     const labelText: string = item.label;
 

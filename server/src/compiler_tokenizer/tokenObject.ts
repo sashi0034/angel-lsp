@@ -5,8 +5,8 @@ import {TokenRange} from './tokenRange';
 import assert = require('node:assert');
 
 /**
- * Tokenizer categorizes tokens into the following kinds.
- * Unknown tokens such as non-alphanumeric characters are removed during the tokenization phase.
+ * The tokenizer classifies tokens into the following kinds.
+ * Unknown tokens, such as unsupported non-alphanumeric characters, are removed during tokenization.
  */
 export enum TokenKind {
     Reserved = 'Reserved',
@@ -27,32 +27,32 @@ const emptyLocation = TextLocation.createEmpty();
  * Base object for all tokens.
  */
 export abstract class TokenBase {
-    // Location information of a token including the file path and the position within the file.
+    // Token location, including the file path and the position within the file.
     private readonly _location: TextLocation | undefined;
 
-    // Syntax highlight information
+    // Syntax highlighting information.
     private _highlight: HighlightInfo;
 
-    // Raw token information are set by the tokenizer.
+    // Raw-token links assigned by the tokenizer.
     private _prevRawToken: TokenObject | undefined = undefined;
     private _nextRawToken: TokenObject | undefined = undefined;
 
-    // Preprocessed token information are set by the preprocessor.
+    // Preprocessed-token links assigned by the preprocessor.
     private _indexInPreprocessedTokenList: number = -1;
     private _prevPreprocessedToken: TokenObject | undefined = undefined;
     private _nextPreprocessedToken: TokenObject | undefined = undefined;
 
-    // Information about the token range covered by this virtual token
+    // Range covered by this virtual token.
     private readonly _coveredRange: TokenRange | undefined = undefined;
 
     protected constructor(
-        // The text content of a token as it is in principle. (Note that a combined multi-string token is modified.)
+        // Raw token text. Combined string tokens are an exception and may be rewritten.
         public readonly text: string,
-        // The location information of a token. If this is a virtual token, it can specify the range it covers.
+        // Token location. Virtual tokens may instead provide the covered range.
         location: TextLocation | TokenRange | undefined,
-        // Initial highlight information for the token type
+        // Initial highlight information for the token type.
         highlightToken: HighlightForToken,
-        // Initial highlight information for the token modifier
+        // Initial highlight information for the token modifier.
         highlightModifier: HighlightForModifier = HighlightForModifier.Nothing
     ) {
         if (location instanceof TextLocation) {
@@ -157,8 +157,8 @@ export abstract class TokenBase {
     }
 
     /**
-     * Information on the token range this token covered.
-     * It is basically set for virtual tokens.
+     * Return the token range covered by this token.
+     * This is usually set only for virtual tokens.
      */
     public get coveredRange(): TokenRange | undefined {
         return this._coveredRange;

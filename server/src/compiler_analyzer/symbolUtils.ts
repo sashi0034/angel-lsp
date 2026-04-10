@@ -205,13 +205,13 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
             return false;
         }
 
-        // Get the symbol of the class to which the accessing scope belongs.
+        // Get the class symbol that owns the accessing scope.
         const nearestClassSymbol = nearestClassScope.parentScope.lookupSymbol(nearestClassScope.key);
         if (nearestClassSymbol === undefined || nearestClassSymbol.isType() === false) {
             return false;
         }
 
-        // Get the symbol of the class to which the instance member belongs.
+        // Get the class symbol that owns the instance member.
         if (scopeOfInstanceMember.parentScope === undefined) {
             return false;
         }

@@ -668,7 +668,7 @@ function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
 
     const listOperations: NodeListValidOperators[] = [];
 
-    // parse list entries
+    // Parse the list entries.
     while (!parser.isEnd()) {
         if (parser.next().text === '}') {
             break;
@@ -724,9 +724,9 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
     const typeTemplates = parseTypeTemplates(parser) ?? [];
 
     if (parser.isPredefinedFile === false) {
-        // Function declaration is not allowed outside 'as.predefined'
+        // Function declarations are not allowed outside `as.predefined`.
         if (lookaheadTokenAfterParentheses(parser)?.text === ';') {
-            // This node can be a variable calling a constructor, not a function declaration.
+            // This may be a variable initialized by a constructor call, not a function declaration.
             parser.backtrack(rangeStart);
             return undefined;
         }
@@ -825,8 +825,9 @@ function lookaheadTokenAfterParentheses(parser: ParserState) {
     return undefined;
 }
 
-// Metadata declarations in the same place and the only other rule is the matching count of '[' and ']'
-// e.g., '[Hello[]]' is ok but '[Hello[]' is not.
+// Metadata declarations can appear in sequence, and the only structural rule here
+// is that `[` and `]` must be balanced.
+// e.g., `[Hello[]]` is valid but `[Hello[]` is not.
 function parseMetadata(parser: ParserState): TokenObject[][] {
     const rangeStart = parser.next();
     if (parser.next().text !== '[') {
@@ -849,8 +850,9 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
             parser.commit(HighlightForToken.Operator);
 
             if (level === 0) {
-                // Since AngelScript supports multiple metadata declarations in subsequent pairs of '[' and ']', we recursively parse those declarations here.
-                // e.g., '[Hello][World]' is valid, as is
+                // AngelScript allows multiple metadata declarations in consecutive `[` `]` pairs,
+                // so continue parsing them here.
+                // e `[Hello][World]` is valid, as are
                 // [Hello]
                 // [World]
                 if (parser.next().text === '[') {
@@ -873,7 +875,7 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
         }
     }
 
-    // when level !== 0
+    // This happens when `level !== 0`.
     parser.backtrack(rangeStart);
     return [];
 }
@@ -1363,12 +1365,10 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
             parser.error('Variadic ellipses must be the last parameter.');
         }
 
-        // if it's not a type, it's probably a variable
-        // calling a constructor.
+        // If this is not a type, it is probably a variable followed by a constructor call.
         const type = parseType(parser);
         if (type === undefined) {
-            // if it's not a valid identifier, it's not
-            // ever going to be a valid constructor.
+            // If this is not a valid identifier, it can never become a valid constructor call.
             if (parser.next().kind === TokenKind.String || parser.next().kind === TokenKind.Number) {
                 return undefined;
             }
@@ -2758,7 +2758,7 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
 
 // **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
-    // A lambda expression is determined by checking whether a '{' appears after the '(' at the end of a function call.
+    // Detect a lambda by checking whether `{` appears after the closing `)` of the parameter list.
     if (canParseLambda(parser) === false) {
         return ParseFailure.Mismatch;
     }
@@ -3073,8 +3073,8 @@ function handleGreaterThanAndGetNext(parser: ParserState) {
     }
 
     // -----------------------------------------------
-    // We need to combine the tokens starting with '>' with the next token
-    // because they are separated at the time of tokenization.
+    // Tokens that start with `>` need to be merged with the following token
+    // because tokenization splits them apart.
 
     const check = (expected: string[], combinedText: string) => {
         if (areTokensJoinedBy(parser.next(1), expected) === false) {

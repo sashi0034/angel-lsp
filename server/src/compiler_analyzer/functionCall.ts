@@ -16,12 +16,12 @@ interface CallerArgument {
 }
 
 interface FunctionCallArgs {
-    // caller arguments
+    // Caller-side arguments
     callerIdentifier: TokenObject;
     callerRange: TokenRange;
     callerArgs: CallerArgument[];
 
-    // callee arguments
+    // Callee-side arguments
     calleeFuncHolder: FunctionSymbolHolder;
     calleeTemplateTranslator: TemplateTranslator | undefined;
     calleeDelegateVariable?: VariableSymbol; // This is required because the delegate is called by a variable.
@@ -36,22 +36,22 @@ interface FunctionCallResult {
     returnType: ResolvedType | undefined;
 
     /**
-     * Side effect of the function call. (e.g. output error message)
+     * Side effects of the function call, such as reporting an error.
      */
     sideEffect: () => void;
 }
 
 /**
- * Evaluates the function call and returns its resolved type.
- * It does not trigger side effects.
+ * Evaluate the function call and return its resolved type.
+ * This does not trigger side effects.
  */
 export function evaluateFunctionCall(args: FunctionCallArgs): FunctionCallResult {
     return checkFunctionCallInternal(args);
 }
 
 /**
- * Checks whether the arguments provided by the caller match the parameters of the callee function.
- * If the function call is valid, it triggers side effects and returns the resolved return type.
+ * Check whether the caller arguments match the callee parameters.
+ * If the call is valid, trigger side effects and return the resolved return type.
  */
 export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefined {
     const result = checkFunctionCallInternal(args);
@@ -81,7 +81,7 @@ enum MismatchKind {
 const mismatchPriority: Map<MismatchKind, number> = new Map([
     [MismatchKind.TooManyArguments, 0],
     [MismatchKind.FewerArguments, 0],
-    [MismatchKind.InvalidNamedArgumentOrder, 10], // We highly prioritize errors related to named arguments.
+    [MismatchKind.InvalidNamedArgumentOrder, 10], // Prioritize named-argument errors highly.
     [MismatchKind.DuplicateNamedArgument, 10],
     [MismatchKind.NotFoundNamedArgument, 10],
     [MismatchKind.ParameterMismatch, 5]
@@ -120,7 +120,7 @@ function hasMismatchReason(reason: number | MismatchReason): reason is MismatchR
 function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     const {callerIdentifier, calleeFuncHolder, calleeDelegateVariable} = args;
 
-    // If the callee is a delegate and succeeds in casting, return it directly.
+    // If the callee is a delegate and the cast succeeds, return it directly.
     const delegateCast = evaluateDelegateCast(args);
     if (delegateCast !== undefined) {
         return delegateCast;
@@ -129,12 +129,12 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     let bestMatching: BestMatching | undefined = undefined;
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
-    // Find the best matching function.
+    // Find the best-matching overload.
     for (const callee of calleeFuncHolder.toList()) {
         const sideEffectBuffer: TypeConversionSideEffect[] = [];
         const evaluated = evaluateFunctionMatch(args, callee, sideEffectBuffer);
         if (hasMismatchReason(evaluated)) {
-            // Handle mismatch errors.
+            // Track mismatch errors.
             if (mismatchPriority.get(evaluated.reason)! >= mismatchPriority.get(mismatchReason.reason)!) {
                 mismatchReason = evaluated;
             }
@@ -143,20 +143,20 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         }
 
         if (bestMatching === undefined || evaluated < bestMatching.cost) {
-            // Update the best matching function.
+            // Update the current best match.
             bestMatching = {function: callee, cost: evaluated, sideEffects: sideEffectBuffer};
         }
     }
 
     if (bestMatching !== undefined) {
-        // Return the return type of the best matching function
+        // Return the best-matching function's return type.
         return {
             bestMatching: bestMatching.function,
             returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
             sideEffect: () => {
                 bestMatching?.sideEffects.forEach(sideEffect => sideEffect());
 
-                // Add the reference to the function that was called.
+                // Add a reference to the function that was called.
                 getActiveGlobalScope().pushReference({
                     toSymbol: calleeDelegateVariable ?? bestMatching.function,
                     fromToken: callerIdentifier
@@ -170,10 +170,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             bestMatching: undefined,
             returnType: undefined,
             sideEffect: () => {
-                // Handle mismatch errors.
+                // Report mismatch errors.
                 handleMismatchError(args, mismatchReason);
 
-                // Although the function call resolution fails, a fallback symbol is added as a reference.
+                // Even if resolution fails, add a fallback symbol reference.
                 const fallbackCallee = calleeFuncHolder.first;
                 getActiveGlobalScope().pushReference({
                     toSymbol: calleeDelegateVariable ?? fallbackCallee,
@@ -209,7 +209,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Fun
             continue;
         }
 
-        // Add a reference to the named argument in the callee function scope.
+        // Add a reference to the named argument in the callee scope.
         getActiveGlobalScope().pushReference({toSymbol: toSymbol, fromToken: args.name});
     }
 }
@@ -221,7 +221,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
         return undefined;
     }
 
-    // If the callee is a delegate, check if it can be cast to a delegate.
+    // If the callee is a delegate, check whether the argument can be cast to it.
     const delegateType = ResolvedType.create({
         typeOrFunc: calleeFuncHolder.first,
         templateTranslator: calleeTemplateTranslator
@@ -242,13 +242,13 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
         sideEffect: () => {
             causeTypeConversionSideEffect(evaluation, callerArgs[0].type, delegateType, callerArgs[0].range);
 
-            // Add the reference to the function that was called.
+            // Add a reference to the function that was called.
             getActiveGlobalScope().pushReference({
                 toSymbol: calleeFuncHolder.first,
                 fromToken: callerIdentifier
             });
 
-            // Probably we do not need to add references to named arguments for delegates.
+            // We probably do not need named-argument references for delegates.
         }
     };
 }
@@ -272,11 +272,11 @@ function evaluateFunctionMatch(
         }
     }
 
-    // The order of the caller arguments is expected to be as follows:
+    // Caller arguments are expected in the following order:
     // ('positional', 'positional', ... 'positional', 'named', 'named', ... 'named')
 
     // -----------------------------------------------
-    // Evaluate the named arguments in the caller
+    // Evaluate named arguments from the caller.
     const namedArgumentCost = evaluatePassingNamedArgument(args, callee, sideEffects);
     if (hasMismatchReason(namedArgumentCost)) {
         return namedArgumentCost;
@@ -285,7 +285,7 @@ function evaluateFunctionMatch(
     totalCost += namedArgumentCost;
 
     // -----------------------------------------------
-    // Evaluate the positional arguments in the caller
+    // Evaluate positional arguments from the caller.
     const positionalArgumentCost = evaluatePassingPositionalArgument(args, callee, sideEffects);
     if (hasMismatchReason(positionalArgumentCost)) {
         return positionalArgumentCost;
@@ -309,30 +309,30 @@ function evaluatePassingNamedArgument(
         const callerArgName = callerArgs[argId].name?.text;
         if (callerArgName === undefined) {
             if (foundNamedArgument) {
-                // Positional arguments cannot be passed after named arguments
+                // Positional arguments cannot appear after named arguments.
                 return {reason: MismatchKind.InvalidNamedArgumentOrder, invalidArgumentIndex: argId};
             } else {
                 continue;
             }
         }
 
-        // At this point, the named argument is found.
+        // At this point, we have encountered a named argument.
         foundNamedArgument = true;
 
-        // Check if the named argument is duplicated.
+        // Check for duplicate named arguments.
         for (let i = 0; i < argId; i++) {
             if (callerArgs[i].name?.text === callerArgName) {
                 return {reason: MismatchKind.DuplicateNamedArgument, nameIndex: argId};
             }
         }
 
-        // Find the matching parameter name in the callee function.
+        // Find the matching parameter name in the callee.
         for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
             const calleeArgName = callee.linkedNode.paramList[paramId].identifier?.text;
             if (callerArgName === calleeArgName) {
-                // Found a matching parameter name between the caller and callee
+                // Found a matching parameter name in the callee.
 
-                // Check the type of the passing argument
+                // Check the type of the passed argument.
                 const cost = evaluatePassingArgument(args, argId, callee.parameterTypes[paramId], sideEffectBuffer);
                 if (hasMismatchReason(cost)) {
                     return cost;
@@ -359,10 +359,10 @@ function evaluatePassingPositionalArgument(
     const {callerArgs} = args;
     let totalCost = 0;
 
-    // Iterate over the parameters of the callee function.
+    // Iterate over the callee parameters.
     for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
         if (paramId >= callerArgs.length) {
-            // Handle when the caller arguments are insufficient.
+            // Handle cases where too few caller arguments were provided.
             // If the parameter has a default expression or is variadic (can accept zero args),
             // treat it as satisfied and stop checking further positional parameters.
             if (
@@ -376,11 +376,11 @@ function evaluatePassingPositionalArgument(
         }
 
         if (callerArgs[paramId].name !== undefined) {
-            // Finish the positional arguments when the named argument is found.
+            // Stop processing positional arguments once a named argument appears.
             break;
         }
 
-        // Check the type of the passing argument
+        // Check the type of the passed argument.
         const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId], sideEffectBuffer);
         if (hasMismatchReason(cost)) {
             return cost;

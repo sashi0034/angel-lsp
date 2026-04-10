@@ -13,14 +13,14 @@ describe('fileUtils', () => {
     let tempFile: string;
 
     beforeEach(() => {
-        // Create a temporary directory and file for testing
+        // Create a temporary directory and file for the test.
         tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fileUtils-test-'));
         tempFile = path.join(tempDir, 'test.as');
         fs.writeFileSync(tempFile, '// test file');
     });
 
     afterEach(() => {
-        // Clean up temporary files
+        // Clean up temporary files.
         if (tempDir && fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, {recursive: true, force: true});
         }
@@ -82,7 +82,7 @@ describe('fileUtils', () => {
             const baseUri = 'file:///C:/project/main.as';
             const relativePath = 'src/utils.as';
             const result = resolveUri(baseUri, relativePath);
-            // Drive letter should be normalized to lowercase
+            // The drive letter should be normalized to lowercase.
             assert.match(result, /file:\/\/\/[a-z]%3A/);
         });
 
@@ -145,7 +145,7 @@ describe('fileUtils', () => {
             const baseUri = pathToFileURL(path.join(baseDir, 'main.as')).toString();
             const relativePath = 'test.as';
             const result = resolveIncludeUri(baseUri, relativePath);
-            // Should not double-append .as
+            // `.as` should not be appended twice.
             assert(result.includes('test.as'));
             assert(!result.includes('test.as.as'));
         });
@@ -204,7 +204,7 @@ describe('fileUtils', () => {
             const baseUri = 'file:///C:/project/main.as';
             const relativePath = 'nonexistent.as';
             const result = resolveIncludeUri(baseUri, relativePath);
-            // Should return the resolved URI even if file doesn't exist
+            // Return the resolved URI even if the file does not exist.
             assert(result.includes('nonexistent.as'));
         });
 
@@ -241,7 +241,7 @@ describe('fileUtils', () => {
                 }
             });
 
-            // shouldExcludeFile checks:
+            // `shouldExcludeFile` works as follows:
             // 1. minimatch('file:///c%3A/project/build/test.as', 'build/*.as') -> false
             // 2. minimatch('file:///c%3A/project/build/test.as', resolveUri('file:///C:/project/', 'build/*.as'))
             //    resolveUri('file:///C:/project/', 'build/*.as') -> 'file:///c%3A/project/build/*.as'
