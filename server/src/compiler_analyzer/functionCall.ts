@@ -1,4 +1,4 @@
-import {SymbolFunction, SymbolFunctionHolder, SymbolObject, SymbolVariable} from './symbolObject';
+import {FunctionSymbol, FunctionSymbolHolder, SymbolObject, VariableSymbol} from './symbolObject';
 import {stringifyResolvedType, stringifyResolvedTypes} from './symbolUtils';
 import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
 import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
@@ -22,13 +22,13 @@ interface FunctionCallArgs {
     callerArgs: CallerArgument[];
 
     // callee arguments
-    calleeFuncHolder: SymbolFunctionHolder;
+    calleeFuncHolder: FunctionSymbolHolder;
     calleeTemplateTranslator: TemplateTranslator | undefined;
-    calleeDelegateVariable?: SymbolVariable; // This is required because the delegate is called by a variable.
+    calleeDelegateVariable?: VariableSymbol; // This is required because the delegate is called by a variable.
 }
 
 interface FunctionCallResult {
-    bestMatching: SymbolFunction | undefined;
+    bestMatching: FunctionSymbol | undefined;
 
     /**
      * The return type of the function.
@@ -64,7 +64,7 @@ export function checkFunctionCall(args: FunctionCallArgs): ResolvedType | undefi
 type TypeConversionSideEffect = () => void;
 
 interface BestMatching {
-    function: SymbolFunction;
+    function: FunctionSymbol;
     cost: number;
     sideEffects: TypeConversionSideEffect[];
 }
@@ -186,7 +186,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     }
 }
 
-function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: SymbolFunction) {
+function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: FunctionSymbol) {
     if (callee.functionScopePath === undefined) {
         return;
     }
@@ -257,7 +257,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
 
 function evaluateFunctionMatch(
     args: FunctionCallArgs,
-    callee: SymbolFunction,
+    callee: FunctionSymbol,
     sideEffects: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;
@@ -298,7 +298,7 @@ function evaluateFunctionMatch(
 
 function evaluatePassingNamedArgument(
     args: FunctionCallArgs,
-    callee: SymbolFunction,
+    callee: FunctionSymbol,
     sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;
@@ -353,7 +353,7 @@ function evaluatePassingNamedArgument(
 
 function evaluatePassingPositionalArgument(
     args: FunctionCallArgs,
-    callee: SymbolFunction,
+    callee: FunctionSymbol,
     sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs} = args;

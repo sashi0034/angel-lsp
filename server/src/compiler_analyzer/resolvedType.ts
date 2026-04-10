@@ -1,4 +1,4 @@
-import {ScopePath, SymbolFunction, SymbolType, SymbolVariable} from './symbolObject';
+import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
 // Template translation is resolved as a mapping from tokens to types.
@@ -64,34 +64,26 @@ export function applyTemplateTranslator(
 export class ResolvedType {
     constructor(
         // A type or function that has been resolved.
-        public readonly typeOrFunc: SymbolType | SymbolFunction,
+        public readonly typeOrFunc: TypeSymbol | FunctionSymbol,
         public readonly isHandler?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
-        public readonly accessSource?: SymbolVariable | TokenObject // This is attached when accessing from the variable.
+        public readonly accessSource?: VariableSymbol | TokenObject // This is attached when accessing from the variable.
     ) {}
 
     public static create(args: {
-        typeOrFunc: SymbolType | SymbolFunction;
+        typeOrFunc: TypeSymbol | FunctionSymbol;
         isHandler?: boolean;
         templateTranslator?: TemplateTranslator;
-        accessSource?: SymbolVariable | TokenObject;
+        accessSource?: VariableSymbol | TokenObject;
     }) {
         return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessSource);
     }
-
-    // public clone(): ResolvedType {
-    //     return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator);
-    // }
-
-    // public cloneWith(typeOrFunc: SymbolType | SymbolFunction): ResolvedType {
-    //     return new ResolvedType(typeOrFunc, this.isHandler, this.templateTranslator, this.accessToken);
-    // }
 
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
         return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator, this.accessSource);
     }
 
-    public cloneWithAccessSource(accessSource: SymbolVariable | TokenObject | undefined): ResolvedType {
+    public cloneWithAccessSource(accessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
         return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator, accessSource);
     }
 
@@ -107,8 +99,8 @@ export class ResolvedType {
         return this.typeOrFunc.identifierToken.text;
     }
 
-    public get accessSourceVariable(): SymbolVariable | undefined {
-        return this.accessSource instanceof SymbolVariable ? this.accessSource : undefined;
+    public get accessSourceVariable(): VariableSymbol | undefined {
+        return this.accessSource instanceof VariableSymbol ? this.accessSource : undefined;
     }
 
     public get accessSourceToken(): TokenObject | undefined {
@@ -116,7 +108,7 @@ export class ResolvedType {
             return undefined;
         }
 
-        if (this.accessSource instanceof SymbolVariable) {
+        if (this.accessSource instanceof VariableSymbol) {
             return this.accessSource.identifierToken;
         }
 

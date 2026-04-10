@@ -45,11 +45,11 @@ import {
 import {buildTemplateSignature} from '../compiler_parser/nodesUtils';
 import {
     isNodeClassOrInterface,
-    SymbolFunction,
-    SymbolFunctionHolder,
+    FunctionSymbol,
+    FunctionSymbolHolder,
     SymbolHolder,
-    SymbolType,
-    SymbolVariable
+    TypeSymbol,
+    VariableSymbol
 } from './symbolObject';
 import {NumberLiteral, IdentifierToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {
@@ -132,7 +132,7 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
     const typeTemplates = analyzeTemplateTypes(
         scope,
         func.typeTemplates,
-        (declared.symbol as SymbolFunctionHolder)?.first?.templateTypes
+        (declared.symbol as FunctionSymbolHolder)?.first?.templateTypes
     ); // FIXME?
 
     // Add arguments to the scope
@@ -183,9 +183,9 @@ export function insertVariables(
     nodeVar: NodeVar,
     isInstanceMember: boolean
 ) {
-    const result: SymbolVariable[] = [];
+    const result: VariableSymbol[] = [];
     for (const variableInitializer of nodeVar.variables) {
-        const variable: SymbolVariable = SymbolVariable.create({
+        const variable: VariableSymbol = VariableSymbol.create({
             identifierToken: variableInitializer.identifier,
             scopePath: scope.scopePath,
             type: varType,
@@ -322,7 +322,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
     if (foundSymbol.isFunctionHolder() && foundSymbol.first.linkedNode.nodeName === NodeName.FuncDef) {
         return completeAnalyzingType(scope, typeIdentifier, foundSymbol.first, foundScope, true);
-    } else if (foundSymbol instanceof SymbolType === false) {
+    } else if (foundSymbol instanceof TypeSymbol === false) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
     } else {
@@ -347,7 +347,7 @@ function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
 function completeAnalyzingType(
     scope: SymbolScope, // FIXME: Cleanup
     identifier: TokenObject,
-    foundSymbol: SymbolType | SymbolFunction,
+    foundSymbol: TypeSymbol | FunctionSymbol,
     foundScope: SymbolScope,
     isHandler?: boolean,
     typeTemplates?: TemplateTranslator | undefined
@@ -681,7 +681,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
             }
         }
 
-        const variable: SymbolVariable = SymbolVariable.create({
+        const variable: VariableSymbol = VariableSymbol.create({
             identifierToken: variableDeclaration.identifier,
             scopePath: scope.scopePath,
             type: variableType,
@@ -814,7 +814,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 
         const varName = key.substring(4, key.length);
         const functionReturn = functionScope.parentScope?.symbolTable.get(varName);
-        if (functionReturn === undefined || functionReturn instanceof SymbolVariable === false) {
+        if (functionReturn === undefined || functionReturn instanceof VariableSymbol === false) {
             return;
         }
 
@@ -1047,7 +1047,7 @@ function analyzeExprPostOp(
 
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: ResolvedType) {
-    if (exprValue.typeOrFunc instanceof SymbolType === false) {
+    if (exprValue.typeOrFunc instanceof TypeSymbol === false) {
         analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Invalid access to type.`);
         return undefined;
     }
@@ -1168,7 +1168,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
             continue;
         }
 
-        const argument: SymbolVariable = SymbolVariable.create({
+        const argument: VariableSymbol = VariableSymbol.create({
             identifierToken: param.identifier,
             scopePath: scope.scopePath,
             type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
@@ -1258,13 +1258,13 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
             scope,
             funcCall.identifier,
             funcCall.argList,
-            new SymbolFunctionHolder(calleeSymbol.type.typeOrFunc),
+            new FunctionSymbolHolder(calleeSymbol.type.typeOrFunc),
             callTemplateTranslator,
             calleeSymbol
         );
     }
 
-    if (calleeSymbol instanceof SymbolVariable) {
+    if (calleeSymbol instanceof VariableSymbol) {
         return analyzeOpCallCaller(scope, funcCall, calleeSymbol);
     }
 
@@ -1280,7 +1280,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
     return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateTranslator);
 }
 
-function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: SymbolVariable) {
+function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: VariableSymbol) {
     const varType = calleeVariable.type;
     if (varType === undefined || varType.scopePath === undefined) {
         analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable.`);
@@ -1308,9 +1308,9 @@ function analyzeFunctionCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
     callerArgList: NodeArgList,
-    calleeFuncHolder: SymbolFunctionHolder,
+    calleeFuncHolder: FunctionSymbolHolder,
     calleeTemplateTranslator: TemplateTranslator | undefined,
-    calleeDelegateVariable?: SymbolVariable
+    calleeDelegateVariable?: VariableSymbol
 ) {
     getActiveGlobalScope().info.functionCall.push({
         callerIdentifier: callerIdentifier,
@@ -1420,7 +1420,7 @@ function analyzeEnumMemberAccess(
     //     |-- Access::
     //         |-- ...
 
-    const enumCandidates: SymbolVariable[] = [];
+    const enumCandidates: VariableSymbol[] = [];
     for (const enumScope of getActiveGlobalScope().getContext().enumScopeList) {
         // enumScope.scopePath:
         //   Outer::
@@ -1449,7 +1449,7 @@ function analyzeEnumMemberAccess(
     // enumCandidates.length >= 2
 
     // Create a virtual type for the ambiguous enum member access.
-    const virtualType = SymbolType.create({
+    const virtualType = TypeSymbol.create({
         identifierToken: varIdentifier,
         scopePath: [],
         linkedNode: {

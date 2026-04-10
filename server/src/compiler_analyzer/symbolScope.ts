@@ -3,7 +3,7 @@ import {
     ScopePath,
     SymbolObject,
     SymbolObjectHolder,
-    SymbolType,
+    TypeSymbol,
     TypeDefinitionNode
 } from './symbolObject';
 import {
@@ -56,7 +56,7 @@ interface DetailScopeInformation {
 
 interface GlobalScopeContext {
     filepath: string;
-    builtinStringType: SymbolType | undefined;
+    builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
     info: DetailScopeInformation;
 }
@@ -484,7 +484,7 @@ function errorAlreadyDeclared(token: TokenObject) {
     analyzerDiagnostic.error(token.location, `Symbol '${token.text}' is already declared in the scope.`);
 }
 
-function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
+function findBuiltinStringType(scope: SymbolScope): TypeSymbol | undefined {
     for (const [key, symbol] of scope.symbolTable) {
         if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) {
             return symbol;

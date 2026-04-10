@@ -1,10 +1,10 @@
 import {
-    SymbolFunction,
-    SymbolFunctionHolder,
+    FunctionSymbol,
+    FunctionSymbolHolder,
     SymbolObject,
     SymbolObjectHolder,
-    SymbolType,
-    SymbolVariable
+    TypeSymbol,
+    VariableSymbol
 } from './symbolObject';
 import {
     isAnonymousIdentifier,
@@ -45,7 +45,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
     }
 
     if (type.typeOrFunc.isFunction()) {
-        const func: SymbolFunction = type.typeOrFunc;
+        const func: FunctionSymbol = type.typeOrFunc;
         const returnType = func.returnType;
         const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;

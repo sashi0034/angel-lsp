@@ -1,5 +1,5 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {SymbolFunctionHolder, SymbolObject, SymbolType} from './symbolObject';
+import {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
 import {SymbolScope} from './symbolScope';
 import {TextLocation} from '../compiler_tokenizer/textLocation';
 import {ResolvedType, TemplateTranslator} from './resolvedType';
@@ -28,7 +28,7 @@ export interface ScopeRegionInfo {
  */
 export interface AutocompleteInstanceMemberInfo {
     readonly autocompleteLocation: TextLocation;
-    readonly targetType: SymbolType;
+    readonly targetType: TypeSymbol;
 }
 
 /**
@@ -50,7 +50,7 @@ export interface AutocompleteNamespaceAccessInfo {
 export interface FunctionCallInfo {
     readonly callerIdentifier: TokenObject;
     readonly callerArgumentsNode: NodeArgList;
-    readonly calleeFuncHolder: SymbolFunctionHolder;
+    readonly calleeFuncHolder: FunctionSymbolHolder;
     readonly calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 

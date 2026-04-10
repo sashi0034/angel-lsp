@@ -26,7 +26,7 @@ import {
     NodeVirtualProp,
     ParsedEnumMember
 } from '../compiler_parser/nodes';
-import {SymbolFunction, SymbolType, SymbolVariable} from './symbolObject';
+import {FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent, getFullIdentifierOfSymbol} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
@@ -108,7 +108,7 @@ function hoistNamespace(
 
 // BNF: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
-    const symbol: SymbolType = SymbolType.create({
+    const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: nodeEnum.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeEnum,
@@ -128,7 +128,7 @@ function hoistEnum(parentScope: SymbolScope, nodeEnum: NodeEnum) {
 function hoistEnumMembers(parentScope: SymbolScope, memberList: ParsedEnumMember[], type: ResolvedType) {
     for (const member of memberList) {
         parentScope.insertSymbolAndCheck(
-            SymbolVariable.create({
+            VariableSymbol.create({
                 identifierToken: member.identifier,
                 scopePath: parentScope.scopePath,
                 type: type,
@@ -159,7 +159,7 @@ function hoistClass(
         ? new IdentifierToken(symbolKey, nodeClass.identifier.location)
         : nodeClass.identifier;
 
-    const symbol: SymbolType = SymbolType.create({
+    const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: identifierToken,
         scopePath: parentScope.scopePath,
         linkedNode: nodeClass,
@@ -173,7 +173,7 @@ function hoistClass(
     const scope: SymbolScope = parentScope.insertScopeAndCheck(identifierToken, nodeClass);
     symbol.assignMembersScopePath(scope.scopePath);
 
-    const thisVariable: SymbolVariable = SymbolVariable.create({
+    const thisVariable: VariableSymbol = VariableSymbol.create({
         identifierToken: builtinThisToken,
         scopePath: parentScope.scopePath,
         type: new ResolvedType(symbol),
@@ -239,7 +239,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: NodeType[] | undefin
     const templateTypes: TokenObject[] = [];
     for (const type of types ?? []) {
         scope.insertSymbolAndCheck(
-            SymbolType.create({
+            TypeSymbol.create({
                 identifierToken: getIdentifierInNodeType(type),
                 scopePath: scope.scopePath,
                 linkedNode: undefined,
@@ -370,7 +370,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: NodeTypeDef) {
         return;
     }
 
-    const symbol: SymbolType = SymbolType.create({
+    const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: builtInType.linkedNode,
@@ -401,7 +401,7 @@ function hoistFunc(
         parentScope.insertScope(nodeFunc.identifier.text, undefined);
     const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), nodeFunc);
 
-    const symbol: SymbolFunction = SymbolFunction.create({
+    const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: nodeFunc.identifier,
         scopePath: parentScope.scopePath,
         returnType: undefined, // set below
@@ -466,7 +466,7 @@ function tryInsertVirtualSetterOrGetter(
                 isIndexedPropertyAccessor = node.paramList.length == 2;
             }
 
-            const symbol: SymbolVariable = SymbolVariable.create({
+            const symbol: VariableSymbol = VariableSymbol.create({
                 identifierToken: identifier,
                 scopePath: scope.scopePath,
                 type: returnType,
@@ -490,7 +490,7 @@ function hoistInterface(
     analyzeQueue: AnalyzeQueue,
     hoistQueue: HoistQueue
 ) {
-    const symbol: SymbolType = SymbolType.create({
+    const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: nodeInterface.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: nodeInterface,
@@ -570,7 +570,7 @@ function hoistFuncDef(
     analyzeQueue: AnalyzeQueue,
     hoistQueue: HoistQueue
 ) {
-    const symbol: SymbolFunction = SymbolFunction.create({
+    const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: funcDef.identifier,
         scopePath: parentScope.scopePath,
         returnType: undefined,
@@ -604,7 +604,7 @@ function hoistVirtualProp(
     const type = analyzeType(parentScope, virtualProp.type);
 
     const identifier = virtualProp.identifier;
-    const symbol: SymbolVariable = SymbolVariable.create({
+    const symbol: VariableSymbol = VariableSymbol.create({
         identifierToken: identifier,
         scopePath: parentScope.scopePath,
         type: type,
@@ -628,7 +628,7 @@ function hoistVirtualProp(
         const setterScope = parentScope.insertScope(`set_${identifier.text}`, virtualProp);
 
         if (type !== undefined) {
-            const valueVariable: SymbolVariable = SymbolVariable.create({
+            const valueVariable: VariableSymbol = VariableSymbol.create({
                 identifierToken: builtinSetterValueToken,
                 scopePath: parentScope.scopePath,
                 type: new ResolvedType(type.typeOrFunc),
@@ -652,7 +652,7 @@ function hoistMixin(parentScope: SymbolScope, mixin: NodeMixin, analyzeQueue: An
 
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function hoistIntfMethod(parentScope: SymbolScope, intfMethod: NodeIntfMethod, hoistQueue: HoistQueue) {
-    const symbol: SymbolFunction = SymbolFunction.create({
+    const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: intfMethod.identifier,
         scopePath: parentScope.scopePath,
         returnType: undefined,
@@ -701,7 +701,7 @@ function hoistParamList(
         }
 
         functionScope?.insertSymbolAndCheck(
-            SymbolVariable.create({
+            VariableSymbol.create({
                 identifierToken: param.identifier,
                 scopePath: functionScope.scopePath,
                 type: type,
@@ -758,7 +758,7 @@ function hoistParamList(
 function collectBaseClassesAndDeivedClasses(
     scope: SymbolScope,
     baseClassSet: Set<string>,
-    derivedClassList: SymbolType[]
+    derivedClassList: TypeSymbol[]
 ) {
     for (const symbol of scope.symbolTable.values()) {
         if (symbol.isType()) {
@@ -782,12 +782,12 @@ function collectBaseClassesAndDeivedClasses(
 function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
     const resolvedClassSet: Set<string> = new Set();
 
-    let unresolvedDerivedClassList: SymbolType[] = [];
+    let unresolvedDerivedClassList: TypeSymbol[] = [];
 
     collectBaseClassesAndDeivedClasses(globalScope, resolvedClassSet, unresolvedDerivedClassList);
 
     // FIXME: Optimize?
-    let nextList: SymbolType[] = [];
+    let nextList: TypeSymbol[] = [];
     for (;;) {
         for (const derivedClass of unresolvedDerivedClassList) {
             let resolveBaseClasses = true;

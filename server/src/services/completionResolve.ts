@@ -2,7 +2,7 @@ import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {stringifyResolvedType, stringifySymbolObject} from '../compiler_analyzer/symbolUtils';
 import {InsertTextFormat} from 'vscode-languageserver';
-import {SymbolFunctionHolder, SymbolType, SymbolVariable} from '../compiler_analyzer/symbolObject';
+import {FunctionSymbolHolder, TypeSymbol, VariableSymbol} from '../compiler_analyzer/symbolObject';
 import {CompletionItemWrapper} from './completion';
 import {NodeName} from '../compiler_parser/nodes';
 import * as path from 'path';
@@ -33,7 +33,7 @@ export function provideCompletionResolve(
 
 // -----------------------------------------------
 
-function resolveVariableItem(item: CompletionItem, symbol: SymbolVariable) {
+function resolveVariableItem(item: CompletionItem, symbol: VariableSymbol) {
     item.detail = stringifyResolvedType(symbol.type) + ' ' + symbol.identifierText;
 
     return item;
@@ -41,7 +41,7 @@ function resolveVariableItem(item: CompletionItem, symbol: SymbolVariable) {
 
 // -----------------------------------------------
 
-function resolveTypeItem(globalScope: SymbolGlobalScope, item: CompletionItem, symbol: SymbolType): CompletionItem {
+function resolveTypeItem(globalScope: SymbolGlobalScope, item: CompletionItem, symbol: TypeSymbol): CompletionItem {
     item.detail = getTypeNodeName(symbol);
     item.detail += ' ' + [...symbol.scopePath, symbol.identifierText].join('::');
 
@@ -53,7 +53,7 @@ function resolveTypeItem(globalScope: SymbolGlobalScope, item: CompletionItem, s
     return item;
 }
 
-function getTypeNodeName(symbol: SymbolType) {
+function getTypeNodeName(symbol: TypeSymbol) {
     const nodeName = symbol.linkedNode?.nodeName;
     if (nodeName === NodeName.Enum) {
         return 'enum';
@@ -72,7 +72,7 @@ function getTypeNodeName(symbol: SymbolType) {
 
 // -----------------------------------------------
 
-function resolveFunctionItem(item: CompletionItem, symbol: SymbolFunctionHolder) {
+function resolveFunctionItem(item: CompletionItem, symbol: FunctionSymbolHolder) {
     const functionSymbol = symbol.first;
 
     // Display the signature, e.g. "void fn(int a, int b)"
@@ -101,7 +101,7 @@ function resolveFunctionItem(item: CompletionItem, symbol: SymbolFunctionHolder)
     return item;
 }
 
-function hasFunctionArguments(functionHolder: SymbolFunctionHolder) {
+function hasFunctionArguments(functionHolder: FunctionSymbolHolder) {
     if (functionHolder.toList().length !== 1) {
         return true;
     }

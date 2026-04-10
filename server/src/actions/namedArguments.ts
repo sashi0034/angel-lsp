@@ -1,7 +1,7 @@
 import {CodeActionWrapper} from './utils';
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {TextRange} from '../compiler_tokenizer/textLocation';
-import {SymbolFunction} from '../compiler_analyzer/symbolObject';
+import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import * as lsp from 'vscode-languageserver';
 import {FunctionCallInfo} from '../compiler_analyzer/info';
 
@@ -36,7 +36,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     }
     // -----------------------------------------------
 
-    let calleeFunction: SymbolFunction | undefined = undefined;
+    let calleeFunction: FunctionSymbol | undefined = undefined;
     for (const reference of globalScope.info.reference) {
         if (reference.toSymbol.isFunction() === false) {
             continue;

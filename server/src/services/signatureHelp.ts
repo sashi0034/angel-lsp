@@ -1,4 +1,4 @@
-import {SymbolFunction} from '../compiler_analyzer/symbolObject';
+import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import {Position, SignatureHelp, URI} from 'vscode-languageserver';
 import {ParameterInformation, SignatureInformation} from 'vscode-languageserver-types';
 import {FunctionCallInfo} from '../compiler_analyzer/info';
@@ -41,7 +41,7 @@ export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Posi
     };
 }
 
-function getFunctionSignature(info: FunctionCallInfo, expectedCallee: SymbolFunction, caret: TextPosition) {
+function getFunctionSignature(info: FunctionCallInfo, expectedCallee: FunctionSymbol, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;
