@@ -1,4 +1,4 @@
-/**@type {import('eslint').Linter.Config} */
+/** @type {import('eslint').Linter.Config} */
 // eslint-disable-next-line no-undef
 module.exports = {
     root: true,
@@ -6,7 +6,7 @@ module.exports = {
     plugins: ['@typescript-eslint'],
     extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'],
     rules: {
-        'prettier/prettier': 'warn',
+        'prettier/prettier': ['warn', { endOfLine: 'auto' }],
         semi: ['warn', 'always'],
         '@typescript-eslint/no-unused-vars': 0,
         '@typescript-eslint/no-explicit-any': 0,
