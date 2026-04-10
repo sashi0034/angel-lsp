@@ -1713,15 +1713,15 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
         return undefined;
     }
 
-    const nodeScope: Node_Scope = {
+    const scopeNode: Node_Scope = {
         nodeName: NodeName.Scope,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         isGlobal: isGlobal,
         scopeList: scopeList,
         typeTemplates: typeTemplates ?? []
     };
-    cache.store(nodeScope);
-    return nodeScope;
+    cache.store(scopeNode);
+    return scopeNode;
 }
 
 // BNF: DATATYPE      ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
