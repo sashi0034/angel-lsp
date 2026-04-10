@@ -1,11 +1,11 @@
 import {
     AccessModifier,
-    NodeClass,
-    NodeEnum,
-    NodeFunc,
-    NodeFuncDef,
-    NodeInterface,
-    NodeIntfMethod,
+    Node_Class,
+    Node_Enum,
+    Node_Func,
+    Node_FuncDef,
+    Node_Interface,
+    Node_IntfMethod,
     NodeName,
     NodeBase
 } from '../compiler_parser/nodes';
@@ -16,9 +16,9 @@ import assert = require('node:assert');
 /**
  * A node that represents a type definition.
  */
-export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
+export type TypeDefinitionNode = Node_Enum | Node_Class | Node_Interface;
 
-export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is NodeClass {
+export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is Node_Class {
     if (type === undefined) {
         return false;
     }
@@ -26,7 +26,7 @@ export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type i
     return type.nodeName === NodeName.Enum || type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
-export function isNodeClassOrInterface(type: NodeBase | undefined): type is NodeClass {
+export function isNodeClassOrInterface(type: NodeBase | undefined): type is Node_Class {
     if (type === undefined) {
         return false;
     }
@@ -289,7 +289,7 @@ export class FunctionSymbol extends SymbolBase {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod,
         public readonly functionScopePath: ScopePath | undefined,
         private _returnType: ResolvedType | undefined,
         private _parameterTypes: (ResolvedType | undefined)[],
@@ -304,7 +304,7 @@ export class FunctionSymbol extends SymbolBase {
     public static create(args: {
         identifierToken: TokenObject;
         scopePath: ScopePath;
-        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
+        linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod;
         functionScopePath: ScopePath | undefined;
         returnType: ResolvedType | undefined;
         parameterTypes: (ResolvedType | undefined)[];

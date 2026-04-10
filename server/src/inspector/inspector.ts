@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver/node';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {NodeScript} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodes';
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {logger} from '../core/logger';
 import {Profiler} from '../core/profiler';
@@ -22,7 +22,7 @@ interface InspectRecord {
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
-    ast: NodeScript;
+    ast: Node_Script;
     isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }

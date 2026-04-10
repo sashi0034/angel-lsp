@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver/node';
 import {TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
-import {NodeScript} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodes';
 import {DelayedTask} from '../utils/delayedTask';
 import {PublishDiagnosticsParams} from 'vscode-languageserver-protocol';
 import {getGlobalSettings} from '../core/settings';
@@ -29,7 +29,7 @@ interface PartialInspectRecord {
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     readonly rawTokens: TokenObject[];
     readonly preprocessedOutput: PreprocessedOutput;
-    readonly ast: NodeScript;
+    readonly ast: Node_Script;
     isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }

@@ -4,43 +4,43 @@ import {
     funcHeadDestructor,
     isFuncHeadReturnValue,
     isMemberMethodInPostOp,
-    NodeArgList,
-    NodeAssign,
-    NodeCase,
-    NodeCast,
-    NodeCondition,
-    NodeDoWhile,
-    NodeEnum,
-    NodeExpr,
-    NodeExprPostOp,
-    NodeExprPostOp1,
-    NodeExprPostOp2,
-    NodeExprStat,
-    NodeExprTerm,
-    NodeExprTerm2,
-    NodeExprValue,
-    NodeFor,
-    NodeForEach,
-    NodeForEachVar,
-    NodeFunc,
-    NodeFuncCall,
-    NodeIf,
-    NodeInitList,
-    NodeLambda,
-    NodeLiteral,
+    Node_ArgList,
+    Node_Assign,
+    Node_Case,
+    Node_Cast,
+    Node_Condition,
+    Node_DoWhile,
+    Node_Enum,
+    Node_Expr,
+    Node_ExprPostOp,
+    Node_ExprPostOp1,
+    Node_ExprPostOp2,
+    Node_ExprStat,
+    Node_ExprTerm,
+    Node_ExprTerm2,
+    Node_ExprValue,
+    Node_For,
+    Node_ForEach,
+    Node_ForEachVar,
+    Node_Func,
+    Node_FuncCall,
+    Node_If,
+    Node_InitList,
+    Node_Lambda,
+    Node_Literal,
     NodeName,
-    NodeParamList,
-    NodeReturn,
-    NodeScope,
-    NodeStatBlock,
-    NodeStatement,
-    NodeSwitch,
-    NodeTry,
-    NodeType,
-    NodeUsing,
-    NodeVar,
-    NodeVarAccess,
-    NodeWhile
+    Node_ParamList,
+    Node_Return,
+    Node_Scope,
+    Node_StatBlock,
+    Node_Statement,
+    Node_Switch,
+    Node_Try,
+    Node_Type,
+    Node_Using,
+    Node_Var,
+    Node_VarAccess,
+    Node_While
 } from '../compiler_parser/nodes';
 import {buildTemplateSignature} from '../compiler_parser/nodesUtils';
 import {
@@ -102,7 +102,7 @@ export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenR
 // BNF: SCRIPT        ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 
 // BNF: USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: NodeUsing) {
+export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: Node_Using) {
     parentScope.pushUsingNamespace(nodeUsing);
 }
 
@@ -115,7 +115,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, nodeUsing: NodeU
 // BNF: TYPEDEF       ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 
 // BNF: FUNC          ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
-export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
+export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     if (func.head === funcHeadDestructor) {
         analyzeStatBlock(scope, func.statBlock);
         return;
@@ -145,7 +145,7 @@ export function analyzeFunc(scope: SymbolScope, func: NodeFunc) {
 // BNF: INTERFACE     ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
 
 // BNF: VAR           ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-export function analyzeVar(scope: SymbolScope, nodeVar: NodeVar, isInstanceMember: boolean) {
+export function analyzeVar(scope: SymbolScope, nodeVar: Node_Var, isInstanceMember: boolean) {
     let varType = analyzeType(scope, nodeVar.type);
 
     for (const declaredVar of nodeVar.variables) {
@@ -180,7 +180,7 @@ function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedT
 export function insertVariables(
     scope: SymbolScope,
     varType: ResolvedType | undefined,
-    nodeVar: NodeVar,
+    nodeVar: Node_Var,
     isInstanceMember: boolean
 ) {
     const result: VariableSymbol[] = [];
@@ -204,7 +204,7 @@ export function analyzeVarInitializer(
     scope: SymbolScope,
     varType: ResolvedType | undefined,
     varIdentifier: TokenObject,
-    initializer: NodeInitList | NodeAssign | NodeArgList
+    initializer: Node_InitList | Node_Assign | Node_ArgList
 ): ResolvedType | undefined {
     if (initializer.nodeName === NodeName.InitList) {
         return analyzeInitList(scope, initializer);
@@ -237,7 +237,7 @@ export function analyzeVarInitializer(
 // BNF: INTFMTHD      ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 
 // BNF: STATBLOCK     ::= '{' {VAR | STATEMENT | USING} '}'
-export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
+export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) {
     // Append completion information to the scope
     pushScopeRegionInfo(scope, statBlock.nodeRange);
 
@@ -247,13 +247,13 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: NodeStatBlock) {
         } else if (statement.nodeName === NodeName.Using) {
             analyzeUsingNamespace(scope, statement);
         } else {
-            analyzeStatement(scope, statement as NodeStatement);
+            analyzeStatement(scope, statement as Node_Statement);
         }
     }
 }
 
 // BNF: PARAMLIST     ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
-export function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
+export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
     for (const param of paramList) {
         if (param.defaultExpr === undefined || param.defaultExpr.nodeName === NodeName.ExprVoid) {
             continue;
@@ -266,7 +266,7 @@ export function analyzeParamList(scope: SymbolScope, paramList: NodeParamList) {
 // BNF: TYPEMOD       ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
 // BNF: TYPE          ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedType | undefined {
+export function analyzeType(scope: SymbolScope, nodeType: Node_Type): ResolvedType | undefined {
     const reservedType = nodeType.isArray ? undefined : analyzeReservedType(scope, nodeType);
     if (reservedType !== undefined) {
         return reservedType;
@@ -282,7 +282,7 @@ export function analyzeType(scope: SymbolScope, nodeType: NodeType): ResolvedTyp
     if (nodeType.isArray) {
         // If the type is an array, we replace the identifier with array type.
         givenIdentifier = getGlobalSettings().builtinArrayType;
-        const copiedNodeType: Mutable<NodeType> = {...nodeType};
+        const copiedNodeType: Mutable<Node_Type> = {...nodeType};
         copiedNodeType.isArray = false;
         givenTypeTemplates = [copiedNodeType];
     }
@@ -365,7 +365,7 @@ function completeAnalyzingType(
 }
 
 // PRIMTYPE | '?' | 'auto'
-function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedType | undefined {
+function analyzeReservedType(scope: SymbolScope, nodeType: Node_Type): ResolvedType | undefined {
     const typeIdentifier = nodeType.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) {
         return;
@@ -386,7 +386,7 @@ function analyzeReservedType(scope: SymbolScope, nodeType: NodeType): ResolvedTy
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, nodeType: NodeType[], templateTypes: TokenObject[] | undefined) {
+function analyzeTemplateTypes(scope: SymbolScope, nodeType: Node_Type[], templateTypes: TokenObject[] | undefined) {
     if (templateTypes === undefined) {
         return undefined;
     }
@@ -433,7 +433,7 @@ function mergeTemplateTranslators(
 }
 
 // BNF: INITLIST      ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
+function analyzeInitList(scope: SymbolScope, initList: Node_InitList) {
     for (const init of initList.initList) {
         if (init.nodeName === NodeName.Assign) {
             analyzeAssign(scope, init);
@@ -449,7 +449,7 @@ function analyzeInitList(scope: SymbolScope, initList: NodeInitList) {
 // BNF: SCOPE         ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 export function findOptimalScope(
     parentScope: SymbolScope,
-    nodeScope: NodeScope | undefined,
+    nodeScope: Node_Scope | undefined,
     tokenAfterNamespaces: TokenObject | undefined
 ): SymbolScope | undefined {
     let bestMatch = undefined; // If no valid scope exists, fall back to the most appropriate invalid one.
@@ -501,7 +501,7 @@ export function findOptimalScope(
 
 function evaluateScope(
     parentScope: SymbolScope,
-    nodeScope: NodeScope | undefined,
+    nodeScope: Node_Scope | undefined,
     tokenAfterNamespaces: TokenObject | undefined
 ) {
     if (nodeScope === undefined) {
@@ -563,7 +563,7 @@ function evaluateScope(
 // BNF: FUNCATTR      ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 
 // BNF: STATEMENT     ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
+function analyzeStatement(scope: SymbolScope, statement: Node_Statement) {
     switch (statement.nodeName) {
         case NodeName.If:
             analyzeIf(scope, statement);
@@ -617,7 +617,7 @@ function analyzeStatement(scope: SymbolScope, statement: NodeStatement) {
 }
 
 // BNF: SWITCH        ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
+function analyzeSwitch(scope: SymbolScope, ast: Node_Switch) {
     analyzeAssign(scope, ast.assign);
     for (const c of ast.caseList) {
         analyzeCase(scope, c);
@@ -627,7 +627,7 @@ function analyzeSwitch(scope: SymbolScope, ast: NodeSwitch) {
 // BNF: BREAK         ::= 'break' ';'
 
 // BNF: FOR           ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
+function analyzeFor(scope: SymbolScope, nodeFor: Node_For) {
     if (nodeFor.initial.nodeName === NodeName.Var) {
         analyzeVar(scope, nodeFor.initial, false);
     } else {
@@ -648,7 +648,7 @@ function analyzeFor(scope: SymbolScope, nodeFor: NodeFor) {
 }
 
 // BNF: FOREACH       ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
-function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
+function analyzeForEach(scope: SymbolScope, nodeForEach: Node_ForEach) {
     const nodeAssign = nodeForEach.assign;
     const iteratorType = nodeAssign !== undefined ? analyzeAssign(scope, nodeAssign) : undefined;
     const forValueTypes =
@@ -697,7 +697,7 @@ function analyzeForEach(scope: SymbolScope, nodeForEach: NodeForEach) {
 }
 
 // BNF: WHILE         ::= 'while' '(' ASSIGN ')' STATEMENT
-function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
+function analyzeWhile(scope: SymbolScope, nodeWhile: Node_While) {
     const assignType = analyzeAssign(scope, nodeWhile.assign);
     assertTypeCast(assignType, new ResolvedType(builtinBoolType), nodeWhile.assign.nodeRange);
 
@@ -707,7 +707,7 @@ function analyzeWhile(scope: SymbolScope, nodeWhile: NodeWhile) {
 }
 
 // BNF: DOWHILE       ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
+function analyzeDoWhile(scope: SymbolScope, doWhile: Node_DoWhile) {
     analyzeStatement(scope, doWhile.statement);
 
     if (doWhile.assign === undefined) {
@@ -719,7 +719,7 @@ function analyzeDoWhile(scope: SymbolScope, doWhile: NodeDoWhile) {
 }
 
 // BNF: IF            ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
+function analyzeIf(scope: SymbolScope, nodeIf: Node_If) {
     const conditionType = analyzeAssign(scope, nodeIf.condition);
     assertTypeCast(conditionType, new ResolvedType(builtinBoolType), nodeIf.condition.nodeRange);
 
@@ -735,7 +735,7 @@ function analyzeIf(scope: SymbolScope, nodeIf: NodeIf) {
 // BNF: CONTINUE      ::= 'continue' ';'
 
 // BNF: EXPRSTAT      ::= [ASSIGN] ';'
-function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
+function analyzeExprStat(scope: SymbolScope, exprStat: Node_ExprStat) {
     if (exprStat.assign === undefined) {
         return;
     }
@@ -747,7 +747,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: NodeExprStat) {
 }
 
 // BNF: TRY           ::= 'try' STATBLOCK 'catch' STATBLOCK
-function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
+function analyzeTry(scope: SymbolScope, nodeTry: Node_Try) {
     analyzeStatBlock(scope, nodeTry.tryBlock);
     if (nodeTry.catchBlock !== undefined) {
         analyzeStatBlock(scope, nodeTry.catchBlock);
@@ -755,7 +755,7 @@ function analyzeTry(scope: SymbolScope, nodeTry: NodeTry) {
 }
 
 // BNF: RETURN        ::= 'return' [ASSIGN] ';'
-function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
+function analyzeReturn(scope: SymbolScope, nodeReturn: Node_Return) {
     const returnType = nodeReturn.assign !== undefined ? analyzeAssign(scope, nodeReturn.assign) : undefined;
 
     const functionScope = scope.takeParentByNode([NodeName.Func, NodeName.VirtualProp, NodeName.Lambda]);
@@ -766,7 +766,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
     if (functionScope.linkedNode.nodeName === NodeName.Func) {
         // ...
         //   |-- Function holder scope (with no node)
-        //       |-- The function scope for one of the overloads (with NodeFunc)
+        //       |-- The function scope for one of the overloads (with Node_Func)
         //           |-- ...
         //               |-- scope containing 'return'
 
@@ -825,7 +825,7 @@ function analyzeReturn(scope: SymbolScope, nodeReturn: NodeReturn) {
 }
 
 // BNF: CASE          ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
+function analyzeCase(scope: SymbolScope, nodeCase: Node_Case) {
     if (nodeCase.expr !== undefined) {
         analyzeExpr(scope, nodeCase.expr);
     }
@@ -836,7 +836,7 @@ function analyzeCase(scope: SymbolScope, nodeCase: NodeCase) {
 }
 
 // BNF: EXPR          ::= EXPRTERM {EXPROP EXPRTERM}
-function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefined {
+function analyzeExpr(scope: SymbolScope, expr: Node_Expr): ResolvedType | undefined {
     // Evaluate by Shunting Yard Algorithm
     // https://qiita.com/phenan/items/df157fef2fea590e3fa9
 
@@ -852,7 +852,7 @@ function analyzeExpr(scope: SymbolScope, expr: NodeExpr): ResolvedType | undefin
     }
 
     const inputList: (Term | Op)[] = [];
-    for (let cursor: NodeExpr | undefined = expr; ; ) {
+    for (let cursor: Node_Expr | undefined = expr; ; ) {
         inputList.push([analyzeExprTerm(scope, cursor.head), cursor.head.nodeRange]);
         if (cursor.tail === undefined) {
             break;
@@ -945,7 +945,7 @@ function getOperatorPrecedence(operator: TokenObject): number {
 }
 
 // BNF: EXPRTERM      ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | undefined {
+function analyzeExprTerm(scope: SymbolScope, ast: Node_ExprTerm): ResolvedType | undefined {
     if (ast.exprTerm === 1) {
         // TODO
     } else if (ast.exprTerm === 2) {
@@ -956,7 +956,7 @@ function analyzeExprTerm(scope: SymbolScope, ast: NodeExprTerm): ResolvedType | 
 }
 
 // {EXPRPREOP} EXPRVALUE {EXPRPOSTOP}
-function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
+function analyzeExprTerm2(scope: SymbolScope, exprTerm: Node_ExprTerm2) {
     let exprValue = analyzeExprValue(scope, exprTerm.value);
 
     for (const postOp of exprTerm.postOps) {
@@ -979,7 +979,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: NodeExprTerm2) {
 }
 
 // BNF: EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): ResolvedType | undefined {
+function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
         case NodeName.ConstructCall: {
             const type = analyzeType(scope, exprValue.type);
@@ -1012,7 +1012,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: NodeExprValue): Resolve
 export function analyzeConstructorCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
-    callerArgList: NodeArgList,
+    callerArgList: Node_ArgList,
     constructorType: ResolvedType
 ): ResolvedType | undefined {
     const constructor = findConstructorOfType(constructorType);
@@ -1034,7 +1034,7 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
 // BNF: EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(
     scope: SymbolScope,
-    exprPostOp: NodeExprPostOp,
+    exprPostOp: Node_ExprPostOp,
     exprValue: ResolvedType,
     exprRange: TokenRange
 ) {
@@ -1046,7 +1046,7 @@ function analyzeExprPostOp(
 }
 
 // ('.' (FUNCCALL | IDENTIFIER))
-function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exprValue: ResolvedType) {
+function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, exprValue: ResolvedType) {
     if (exprValue.typeOrFunc instanceof TypeSymbol === false) {
         analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Invalid access to type.`);
         return undefined;
@@ -1134,7 +1134,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: NodeExprPostOp1, exp
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 function analyzeExprPostOp2(
     scope: SymbolScope,
-    exprPostOp: NodeExprPostOp2,
+    exprPostOp: Node_ExprPostOp2,
     exprValue: ResolvedType,
     exprRange: TokenRange
 ) {
@@ -1152,14 +1152,14 @@ function analyzeExprPostOp2(
 }
 
 // BNF: CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-function analyzeCast(scope: SymbolScope, cast: NodeCast): ResolvedType | undefined {
+function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefined {
     const castedType = analyzeType(scope, cast.type);
     analyzeAssign(scope, cast.assign);
     return castedType;
 }
 
 // BNF: LAMBDA        ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
-function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | undefined {
+function analyzeLambda(scope: SymbolScope, lambda: Node_Lambda): ResolvedType | undefined {
     const childScope = scope.insertScope(createAnonymousIdentifier(), lambda);
 
     // Append arguments to the scope
@@ -1188,7 +1188,7 @@ function analyzeLambda(scope: SymbolScope, lambda: NodeLambda): ResolvedType | u
 }
 
 // BNF: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType | undefined {
+function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
         switch (literalValue.numberLiteral) {
@@ -1220,7 +1220,7 @@ function analyzeLiteral(scope: SymbolScope, literal: NodeLiteral): ResolvedType 
 }
 
 // BNF: FUNCCALL      ::= SCOPE IDENTIFIER ARGLIST
-function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedType | undefined {
+function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedType | undefined {
     let searchScope = findOptimalScope(scope, funcCall.scope, funcCall.identifier);
     if (funcCall.scope !== undefined && searchScope === undefined) {
         return undefined;
@@ -1280,7 +1280,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: NodeFuncCall): ResolvedTy
     return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateTranslator);
 }
 
-function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeVariable: VariableSymbol) {
+function analyzeOpCallCaller(scope: SymbolScope, funcCall: Node_FuncCall, calleeVariable: VariableSymbol) {
     const varType = calleeVariable.type;
     if (varType === undefined || varType.scopePath === undefined) {
         analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not callable.`);
@@ -1307,7 +1307,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: NodeFuncCall, calleeV
 function analyzeFunctionCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,
-    callerArgList: NodeArgList,
+    callerArgList: Node_ArgList,
     calleeFuncHolder: FunctionSymbolHolder,
     calleeTemplateTranslator: TemplateTranslator | undefined,
     calleeDelegateVariable?: VariableSymbol
@@ -1337,7 +1337,7 @@ function analyzeFunctionCall(
 }
 
 // BNF: VARACCESS     ::= SCOPE IDENTIFIER
-function analyzeVarAccess(scope: SymbolScope, varAccess: NodeVarAccess): ResolvedType | undefined {
+function analyzeVarAccess(scope: SymbolScope, varAccess: Node_VarAccess): ResolvedType | undefined {
     let accessScope: SymbolScope | undefined = undefined;
     const varIdentifier = varAccess.identifier;
     if (varAccess.scope !== undefined) {
@@ -1461,7 +1461,7 @@ function analyzeEnumMemberAccess(
             identifier: varIdentifier,
             memberList: [],
             enumType: undefined
-        } satisfies NodeEnum,
+        } satisfies Node_Enum,
         membersScopePath: undefined,
         multipleEnumCandidates: enumCandidates
     });
@@ -1470,7 +1470,7 @@ function analyzeEnumMemberAccess(
 }
 
 // BNF: ARGLIST       ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (ResolvedType | undefined)[] {
+function analyzeArgList(scope: SymbolScope, argList: Node_ArgList): (ResolvedType | undefined)[] {
     const types: (ResolvedType | undefined)[] = [];
     for (const arg of argList.argList) {
         types.push(analyzeAssign(scope, arg.assign));
@@ -1480,7 +1480,7 @@ function analyzeArgList(scope: SymbolScope, argList: NodeArgList): (ResolvedType
 }
 
 // BNF: ASSIGN        ::= CONDITION [ ASSIGNOP ASSIGN ]
-function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | undefined {
+function analyzeAssign(scope: SymbolScope, assign: Node_Assign): ResolvedType | undefined {
     // Perform a left-fold operation
     let cursor = assign;
     let lhs = analyzeCondition(scope, assign.condition);
@@ -1505,7 +1505,7 @@ function analyzeAssign(scope: SymbolScope, assign: NodeAssign): ResolvedType | u
 }
 
 // BNF: CONDITION     ::= EXPR ['?' ASSIGN ':' ASSIGN]
-export function analyzeCondition(scope: SymbolScope, condition: NodeCondition): ResolvedType | undefined {
+export function analyzeCondition(scope: SymbolScope, condition: Node_Condition): ResolvedType | undefined {
     const exprType = analyzeExpr(scope, condition.expr);
     if (condition.ternary === undefined) {
         return exprType;

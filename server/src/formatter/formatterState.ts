@@ -1,4 +1,4 @@
-import {NodeScript} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodes';
 import {Position} from 'vscode-languageserver';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {TokenBase, TokenObject} from '../compiler_tokenizer/tokenObject';
@@ -34,7 +34,7 @@ export class FormatterState {
     public constructor(
         private readonly content: string,
         private readonly tokens: TokenObject[],
-        private readonly ast: NodeScript
+        private readonly ast: Node_Script
     ) {
         this.textLines = splitContent(content);
         this.map = new TokensMap(this.textLines, tokens);

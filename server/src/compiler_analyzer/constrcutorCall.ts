@@ -6,7 +6,7 @@ import {assertTypeCast} from './typeCast';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
 import {stringifyResolvedType} from './symbolUtils';
-import {isFuncHeadConstructor, NodeFuncCall, NodeName} from '../compiler_parser/nodes';
+import {isFuncHeadConstructor, Node_FuncCall, NodeName} from '../compiler_parser/nodes';
 import * as assert from 'node:assert';
 
 export function findConstructorOfType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
@@ -74,7 +74,7 @@ export function checkDefaultConstructorCall(
     }
 }
 
-export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: NodeFuncCall) {
+export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: Node_FuncCall) {
     assert(funcCall.identifier.text === 'super');
 
     const callerRange = funcCall.nodeRange;
