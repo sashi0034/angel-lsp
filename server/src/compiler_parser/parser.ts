@@ -5,10 +5,10 @@ import {
     ClassBasePart,
     EntityAttribute,
     FuncHead,
-    funcHeadConstructor,
-    funcHeadDestructor,
+    constructorFuncHead,
+    destructorFuncHead,
     FunctionAttribute,
-    isFuncHeadReturnValue,
+    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     NodeBase,
@@ -33,7 +33,7 @@ import {
     Node_ExprVoid,
     Node_For,
     Node_ForEach,
-    Node_ForEachVar,
+    VariableInForEach,
     Node_Func,
     Node_FuncCall,
     Node_FuncDef,
@@ -65,11 +65,10 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    ParsedArgument,
-    ParsedEnumMember,
-    ParsedGetterSetter,
-    ParsedPostIndexing,
-    ParsedVariableInitializer,
+    OptionalIdentifierAndAssign,
+    IdentifierAndOptionalExpr,
+    GetterOrSetter,
+    IdentifierAndInitializer,
     ReferenceModifier,
     TypeModifier
 } from './nodes';
@@ -351,7 +350,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
         enumType = typeIdentifier;
     }
 
-    let memberList: ParsedEnumMember[] = [];
+    let memberList: IdentifierAndOptionalExpr[] = [];
     const scopeStart = parser.next();
 
     if (parser.next().text === ';') {
@@ -373,8 +372,8 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
 }
 
 // '{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} [','] '}'
-function expectEnumMembers(parser: ParserState): ParsedEnumMember[] {
-    const members: ParsedEnumMember[] = [];
+function expectEnumMembers(parser: ParserState): IdentifierAndOptionalExpr[] {
+    const members: IdentifierAndOptionalExpr[] = [];
     parser.expect('{', HighlightForToken.Operator);
     while (parser.isEnd() === false) {
         if (expectSeparatorOrClose(parser, ',', '}', members.length > 0) === BreakOrThrough.Break) {
@@ -554,7 +553,7 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPE IDENTIFIER
-function parseForEachVar(parser: ParserState): Node_ForEachVar | undefined {
+function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
     const rangeStart = parser.next();
     const type = expectType(parser);
 
@@ -703,9 +702,9 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
     let head: FuncHead;
     if (parser.next().text === '~') {
         parser.commit(HighlightForToken.Operator);
-        head = funcHeadDestructor;
+        head = destructorFuncHead;
     } else if (parser.next(0).kind === TokenKind.Identifier && parser.next(1).text === '(') {
-        head = funcHeadConstructor;
+        head = constructorFuncHead;
     } else {
         const returnType = parseType(parser);
         if (returnType === undefined) {
@@ -719,7 +718,7 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
     }
 
     const identifier = parser.next();
-    parser.commit(isFuncHeadReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
+    parser.commit(hasFuncReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
 
     const typeTemplates = parseTypeTemplates(parser) ?? [];
 
@@ -999,7 +998,7 @@ function parseVar(parser: ParserState): Node_Var | undefined {
         return undefined;
     }
 
-    const variables: ParsedVariableInitializer[] = [];
+    const variables: IdentifierAndInitializer[] = [];
     while (parser.isEnd() === false) {
         const identifier = expectIdentifier(parser, HighlightForToken.Variable);
         if (identifier === undefined) {
@@ -1169,8 +1168,8 @@ function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
 
     parser.commit(HighlightForToken.Operator);
 
-    let getter: ParsedGetterSetter | undefined = undefined;
-    let setter: ParsedGetterSetter | undefined = undefined;
+    let getter: GetterOrSetter | undefined = undefined;
+    let setter: GetterOrSetter | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
@@ -1199,7 +1198,7 @@ function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
 }
 
 // ('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')
-function expectGetterSetter(parser: ParserState): ParsedGetterSetter {
+function expectGetterSetter(parser: ParserState): GetterOrSetter {
     parser.commit(HighlightForToken.Keyword);
 
     const isConst = parseConst(parser);
@@ -2400,7 +2399,7 @@ function parseExpr(parser: ParserState): Node_Expr | undefined {
         head: exprTerm,
         tail: {
             operator: exprOp,
-            expression: tail
+            expr: tail
         }
     };
 }
@@ -2675,7 +2674,7 @@ function parseExprPostOp2(parser: ParserState): Node_ExprPostOp2 | undefined {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Operator);
 
-    const indexerList: ParsedPostIndexing[] = [];
+    const indexingList: OptionalIdentifierAndAssign[] = [];
     while (parser.isEnd() === false) {
         const loopStart = parser.next();
 
@@ -2683,10 +2682,10 @@ function parseExprPostOp2(parser: ParserState): Node_ExprPostOp2 | undefined {
 
         const assign = expectAssign(parser);
         if (assign !== undefined) {
-            indexerList.push({identifier: identifier, assign: assign});
+            indexingList.push({identifier: identifier, assign: assign});
         }
 
-        if (expectSeparatorOrClose(parser, ',', ']', indexerList.length > 0) === BreakOrThrough.Break) {
+        if (expectSeparatorOrClose(parser, ',', ']', indexingList.length > 0) === BreakOrThrough.Break) {
             break;
         }
 
@@ -2699,7 +2698,7 @@ function parseExprPostOp2(parser: ParserState): Node_ExprPostOp2 | undefined {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOp: 2,
-        indexingList: indexerList
+        indexingList: indexingList
     };
 }
 
@@ -2910,7 +2909,7 @@ function parseArgList(parser: ParserState): Node_ArgList | undefined {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Operator);
 
-    const argList: ParsedArgument[] = [];
+    const argList: OptionalIdentifierAndAssign[] = [];
     while (parser.isEnd() === false) {
         if (expectCommaOrParensClose(parser, argList.length > 0) === BreakOrThrough.Break) {
             break;

@@ -1,6 +1,6 @@
 import {
-    funcHeadDestructor,
-    isFuncHeadReturnValue,
+    destructorFuncHead,
+    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     Node_Break,
@@ -237,12 +237,12 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatEntityModifier(format);
     formatAccessModifier(format);
 
-    if (isFuncHeadReturnValue(funcNode.head)) {
+    if (hasFuncReturnValue(funcNode.head)) {
         formatType(format, funcNode.head.returnType);
         if (funcNode.head.isRef) {
             formatTargetBy(format, '&', {condenseLeft: true});
         }
-    } else if (funcNode.head === funcHeadDestructor) {
+    } else if (funcNode.head === destructorFuncHead) {
         formatTargetBy(format, '~', {condenseRight: true});
     }
 
@@ -955,7 +955,7 @@ function formatExpr(format: FormatterState, exprNode: Node_Expr) {
 
         formatTargetBy(format, exprNode.tail.operator.text, {});
 
-        formatExpr(format, exprNode.tail.expression);
+        formatExpr(format, exprNode.tail.expr);
 
         format.popIndent();
     }

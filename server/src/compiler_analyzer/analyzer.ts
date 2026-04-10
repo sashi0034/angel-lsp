@@ -1,8 +1,8 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    funcHeadDestructor,
-    isFuncHeadReturnValue,
+    destructorFuncHead,
+    hasFuncReturnValue,
     isMemberMethodInPostOp,
     Node_ArgList,
     Node_Assign,
@@ -21,7 +21,7 @@ import {
     Node_ExprValue,
     Node_For,
     Node_ForEach,
-    Node_ForEachVar,
+    VariableInForEach,
     Node_Func,
     Node_FuncCall,
     Node_If,
@@ -105,6 +105,7 @@ export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenR
 export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_Using) {
     parentScope.pushUsingNamespace(usingNode);
 }
+
 // **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 // TODO: IMPLEMENT IT!
 
@@ -157,7 +158,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
-    if (func.head === funcHeadDestructor) {
+    if (func.head === destructorFuncHead) {
         analyzeStatBlock(scope, func.statBlock);
         return;
     }
@@ -382,7 +383,7 @@ function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
         return false;
     }
 
-    return isFuncHeadReturnValue(linkedNode.head) === false;
+    return hasFuncReturnValue(linkedNode.head) === false;
 }
 
 function completeAnalyzingType(
@@ -903,7 +904,7 @@ function analyzeExpr(scope: SymbolScope, expr: Node_Expr): ResolvedType | undefi
         }
 
         inputList.push(cursor.tail.operator);
-        cursor = cursor.tail.expression;
+        cursor = cursor.tail.expr;
     }
 
     const stackList: (Term | Op)[] = [];
@@ -1182,7 +1183,7 @@ function analyzeExprPostOp2(
     exprValue: ResolvedType,
     exprRange: TokenRange
 ) {
-    const args = exprPostOp.indexingList.map(indexer => analyzeAssign(scope, indexer.assign));
+    const args = exprPostOp.indexingList.map(indexing => analyzeAssign(scope, indexing.assign));
     return checkOverloadedOperatorCall({
         callerOperator: exprPostOp.nodeRange.end,
         alias: 'opIndex',
@@ -1191,7 +1192,7 @@ function analyzeExprPostOp2(
         rhs: args,
         rhsRange: exprPostOp.nodeRange,
         // Support for named args on index operator are not implemented yet in AngelScript?
-        rhsArgNames: exprPostOp.indexingList.map(indexer => indexer.identifier)
+        rhsArgNames: exprPostOp.indexingList.map(indexing => indexing.identifier)
     });
 }
 
