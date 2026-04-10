@@ -123,7 +123,6 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 // **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
 // TODO: IMPLEMENT IT!
 
-
 // **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 // TODO: IMPLEMENT IT!
 
@@ -167,7 +166,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
 
     if (declared === undefined) {
         // TODO: required?
-        analyzerDiagnostic.error(func.identifier.location, `'${func.identifier}' is not defined.`);
+        analyzerDiagnostic.error(func.identifier.location, `Function '${func.identifier.text}' is not defined.`);
         return;
     }
 
@@ -784,7 +783,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: Node_ExprStat) {
 
     const assign = analyzeAssign(scope, exprStat.assign);
     if (assign?.isHandler !== true && assign?.typeOrFunc.isFunction()) {
-        analyzerDiagnostic.error(exprStat.assign.nodeRange.getBoundingLocation(), `Function call without handler.`);
+        analyzerDiagnostic.error(exprStat.assign.nodeRange.getBoundingLocation(), `Function value is not callable.`);
     }
 }
 
@@ -835,7 +834,10 @@ function analyzeReturn(scope: SymbolScope, returnNode: Node_Return) {
                 return;
             }
 
-            analyzerDiagnostic.error(returnNode.nodeRange.getBoundingLocation(), `Function does not return a value.`);
+            analyzerDiagnostic.error(
+                returnNode.nodeRange.getBoundingLocation(),
+                `This function does not return a value.`
+            );
         } else {
             assertTypeCast(returnType, functionSymbol.returnType, returnNode.nodeRange);
         }
@@ -1090,7 +1092,7 @@ function analyzeExprPostOp(
 // ('.' (FUNCCALL | IDENTIFIER))
 function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, exprValue: ResolvedType) {
     if (exprValue.typeOrFunc instanceof TypeSymbol === false) {
-        analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Invalid access to type.`);
+        analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Invalid member access on a type.`);
         return undefined;
     }
 
@@ -1126,7 +1128,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         // Analyze method call.
         const instanceMember = resolveActiveScope(classScope).lookupSymbol(identifier.text);
         if (instanceMember === undefined) {
-            analyzerDiagnostic.error(identifier.location, `'${identifier.text}' is not defined.`);
+            analyzerDiagnostic.error(identifier.location, `Member '${identifier.text}' is not defined.`);
             return undefined;
         }
 
@@ -1417,12 +1419,12 @@ function analyzeVariableAccess(
     }
 
     if (found.symbol.isType()) {
-        analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is type.`);
+        analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is a type, not a variable.`);
         return undefined;
     }
 
     if (canAccessInstanceMember(currentScope, found.symbol) === false) {
-        analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is not public member.`);
+        analyzerDiagnostic.error(varIdentifier.location, `Member '${varIdentifier.text}' is not accessible here.`);
         return undefined;
     }
 
@@ -1583,7 +1585,7 @@ export function analyzeCondition(scope: SymbolScope, condition: Node_Condition):
             condition.ternary.trueAssign.nodeRange.start,
             condition.ternary.falseAssign.nodeRange.end
         ),
-        `Type mismatches between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`
+        `Type mismatch between '${stringifyResolvedType(trueAssign)}' and '${stringifyResolvedType(falseAssign)}'.`
     );
     return undefined;
 }

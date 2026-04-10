@@ -456,7 +456,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         const argLocation = callerArgs[mismatchReason.nameIndex].name?.location;
         analyzerDiagnostic.error(
             argLocation ?? callerRange.getBoundingLocation(),
-            `Named argument '${callerArgs[mismatchReason.nameIndex].name?.text}' does not found in '${calleeFuncHolder.identifierText}'.`
+            `Named argument '${callerArgs[mismatchReason.nameIndex].name?.text}' was not found in '${calleeFuncHolder.identifierText}'.`
         );
         return;
     }
@@ -482,9 +482,9 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
             );
         }
     } else {
-        let message = 'No viable function.\n';
-        message += `Arguments types: (${stringifyResolvedTypes(callerArgs.map(arg => arg.type))})\n`;
-        message += 'Candidates considered:';
+        let message = 'No viable overload found.\n';
+        message += `Argument types: (${stringifyResolvedTypes(callerArgs.map(arg => arg.type))})\n`;
+        message += 'Candidate overloads:';
 
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {

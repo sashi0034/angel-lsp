@@ -230,7 +230,7 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): StringTok
                     start: tokenizer.getCursorPosition(),
                     end: tokenizer.getCursorPosition()
                 },
-                'Missing end quote ' + startQuote
+                'Missing closing quote ' + startQuote
             );
             break;
         } else if (isEscaping === false && tokenizer.isNext(startQuote)) {

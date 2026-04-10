@@ -116,7 +116,7 @@ export class UnknownWordBuffer {
         }
 
         this._bufferLocation.end.character_++;
-        diagnostic.error(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
+        diagnostic.error(this._bufferLocation.freeze(), 'Unrecognized token: ' + this._bufferText);
         this._bufferText = '';
     }
 }

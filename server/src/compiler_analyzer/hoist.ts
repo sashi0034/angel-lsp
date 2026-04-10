@@ -276,10 +276,10 @@ function hoistBaseList(
         const baseType = baseScope.lookupSymbolWithParent(baseIdentifier.text);
 
         if (baseType === undefined) {
-            analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not defined type`);
+            analyzerDiagnostic.error(baseIdentifier.location, `Type '${baseIdentifier.text}' is not defined.`);
             baseList.push(undefined);
         } else if (baseType.isType() === false) {
-            analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not class or interface`);
+            analyzerDiagnostic.error(baseIdentifier.location, `'${baseIdentifier.text}' is not a class or interface.`);
             baseList.push(undefined);
         } else {
             // Found the base class
@@ -335,7 +335,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
                 if (outputError && isVirtualProperty === false) {
                     analyzerDiagnostic.error(
                         alreadyExists.toList()[0].identifierToken.location,
-                        `Duplicated symbol '${key}'`
+                        `Duplicate symbol '${key}'.`
                     );
                 }
             }

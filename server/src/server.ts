@@ -202,7 +202,7 @@ s_connection.onDidOpenTextDocument(params => {
 s_connection.onDidChangeTextDocument(params => {
     const document = s_documentMap.get(params.textDocument.uri);
     if (document === undefined) {
-        s_connection.console.error('Missing a document: ' + params.textDocument.uri);
+        s_connection.console.error('Document not found: ' + params.textDocument.uri);
         return;
     }
 

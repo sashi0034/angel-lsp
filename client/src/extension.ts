@@ -113,7 +113,7 @@ function subscribeCommands(context: ExtensionContext) {
                 const result = await s_client.sendRequest('angelScript/printGlobalScope', {uri: uri});
                 vscode.window.showInformationMessage(`Print Global Scope: ${result}`);
             } else {
-                vscode.window.showInformationMessage('No active editor');
+                vscode.window.showInformationMessage('No active editor.');
             }
         })
     );

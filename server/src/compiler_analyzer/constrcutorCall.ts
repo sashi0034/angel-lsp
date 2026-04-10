@@ -49,7 +49,7 @@ export function checkDefaultConstructorCall(
         if (callerArgTypes.length !== 1) {
             const message =
                 callerArgTypes.length === 0
-                    ? `Primitive type '${constructorIdentifier.text}' requires an argument`
+                    ? `Primitive type '${constructorIdentifier.text}' requires an argument.`
                     : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
@@ -64,7 +64,7 @@ export function checkDefaultConstructorCall(
             const firstArgument = () => stringifyResolvedType(callerArgTypes[0]);
             const message =
                 callerArgTypes.length === 1
-                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts the argument '${firstArgument()}'`
+                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts '${firstArgument()}'.`
                     : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
