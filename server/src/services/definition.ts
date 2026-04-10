@@ -155,7 +155,7 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenOnCaret: TokenObject | undefined;
     let tokenAfterNamespace: TokenObject | undefined;
 
-    // It's a bit rough, but we'll reuse autocomplete info here
+    // This is a little rough, but we can reuse the autocomplete info here.
     for (const info of globalScope.info.autocompleteNamespaceAccess) {
         if (info.namespaceToken.location.positionInRange(caret)) {
             accessScope = info.accessScope;
@@ -180,10 +180,10 @@ function findNamespaceTokenNearPosition(
 
     let result: TokenObject | undefined;
     if (isNodeEnumOrClassOrInterface(namespaceScope.linkedNode)) {
-        // When the access scope may be an enum, class or interface
+        // The access scope may belong to an enum, class, or interface.
         const linkedNode = namespaceScope.linkedNode;
 
-        // The namespace and the file defining the node may be different, so verification is necessary.
+        // The namespace and the file that defines the node may differ, so verify the path.
         if (linkedNode.identifier.location.path === namespaceScope.getContext().filepath) {
             result = namespaceScope.linkedNode.identifier;
         }

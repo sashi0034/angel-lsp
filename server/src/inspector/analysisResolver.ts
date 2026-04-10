@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver/node';
-import {TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
-import {NodeScript} from '../compiler_parser/nodes';
+import {TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
+import {Node_Script} from '../compiler_parser/nodes';
 import {DelayedTask} from '../utils/delayedTask';
 import {PublishDiagnosticsParams} from 'vscode-languageserver-protocol';
 import {getGlobalSettings} from '../core/settings';
@@ -29,7 +29,7 @@ interface PartialInspectRecord {
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     readonly rawTokens: TokenObject[];
     readonly preprocessedOutput: PreprocessedOutput;
-    readonly ast: NodeScript;
+    readonly ast: Node_Script;
     isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }
@@ -48,7 +48,7 @@ const shortWaitTime = 100; // ms
 
 const veryShortWaitTime = 10; // ms
 
-function getAbsolutePathFromIncludeToken(baseUri: string, token: TokenString) {
+function getAbsolutePathFromIncludeToken(baseUri: string, token: StringToken) {
     return resolveIncludeUri(baseUri, token.getStringContent());
 }
 
@@ -158,7 +158,7 @@ export class AnalysisResolver {
         // -----------------------------------------------
         analyzerDiagnostic.beginSession();
 
-        // Collect scopes in included files
+        // Collect scopes from included files.
         const includeScopes = this.collectIncludeScope(record, predefinedUri);
 
         const profiler = new Profiler();
@@ -358,7 +358,7 @@ export class AnalysisResolver {
 
         const includedScopes = [];
 
-        // Get the analyzed scope of included files
+        // Use the analyzed scopes of included files.
         for (const uri of includePaths) {
             const includeRecord = this._inspectRecords.get(uri);
             if (includeRecord !== undefined) {
@@ -366,14 +366,14 @@ export class AnalysisResolver {
                 continue;
             }
 
-            // If the file has not been analyzed, start inspecting it
+            // If the file has not been analyzed yet, start inspecting it.
             const content = readFileContent(uri);
             if (content !== undefined) {
                 this._inspectRequest(uri, content);
                 continue;
             }
 
-            // If the file is not found, notify the error
+            // If the file cannot be found, report an error.
             const includePathToken = preprocessOutput.includePathTokens.find(
                 token => getAbsolutePathFromIncludeToken(targetUri, token) === uri
             );

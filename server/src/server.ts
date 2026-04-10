@@ -31,8 +31,8 @@ import {provideDefinitionFallback} from './services/definitionExtension';
 import {CodeActionWrapper} from './actions/utils';
 import {getEditorState} from './core/editorState';
 
-// Create a connection for the server, using Node's IPC as a transport.
-// Also include all preview / proposed LSP features.
+// Create the server connection over Node IPC.
+// Enable all preview and proposed LSP features as well.
 const s_connection = lsp.createConnection(lsp.ProposedFeatures.all);
 
 let s_hasConfigurationCapability = false;
@@ -46,8 +46,8 @@ let s_hasDiagnosticRelatedInformationCapability = false;
 s_connection.onInitialize((params: lsp.InitializeParams) => {
     const capabilities = params.capabilities;
 
-    // Does the client support the `workspace/configuration` request?
-    // If not, we fall back using global settings.
+    // Check whether the client supports the `workspace/configuration` request.
+    // Otherwise, fall back to the global settings.
 
     s_hasConfigurationCapability = capabilities.workspace?.configuration ?? false;
 
@@ -94,7 +94,7 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
                     tokenTypes: highlightForTokenList,
                     tokenModifiers: highlightForModifierList
                 },
-                range: false, // if true, the server supports range-based requests
+                range: false, // Set to true to support range-based requests.
                 full: true
             },
             inlayHintProvider: true,
@@ -143,7 +143,7 @@ function reloadSettings() {
 
 s_connection.onInitialized(() => {
     if (s_hasConfigurationCapability) {
-        // Register for all configuration changes.
+        // Register for configuration change notifications.
         s_connection.client.register(lsp.DidChangeConfigurationNotification.type, undefined);
     }
 
@@ -153,13 +153,13 @@ s_connection.onInitialized(() => {
         });
     }
 
-    // Reload for workspace settings.
+    // Load the workspace settings.
     reloadSettings();
 });
 
-// The global settings, used when the `workspace/configuration` request is not supported by the client.
-// Please note that this is not the case when using this server with the client provided in this example
-// but could happen with other clients.
+// Use these global settings when the client does not support `workspace/configuration`.
+// That does not happen with the sample client in this repository,
+// but it may happen with other clients.
 
 s_connection.onDidChangeConfiguration(change => {
     reloadSettings();
@@ -192,7 +192,7 @@ s_connection.onDidOpenTextDocument(params => {
     );
 
     if (s_inspector.getRecord(document.uri).content === document.text) {
-        // No need to re-inspect because the contents of the file are identical.
+        // Reinspection is unnecessary because the file content is unchanged.
         return;
     }
 
@@ -202,13 +202,13 @@ s_connection.onDidOpenTextDocument(params => {
 s_connection.onDidChangeTextDocument(params => {
     const document = s_documentMap.get(params.textDocument.uri);
     if (document === undefined) {
-        s_connection.console.error('Missing a document: ' + params.textDocument.uri);
+        s_connection.console.error('Document not found: ' + params.textDocument.uri);
         return;
     }
 
     lsp_textDocument.TextDocument.update(document, params.contentChanges, params.textDocument.version);
 
-    // profileInspect(document); // for debug
+    // profileInspect(document); // Debug only.
 
     s_inspector.inspectFile(document.uri, document.getText(), {isOpen: true, changes: params.contentChanges});
 
@@ -240,7 +240,7 @@ s_connection.workspace.onDidDeleteFiles(params => {
 // FIXME: Should we also handle `onWillSaveTextDocument`, `onWillSaveTextDocumentWaitUntil` and `onDidSaveTextDocument`?
 
 s_connection.onDidChangeWatchedFiles(params => {
-    // Maybe we don't need to do anything here, right?
+    // We may not need to do anything here.
     // https://github.com/microsoft/vscode-discussions/discussions/511
 });
 
@@ -429,7 +429,7 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
     return items.map(item => item.item);
 });
 
-// This handler resolves additional information for the item selected in the completion list.
+// Resolve additional information for the selected completion item.
 s_connection.onCompletionResolve((item: lsp.CompletionItem): lsp.CompletionItem => {
     const globalScope = s_inspector.getRecord(s_lastCompletion.uri).analyzerScope.globalScope;
 

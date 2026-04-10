@@ -1,17 +1,17 @@
 import {HighlightForToken} from '../core/highlight';
 import {diagnostic} from '../core/diagnostic';
-import {TokenComment, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {CommentToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {ParserCachedData, ParserCacheKind, ParserCacheServices, ParserCacheTargets} from './parserCache';
 import {MutableTextPosition, TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
 
 export enum ParseFailure {
     /**
-     * The parser visited a function, but the input does not conform to the expected grammar.
+     * The parser entered a parsing function, but the input does not match the expected grammar.
      */
     Mismatch = 'Mismatch',
     /**
-     * The parser visited a function where the input conforms to the expected grammar,
-     * but parsing fails due to missing elements.
+     * The parser entered a parsing function where the input matches the expected grammar,
+     * but parsing fails because some required elements are missing.
      */
     Pending = 'Pending'
 }
@@ -28,10 +28,11 @@ export enum BreakOrThrough {
 }
 
 /**
- * When a parsing error occurs, the parser may return a `ParseResult<T>`.
- * If the parser encounters a function and the input does not conform to the expected format, 'Mismatch' is returned.
- * If the input follows the expected format but parsing fails due to missing elements (e.g., an incomplete expression), 'Pending' is returned.
- * No diagnostic message is issued for 'Mismatch', but when 'Pending' is returned, a diagnostic message is generated at that node.
+ * Parsing functions may return `ParseResult<T>` when an error occurs.
+ * `Mismatch` means the input does not match the expected shape for that parser.
+ * `Pending` means the input started in the expected shape but could not be fully parsed,
+ * for example because an expression is incomplete.
+ * `Mismatch` does not emit a diagnostic, but `Pending` does at the relevant node.
  */
 export type ParseResult<T> = T | ParseFailure;
 
@@ -44,7 +45,7 @@ export class ParserState {
     private readonly _eofToken; // end of file
 
     /**
-     * Whether the current file is 'as.predefined'
+     * Whether the current file is an `as.predefined` file.
      */
     public readonly isPredefinedFile: boolean = false;
 
@@ -93,7 +94,7 @@ export class ParserState {
     }
 
     /**
-     * Set the highlight for the current token and move the cursor to the next token.
+     * Apply highlighting to the current token and advance to the next one.
      */
     public commit(highlightForToken: HighlightForToken) {
         const next = this.next();
@@ -105,7 +106,7 @@ export class ParserState {
     }
 
     /**
-     * Check if the next token is a reserved word.
+     * Check whether the next token is the expected reserved word.
      */
     public expect(reservedWord: string, highlight: HighlightForToken) {
         if (this.isEnd()) {
@@ -133,11 +134,11 @@ export class ParserState {
     }
 
     /**
-     * At certain nodes, parsing results at a given index are cached using a DP-like approach.
-     * This caching mechanism helps improve performance by avoiding redundant parsing of the same tokens multiple times.
+     * Some parse results are cached at the current index using a DP-like strategy.
+     * This improves performance by avoiding repeated parsing of the same token sequence.
      *
      * @param key The cache key that identifies the type of parsing result to cache.
-     * @returns An object that allows restoring a cached result or storing a new one.
+     * @returns Helpers for restoring a cached result or storing a new one.
      */
     // TODO: Remove? We should do incremental builds rather than this cache
     public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
@@ -169,24 +170,24 @@ export class ParserState {
 
 function makeSofToken(firstToken: TokenObject | undefined) {
     if (firstToken === undefined) {
-        return new TokenComment('', TextLocation.createEmpty());
+        return new CommentToken('', TextLocation.createEmpty());
     }
 
     const start = new TextPosition(0, 0);
     // FIXME: Maybe we should create a special token separately
-    return new TokenComment('', new TextLocation(firstToken.location.path, start, start));
+    return new CommentToken('', new TextLocation(firstToken.location.path, start, start));
 }
 
 function makeEofToken(lastToken: TokenObject | undefined) {
     if (lastToken === undefined) {
-        return new TokenComment('', TextLocation.createEmpty());
+        return new CommentToken('', TextLocation.createEmpty());
     }
 
     const end0 = MutableTextPosition.create(lastToken.location.end);
     end0.character_ += 1;
     const end = end0.freeze();
     // FIXME: Maybe we should create a special token separately
-    const token = new TokenComment('', new TextLocation(lastToken.location.path, end, end));
+    const token = new CommentToken('', new TextLocation(lastToken.location.path, end, end));
     token.bindPreprocessedToken(lastToken.index + 1, undefined);
     return token;
 }

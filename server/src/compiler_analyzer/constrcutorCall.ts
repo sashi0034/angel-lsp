@@ -6,7 +6,7 @@ import {assertTypeCast} from './typeCast';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
 import {stringifyResolvedType} from './symbolUtils';
-import {isFuncHeadConstructor, NodeFuncCall, NodeName} from '../compiler_parser/nodes';
+import {isFuncHeadConstructor, Node_FuncCall, NodeName} from '../compiler_parser/nodes';
 import * as assert from 'node:assert';
 
 export function findConstructorOfType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
@@ -49,7 +49,7 @@ export function checkDefaultConstructorCall(
         if (callerArgTypes.length !== 1) {
             const message =
                 callerArgTypes.length === 0
-                    ? `Primitive type '${constructorIdentifier.text}' requires an argument`
+                    ? `Primitive type '${constructorIdentifier.text}' requires an argument.`
                     : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
@@ -64,7 +64,7 @@ export function checkDefaultConstructorCall(
             const firstArgument = () => stringifyResolvedType(callerArgTypes[0]);
             const message =
                 callerArgTypes.length === 1
-                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts the argument '${firstArgument()}'`
+                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts '${firstArgument()}'.`
                     : `Too many arguments for type '${constructorIdentifier.text}'`;
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
@@ -74,7 +74,7 @@ export function checkDefaultConstructorCall(
     }
 }
 
-export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: NodeFuncCall) {
+export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: Node_FuncCall) {
     assert(funcCall.identifier.text === 'super');
 
     const callerRange = funcCall.nodeRange;

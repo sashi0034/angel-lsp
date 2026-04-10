@@ -16,7 +16,7 @@ export function provideReferences(
     const result = allGlobalScopes.flatMap(scope => collectSymbolReferencesInScope(scope, targetDefinition));
 
     if (result.length === 0) {
-        // If no symbol references are found, search for namespace references.
+        // If no symbol references are found, fall back to namespace references.
         result.push(...collectNamespaceReferenceInScope(globalScope.getGlobalScope(), targetDefinition));
     }
 
@@ -29,7 +29,7 @@ function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken:
     const references = [];
 
     for (const reference of globalScope.info.reference) {
-        // If the reference points to the target definition, add it to the result.
+        // Add references that point to the target definition.
         if (reference.toSymbol.identifierToken.equals(toToken)) {
             references.push(reference.fromToken);
         }
@@ -44,23 +44,23 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
     // FIXME: This is not considered a nested namespace, i.e., we treat 'B' and 'A::B' as the same namespace.
 
     if (scope.isGlobalScope()) {
-        // Append namespace access references from the autocomplete infos.
+        // Add namespace access references from the autocomplete info.
         for (const info of scope.info.autocompleteNamespaceAccess) {
-            // It's a bit rough, but we'll reuse autocomplete info here
+            // This is a little rough, but we can reuse the autocomplete info here.
             if (info.namespaceToken.text === toToken.text) {
                 references.push(info.namespaceToken);
             }
         }
     }
 
-    // Append namespace declaration in the scope.
+    // Add namespace declarations from this scope.
     for (const namespaceToken of scope.namespaceNodes.map(node => node.linkedToken)) {
         if (namespaceToken.text === toToken.text) {
             references.push(namespaceToken);
         }
     }
 
-    // Recursively search for namespace references in the child scopes
+    // Recursively search child scopes for namespace references.
     for (const [key, child] of scope.childScopeTable) {
         if (child.isAnonymousScope()) {
             continue;

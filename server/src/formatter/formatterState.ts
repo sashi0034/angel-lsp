@@ -1,4 +1,4 @@
-import {NodeScript} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodes';
 import {Position} from 'vscode-languageserver';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {TokenBase, TokenObject} from '../compiler_tokenizer/tokenObject';
@@ -34,7 +34,7 @@ export class FormatterState {
     public constructor(
         private readonly content: string,
         private readonly tokens: TokenObject[],
-        private readonly ast: NodeScript
+        private readonly ast: Node_Script
     ) {
         this.textLines = splitContent(content);
         this.map = new TokensMap(this.textLines, tokens);
@@ -101,11 +101,11 @@ export class FormatterState {
 
         const prevIndent = this.indentStack[this.indentStack.length - 1];
         if (this.indentStack.length === 0 || prevIndent.line !== nextIndent.line) {
-            // 行が変わったときのみ、実際にインデントを行う
+            // Only apply the indent when the line changes.
             this.indentBuffer += this.indentUnit;
             nextIndent.isApplied = true;
         } else if (prevIndent.isApplied) {
-            // 行が同じ場合、フラグをずらす
+            // If we are still on the same line, shift the applied flag.
             prevIndent.isApplied = false;
             nextIndent.isApplied = true;
         }
@@ -118,10 +118,10 @@ export class FormatterState {
         if (popIndent?.isApplied === true) {
             const backIndent = this.indentStack[this.indentStack.length - 1];
             if (popIndent.line === this.cursor.line && backIndent?.isApplied === false) {
-                // 現在の行ではインデントの影響がなかったので、後ろのインデントで処理を行う
+                // If the current line was not affected by indentation, hand it off to the previous indent level.
                 backIndent.isApplied = true;
             } else {
-                // インデントを下げる
+                // Decrease the indentation level.
                 this.indentBuffer = this.indentBuffer.substring(0, this.indentBuffer.length - this.indentUnit.length);
             }
         }
@@ -186,7 +186,7 @@ export function isEditedWrapAt(edits: TextEdit[], line: number) {
     return false;
 }
 
-// 文字が存在する位置に存在するトークンを一対一対応の写像で表現
+// Map each character position to the token that covers it.
 export class TokensMap {
     private map: (TokenObject | undefined)[][] = [];
 

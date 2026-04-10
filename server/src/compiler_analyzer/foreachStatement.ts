@@ -13,12 +13,12 @@ export function checkForEachIterator(
     }
 
     if (iteratorType.typeOrFunc.isFunction()) {
-        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), 'The iterator type cannot be a function');
+        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), 'The iterator type cannot be a function.');
         return undefined;
     }
 
     if (iteratorType.typeOrFunc.membersScopePath === undefined) {
-        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), 'Invalid iterator type');
+        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), 'Invalid iterator type.');
         return undefined;
     }
 
@@ -75,7 +75,7 @@ export function checkForEachIterator(
     }
 
     if (forValueTypes.length === 0) {
-        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), "The iterator type does not have 'opForValue'");
+        analyzerDiagnostic.error(nodeRange.getBoundingLocation(), "The iterator type does not define 'opForValue'.");
         return undefined;
     }
 

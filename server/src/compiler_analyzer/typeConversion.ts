@@ -1,6 +1,6 @@
 import {ResolvedType} from './resolvedType';
 import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
-import {isNodeClassOrInterface, SymbolFunction, SymbolType} from './symbolObject';
+import {isNodeClassOrInterface, FunctionSymbol, TypeSymbol} from './symbolObject';
 import {NodeName} from '../compiler_parser/nodes';
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from './builtinType';
 import assert = require('node:assert');
@@ -35,7 +35,7 @@ enum ConversionCost {
 
 export interface ConversionEvaluation {
     cost: ConversionCost;
-    resolvedOverload?: SymbolFunction;
+    resolvedOverload?: FunctionSymbol;
 }
 
 export function canTypeConvert(
@@ -110,13 +110,13 @@ function evaluateTypeConversionInternal(
         return undefined;
     }
 
-    const destType: SymbolType = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
+    const destType: TypeSymbol = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
 
     if (srcTypeOrFunc.isFunction()) {
         return undefined;
     }
 
-    const srcType: SymbolType = srcTypeOrFunc; // <-- srcTypeOrFunc is guaranteed to be a type here
+    const srcType: TypeSymbol = srcTypeOrFunc; // <-- srcTypeOrFunc is guaranteed to be a type here
 
     // FIXME: Handle init list?
 
@@ -263,7 +263,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     // FIXME: Consider ConversionType
     const convFuncList = collectOpConvFunctions(srcType);
 
-    let selectedConvFunc: SymbolFunction | undefined = undefined;
+    let selectedConvFunc: FunctionSymbol | undefined = undefined;
     if (destType.isNumberType()) {
         // Find the best matching cast operator
         const tableRow = numberConversionCostTable.get(dest.identifierText);
@@ -447,7 +447,7 @@ function evaluateConversionByConstructor(
     return undefined;
 }
 
-export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean {
+export function canDownCast(srcType: TypeSymbol, destType: TypeSymbol): boolean {
     const srcNode = srcType.linkedNode;
     if (srcType.isPrimitiveType()) {
         return false;
@@ -481,12 +481,12 @@ export function canDownCast(srcType: SymbolType, destType: SymbolType): boolean 
     return false;
 }
 
-function collectFunctionOverloads(func: SymbolFunction) {
+function collectFunctionOverloads(func: FunctionSymbol) {
     if (func.linkedNode.nodeName === NodeName.FuncDef) {
         return [func];
     }
 
-    const overloadList: SymbolFunction[] = [];
+    const overloadList: FunctionSymbol[] = [];
     const scope = getActiveGlobalScope().resolveScope(func.scopePath)?.lookupSymbol(func.identifierText);
     for (const symbol of scope?.toList() ?? []) {
         if (symbol.isFunction()) {
@@ -497,7 +497,7 @@ function collectFunctionOverloads(func: SymbolFunction) {
     return overloadList;
 }
 
-function areFunctionsEqual(src: SymbolFunction, dest: SymbolFunction): boolean {
+function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
     if (src.parameterTypes.length !== dest.parameterTypes.length) {
         return false;
     }
@@ -568,10 +568,10 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
     return true;
 }
 
-function collectOpConvFunctions(srcType: SymbolType | SymbolFunction) {
+function collectOpConvFunctions(srcType: TypeSymbol | FunctionSymbol) {
     // TODO: Consider implicit or explicit
 
-    const convFuncList: SymbolFunction[] = [];
+    const convFuncList: FunctionSymbol[] = [];
     const srcMembers =
         resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of srcMembers) {

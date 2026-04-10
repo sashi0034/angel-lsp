@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver/node';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {NodeScript} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodes';
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {logger} from '../core/logger';
 import {Profiler} from '../core/profiler';
@@ -18,11 +18,11 @@ interface InspectRecord {
     content: string;
     uri: string;
     // isOpen: boolean;
-    diagnosticsInParser: lsp.Diagnostic[]; // A diagnosed messages occurred in the parser or tokenizer
+    diagnosticsInParser: lsp.Diagnostic[]; // Diagnostics reported by the tokenizer or parser
     diagnosticsInAnalyzer: lsp.Diagnostic[];
     rawTokens: TokenObject[];
     preprocessedOutput: PreprocessedOutput;
-    ast: NodeScript;
+    ast: Node_Script;
     isAnalyzerPending: boolean;
     analyzerScope: AnalyzerScope;
 }
@@ -73,7 +73,7 @@ export class Inspector {
     }
 
     /**
-     * Get the inspected record of the specified file.
+     * Return the inspected record for the specified file.
      */
     public getRecord(uri: string): Readonly<InspectRecord> {
         const result = this._inspectRecords.get(uri);
@@ -85,14 +85,14 @@ export class Inspector {
     }
 
     /**
-     * Get the list of all inspected records as a list.
+     * Return all inspected records as a list.
      */
     public getAllRecords(): Readonly<InspectRecord>[] {
         return Array.from(this._inspectRecords.values());
     }
 
     /**
-     * Flush the inspected record of the specified file since the analyzer runs asynchronously.
+     * Flush the inspected record for the specified file because the analyzer runs asynchronously.
      */
     public flushRecord(uri?: string): void {
         this._analysisResolver.flush(uri);
@@ -103,7 +103,7 @@ export class Inspector {
 
         const record = this._inspectRecords.get(uri) ?? this.createRecordAndInsert(uri, content);
 
-        // Update the content
+        // Update the file content.
         record.content = content;
 
         // record.isOpen = option?.isOpen === true;
@@ -113,15 +113,15 @@ export class Inspector {
 
         const profiler = new Profiler();
 
-        // Execute the tokenizer
+        // Run the tokenizer.
         record.rawTokens = tokenize(uri, content);
         profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
 
-        // Execute the preprocessor
+        // Run the preprocessor.
         record.preprocessedOutput = preprocessAfterTokenized(record.rawTokens);
         profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
-        // Execute the parser
+        // Run the parser.
         record.ast = parseAfterPreprocessed(record.preprocessedOutput.preprocessedTokens);
         profiler.mark('Parser'.padEnd(profilerDescriptionLength));
 
@@ -129,19 +129,19 @@ export class Inspector {
         // -----------------------------------------------
 
         if (option?.changes !== undefined) {
-            // Move diagnostics in the analyzer with the content changes for the editor view.
+            // Shift analyzer diagnostics to match the content changes in the editor.
             moveDiagnosticsByChanges(record.diagnosticsInAnalyzer, option.changes);
         }
 
         record.isAnalyzerPending = true;
 
-        // Send the diagnostics on the way to the client
+        // Send the current diagnostics back to the client.
         this._diagnosticsCallback({
             uri: uri,
             diagnostics: [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
         });
 
-        // Request delayed execution of the analyzer
+        // Schedule the analyzer to run later.
         this._analysisResolver.request(
             record,
             shouldReanalyzeDependents(record.analyzerScope.globalScope, option?.changes)
@@ -162,8 +162,8 @@ export class Inspector {
     }
 
     /**
-     * Re-inspect all files that have already been inspected.
-     * This method is used to fully apply the configuration settings.
+     * Reinspect every file that has already been inspected.
+     * This fully reapplies the current configuration.
      */
     public reinspectAllFiles() {
         for (const uri of this._inspectRecords.keys()) {
@@ -187,7 +187,7 @@ function shouldReanalyzeDependents(
 
     for (const changeEvent of change) {
         if (isChangeInAnonymousScope(globalScope, changeEvent) === false) {
-            // If the change is not in an anonymous scope, reanalyze the dependents.
+            // Reanalyze dependents unless the change is confined to an anonymous scope.
             return true;
         }
     }

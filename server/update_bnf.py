@@ -2,6 +2,9 @@ import os
 import re
 from collections import OrderedDict
 
+BNF_TAG_PATTERN = r"//\s*(?:\*\*BNF\*\*|BNF):\s*"
+BNF_TAG_PREFIX = "// **BNF**:"
+
 
 def read_bnf_definitions(bnf_filename):
     """
@@ -50,7 +53,7 @@ def _find_safe_slot_before(lines, right_idx):
         j -= 1
     block_start = j + 1
     if block_start < right_idx:
-        m = re.match(r"^(\s*)//\s*BNF:\s*(.*)$", lines[right_idx])
+        m = re.match(rf"^(\s*){BNF_TAG_PATTERN}(.*)$", lines[right_idx])
         indent = m.group(1) if m else ""
         return (block_start, indent)
     return None
@@ -58,11 +61,11 @@ def _find_safe_slot_before(lines, right_idx):
 
 def _ensure_todo_remove_for_unknown(lines, bnf_dict):
     """
-    For any '// BNF: ...' whose name is unknown (not in bnf_dict),
+    For any BNF marker whose name is unknown (not in bnf_dict),
     insert an immediate next line '<indent>// TODO: REMOVE IT' if not already present.
     Returns (modified_lines, modified_flag)
     """
-    tag_pat = re.compile(r"^(\s*)//\s*BNF:\s*(.*)$")
+    tag_pat = re.compile(rf"^(\s*){BNF_TAG_PATTERN}(.*)$")
     modified = False
     i = 0
     while i < len(lines):
@@ -89,7 +92,7 @@ def _ensure_todo_remove_for_unknown(lines, bnf_dict):
 
 def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict):
     """
-    - Normalize existing known '// BNF:' lines to canonical full definition.
+    - Normalize existing known BNF marker lines to canonical full definition.
     - Compute gaps between consecutive known BNF markers (by master order).
     - Insert missing names only at 'safe slots' (comment/blank block) before the right marker.
       If no safe slot for a gap, carry it forward to the next safe slot.
@@ -102,7 +105,7 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
     except (UnicodeDecodeError, PermissionError):
         return False
 
-    tag_pat = re.compile(r"^(\s*)//\s*BNF:\s*(.*)$")
+    tag_pat = re.compile(rf"^(\s*){BNF_TAG_PATTERN}(.*)$")
 
     # collect known markers
     markers = []
@@ -127,7 +130,7 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
 
     # 1) normalize existing known markers
     for i, indent, name in markers:
-        canonical = f"{indent}// BNF: {bnf_dict[name]}\n"
+        canonical = f"{indent}{BNF_TAG_PREFIX} {bnf_dict[name]}\n"
         if lines[i] != canonical:
             lines[i] = canonical
             modified = True
@@ -171,7 +174,7 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
     for insert_pos, indent, names in sorted(insertion_plans, key=lambda x: x[0], reverse=True):
         block = []
         for nm in names:
-            block.append(f"{indent}// BNF: {bnf_dict[nm]}\n")
+            block.append(f"{indent}{BNF_TAG_PREFIX} {bnf_dict[nm]}\n")
             block.append(f"{indent}// TODO: IMPLEMENT IT!\n")
             block.append("\n")
             usage_dict[nm] += 1

@@ -1,8 +1,8 @@
 import {string} from 'vscode-languageserver/lib/common/utils/is';
 
 /**
- * LanguageServer settings.
- * See package.json because the settings in VSCode are defined in it.
+ * Language server settings.
+ * The VS Code settings schema is defined in `package.json`.
  */
 interface LanguageServerSettings {
     suppressAnalyzerErrors: boolean;
@@ -63,15 +63,15 @@ const defaultSettings: LanguageServerSettings = {
 let globalSettings: LanguageServerSettings = defaultSettings;
 
 /**
- * Reset the instance of global settings.
+ * Reset the global settings instance.
  */
 export function resetGlobalSettings(config: any) {
     globalSettings = <LanguageServerSettings>(config ?? defaultSettings);
 }
 
 /**
- * Get the global settings.
- * The behavior of the LanguageServer configuration is controlled from here.
+ * Return the current global settings.
+ * Language server behavior is controlled from here.
  */
 export function getGlobalSettings(): Readonly<LanguageServerSettings> {
     return globalSettings;

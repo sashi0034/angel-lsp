@@ -1,8 +1,8 @@
 import {LanguageClient} from 'vscode-languageclient/node';
 import {commands, Position, Range, window, workspace, WorkspaceEdit} from 'vscode';
 
-// obsoleted
-// I'll re-implement this feature in the future
+// Obsolete for now.
+// I plan to reimplement this feature later.
 export async function executeSmartBackspace(client: LanguageClient) {
     const editor = window.activeTextEditor;
     if (!editor) {
@@ -11,27 +11,27 @@ export async function executeSmartBackspace(client: LanguageClient) {
 
     commands.executeCommand('deleteLeft');
 
-    // 1. Send onTypeFormatting request to server based on the hack logic
+    // 1. Send an `onTypeFormatting` request to the server using this temporary workaround.
     const doc = editor.document;
-    const position = editor.selection.active; // Current cursor position
+    const position = editor.selection.active; // Current cursor position.
     const textDocumentIdentifier = {uri: doc.uri.toString()};
 
-    // Example parameters for onTypeFormatting
+    // Example `onTypeFormatting` request parameters.
     const params = {
         textDocument: textDocumentIdentifier,
         position: position,
-        ch: '\b', // Normally unexpected, but manually provided
+        ch: '\b', // Normally unexpected, but supplied manually here.
         options: {
-            // Formatting options (e.g., tab size) sent to formatter
+            // Formatting options, such as the tab size, passed to the formatter.
             tabSize: 4,
             insertSpaces: true
         }
     };
 
-    // 2. Manually request onTypeFormatting from the server
+    // 2. Request `onTypeFormatting` from the server manually.
     const edits = await client.sendRequest('textDocument/onTypeFormatting', params);
 
-    // 3. Apply returned TextEdits to the editor
+    // 3. Apply the returned `TextEdit`s to the editor.
     if (edits && Array.isArray(edits) && edits.length > 0) {
         const workspaceEdit = new WorkspaceEdit();
         for (const edit of edits) {

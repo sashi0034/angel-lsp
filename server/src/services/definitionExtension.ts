@@ -1,4 +1,4 @@
-import {TokenObject, TokenString} from '../compiler_tokenizer/tokenObject';
+import {TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {findTokenContainingPosition} from './utils';
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
@@ -28,7 +28,7 @@ export function provideDefinitionFallback(
 
 // -----------------------------------------------
 
-function provideFileDefinition(uri: string, token: TokenString): lsp.Definition | undefined {
+function provideFileDefinition(uri: string, token: StringToken): lsp.Definition | undefined {
     const definitionUri = resolveIncludeUri(uri, token.getStringContent());
     if (isFileUri(definitionUri) === false) {
         return undefined;

@@ -23,7 +23,7 @@ export class TextPosition implements lsp.Position {
     }
 
     /**
-     * Returns true if this position is ahead of the other position.
+     * Return true if this position comes before the other position.
      */
     public isLessThan(other: lsp.Position): boolean {
         if (this.line < other.line) {
@@ -34,7 +34,8 @@ export class TextPosition implements lsp.Position {
     }
 
     /**
-     *  Returns -1 if lhs is closer to this position than rhs, 1 if rhs is closer than lhs, and 0 if both are equidistant.
+     * Return -1 if `lhs` is closer to this position than `rhs`,
+     * 1 if `rhs` is closer, and 0 if both are equally close.
      */
     public compareNearest(lhs: TextPosition, rhs: TextPosition): -1 | 0 | 1 {
         const lhsLineDiff = Math.abs(lhs.line - this.line);
@@ -85,8 +86,8 @@ export class TextPosition implements lsp.Position {
 
 /**
  * Represents a mutable text position.
- * This does not satisfy `lsp.Position`,
- * so please make it immutable when passing it to `lsp.Position`.
+ * It does not satisfy `lsp.Position`,
+ * so convert it to an immutable value before passing it as `lsp.Position`.
  */
 export class MutableTextPosition {
     public constructor(
@@ -114,7 +115,7 @@ export class TextRange implements lsp.Range {
     }
 
     /**
-     * Returns true if the specified position is within this range inclusively.
+     * Return true if the specified position is inside this range, inclusive.
      */
     public positionInRange(position: lsp.Position): boolean {
         if (position.line < this.start.line || position.line > this.end.line) {
@@ -135,7 +136,7 @@ export class TextRange implements lsp.Range {
     // create positionInRangeExclusive if needed
 
     /**
-     * Returns true if the specified range is within this range inclusively.
+     * Return true if the specified range is fully contained in this range, inclusive.
      */
     public contains(other: lsp.Range): boolean {
         return this.positionInRange(other.start) && this.positionInRange(other.end);

@@ -1,9 +1,9 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {SymbolFunctionHolder, SymbolObject, SymbolType} from './symbolObject';
+import {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
 import {SymbolScope} from './symbolScope';
 import {TextLocation} from '../compiler_tokenizer/textLocation';
 import {ResolvedType, TemplateTranslator} from './resolvedType';
-import {NodeArgList} from '../compiler_parser/nodes';
+import {Node_ArgList} from '../compiler_parser/nodes';
 
 /**
  * Information about a symbol that references a symbol declared elsewhere.
@@ -28,7 +28,7 @@ export interface ScopeRegionInfo {
  */
 export interface AutocompleteInstanceMemberInfo {
     readonly autocompleteLocation: TextLocation;
-    readonly targetType: SymbolType;
+    readonly targetType: TypeSymbol;
 }
 
 /**
@@ -40,7 +40,7 @@ export interface AutocompleteNamespaceAccessInfo {
     readonly autocompleteLocation: TextLocation;
     readonly accessScope: SymbolScope;
     readonly namespaceToken: TokenObject; // The namespace qualifier token.
-    readonly tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the NodeScope.
+    readonly tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the Node_Scope.
 }
 
 /**
@@ -49,8 +49,8 @@ export interface AutocompleteNamespaceAccessInfo {
  */
 export interface FunctionCallInfo {
     readonly callerIdentifier: TokenObject;
-    readonly callerArgumentsNode: NodeArgList;
-    readonly calleeFuncHolder: SymbolFunctionHolder;
+    readonly callerArgumentsNode: Node_ArgList;
+    readonly calleeFuncHolder: FunctionSymbolHolder;
     readonly calleeTemplateTranslator: TemplateTranslator | undefined;
 }
 

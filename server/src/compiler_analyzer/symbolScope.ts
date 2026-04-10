@@ -3,26 +3,26 @@ import {
     ScopePath,
     SymbolObject,
     SymbolObjectHolder,
-    SymbolType,
+    TypeSymbol,
     TypeDefinitionNode
 } from './symbolObject';
 import {
-    NodeClass,
-    NodeDoWhile,
-    NodeEnum,
-    NodeFor,
-    NodeForEach,
-    NodeFunc,
-    NodeIf,
-    NodeInterface,
-    NodeLambda,
+    Node_Class,
+    Node_DoWhile,
+    Node_Enum,
+    Node_For,
+    Node_ForEach,
+    Node_Func,
+    Node_If,
+    Node_Interface,
+    Node_Lambda,
     NodeName,
-    NodeNamespace,
-    NodeStatBlock,
-    NodeTry,
-    NodeUsing,
-    NodeVirtualProp,
-    NodeWhile
+    Node_Namespace,
+    Node_StatBlock,
+    Node_Try,
+    Node_Using,
+    Node_VirtualProp,
+    Node_While
 } from '../compiler_parser/nodes';
 import {
     AutoTypeResolutionInfo,
@@ -56,7 +56,7 @@ interface DetailScopeInformation {
 
 interface GlobalScopeContext {
     filepath: string;
-    builtinStringType: SymbolType | undefined;
+    builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
     info: DetailScopeInformation;
 }
@@ -79,27 +79,27 @@ function createGlobalScopeContext(): GlobalScopeContext {
 
 /**
  * Nodes that can have a scope containing symbols.
- * Note: It does not contain NodeNamespace because a scope can have multiple namespaces.
+ * Note: It does not contain Node_Namespace because a scope can have multiple namespaces.
  */
 export type ScopeLinkedNode =
-    | NodeEnum
-    | NodeClass
-    | NodeVirtualProp
-    | NodeInterface
-    | NodeFunc
-    | NodeLambda
+    | Node_Enum
+    | Node_Class
+    | Node_VirtualProp
+    | Node_Interface
+    | Node_Func
+    | Node_Lambda
 
     // Statement nodes
-    | NodeStatBlock
-    | NodeFor
-    | NodeForEach
-    | NodeWhile
-    | NodeDoWhile
-    | NodeIf
-    | NodeTry;
+    | Node_StatBlock
+    | Node_For
+    | Node_ForEach
+    | Node_While
+    | Node_DoWhile
+    | Node_If
+    | Node_Try;
 
 interface ScopeLinkedNamespaceNode {
-    node: NodeNamespace;
+    node: Node_Namespace;
 
     // Since the namespace node can have multiple identifier tokens,
     // we need to remember the token in the node that is linked to the scope.
@@ -108,7 +108,7 @@ interface ScopeLinkedNamespaceNode {
 
 interface ScopeUsingNamespace {
     scopePath: ScopePath;
-    linkedNodes: NodeUsing[];
+    linkedNodes: Node_Using[];
 }
 
 /**
@@ -182,7 +182,7 @@ export class SymbolScope {
     public isFunctionHolderScope(): boolean {
         // ...
         //   |-- Function holder scope (with no node)
-        //       |-- The function scope for one of the overloads (with NodeFunc)
+        //       |-- The function scope for one of the overloads (with Node_Func)
         //           |-- ...
         // FIXME: What happens if the namespace and function name are the same?
         return this._childScopeTable.values().next().value?.isFunctionScope() === true;
@@ -243,7 +243,7 @@ export class SymbolScope {
         return this.parentScope.getGlobalScope();
     }
 
-    public pushUsingNamespace(node: NodeUsing) {
+    public pushUsingNamespace(node: Node_Using) {
         const scopePath: ScopePath = node.namespaceList.map(ns => ns.text);
 
         const alreadyExists = this._usingNamespaces.find(exist => isScopePathEquals(exist.scopePath, scopePath));
@@ -262,7 +262,7 @@ export class SymbolScope {
             : [...this._parentScope.getUsingNamespacesWithParent(), ...this._usingNamespaces];
     }
 
-    public pushNamespaceNode(node: NodeNamespace, linkedToken: TokenObject) {
+    public pushNamespaceNode(node: Node_Namespace, linkedToken: TokenObject) {
         this._namespaceNodes.push({node, linkedToken});
     }
 
@@ -484,7 +484,7 @@ function errorAlreadyDeclared(token: TokenObject) {
     analyzerDiagnostic.error(token.location, `Symbol '${token.text}' is already declared in the scope.`);
 }
 
-function findBuiltinStringType(scope: SymbolScope): SymbolType | undefined {
+function findBuiltinStringType(scope: SymbolScope): TypeSymbol | undefined {
     for (const [key, symbol] of scope.symbolTable) {
         if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) {
             return symbol;

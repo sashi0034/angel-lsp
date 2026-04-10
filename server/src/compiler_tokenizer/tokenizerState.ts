@@ -2,13 +2,13 @@ import {diagnostic} from '../core/diagnostic';
 import {MutableTextPosition, MutableTextRange, TextLocation, TextPosition, TextRange} from './textLocation';
 
 export class TokenizerState {
-    // The content of the file to be tokenized
+    // File content to tokenize.
     public readonly _fileContent: string;
 
-    // Current offset position of the head in the file content string
+    // Current cursor offset in the file content string.
     private _cursorOffset: number;
 
-    // Same as _cursorOffset, but expressed in terms of line and character position
+    // The same cursor position, expressed as line and character values.
     private readonly _cursorPosition: MutableTextPosition;
 
     public getCursorOffset() {
@@ -72,7 +72,7 @@ export class TokenizerState {
     }
 
     /**
-     * Returns the substring from the specified end position to the current cursor position
+     * Return the substring from the specified start position to the current cursor position.
      */
     public substrToCursor(start: number) {
         return this._fileContent.substring(start, this._cursorOffset);
@@ -80,7 +80,7 @@ export class TokenizerState {
 }
 
 /**
- * Buffer for strings that are not alphabets, numbers, or symbols
+ * Buffer for characters that are not letters, numbers, or recognized symbols.
  */
 export class UnknownWordBuffer {
     private _bufferText: string = '';
@@ -88,13 +88,13 @@ export class UnknownWordBuffer {
 
     public append(cursor: TextRange, next: string) {
         if (this._bufferLocation === null) {
-            // Initialize the location
+            // Initialize the buffered location.
             this._bufferLocation = MutableTextRange.create(cursor);
         } else if (
             cursor.start.line !== this._bufferLocation.end.line_ || // if the line is different
             cursor.start.character - this._bufferLocation.end.character_ > 1 // or if there is a space gap between the last token
         ) {
-            // Flushes the buffer
+            // Flush the buffer.
             this.flush();
             this._bufferLocation.start = MutableTextPosition.create(cursor.start);
         }
@@ -104,7 +104,7 @@ export class UnknownWordBuffer {
     }
 
     /**
-     * Flushes the buffer and reports an error if the buffer is not empty
+     * Flush the buffer and report an error if it is not empty.
      */
     public flush() {
         if (this._bufferText.length === 0) {
@@ -116,7 +116,7 @@ export class UnknownWordBuffer {
         }
 
         this._bufferLocation.end.character_++;
-        diagnostic.error(this._bufferLocation.freeze(), 'Unknown token: ' + this._bufferText);
+        diagnostic.error(this._bufferLocation.freeze(), 'Unrecognized token: ' + this._bufferText);
         this._bufferText = '';
     }
 }

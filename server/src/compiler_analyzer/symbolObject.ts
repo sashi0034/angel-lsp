@@ -1,11 +1,11 @@
 import {
     AccessModifier,
-    NodeClass,
-    NodeEnum,
-    NodeFunc,
-    NodeFuncDef,
-    NodeInterface,
-    NodeIntfMethod,
+    Node_Class,
+    Node_Enum,
+    Node_Func,
+    Node_FuncDef,
+    Node_Interface,
+    Node_IntfMethod,
     NodeName,
     NodeBase
 } from '../compiler_parser/nodes';
@@ -16,9 +16,9 @@ import assert = require('node:assert');
 /**
  * A node that represents a type definition.
  */
-export type TypeDefinitionNode = NodeEnum | NodeClass | NodeInterface;
+export type TypeDefinitionNode = Node_Enum | Node_Class | Node_Interface;
 
-export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is NodeClass {
+export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is Node_Class {
     if (type === undefined) {
         return false;
     }
@@ -26,7 +26,7 @@ export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type i
     return type.nodeName === NodeName.Enum || type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
-export function isNodeClassOrInterface(type: NodeBase | undefined): type is NodeClass {
+export function isNodeClassOrInterface(type: NodeBase | undefined): type is Node_Class {
     if (type === undefined) {
         return false;
     }
@@ -68,15 +68,15 @@ export abstract class SymbolBase {
 
     public abstract toHolder(): SymbolObjectHolder;
 
-    public isType(): this is SymbolType {
+    public isType(): this is TypeSymbol {
         return this.kind === SymbolKind.Type;
     }
 
-    public isVariable(): this is SymbolVariable {
+    public isVariable(): this is VariableSymbol {
         return this.kind === SymbolKind.Variable;
     }
 
-    public isFunction(): this is SymbolFunction {
+    public isFunction(): this is FunctionSymbol {
         return this.kind === SymbolKind.Function;
     }
 
@@ -88,16 +88,16 @@ export abstract class SymbolBase {
 export interface SymbolHolder {
     get identifierText(): string;
 
-    isType(): this is SymbolType;
+    isType(): this is TypeSymbol;
 
-    isVariable(): this is SymbolVariable;
+    isVariable(): this is VariableSymbol;
 
-    isFunctionHolder(): this is SymbolFunctionHolder;
+    isFunctionHolder(): this is FunctionSymbolHolder;
 
     toList(): ReadonlyArray<SymbolObject>;
 }
 
-export class SymbolType extends SymbolBase implements SymbolHolder {
+export class TypeSymbol extends SymbolBase implements SymbolHolder {
     public get kind(): SymbolKind {
         return SymbolKind.Type;
     }
@@ -114,7 +114,7 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         private _templateTypes?: TokenObject[],
         private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandler?: boolean,
-        public readonly multipleEnumCandidates?: SymbolVariable[]
+        public readonly multipleEnumCandidates?: VariableSymbol[]
     ) {
         super();
 
@@ -134,9 +134,9 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         templateTypes?: TokenObject[];
         baseList?: (ResolvedType | undefined)[];
         isHandler?: boolean;
-        multipleEnumCandidates?: SymbolVariable[];
+        multipleEnumCandidates?: VariableSymbol[];
     }) {
-        return new SymbolType(
+        return new TypeSymbol(
             args.identifierToken,
             args.scopePath,
             args.linkedNode,
@@ -209,16 +209,16 @@ export class SymbolType extends SymbolBase implements SymbolHolder {
         return this.isPrimitiveType() || this.isEnumType();
     }
 
-    public isFunctionHolder(): this is SymbolFunctionHolder {
+    public isFunctionHolder(): this is FunctionSymbolHolder {
         return false;
     }
 
-    public toList(): SymbolType[] {
+    public toList(): TypeSymbol[] {
         return [this];
     }
 }
 
-export class SymbolVariable extends SymbolBase implements SymbolHolder {
+export class VariableSymbol extends SymbolBase implements SymbolHolder {
     public get kind(): SymbolKind {
         return SymbolKind.Variable;
     }
@@ -244,7 +244,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         isVirtualProperty?: boolean;
         isIndexedPropertyAccessor?: boolean;
     }) {
-        return new SymbolVariable(
+        return new VariableSymbol(
             args.identifierToken,
             args.scopePath,
             args.type,
@@ -263,11 +263,11 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
         return this;
     }
 
-    public isFunctionHolder(): this is SymbolFunctionHolder {
+    public isFunctionHolder(): this is FunctionSymbolHolder {
         return false;
     }
 
-    public toList(): SymbolVariable[] {
+    public toList(): VariableSymbol[] {
         return [this];
     }
 
@@ -281,7 +281,7 @@ export class SymbolVariable extends SymbolBase implements SymbolHolder {
     }
 }
 
-export class SymbolFunction extends SymbolBase {
+export class FunctionSymbol extends SymbolBase {
     public get kind(): SymbolKind {
         return SymbolKind.Function;
     }
@@ -289,7 +289,7 @@ export class SymbolFunction extends SymbolBase {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod,
+        public readonly linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod,
         public readonly functionScopePath: ScopePath | undefined,
         private _returnType: ResolvedType | undefined,
         private _parameterTypes: (ResolvedType | undefined)[],
@@ -304,14 +304,14 @@ export class SymbolFunction extends SymbolBase {
     public static create(args: {
         identifierToken: TokenObject;
         scopePath: ScopePath;
-        linkedNode: NodeFunc | NodeFuncDef | NodeIntfMethod;
+        linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod;
         functionScopePath: ScopePath | undefined;
         returnType: ResolvedType | undefined;
         parameterTypes: (ResolvedType | undefined)[];
         isInstanceMember: boolean;
         accessRestriction: AccessModifier | undefined;
     }) {
-        return new SymbolFunction(
+        return new FunctionSymbol(
             args.identifierToken,
             args.scopePath,
             args.linkedNode,
@@ -379,15 +379,15 @@ export class SymbolFunction extends SymbolBase {
         return this.linkedNode.identifier;
     }
 
-    public toHolder(): SymbolFunctionHolder {
-        return new SymbolFunctionHolder(this);
+    public toHolder(): FunctionSymbolHolder {
+        return new FunctionSymbolHolder(this);
     }
 }
 
-export class SymbolFunctionHolder implements SymbolHolder {
-    private readonly _overloadList: SymbolFunction[] = [];
+export class FunctionSymbolHolder implements SymbolHolder {
+    private readonly _overloadList: FunctionSymbol[] = [];
 
-    public constructor(firstElement: SymbolFunction | SymbolFunction[]) {
+    public constructor(firstElement: FunctionSymbol | FunctionSymbol[]) {
         if (Array.isArray(firstElement)) {
             assert(firstElement.length > 0);
             this._overloadList = firstElement;
@@ -396,11 +396,11 @@ export class SymbolFunctionHolder implements SymbolHolder {
         }
     }
 
-    public pushOverload(overload: SymbolFunction) {
+    public pushOverload(overload: FunctionSymbol) {
         this._overloadList.push(overload);
     }
 
-    public get overloadList(): ReadonlyArray<SymbolFunction> {
+    public get overloadList(): ReadonlyArray<FunctionSymbol> {
         return this._overloadList;
     }
 
@@ -408,7 +408,7 @@ export class SymbolFunctionHolder implements SymbolHolder {
         return this._overloadList.length;
     }
 
-    public get first(): SymbolFunction {
+    public get first(): FunctionSymbol {
         return this._overloadList[0];
     }
 
@@ -416,24 +416,24 @@ export class SymbolFunctionHolder implements SymbolHolder {
         return this.first.identifierToken.text;
     }
 
-    public isVariable(): this is SymbolVariable {
+    public isVariable(): this is VariableSymbol {
         return false;
     }
 
-    public isType(): this is SymbolType {
+    public isType(): this is TypeSymbol {
         return false;
     }
 
-    public isFunctionHolder(): this is SymbolFunctionHolder {
+    public isFunctionHolder(): this is FunctionSymbolHolder {
         return true;
     }
 
-    public toList(): ReadonlyArray<SymbolFunction> {
+    public toList(): ReadonlyArray<FunctionSymbol> {
         return this._overloadList;
     }
 }
 
-export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is SymbolFunctionHolder | SymbolVariable {
+export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is FunctionSymbolHolder | VariableSymbol {
     const canBeMember = symbol.isFunctionHolder() || symbol.isVariable();
     if (canBeMember === false) {
         return false;
@@ -442,8 +442,8 @@ export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is Sy
     return symbol.toList()[0].isInstanceMember;
 }
 
-export type SymbolObject = SymbolType | SymbolVariable | SymbolFunction;
+export type SymbolObject = TypeSymbol | VariableSymbol | FunctionSymbol;
 
-export type SymbolObjectHolder = SymbolType | SymbolVariable | SymbolFunctionHolder;
+export type SymbolObjectHolder = TypeSymbol | VariableSymbol | FunctionSymbolHolder;
 
 // (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

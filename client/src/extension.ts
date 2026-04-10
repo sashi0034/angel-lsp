@@ -21,11 +21,11 @@ import * as vscode from 'vscode';
 let s_client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
-    // The server is implemented in node
+    // The server is implemented in Node.js
     const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
 
-    // If the extension is launched in debug mode then the debug server options are used
-    // Otherwise the run options are used
+    // Use the debug server options when the extension runs in debug mode.
+    // Otherwise, use the normal run options.
     const serverOptions: ServerOptions = {
         run: {module: serverModule, transport: TransportKind.ipc},
         debug: {
@@ -34,30 +34,30 @@ export function activate(context: ExtensionContext) {
         }
     };
 
-    // Options to control the language client
+    // Configure the language client.
     const clientOptions: LanguageClientOptions = {
-        // Register the server for plain text documents
+        // Register the server for AngelScript documents.
         documentSelector: [
             {scheme: 'file', language: 'angelscript'},
             {scheme: 'file', language: 'angelscript-predefined'}
         ],
         synchronize: {
-            // Notify the server about file changes to '.clientrc files contained in the workspace
+            // Notify the server when `.clientrc` files in the workspace change.
             fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
         }
     };
 
-    // Create the language client and start the client.
+    // Create the language client.
     s_client = new LanguageClient('angelScript', 'AngelScript Language Server', serverOptions, clientOptions);
 
-    // Register custom command
+    // Register custom commands.
     s_client.onRequest('angelScript/smartBackspace', params1 => {
         console.log(params1); // TODO: Implement this!
     });
 
     subscribeCommands(context);
 
-    // Start the client. This will also launch the server
+    // Start the client, which also launches the server.
     s_client.start();
 }
 
@@ -65,6 +65,7 @@ export function deactivate(): Thenable<void> | undefined {
     if (!s_client) {
         return undefined;
     }
+
     return s_client.stop();
 }
 
@@ -112,7 +113,7 @@ function subscribeCommands(context: ExtensionContext) {
                 const result = await s_client.sendRequest('angelScript/printGlobalScope', {uri: uri});
                 vscode.window.showInformationMessage(`Print Global Scope: ${result}`);
             } else {
-                vscode.window.showInformationMessage('No active editor');
+                vscode.window.showInformationMessage('No active editor.');
             }
         })
     );
