@@ -26,7 +26,7 @@ import {
     Node_Import,
     Node_InitList,
     Node_Interface,
-    Node_IntfMethod,
+    Node_InterfaceMethod,
     Node_Lambda,
     Node_Mixin,
     NodeName,
@@ -293,7 +293,7 @@ function formatAccessModifier(format: FormatterState) {
     }
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
 function formatInterface(format: FormatterState, interfaceNode: Node_Interface) {
     formatMoveUntilNodeStart(format, interfaceNode);
     format.pushWrap();
@@ -311,8 +311,8 @@ function formatInterface(format: FormatterState, interfaceNode: Node_Interface) 
             for (const node of interfaceNode.memberList) {
                 if (node.nodeName === NodeName.VirtualProp) {
                     formatVirtualProp(format, node);
-                } else if (node.nodeName === NodeName.IntfMethod) {
-                    formatIntfMethod(format, node);
+                } else if (node.nodeName === NodeName.InterfaceMethod) {
+                    formatInterfaceMethod(format, node);
                 }
             }
         });
@@ -463,8 +463,8 @@ function formatMixin(format: FormatterState, mixin: Node_Mixin) {
     formatClass(format, mixin.mixinClass);
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-function formatIntfMethod(format: FormatterState, intfMethod: Node_IntfMethod) {
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+function formatInterfaceMethod(format: FormatterState, intfMethod: Node_InterfaceMethod) {
     formatMoveUntilNodeStart(format, intfMethod);
     format.pushWrap();
 

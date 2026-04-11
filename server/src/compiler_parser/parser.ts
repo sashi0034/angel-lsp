@@ -41,7 +41,7 @@ import {
     Node_Import,
     Node_InitList,
     Node_Interface,
-    Node_IntfMethod,
+    Node_InterfaceMethod,
     Node_Lambda,
     NodeListOp,
     Node_ListPattern,
@@ -890,7 +890,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     return undefined;
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
 function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     const rangeStart = parser.next();
 
@@ -950,17 +950,17 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     return result;
 }
 
-// '{' {VIRTPROP | INTFMTHD} '}'
-function expectInterfaceMembers(parser: ParserState): (Node_IntfMethod | Node_VirtualProp)[] {
+// '{' {VIRTPROP | INTERFACEMETHOD} '}'
+function expectInterfaceMembers(parser: ParserState): (Node_InterfaceMethod | Node_VirtualProp)[] {
     // parser.expect('{', HighlightTokenKind.Operator);
 
-    const members: (Node_IntfMethod | Node_VirtualProp)[] = [];
+    const members: (Node_InterfaceMethod | Node_VirtualProp)[] = [];
     while (parser.isEnd() === false) {
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) {
             break;
         }
 
-        const intfMethod = parseIntfMethod(parser);
+        const intfMethod = parseInterfaceMethod(parser);
         if (intfMethod !== undefined) {
             members.push(intfMethod);
             continue;
@@ -1238,8 +1238,8 @@ function parseMixin(parser: ParserState): ParseResult<Node_Mixin> {
     };
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-function parseIntfMethod(parser: ParserState): Node_IntfMethod | undefined {
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undefined {
     const rangeStart = parser.next();
 
     const returnType = expectType(parser);
@@ -1266,7 +1266,7 @@ function parseIntfMethod(parser: ParserState): Node_IntfMethod | undefined {
     parser.expect(';', HighlightForToken.Operator);
 
     return {
-        nodeName: NodeName.IntfMethod,
+        nodeName: NodeName.InterfaceMethod,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         returnType: returnType,
         isRef: isRef,

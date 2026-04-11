@@ -14,7 +14,7 @@ import {
     Node_Func,
     Node_FuncDef,
     Node_Interface,
-    Node_IntfMethod,
+    Node_InterfaceMethod,
     Node_Mixin,
     NodeName,
     Node_Namespace,
@@ -446,7 +446,7 @@ function hoistFunc(
 // Check if the function is a virtual property setter or getter
 function tryInsertVirtualSetterOrGetter(
     scope: SymbolScope,
-    node: Node_Func | Node_IntfMethod,
+    node: Node_Func | Node_InterfaceMethod,
     returnType: ResolvedType | undefined,
     isInstanceMember: boolean
 ) {
@@ -476,7 +476,7 @@ function tryInsertVirtualSetterOrGetter(
                 scopePath: scope.scopePath,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
-                accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
+                accessRestriction: node.nodeName === NodeName.InterfaceMethod ? undefined : node.accessor,
                 isVirtualProperty: true,
                 isIndexedPropertyAccessor: isIndexedPropertyAccessor
             });
@@ -488,7 +488,7 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
 function hoistInterface(
     parentScope: SymbolScope,
     interfaceNode: Node_Interface,
@@ -532,8 +532,8 @@ function hoistInterfaceMembers(
     for (const member of interfaceNode.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
             hoistVirtualProp(scope, member, analyzeQueue, hoistQueue, true);
-        } else if (member.nodeName === NodeName.IntfMethod) {
-            hoistIntfMethod(scope, member, hoistQueue);
+        } else if (member.nodeName === NodeName.InterfaceMethod) {
+            hoistInterfaceMethod(scope, member, hoistQueue);
         }
     }
 }
@@ -655,8 +655,8 @@ function hoistMixin(parentScope: SymbolScope, mixin: Node_Mixin, analyzeQueue: A
     hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-function hoistIntfMethod(parentScope: SymbolScope, intfMethod: Node_IntfMethod, hoistQueue: HoistQueue) {
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_InterfaceMethod, hoistQueue: HoistQueue) {
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: intfMethod.identifier,
         scopePath: parentScope.scopePath,

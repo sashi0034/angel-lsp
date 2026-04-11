@@ -47,7 +47,7 @@ export enum NodeName {
     FuncDef = 'FuncDef',
     VirtualProp = 'VirtualProp',
     Mixin = 'Mixin',
-    IntfMethod = 'IntfMethod',
+    InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
     ParamList = 'ParamList',
     TypeModifier = 'TypeModifier',
@@ -222,13 +222,13 @@ export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
     return head !== destructorFuncHead && head !== constructorFuncHead;
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
 export interface Node_Interface extends NodeBase {
     readonly nodeName: NodeName.Interface;
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly baseList: ClassBasePart[];
-    readonly memberList: (Node_VirtualProp | Node_IntfMethod)[];
+    readonly memberList: (Node_VirtualProp | Node_InterfaceMethod)[];
 }
 
 // **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
@@ -289,9 +289,9 @@ export interface Node_Mixin extends NodeBase {
     readonly mixinClass: Node_Class;
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-export interface Node_IntfMethod extends NodeBase {
-    readonly nodeName: NodeName.IntfMethod;
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+export interface Node_InterfaceMethod extends NodeBase {
+    readonly nodeName: NodeName.InterfaceMethod;
     readonly returnType: Node_Type;
     readonly isRef: boolean;
     readonly identifier: TokenObject;
@@ -356,7 +356,7 @@ export interface Node_ListPattern extends NodeBase {
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 // TODO: IMPLEMENT IT!
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
 // TODO: IMPLEMENT IT!
 
 // **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
@@ -374,7 +374,7 @@ export interface Node_ListPattern extends NodeBase {
 // **BNF**: MIXIN ::= 'mixin' CLASS
 // TODO: IMPLEMENT IT!
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 // TODO: IMPLEMENT IT!
 
 // **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
