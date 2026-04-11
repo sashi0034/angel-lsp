@@ -1338,7 +1338,7 @@ function expectStatBlock(parser: ParserState): Node_StatBlock | undefined {
     return statBlock;
 }
 
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function parseParamList(parser: ParserState): Node_ParamList | undefined {
     if (parser.next().text !== '(') {
         return undefined;
@@ -1376,7 +1376,7 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
             continue;
         }
 
-        const typeMod = parseTypeMod(parser);
+        const typeModifier = parseTypeModifier(parser);
 
         let identifier: TokenObject | undefined = undefined;
         if (parser.next().text === '...') {
@@ -1399,7 +1399,7 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
 
         paramList.push({
             type: type,
-            modifier: typeMod,
+            modifier: typeModifier,
             identifier: identifier,
             defaultExpr: defaultExpr,
             isVariadic: isVariadic
@@ -1481,8 +1481,8 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     return BreakOrThrough.Through;
 }
 
-// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-function parseTypeMod(parser: ParserState): TypeModifier | undefined {
+// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+function parseTypeModifier(parser: ParserState): TypeModifier | undefined {
     let mod: TypeModifier | undefined = undefined;
 
     if (parser.next().text === '&') {
@@ -2755,7 +2755,7 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
     };
 }
 
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
     // Detect a lambda by checking whether `{` appears after the closing `)` of the parameter list.
     if (canParseLambda(parser) === false) {
@@ -2780,18 +2780,18 @@ const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
         }
 
         if (parser.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parser.next(1).text)) {
-            result.paramList.push({type: undefined, typeMod: undefined, identifier: parser.next()});
+            result.paramList.push({type: undefined, typeModifier: undefined, identifier: parser.next()});
             parser.commit(HighlightForToken.Parameter);
             continue;
         }
 
         const type = parseType(parser);
 
-        const typeMod = type !== undefined ? parseTypeMod(parser) : undefined;
+        const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
 
         const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightForToken.Parameter);
 
-        result.paramList.push({type: type, typeMod: typeMod, identifier: identifier});
+        result.paramList.push({type: type, typeModifier: typeModifier, identifier: identifier});
     }
 
     result.statBlock = expectStatBlock(parser);

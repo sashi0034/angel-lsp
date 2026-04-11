@@ -50,7 +50,7 @@ export enum NodeName {
     IntfMethod = 'IntfMethod',
     StatBlock = 'StatBlock',
     ParamList = 'ParamList',
-    TypeMod = 'TypeMod',
+    TypeModifier = 'TypeModifier',
     Type = 'Type',
     InitList = 'InitList',
     Scope = 'Scope',
@@ -380,7 +380,7 @@ export interface Node_ListPattern extends NodeBase {
 // **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 // TODO: IMPLEMENT IT!
 
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export type Node_ParamList = ElementInParamList[];
 
 export interface ElementInParamList {
@@ -391,7 +391,7 @@ export interface ElementInParamList {
     readonly isVariadic: boolean;
 }
 
-// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
 // **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface Node_Type extends NodeBase {
@@ -635,7 +635,7 @@ export interface Node_Cast extends NodeBase {
     readonly assign: Node_Assign;
 }
 
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 export interface Node_Lambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
     readonly paramList: ParamListInLambda[];
@@ -644,7 +644,7 @@ export interface Node_Lambda extends NodeBase {
 
 export interface ParamListInLambda {
     readonly type: Node_Type | undefined;
-    readonly typeMod: TypeModifier | undefined;
+    readonly typeModifier: TypeModifier | undefined;
     readonly identifier: TokenObject | undefined;
 }
 

@@ -512,7 +512,7 @@ function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
     });
 }
 
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function formatParamList(format: FormatterState, paramList: Node_ParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -525,7 +525,7 @@ function formatParamList(format: FormatterState, paramList: Node_ParamList) {
             }
 
             formatType(format, paramList[i].type);
-            formatTypeMod(format);
+            formatTypeModifier(format);
 
             const identifier = paramList[i].identifier;
             if (identifier !== undefined) {
@@ -554,8 +554,8 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     formatTargetBy(format, ')', {condenseLeft: true});
 }
 
-// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-function formatTypeMod(format: FormatterState) {
+// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+function formatTypeModifier(format: FormatterState) {
     const next = formatMoveToNonComment(format);
     if (next === undefined) {
         return;
@@ -1092,7 +1092,7 @@ function formatCast(format: FormatterState, castNode: Node_Cast) {
     });
 }
 
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
     formatMoveUntilNodeStart(format, lambdaNode);
 
@@ -1109,7 +1109,7 @@ function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
                 formatType(format, param.type);
             }
 
-            formatTypeMod(format);
+            formatTypeModifier(format);
 
             if (param.identifier !== undefined) {
                 formatTargetBy(format, param.identifier.text, {});
