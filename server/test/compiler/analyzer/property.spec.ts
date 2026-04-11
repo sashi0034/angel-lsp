@@ -1,6 +1,6 @@
 import {expectError, expectSuccess} from './utils';
-import {afterEach} from 'node:test';
-import {copyGlobalSettings, getGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
+import {afterEach} from 'mocha';
+import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 
 describe('analyzer/property', () => {
     afterEach(() => {
