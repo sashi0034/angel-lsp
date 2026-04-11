@@ -5,7 +5,7 @@ import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {logger} from '../core/logger';
 import {Profiler} from '../core/profiler';
 import {tokenize} from '../compiler_tokenizer/tokenizer';
-import {preprocessAfterTokenization, PreprocessedOutput} from '../compiler_parser/parserPreprocess';
+import {preprocessAfterTokenize, PreprocessedOutput} from '../compiler_parser/parserPreprocess';
 import {parseAfterPreprocessed} from '../compiler_parser/parser';
 import {diagnostic} from '../core/diagnostic';
 import {AnalysisResolver, DiagnosticsCallback} from './analysisResolver';
@@ -118,7 +118,7 @@ export class Inspector {
         profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
 
         // Run the preprocessor.
-        record.preprocessedOutput = preprocessAfterTokenization(record.rawTokens, ['TODO']); // TODO
+        record.preprocessedOutput = preprocessAfterTokenize(record.rawTokens, ['TODO']); // TODO
         profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
         // Run the parser.
