@@ -1,7 +1,7 @@
 import {expectSuccess} from './utils';
 
 describe('analyzer/hoist', () => {
-    it("accepts: Function can use a type declared after it.", () => {
+    it('accepts: Function can use a type declared after it.', () => {
         expectSuccess(`// Function can use a type declared after it.
             Value get_value() { return Value(); }
 
@@ -9,7 +9,7 @@ describe('analyzer/hoist', () => {
         `);
     });
 
-    it("accepts: Function can use a type declared after it.", () => {
+    it('accepts: Function can use a type declared after it.', () => {
         expectSuccess(`// Function can use a type declared after it.
             int pre() {
                 return A::get_id(1);

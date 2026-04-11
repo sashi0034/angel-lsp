@@ -1,7 +1,18 @@
 import {expectSuccess} from './utils';
+import {afterEach, beforeEach} from 'mocha';
 import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 
 describe('analyzer/implicitMutualInclusion', () => {
+    beforeEach(() => {
+        const settings = copyGlobalSettings();
+        settings.implicitMutualInclusion = true;
+        resetGlobalSettings(settings);
+    });
+
+    afterEach(() => {
+        resetGlobalSettings(undefined);
+    });
+
     it('accepts analyzer case 1', () => {
         expectSuccess([
             {
@@ -25,10 +36,6 @@ describe('analyzer/implicitMutualInclusion', () => {
                         Vector vector;
                     }`
             }
-        ], () => {
-            const settings = copyGlobalSettings();
-            settings.implicitMutualInclusion = true;
-            resetGlobalSettings(settings);
-        });
+        ]);
     });
 });

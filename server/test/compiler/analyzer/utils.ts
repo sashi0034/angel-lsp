@@ -1,11 +1,9 @@
 import {DiagnosticSeverity} from 'vscode-languageserver-types';
 import {FileContents, inspectFileContents, makeFileContentList} from '../../inspectorUtils';
 
-function testAnalyzer(fileContents: FileContents, expectSuccess: boolean, onBegin?: () => void) {
+function testAnalyzer(fileContents: FileContents, expectSuccess: boolean) {
     const fileContentList = makeFileContentList(fileContents);
     const targetUri = fileContentList.at(-1)!.uri;
-
-    onBegin?.();
 
     const inspector = inspectFileContents(fileContentList);
 
@@ -38,10 +36,10 @@ function testAnalyzer(fileContents: FileContents, expectSuccess: boolean, onBegi
     }
 }
 
-export function expectSuccess(fileContents: FileContents, onBegin?: () => void) {
-    testAnalyzer(fileContents, true, onBegin);
+export function expectSuccess(fileContents: FileContents) {
+    testAnalyzer(fileContents, true);
 }
 
-export function expectError(fileContents: FileContents, onBegin?: () => void) {
-    testAnalyzer(fileContents, false, onBegin);
+export function expectError(fileContents: FileContents) {
+    testAnalyzer(fileContents, false);
 }
