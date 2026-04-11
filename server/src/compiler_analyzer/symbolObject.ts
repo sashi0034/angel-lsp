@@ -5,7 +5,7 @@ import {
     Node_Func,
     Node_FuncDef,
     Node_Interface,
-    Node_IntfMethod,
+    Node_InterfaceMethod,
     NodeName,
     NodeBase
 } from '../compiler_parser/nodes';
@@ -289,7 +289,7 @@ export class FunctionSymbol extends SymbolBase {
     constructor(
         public readonly identifierToken: TokenObject,
         public readonly scopePath: ScopePath,
-        public readonly linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod,
+        public readonly linkedNode: Node_Func | Node_FuncDef | Node_InterfaceMethod,
         public readonly functionScopePath: ScopePath | undefined,
         private _returnType: ResolvedType | undefined,
         private _parameterTypes: (ResolvedType | undefined)[],
@@ -304,7 +304,7 @@ export class FunctionSymbol extends SymbolBase {
     public static create(args: {
         identifierToken: TokenObject;
         scopePath: ScopePath;
-        linkedNode: Node_Func | Node_FuncDef | Node_IntfMethod;
+        linkedNode: Node_Func | Node_FuncDef | Node_InterfaceMethod;
         functionScopePath: ScopePath | undefined;
         returnType: ResolvedType | undefined;
         parameterTypes: (ResolvedType | undefined)[];

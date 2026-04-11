@@ -41,21 +41,22 @@ export enum NodeName {
     Class = 'Class',
     TypeDef = 'TypeDef',
     Func = 'Func',
+    ListPattern = 'ListPattern',
     Interface = 'Interface',
     Var = 'Var',
     Import = 'Import',
     FuncDef = 'FuncDef',
     VirtualProp = 'VirtualProp',
     Mixin = 'Mixin',
-    IntfMethod = 'IntfMethod',
+    InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
     ParamList = 'ParamList',
-    TypeMod = 'TypeMod',
+    TypeModifier = 'TypeModifier',
     Type = 'Type',
     InitList = 'InitList',
     Scope = 'Scope',
     DataType = 'DataType',
-    PrimType = 'PrimType',
+    PrimeType = 'PrimeType',
     FuncAttr = 'FuncAttr',
     Statement = 'Statement',
     Switch = 'Switch',
@@ -75,7 +76,7 @@ export enum NodeName {
     ExprTerm = 'ExprTerm',
     ExprValue = 'ExprValue',
     ExprVoid = 'ExprVoid',
-    ConstructCall = 'ConstructCall',
+    ConstructorCall = 'ConstructorCall',
     ExprPreOp = 'ExprPreOp',
     ExprPostOp = 'ExprPostOp',
     Cast = 'Cast',
@@ -97,8 +98,7 @@ export enum NodeName {
     String = 'String',
     Bits = 'Bits',
     Comment = 'Comment',
-    Whitespace = 'Whitespace',
-    ListPattern = 'ListPattern'
+    Whitespace = 'Whitespace'
 }
 
 export interface NodeBase {
@@ -106,7 +106,7 @@ export interface NodeBase {
     readonly nodeRange: TokenRange;
 }
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 export type Node_Script = ScriptElement[];
 
 export type ScriptElement =
@@ -152,7 +152,7 @@ export interface IdentifierAndOptionalExpr {
     readonly expr: Node_Expr | undefined;
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface Node_Class extends NodeBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: TokenRange;
@@ -169,18 +169,12 @@ export interface ClassBasePart {
     readonly identifier: TokenObject | undefined;
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 export interface Node_TypeDef extends NodeBase {
     readonly nodeName: NodeName.TypeDef;
     readonly type: TokenObject;
     readonly identifier: TokenObject;
 }
-
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export interface Node_Func extends NodeBase {
@@ -222,13 +216,21 @@ export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
     return head !== destructorFuncHead && head !== constructorFuncHead;
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+export interface Node_ListPattern extends NodeBase {
+    readonly nodeName: NodeName.ListPattern;
+    readonly operators: NodeListValidOperators[];
+}
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 export interface Node_Interface extends NodeBase {
     readonly nodeName: NodeName.Interface;
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly baseList: ClassBasePart[];
-    readonly memberList: (Node_VirtualProp | Node_IntfMethod)[];
+    readonly memberList: (Node_VirtualProp | Node_InterfaceMethod)[];
 }
 
 // **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
@@ -266,7 +268,7 @@ export interface Node_FuncDef extends NodeBase {
     readonly paramList: Node_ParamList;
 }
 
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface Node_VirtualProp extends NodeBase {
     readonly nodeName: NodeName.VirtualProp;
     readonly accessor: AccessModifier | undefined;
@@ -289,9 +291,9 @@ export interface Node_Mixin extends NodeBase {
     readonly mixinClass: Node_Class;
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-export interface Node_IntfMethod extends NodeBase {
-    readonly nodeName: NodeName.IntfMethod;
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+export interface Node_InterfaceMethod extends NodeBase {
+    readonly nodeName: NodeName.InterfaceMethod;
     readonly returnType: Node_Type;
     readonly isRef: boolean;
     readonly identifier: TokenObject;
@@ -346,41 +348,7 @@ export type NodeListValidOperators =
     | NodeListOperatorEndList
     | NodeListOperatorStartList;
 
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-export interface Node_ListPattern extends NodeBase {
-    readonly nodeName: NodeName.ListPattern;
-    readonly operators: NodeListValidOperators[];
-}
-
-// **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
-// TODO: IMPLEMENT IT!
-
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: MIXIN ::= 'mixin' CLASS
-// TODO: IMPLEMENT IT!
-
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export type Node_ParamList = ElementInParamList[];
 
 export interface ElementInParamList {
@@ -391,7 +359,7 @@ export interface ElementInParamList {
     readonly isVariadic: boolean;
 }
 
-// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
 // **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface Node_Type extends NodeBase {
@@ -418,13 +386,13 @@ export interface Node_Scope extends NodeBase {
     readonly typeTemplates: Node_Type[];
 }
 
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
 export interface Node_DataType extends NodeBase {
     readonly nodeName: NodeName.DataType;
     readonly identifier: TokenObject;
 }
 
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 
@@ -569,9 +537,9 @@ export interface Node_ExprTerm2 extends NodeBase {
     readonly postOps: Node_ExprPostOp[];
 }
 
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type Node_ExprValue =
-    | Node_ConstructCall
+    | Node_ConstructorCall
     | Node_FuncCall
     | Node_VarAccess
     | Node_Cast
@@ -579,9 +547,9 @@ export type Node_ExprValue =
     | Node_Assign
     | Node_Lambda;
 
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
-export interface Node_ConstructCall extends NodeBase {
-    readonly nodeName: NodeName.ConstructCall;
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
+export interface Node_ConstructorCall extends NodeBase {
+    readonly nodeName: NodeName.ConstructorCall;
     readonly type: Node_Type;
     readonly argList: Node_ArgList;
 }
@@ -635,7 +603,7 @@ export interface Node_Cast extends NodeBase {
     readonly assign: Node_Assign;
 }
 
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 export interface Node_Lambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
     readonly paramList: ParamListInLambda[];
@@ -644,7 +612,7 @@ export interface Node_Lambda extends NodeBase {
 
 export interface ParamListInLambda {
     readonly type: Node_Type | undefined;
-    readonly typeMod: TypeModifier | undefined;
+    readonly typeModifier: TypeModifier | undefined;
     readonly identifier: TokenObject | undefined;
 }
 

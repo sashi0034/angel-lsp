@@ -14,7 +14,7 @@ import {
     Node_Func,
     Node_FuncDef,
     Node_Interface,
-    Node_IntfMethod,
+    Node_InterfaceMethod,
     Node_Mixin,
     NodeName,
     Node_Namespace,
@@ -51,7 +51,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -139,7 +139,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOpt
     }
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(
     parentScope: SymbolScope,
     classNode: Node_Class,
@@ -343,7 +343,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
     }
 }
 
-// '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
+// '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'
 function hoistClassMembers(
     scope: SymbolScope,
     classNode: Node_Class,
@@ -363,7 +363,7 @@ function hoistClassMembers(
     }
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     const builtInType = tryGetBuiltinType(typeDef.type);
     if (builtInType === undefined) {
@@ -378,11 +378,6 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
@@ -446,7 +441,7 @@ function hoistFunc(
 // Check if the function is a virtual property setter or getter
 function tryInsertVirtualSetterOrGetter(
     scope: SymbolScope,
-    node: Node_Func | Node_IntfMethod,
+    node: Node_Func | Node_InterfaceMethod,
     returnType: ResolvedType | undefined,
     isInstanceMember: boolean
 ) {
@@ -476,7 +471,7 @@ function tryInsertVirtualSetterOrGetter(
                 scopePath: scope.scopePath,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
-                accessRestriction: node.nodeName === NodeName.IntfMethod ? undefined : node.accessor,
+                accessRestriction: node.nodeName === NodeName.InterfaceMethod ? undefined : node.accessor,
                 isVirtualProperty: true,
                 isIndexedPropertyAccessor: isIndexedPropertyAccessor
             });
@@ -488,7 +483,13 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTFMTHD} '}'))
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// TODO: IMPLEMENT IT!
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// TODO: IMPLEMENT IT!
+
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function hoistInterface(
     parentScope: SymbolScope,
     interfaceNode: Node_Interface,
@@ -532,8 +533,8 @@ function hoistInterfaceMembers(
     for (const member of interfaceNode.memberList) {
         if (member.nodeName === NodeName.VirtualProp) {
             hoistVirtualProp(scope, member, analyzeQueue, hoistQueue, true);
-        } else if (member.nodeName === NodeName.IntfMethod) {
-            hoistIntfMethod(scope, member, hoistQueue);
+        } else if (member.nodeName === NodeName.InterfaceMethod) {
+            hoistInterfaceMethod(scope, member, hoistQueue);
         }
     }
 }
@@ -598,7 +599,7 @@ function hoistFuncDef(
     });
 }
 
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function hoistVirtualProp(
     parentScope: SymbolScope,
     virtualProp: Node_VirtualProp,
@@ -655,8 +656,8 @@ function hoistMixin(parentScope: SymbolScope, mixin: Node_Mixin, analyzeQueue: A
     hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
 }
 
-// **BNF**: INTFMTHD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-function hoistIntfMethod(parentScope: SymbolScope, intfMethod: Node_IntfMethod, hoistQueue: HoistQueue) {
+// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_InterfaceMethod, hoistQueue: HoistQueue) {
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: intfMethod.identifier,
         scopePath: parentScope.scopePath,
@@ -684,7 +685,7 @@ function hoistIntfMethod(parentScope: SymbolScope, intfMethod: Node_IntfMethod, 
 
 // **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMOD [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMOD [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(
     functionHolderScope: SymbolScope,
     functionScope: SymbolScope | undefined,
@@ -719,12 +720,12 @@ function hoistParamList(
     return resolvedTypes;
 }
 
-// **BNF**: TYPEMOD ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 // **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 // **BNF**: INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 // **BNF**: SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 // **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 // **BNF**: STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 // **BNF**: SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
@@ -741,12 +742,12 @@ function hoistParamList(
 // **BNF**: CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 // **BNF**: EXPR ::= EXPRTERM {EXPROP EXPRTERM}
 // **BNF**: EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
 // **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 // **BNF**: EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 // **BNF**: CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMOD] [IDENTIFIER] {',' [TYPE TYPEMOD] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 // **BNF**: LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 // **BNF**: FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
 // **BNF**: VARACCESS ::= SCOPE IDENTIFIER
