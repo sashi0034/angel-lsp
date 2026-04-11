@@ -41,6 +41,7 @@ export enum NodeName {
     Class = 'Class',
     TypeDef = 'TypeDef',
     Func = 'Func',
+    ListPattern = 'ListPattern',
     Interface = 'Interface',
     Var = 'Var',
     Import = 'Import',
@@ -97,8 +98,7 @@ export enum NodeName {
     String = 'String',
     Bits = 'Bits',
     Comment = 'Comment',
-    Whitespace = 'Whitespace',
-    ListPattern = 'ListPattern'
+    Whitespace = 'Whitespace'
 }
 
 export interface NodeBase {
@@ -176,12 +176,6 @@ export interface Node_TypeDef extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
-
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export interface Node_Func extends NodeBase {
     readonly nodeName: NodeName.Func;
@@ -221,6 +215,14 @@ export function isDestructorFunc(head: FuncHead): head is DestructorFuncHead {
 export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
     return head !== destructorFuncHead && head !== constructorFuncHead;
 }
+
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+export interface Node_ListPattern extends NodeBase {
+    readonly nodeName: NodeName.ListPattern;
+    readonly operators: NodeListValidOperators[];
+}
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 export interface Node_Interface extends NodeBase {
@@ -345,40 +347,6 @@ export type NodeListValidOperators =
     | NodeListOperatorRepeat
     | NodeListOperatorEndList
     | NodeListOperatorStartList;
-
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-export interface Node_ListPattern extends NodeBase {
-    readonly nodeName: NodeName.ListPattern;
-    readonly operators: NodeListValidOperators[];
-}
-
-// **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
-// TODO: IMPLEMENT IT!
-
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: MIXIN ::= 'mixin' CLASS
-// TODO: IMPLEMENT IT!
-
-// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
-// TODO: IMPLEMENT IT!
 
 // **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export type Node_ParamList = ElementInParamList[];

@@ -223,11 +223,6 @@ function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
 
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, funcNode: Node_Func) {
@@ -292,6 +287,12 @@ function formatAccessModifier(format: FormatterState) {
         formatTargetBy(format, next.text, {});
     }
 }
+
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// TODO: IMPLEMENT IT!
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// TODO: IMPLEMENT IT!
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function formatInterface(format: FormatterState, interfaceNode: Node_Interface) {

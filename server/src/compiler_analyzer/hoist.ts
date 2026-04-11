@@ -378,11 +378,6 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
@@ -487,6 +482,12 @@ function tryInsertVirtualSetterOrGetter(
         analyzerDiagnostic.error(node.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 }
+
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// TODO: IMPLEMENT IT!
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// TODO: IMPLEMENT IT!
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function hoistInterface(

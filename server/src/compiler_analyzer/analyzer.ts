@@ -106,48 +106,6 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
     parentScope.pushUsingNamespace(usingNode);
 }
 
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
-// TODO: IMPLEMENT IT!
-
-// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-// TODO: IMPLEMENT IT!
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-// TODO: IMPLEMENT IT!
-
 // **BNF**: NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 
 // **BNF**: ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
@@ -183,6 +141,12 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     // Analyze the scope
     analyzeStatBlock(scope, func.statBlock);
 }
+
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// TODO: IMPLEMENT IT!
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// TODO: IMPLEMENT IT!
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 

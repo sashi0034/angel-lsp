@@ -603,92 +603,6 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     };
 }
 
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]): boolean {
-    let listDepth = 0;
-
-    while (!parser.isEnd()) {
-        if (parser.next().text === '{') {
-            parser.commit(HighlightForToken.Operator);
-
-            operators.push({
-                operator: NodeListOp.StartList
-            });
-            listDepth++;
-        } else if (parser.next().text === '}') {
-            if (!listDepth) {
-                break;
-            } else {
-                parser.commit(HighlightForToken.Operator);
-                listDepth--;
-
-                operators.push({
-                    operator: NodeListOp.EndList
-                });
-            }
-        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
-            parser.commit(HighlightForToken.Keyword);
-
-            operators.push({
-                operator: parser.next().text === 'repeat' ? NodeListOp.Repeat : NodeListOp.RepeatSame
-            });
-        } else if (parser.next().text === ',') {
-            parser.commit(HighlightForToken.Operator);
-        } else {
-            const type = parseType(parser);
-
-            if (type === undefined) {
-                return false;
-            }
-
-            operators.push({
-                operator: NodeListOp.Type,
-                type: type
-            });
-        }
-    }
-
-    return listDepth === 0;
-}
-
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
-    if (parser.isPredefinedFile === false) {
-        return undefined;
-    }
-
-    const rangeStart = parser.next();
-
-    if (parser.next().text !== '{') {
-        return undefined;
-    }
-
-    parser.commit(HighlightForToken.Operator);
-
-    const listOperations: NodeListValidOperators[] = [];
-
-    // Parse the list entries.
-    while (!parser.isEnd()) {
-        if (parser.next().text === '}') {
-            break;
-        }
-
-        const entry = parseListEntry(parser, listOperations);
-
-        if (entry === false) {
-            parser.backtrack(rangeStart);
-            return undefined;
-        }
-    }
-
-    if (parser.next().text !== '}' || listOperations.length === 0) {
-        parser.backtrack(rangeStart);
-        return undefined;
-    }
-
-    parser.commit(HighlightForToken.Operator);
-}
-
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): Node_Func | undefined {
     const rangeStart = parser.next();
@@ -888,6 +802,92 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     }
 
     return undefined;
+}
+
+// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
+    if (parser.isPredefinedFile === false) {
+        return undefined;
+    }
+
+    const rangeStart = parser.next();
+
+    if (parser.next().text !== '{') {
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Operator);
+
+    const listOperations: NodeListValidOperators[] = [];
+
+    // Parse the list entries.
+    while (!parser.isEnd()) {
+        if (parser.next().text === '}') {
+            break;
+        }
+
+        const entry = parseListEntry(parser, listOperations);
+
+        if (entry === false) {
+            parser.backtrack(rangeStart);
+            return undefined;
+        }
+    }
+
+    if (parser.next().text !== '}' || listOperations.length === 0) {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Operator);
+}
+
+// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]): boolean {
+    let listDepth = 0;
+
+    while (!parser.isEnd()) {
+        if (parser.next().text === '{') {
+            parser.commit(HighlightForToken.Operator);
+
+            operators.push({
+                operator: NodeListOp.StartList
+            });
+            listDepth++;
+        } else if (parser.next().text === '}') {
+            if (!listDepth) {
+                break;
+            } else {
+                parser.commit(HighlightForToken.Operator);
+                listDepth--;
+
+                operators.push({
+                    operator: NodeListOp.EndList
+                });
+            }
+        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
+            parser.commit(HighlightForToken.Keyword);
+
+            operators.push({
+                operator: parser.next().text === 'repeat' ? NodeListOp.Repeat : NodeListOp.RepeatSame
+            });
+        } else if (parser.next().text === ',') {
+            parser.commit(HighlightForToken.Operator);
+        } else {
+            const type = parseType(parser);
+
+            if (type === undefined) {
+                return false;
+            }
+
+            operators.push({
+                operator: NodeListOp.Type,
+                type: type
+            });
+        }
+    }
+
+    return listDepth === 0;
 }
 
 // **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
