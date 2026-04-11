@@ -94,6 +94,10 @@ export abstract class TokenBase {
         return this.kind === TokenKind.Reserved;
     }
 
+    public isIdentifierToken(): this is IdentifierToken {
+        return this.kind === TokenKind.Identifier;
+    }
+
     public isNumberToken(): this is NumberToken {
         return this.kind === TokenKind.Number;
     }

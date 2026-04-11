@@ -1,4 +1,4 @@
-import {string} from 'vscode-languageserver/lib/common/utils/is';
+import {withDefaults} from '../utils/utilities';
 
 /**
  * Language server settings.
@@ -18,6 +18,7 @@ interface LanguageServerSettings {
     supportsDigitSeparators: boolean;
     builtinStringType: string;
     builtinArrayType: string;
+    definedSymbols: string[];
     files: {
         angelScript: string[];
         exclude: string[];
@@ -46,6 +47,7 @@ const defaultSettings: LanguageServerSettings = {
     supportsDigitSeparators: false,
     builtinStringType: 'string',
     builtinArrayType: 'array',
+    definedSymbols: [],
     files: {
         angelScript: ['*.as'],
         exclude: []
@@ -66,7 +68,7 @@ let globalSettings: LanguageServerSettings = defaultSettings;
  * Reset the global settings instance.
  */
 export function resetGlobalSettings(config: any) {
-    globalSettings = <LanguageServerSettings>(config ?? defaultSettings);
+    globalSettings = withDefaults(config, defaultSettings);
 }
 
 /**
