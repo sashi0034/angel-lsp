@@ -55,7 +55,7 @@ export enum NodeName {
     InitList = 'InitList',
     Scope = 'Scope',
     DataType = 'DataType',
-    PrimType = 'PrimType',
+    PrimeType = 'PrimeType',
     FuncAttr = 'FuncAttr',
     Statement = 'Statement',
     Switch = 'Switch',
@@ -169,7 +169,7 @@ export interface ClassBasePart {
     readonly identifier: TokenObject | undefined;
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 export interface Node_TypeDef extends NodeBase {
     readonly nodeName: NodeName.TypeDef;
     readonly type: TokenObject;
@@ -418,13 +418,13 @@ export interface Node_Scope extends NodeBase {
     readonly typeTemplates: Node_Type[];
 }
 
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
 export interface Node_DataType extends NodeBase {
     readonly nodeName: NodeName.DataType;
     readonly identifier: TokenObject;
 }
 
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 

@@ -121,7 +121,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 // **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 // TODO: IMPLEMENT IT!
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 // TODO: IMPLEMENT IT!
 
 // **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
@@ -139,7 +139,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 // **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 // TODO: IMPLEMENT IT!
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 // TODO: IMPLEMENT IT!
 
 // **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
@@ -154,7 +154,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 
 // **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
@@ -406,7 +406,7 @@ function completeAnalyzingType(
     });
 }
 
-// PRIMTYPE | '?' | 'auto'
+// PRIMETYPE | '?' | 'auto'
 function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
     const typeIdentifier = typeNode.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) {
@@ -598,9 +598,9 @@ function evaluateScope(
     return {ok, accessScope, accessIndex, sideEffects: sideEffect};
 }
 
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
 
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 

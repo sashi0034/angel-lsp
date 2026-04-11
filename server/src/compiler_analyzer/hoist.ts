@@ -363,7 +363,7 @@ function hoistClassMembers(
     }
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     const builtInType = tryGetBuiltinType(typeDef.type);
     if (builtInType === undefined) {
@@ -723,8 +723,8 @@ function hoistParamList(
 // **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 // **BNF**: INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
 // **BNF**: SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 // **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 // **BNF**: STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 // **BNF**: SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'

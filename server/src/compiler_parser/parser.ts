@@ -575,7 +575,7 @@ function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
     };
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMTYPE IDENTIFIER ';'
+// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     if (parser.next().text !== 'typedef') {
         return ParseFailure.Mismatch;
@@ -1723,7 +1723,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
     return scopeNode;
 }
 
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMTYPE | '?' | 'auto')
+// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
 function parseDatatype(parser: ParserState): Node_DataType | undefined {
     const next = parser.next();
     if (next.kind === TokenKind.Identifier) {
@@ -1744,19 +1744,19 @@ function parseDatatype(parser: ParserState): Node_DataType | undefined {
         };
     }
 
-    const primType = parsePrimeType(parser);
-    if (primType !== undefined) {
+    const primeType = parsePrimeType(parser);
+    if (primeType !== undefined) {
         return {
             nodeName: NodeName.DataType,
             nodeRange: new TokenRange(next, next),
-            identifier: primType
+            identifier: primeType
         };
     }
 
     return undefined;
 }
 
-// **BNF**: PRIMTYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 function parsePrimeType(parser: ParserState) {
     const next = parser.next();
     if (next.isReservedToken() === false || next.property.isPrimeType === false) {
