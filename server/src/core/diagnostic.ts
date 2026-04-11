@@ -29,8 +29,19 @@ function error(range: lsp.Range, message: string): void {
     pushDiagnostic(range, message, lsp.DiagnosticSeverity.Error);
 }
 
+function unnecessary(range: lsp.Range, message: string): void {
+    s_currentDiagnostics.push({
+        range: structuredClone(range),
+        message: message,
+        severity: lsp.DiagnosticSeverity.Hint,
+        tags: [lsp.DiagnosticTag.Unnecessary],
+        source: 'AngelScript'
+    });
+}
+
 export const diagnostic = {
     beginSession: beginSession,
     endSession: endSession,
-    error: error
+    error: error,
+    unnecessary: unnecessary
 } as const;
