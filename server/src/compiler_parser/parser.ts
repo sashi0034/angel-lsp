@@ -3122,7 +3122,7 @@ function handleGreaterThanAndGetNext(parser: ParserState) {
     return parser.next();
 }
 
-export function parseAfterPreprocessed(tokens: TokenObject[]): Node_Script {
+export function parseAfterPreprocesse(tokens: TokenObject[]): Node_Script {
     const parser = new ParserState(tokens);
 
     const script: Node_Script = [];

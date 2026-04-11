@@ -836,7 +836,7 @@ function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
     }
 }
 
-export function hoistAfterParsed(ast: Node_Script, globalScope: SymbolGlobalScope): HoistResult {
+export function hoistAfterParse(ast: Node_Script, globalScope: SymbolGlobalScope): HoistResult {
     const analyzeQueue: AnalyzeQueue = [];
     const hoistQueue: HoistQueue = [];
 

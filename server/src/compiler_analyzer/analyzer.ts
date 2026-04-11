@@ -1811,7 +1811,7 @@ export interface HoistResult {
  * Entry point of the analyser.
  * Type checks and function checks are performed here.
  */
-export function analyzeAfterHoisted(path: string, hoistResult: HoistResult): AnalyzerScope {
+export function analyzeAfterHoiste(path: string, hoistResult: HoistResult): AnalyzerScope {
     const {globalScope, analyzeQueue} = hoistResult;
 
     globalScope.commitContext();
