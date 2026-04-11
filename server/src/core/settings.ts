@@ -1,4 +1,4 @@
-import {string} from 'vscode-languageserver/lib/common/utils/is';
+import {withDefaults} from '../utils/utilities';
 
 /**
  * Language server settings.
@@ -66,7 +66,7 @@ let globalSettings: LanguageServerSettings = defaultSettings;
  * Reset the global settings instance.
  */
 export function resetGlobalSettings(config: any) {
-    globalSettings = <LanguageServerSettings>(config ?? defaultSettings);
+    globalSettings = withDefaults(config, defaultSettings);
 }
 
 /**
