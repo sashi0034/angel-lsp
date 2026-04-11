@@ -17,7 +17,7 @@ import {
     Node_Cast,
     Node_Class,
     Node_Condition,
-    Node_ConstructCall,
+    Node_ConstructorCall,
     Node_Continue,
     Node_DataType,
     Node_DoWhile,
@@ -2520,7 +2520,7 @@ function parseExprTerm2(parser: ParserState): Node_ExprTerm2 | undefined {
     };
 }
 
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Pending) {
@@ -2562,7 +2562,7 @@ function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
         return funcCall;
     }
 
-    const constructCall = parseConstructCall(parser);
+    const constructCall = parseConstructorCall(parser);
     if (constructCall !== undefined) {
         return constructCall;
     }
@@ -2575,8 +2575,8 @@ function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     return ParseFailure.Mismatch;
 }
 
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
-function parseConstructCall(parser: ParserState): Node_ConstructCall | undefined {
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
+function parseConstructorCall(parser: ParserState): Node_ConstructorCall | undefined {
     const rangeStart = parser.next();
     const type = parseType(parser);
     if (type === undefined) {
@@ -2590,7 +2590,7 @@ function parseConstructCall(parser: ParserState): Node_ConstructCall | undefined
     }
 
     return {
-        nodeName: NodeName.ConstructCall,
+        nodeName: NodeName.ConstructorCall,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         argList: argList

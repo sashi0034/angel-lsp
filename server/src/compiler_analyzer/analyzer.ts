@@ -1023,10 +1023,10 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: Node_ExprTerm2) {
     return exprValue;
 }
 
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
-        case NodeName.ConstructCall: {
+        case NodeName.ConstructorCall: {
             const type = analyzeType(scope, exprValue.type);
             if (type === undefined) {
                 return undefined;
@@ -1053,7 +1053,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): Resolv
     return undefined;
 }
 
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
 export function analyzeConstructorCall(
     scope: SymbolScope,
     callerIdentifier: TokenObject,

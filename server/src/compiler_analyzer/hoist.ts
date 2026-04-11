@@ -741,8 +741,8 @@ function hoistParamList(
 // **BNF**: CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
 // **BNF**: EXPR ::= EXPRTERM {EXPROP EXPRTERM}
 // **BNF**: EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
 // **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 // **BNF**: EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 // **BNF**: CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'

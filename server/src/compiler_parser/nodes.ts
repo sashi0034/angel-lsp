@@ -75,7 +75,7 @@ export enum NodeName {
     ExprTerm = 'ExprTerm',
     ExprValue = 'ExprValue',
     ExprVoid = 'ExprVoid',
-    ConstructCall = 'ConstructCall',
+    ConstructorCall = 'ConstructorCall',
     ExprPreOp = 'ExprPreOp',
     ExprPostOp = 'ExprPostOp',
     Cast = 'Cast',
@@ -569,9 +569,9 @@ export interface Node_ExprTerm2 extends NodeBase {
     readonly postOps: Node_ExprPostOp[];
 }
 
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type Node_ExprValue =
-    | Node_ConstructCall
+    | Node_ConstructorCall
     | Node_FuncCall
     | Node_VarAccess
     | Node_Cast
@@ -579,9 +579,9 @@ export type Node_ExprValue =
     | Node_Assign
     | Node_Lambda;
 
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
-export interface Node_ConstructCall extends NodeBase {
-    readonly nodeName: NodeName.ConstructCall;
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
+export interface Node_ConstructorCall extends NodeBase {
+    readonly nodeName: NodeName.ConstructorCall;
     readonly type: Node_Type;
     readonly argList: Node_ArgList;
 }

@@ -8,7 +8,7 @@ import {
     Node_Cast,
     Node_Class,
     Node_Condition,
-    Node_ConstructCall,
+    Node_ConstructorCall,
     Node_Continue,
     Node_DataType,
     Node_DoWhile,
@@ -986,12 +986,12 @@ function formatExprTerm(format: FormatterState, exprTerm: Node_ExprTerm) {
     }
 }
 
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function formatExprValue(format: FormatterState, exprValue: Node_ExprValue) {
     // formatMoveUntilNodeStart(formatter, exprValue);
 
-    if (exprValue.nodeName === NodeName.ConstructCall) {
-        formatConstructCall(format, exprValue);
+    if (exprValue.nodeName === NodeName.ConstructorCall) {
+        formatConstructorCall(format, exprValue);
     } else if (exprValue.nodeName === NodeName.FuncCall) {
         formatFuncCall(format, exprValue);
     } else if (exprValue.nodeName === NodeName.VarAccess) {
@@ -1013,13 +1013,13 @@ function formatExprValue(format: FormatterState, exprValue: Node_ExprValue) {
     }
 }
 
-// **BNF**: CONSTRUCTCALL ::= TYPE ARGLIST
-function formatConstructCall(format: FormatterState, constructCall: Node_ConstructCall) {
-    formatMoveUntilNodeStart(format, constructCall);
+// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
+function formatConstructorCall(format: FormatterState, ConstructorCall: Node_ConstructorCall) {
+    formatMoveUntilNodeStart(format, ConstructorCall);
 
-    formatType(format, constructCall.type);
+    formatType(format, ConstructorCall.type);
 
-    formatArgList(format, constructCall.argList);
+    formatArgList(format, ConstructorCall.argList);
 }
 
 // **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
