@@ -13,6 +13,7 @@ import {AnalyzerScope} from '../compiler_analyzer/analyzerScope';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {findScopeContainingPosition} from '../service/utils';
 import {moveDiagnosticsByChanges} from '../service/contentChangeApplier';
+import {getGlobalSettings} from '../core/settings';
 
 interface InspectRecord {
     content: string;
@@ -118,7 +119,7 @@ export class Inspector {
         profiler.mark('Tokenizer'.padEnd(profilerDescriptionLength));
 
         // Run the preprocessor.
-        record.preprocessedOutput = preprocessAfterTokenize(record.rawTokens, ['TODO']); // TODO
+        record.preprocessedOutput = preprocessAfterTokenize(record.rawTokens, getGlobalSettings().definedSymbols);
         profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
         // Run the parser.

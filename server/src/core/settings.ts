@@ -18,6 +18,7 @@ interface LanguageServerSettings {
     supportsDigitSeparators: boolean;
     builtinStringType: string;
     builtinArrayType: string;
+    definedSymbols: string[];
     files: {
         angelScript: string[];
         exclude: string[];
@@ -46,6 +47,7 @@ const defaultSettings: LanguageServerSettings = {
     supportsDigitSeparators: false,
     builtinStringType: 'string',
     builtinArrayType: 'array',
+    definedSymbols: [],
     files: {
         angelScript: ['*.as'],
         exclude: []

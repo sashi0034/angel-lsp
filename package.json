@@ -209,6 +209,17 @@
                     "default": false,
                     "description": "Whether your codebase uses the `asEP_USE_CHARACTER_LITERALS` option."
                 },
+                "angelScript.definedSymbols": {
+                    "scope": "window",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "EDITOR_ONLY"
+                    ],
+                    "description": "Symbols that are considered defined before preprocessing. These symbols are used when evaluating #if directives."
+                },
                 "angelScript.files.angelScript": {
                     "scope": "window",
                     "type": "array",
