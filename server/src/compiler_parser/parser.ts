@@ -81,7 +81,7 @@ import {Mutable} from '../utils/utilities';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {getGlobalSettings} from '../core/settings';
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function parseScript(parser: ParserState): Node_Script {
     const script: Node_Script = [];
     while (parser.isEnd() === false) {
@@ -445,7 +445,7 @@ function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared'
     }
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseClass(parser: ParserState): ParseResult<Node_Class> {
     const rangeStart = parser.next();
 
@@ -508,7 +508,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
     };
 }
 
-// '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
+// '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'
 function expectClassMembers(parser: ParserState) {
     // parser.expect('{', HighlightTokenKind.Operator);
     const members: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[] = [];
@@ -890,7 +890,7 @@ function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
     return undefined;
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     const rangeStart = parser.next();
 
@@ -950,7 +950,7 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     return result;
 }
 
-// '{' {VIRTPROP | INTERFACEMETHOD} '}'
+// '{' {VIRTUALPROP | INTERFACEMETHOD} '}'
 function expectInterfaceMembers(parser: ParserState): (Node_InterfaceMethod | Node_VirtualProp)[] {
     // parser.expect('{', HighlightTokenKind.Operator);
 
@@ -1139,7 +1139,7 @@ function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
     };
 }
 
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
     const rangeStart = parser.next();
 

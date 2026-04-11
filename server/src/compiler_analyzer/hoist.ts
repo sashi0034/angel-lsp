@@ -51,7 +51,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -139,7 +139,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOpt
     }
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(
     parentScope: SymbolScope,
     classNode: Node_Class,
@@ -343,7 +343,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
     }
 }
 
-// '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'
+// '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'
 function hoistClassMembers(
     scope: SymbolScope,
     classNode: Node_Class,
@@ -488,7 +488,7 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function hoistInterface(
     parentScope: SymbolScope,
     interfaceNode: Node_Interface,
@@ -598,7 +598,7 @@ function hoistFuncDef(
     });
 }
 
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function hoistVirtualProp(
     parentScope: SymbolScope,
     virtualProp: Node_VirtualProp,

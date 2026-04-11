@@ -53,7 +53,7 @@ import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, scriptNode: Node_Script) {
     for (const node of scriptNode) {
         const name = node.nodeName;
@@ -180,7 +180,7 @@ function formatEnum(format: FormatterState, enumNode: Node_Enum) {
     });
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function formatClass(format: FormatterState, classNode: Node_Class) {
     formatMoveUntilNodeStart(format, classNode);
     format.pushWrap();
@@ -293,7 +293,7 @@ function formatAccessModifier(format: FormatterState) {
     }
 }
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTPROP | INTERFACEMETHOD} '}'))
+// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function formatInterface(format: FormatterState, interfaceNode: Node_Interface) {
     formatMoveUntilNodeStart(format, interfaceNode);
     format.pushWrap();
@@ -405,7 +405,7 @@ function formatFuncDef(format: FormatterState, funcDef: Node_FuncDef) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// **BNF**: VIRTPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function formatVirtualProp(format: FormatterState, virtualProp: Node_VirtualProp) {
     formatMoveUntilNodeStart(format, virtualProp);
     format.pushWrap();
