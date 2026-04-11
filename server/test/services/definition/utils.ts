@@ -4,7 +4,6 @@ import {CaretMap} from '../caretMap';
 
 export function testDefinition(fileContents: FileContents, mapping?: [number, number][]) {
     const fileContentList = makeFileContentList(fileContents);
-    const lastContent = fileContentList.at(-1)!.content;
 
     const caretMap = new CaretMap();
     caretMap.processFiles(fileContentList);
@@ -13,11 +12,12 @@ export function testDefinition(fileContents: FileContents, mapping?: [number, nu
         throw new Error('Expected at least 2 caret positions');
     }
 
+    let definitionMapping: [number, number][];
     if (mapping === undefined) {
         // Create mapping from 1 to 0, 2 to 0, 3 to 0, etc.
-        mapping = mapping ?? [];
+        definitionMapping = [];
         for (let i = 1; i < caretMap.length; i++) {
-            mapping.push([i, 0]);
+            definitionMapping.push([i, 0]);
         }
     } else {
         // Check if all caret positions are mapped.
@@ -26,36 +26,33 @@ export function testDefinition(fileContents: FileContents, mapping?: [number, nu
                 throw new Error(`Missing mapping for caret $C${i}$`);
             }
         }
+
+        definitionMapping = mapping;
     }
 
-    it(`[definition] ${lastContent}`, () => {
-        const inspector = inspectFileContents(fileContentList);
+    const inspector = inspectFileContents(fileContentList);
 
-        // Iterate through the mapping and check if the definition is correct.
-        for (let i = 0; i < mapping.length; i++) {
-            const fromId = mapping[i][0];
-            const toId = mapping[i][1];
+    // Iterate through the mapping and check if the definition is correct.
+    for (const [fromId, toId] of definitionMapping) {
+        const fromUri = caretMap.get(fromId).uri;
+        const toUri = caretMap.get(toId).uri;
 
-            const fromUri = caretMap.get(fromId).uri;
-            const toUri = caretMap.get(toId).uri;
+        const fromCaret = caretMap.get(fromId).position;
+        const toCaret = caretMap.get(toId).position;
 
-            const fromCaret = caretMap.get(fromId).position;
-            const toCaret = caretMap.get(toId).position;
+        const globalScope = inspector.getRecord(fromUri).analyzerScope.globalScope;
+        const allGlobalScopes = inspector.getAllRecords().map(record => record.analyzerScope.globalScope);
 
-            const globalScope = inspector.getRecord(fromUri).analyzerScope.globalScope;
-            const allGlobalScopes = inspector.getAllRecords().map(record => record.analyzerScope.globalScope);
-
-            const definitionToken = provideDefinitionAsToken(globalScope, allGlobalScopes, fromCaret);
-            if (definitionToken === undefined) {
-                throw new Error(`Missing definition for ${fromCaret.simpleFormat()}`);
-            }
-
-            const definitionLocation = definitionToken.location;
-            if (definitionLocation.positionInRange(toCaret) === false || definitionLocation.path !== toUri) {
-                throw new Error(
-                    `Expected definition of $C${fromId}$ to be ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`
-                );
-            }
+        const definitionToken = provideDefinitionAsToken(globalScope, allGlobalScopes, fromCaret);
+        if (definitionToken === undefined) {
+            throw new Error(`Missing definition for ${fromCaret.simpleFormat()}`);
         }
-    });
+
+        const definitionLocation = definitionToken.location;
+        if (definitionLocation.positionInRange(toCaret) === false || definitionLocation.path !== toUri) {
+            throw new Error(
+                `Expected definition of $C${fromId}$ to be ${toCaret.simpleFormat()}, but got ${definitionLocation.start.simpleFormat()} - ${definitionLocation.end.simpleFormat()}`
+            );
+        }
+    }
 }

@@ -1,20 +1,25 @@
-import {describe, it, afterEach, beforeEach} from 'mocha';
+import {describe, it, after, afterEach, beforeEach} from 'mocha';
 import * as assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import {pathToFileURL} from 'node:url';
 import {isAngelScriptFile, resolveUri, resolveIncludeUri, shouldExcludeFile} from '../../src/service/fileUtils';
 import {copyGlobalSettings, resetGlobalSettings} from '../../src/core/settings';
 import {getEditorState} from '../../src/core/editorState';
 
 describe('fileUtils', () => {
+    const tempRoot = path.resolve(__dirname, '..', '..', '.test-tmp');
     let tempDir: string;
     let tempFile: string;
 
+    function makeTempDir(prefix: string): string {
+        fs.mkdirSync(tempRoot, {recursive: true});
+        return fs.mkdtempSync(path.join(tempRoot, prefix));
+    }
+
     beforeEach(() => {
         // Create a temporary directory and file for the test.
-        tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fileUtils-test-'));
+        tempDir = makeTempDir('fileUtils-test-');
         tempFile = path.join(tempDir, 'test.as');
         fs.writeFileSync(tempFile, '// test file');
     });
@@ -27,6 +32,10 @@ describe('fileUtils', () => {
 
         resetGlobalSettings(undefined);
         getEditorState().workspaceFolderUris = [];
+    });
+
+    after(() => {
+        fs.rmSync(tempRoot, {recursive: true, force: true});
     });
 
     describe('isAngelscriptFile', () => {
@@ -151,7 +160,7 @@ describe('fileUtils', () => {
         });
 
         it('should use include paths as fallback', () => {
-            const includeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'include-test-'));
+            const includeDir = makeTempDir('include-test-');
             const includeFile = path.join(includeDir, 'included.as');
             fs.writeFileSync(includeFile, '// included file');
 
@@ -172,8 +181,8 @@ describe('fileUtils', () => {
         });
 
         it('should handle multiple include paths', () => {
-            const includeDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'include1-test-'));
-            const includeDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'include2-test-'));
+            const includeDir1 = makeTempDir('include1-test-');
+            const includeDir2 = makeTempDir('include2-test-');
             const includeFile = path.join(includeDir2, 'included.as');
             fs.writeFileSync(includeFile, '// included file');
 

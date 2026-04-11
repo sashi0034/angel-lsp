@@ -4,24 +4,22 @@ import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
 
 function testParser(content: string, expectSuccess: boolean) {
-    it(`parses: ${content}`, () => {
-        diagnostic.beginSession();
+    diagnostic.beginSession();
 
-        const uri = '/foo/bar.as';
-        const rawTokens = tokenize(uri, content);
-        const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
-        parseAfterPreprocesse(preprocessedTokens.preprocessedTokens);
+    const uri = '/foo/bar.as';
+    const rawTokens = tokenize(uri, content);
+    const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
+    parseAfterPreprocesse(preprocessedTokens.preprocessedTokens);
 
-        const diagnosticsInParser = diagnostic.endSession();
-        const hasError = diagnosticsInParser.length > 0;
-        if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
-            const diagnostic = diagnosticsInParser[0];
-            const message = diagnostic.message;
-            const line = diagnostic.range.start.line;
-            const character = diagnostic.range.start.character;
-            throw new Error(`${message} (:${line}:${character})`);
-        }
-    });
+    const diagnosticsInParser = diagnostic.endSession();
+    const hasError = diagnosticsInParser.length > 0;
+    if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
+        const diagnostic = diagnosticsInParser[0];
+        const message = diagnostic.message;
+        const line = diagnostic.range.start.line;
+        const character = diagnostic.range.start.character;
+        throw new Error(`${message} (:${line}:${character})`);
+    }
 }
 
 function expectSuccess(content: string) {
@@ -36,78 +34,108 @@ function expectFailure(content: string) {
 // TODO: Separate tests for as.predefined?
 
 describe('Parser', () => {
-    expectSuccess('void foo() {}');
+    it('parses an empty function declaration', () => {
+        expectSuccess('void foo() {}');
+    });
 
-    expectSuccess('int MyValue = 0; float MyFloat = 15.f;');
+    it('parses variable declarations with numeric initializers', () => {
+        expectSuccess('int MyValue = 0; float MyFloat = 15.f;');
+    });
 
-    expectSuccess('const uint Flag1 = 0x01;');
+    it('parses const declarations with hex initializers', () => {
+        expectSuccess('const uint Flag1 = 0x01;');
+    });
 
-    expectSuccess(`
-        class Foo
-        {
-            void bar() { value++; }
-            int value;
-        }
-    `);
+    it('parses class declarations with methods and fields', () => {
+        expectSuccess(`
+            class Foo
+            {
+                void bar() { value++; }
+                int value;
+            }
+        `);
+    });
 
-    expectSuccess(`
-        interface MyInterface
-        {
-            void DoSomething();
-        }
-    `);
+    it('parses interface declarations', () => {
+        expectSuccess(`
+            interface MyInterface
+            {
+                void DoSomething();
+            }
+        `);
+    });
 
-    expectSuccess(`
-        enum MyEnum
-        {
-            eValue0,
-            eValue2 = 2,
-            eValue3,
-            eValue200 = eValue2 * 100
-        }
-    `);
+    it('parses enum declarations with explicit values', () => {
+        expectSuccess(`
+            enum MyEnum
+            {
+                eValue0,
+                eValue2 = 2,
+                eValue3,
+                eValue200 = eValue2 * 100
+            }
+        `);
+    });
 
-    expectSuccess(`
-        enum Foo
-        {
-            fizz,
-            buzz,
-        }
-    `);
+    it('parses enum declarations with trailing commas', () => {
+        expectSuccess(`
+            enum Foo
+            {
+                fizz,
+                buzz,
+            }
+        `);
+    });
 
-    expectSuccess('funcdef bool CALLBACK(int, int);');
+    it('parses funcdef declarations', () => {
+        expectSuccess('funcdef bool CALLBACK(int, int);');
+    });
 
-    expectSuccess('typedef double real64;');
+    it('parses typedef declarations', () => {
+        expectSuccess('typedef double real64;');
+    });
 
-    expectSuccess(`
-        namespace A
-        {
-            void function() { variable++; }
-            int variable;
-        }
-    `);
+    it('parses namespace declarations', () => {
+        expectSuccess(`
+            namespace A
+            {
+                void function() { variable++; }
+                int variable;
+            }
+        `);
+    });
 
-    expectSuccess(`
-        enum Test {
-            A = 1,
-            B = 2
-        }
+    it('parses enum casts and enum bitwise expressions', () => {
+        expectSuccess(`
+            enum Test {
+                A = 1,
+                B = 2
+            }
 
-        void Main() {
-            Test x = Test(1);
-            Test y = Test(Test::A + Test::B | Test::A);
-            bool z = (y & Test::A) != 0;
-            int v = 1;
-            bool w = v == Test::A;
-        }
-    `);
+            void Main() {
+                Test x = Test(1);
+                Test y = Test(Test::A + Test::B | Test::A);
+                bool z = (y & Test::A) != 0;
+                int v = 1;
+                bool w = v == Test::A;
+            }
+        `);
+    });
 
-    expectSuccess(`bool foo = not true; bool bar = not not false;`);
+    it('parses not expressions', () => {
+        expectSuccess(`bool foo = not true; bool bar = not not false;`);
+    });
 
-    expectSuccess(`\uFEFF // <-- BOM
-        void foo() { }`);
+    it('parses files with a BOM', () => {
+        expectSuccess(`\uFEFF // <-- BOM
+            void foo() { }`);
+    });
 
-    expectFailure(`funcdef`);
+    it('rejects an incomplete funcdef', () => {
+        expectFailure(`funcdef`);
+    });
 
-    expectFailure('void foo(');
+    it('rejects an incomplete function declaration', () => {
+        expectFailure('void foo(');
+    });
 });
