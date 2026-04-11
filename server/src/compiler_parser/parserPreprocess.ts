@@ -67,8 +67,7 @@ type IfDirectiveBlock = {
     tag: '#if';
     start: TextLocation;
     isActiveBlock: boolean;
-    hadElse: boolean;
-};
+}; // TODO: #else
 
 interface DirectivePreprocessorContext {
     ifDirectiveBlockStack: IfDirectiveBlock[];
@@ -190,24 +189,8 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
         context.ifDirectiveBlockStack.push({
             tag: '#if',
             start: (directiveTail.nextRaw ?? directiveTail)?.location,
-            isActiveBlock: context.intermediateOutput.definedSymbols.has(directiveTokens[2].text),
-            hadElse: false
+            isActiveBlock: context.intermediateOutput.definedSymbols.has(directiveTokens[2].text)
         });
-
-        updateInactiveBlockStatus(context);
-    } else if (directiveTokens[1].text === 'else') {
-        // e.g., #else
-        directiveTokens[1].setHighlight(directiveHighlight);
-
-        const currentIfDirectiveBlock = getCurrentIfDirectiveBlock(context);
-        if (!currentIfDirectiveBlock || currentIfDirectiveBlock.hadElse) {
-            diagnostic.error(directiveTokens[1].location, 'Unexpected `#else`');
-            return;
-        }
-
-        currentIfDirectiveBlock.hadElse = true;
-        // Invert the active status of the current block level
-        currentIfDirectiveBlock.isActiveBlock = !currentIfDirectiveBlock.isActiveBlock;
 
         updateInactiveBlockStatus(context);
     } else if (directiveTokens[1].text === 'endif') {
