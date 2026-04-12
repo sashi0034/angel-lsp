@@ -201,6 +201,13 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         return this.identifierToken.isReservedToken() && this.identifierToken.property.isNumber;
     }
 
+    public isIntegerType(): boolean {
+        return (
+            this.identifierToken.isReservedToken() &&
+            (this.identifierToken.property.isSignedInteger || this.identifierToken.property.isUnsignedInteger)
+        );
+    }
+
     public isEnumType(): boolean {
         return this.linkedNode?.nodeName === NodeName.Enum;
     }

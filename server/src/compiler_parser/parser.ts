@@ -70,7 +70,7 @@ import {
     GetterOrSetter,
     IdentifierAndInitializer,
     ReferenceModifier,
-    TypeModifier
+    InOutModifier
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -553,8 +553,7 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPE IDENTIFIER
-function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
-    const rangeStart = parser.next();
+function parseVariableInForEach(parser: ParserState): VariableInForEach | undefined {
     const type = expectType(parser);
 
     if (type === undefined) {
@@ -568,8 +567,6 @@ function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
     }
 
     return {
-        nodeName: NodeName.ForEachVar,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         identifier: identifier
     };
@@ -1482,8 +1479,8 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-function parseTypeModifier(parser: ParserState): TypeModifier | undefined {
-    let mod: TypeModifier | undefined = undefined;
+function parseTypeModifier(parser: ParserState): InOutModifier | undefined {
+    let mod: InOutModifier | undefined = undefined;
 
     if (parser.next().text === '&') {
         parser.commit(HighlightForToken.Keyword);
@@ -1492,11 +1489,11 @@ function parseTypeModifier(parser: ParserState): TypeModifier | undefined {
         if (next === 'in' || next === 'out' || next === 'inout') {
             parser.commit(HighlightForToken.Keyword);
             if (next === 'in') {
-                mod = TypeModifier.In;
+                mod = InOutModifier.In;
             } else if (next === 'out') {
-                mod = TypeModifier.Out;
+                mod = InOutModifier.Out;
             } else {
-                mod = TypeModifier.InOut;
+                mod = InOutModifier.InOut;
             }
         }
     }
@@ -1564,9 +1561,9 @@ function parseTypeTail(parser: ParserState) {
 
             if (parser.next().text === 'const') {
                 parser.commit(HighlightForToken.Keyword);
-                refModifier = ReferenceModifier.AtConst;
+                refModifier = ReferenceModifier.RefConst;
             } else {
-                refModifier = ReferenceModifier.At;
+                refModifier = ReferenceModifier.Ref;
             }
 
             continue;
@@ -2072,7 +2069,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
             break;
         }
 
-        const variable = parseForEachVar(parser);
+        const variable = parseVariableInForEach(parser);
 
         if (variable === undefined) {
             parser.error('Invalid variable declaration.');

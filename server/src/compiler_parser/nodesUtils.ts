@@ -17,7 +17,7 @@ export function stringifyNodeType(type: Node_Type): string {
     }
 
     if (type.refModifier !== undefined) {
-        str += type.refModifier === ReferenceModifier.AtConst ? '@const' : '@';
+        str += type.refModifier === ReferenceModifier.RefConst ? '@const' : '@';
     }
 
     return str;

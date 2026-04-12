@@ -363,7 +363,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 }
 
 function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.refModifier === ReferenceModifier.At || typeNode.refModifier === ReferenceModifier.AtConst;
+    return typeNode.refModifier === ReferenceModifier.Ref || typeNode.refModifier === ReferenceModifier.RefConst;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -717,7 +717,11 @@ function analyzeForEach(scope: SymbolScope, forEachNode: Node_ForEach) {
                 variableType = forValueType;
                 pushAutoTypeResolutionInfo(variableDeclaration.identifier, variableType);
             } else {
-                assertTypeCast(forValueType, variableType, variableDeclaration.nodeRange);
+                assertTypeCast(
+                    forValueType,
+                    variableType,
+                    new TokenRange(variableDeclaration.type.nodeRange.start, variableDeclaration.identifier)
+                );
             }
         }
 
@@ -1070,13 +1074,57 @@ export function analyzeConstructorCall(
 
 // **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue: ResolvedType) {
-    // TODO: Implement like opNeg
+    const op = exprPreOp.text;
+
     if (exprPreOp.text === '@') {
         return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true);
     }
 
-    return exprValue;
+    if (exprValue.typeOrFunc.isType()) {
+        if (exprValue.typeOrFunc.isEnumType()) {
+            if (op === '-' || op === '+' || op === '~') {
+                return resolvedBuiltinInt;
+            }
+        } else if (exprValue.typeOrFunc.isNumberType()) {
+            if (op === '-' || op === '+' || op === '++' || op === '--') {
+                return exprValue;
+            }
+
+            if (op === '~' && exprValue.typeOrFunc.isIntegerType()) {
+                return exprValue;
+            }
+        } else if (exprValue.typeOrFunc === builtinBoolType) {
+            if (op === '!' || op === 'not') {
+                return resolvedBuiltinBool;
+            }
+        }
+    }
+
+    const alias = preOpAliases.get(op);
+    if (alias !== undefined) {
+        return checkOverloadedOperatorCall({
+            callerOperator: exprPreOp,
+            alias,
+            lhs: exprValue,
+            lhsRange: new TokenRange(exprPreOp, exprPreOp),
+            rhs: [],
+            rhsRange: new TokenRange(exprPreOp, exprPreOp)
+        });
+    }
+
+    analyzerDiagnostic.error(
+        exprPreOp.location,
+        `Operator '${op}' cannot be applied to ${stringifyResolvedType(exprValue)}.`
+    );
+    return undefined;
 }
+
+const preOpAliases = new Map<string, string>([
+    ['-', 'opNeg'],
+    ['~', 'opCom'],
+    ['++', 'opPreInc'],
+    ['--', 'opPreDec']
+]);
 
 // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(
