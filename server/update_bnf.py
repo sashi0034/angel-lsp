@@ -2,8 +2,9 @@ import os
 import re
 from collections import OrderedDict
 
-BNF_TAG_PATTERN = r"//\s*(?:\*\*BNF\*\*|BNF)\s*"
 BNF_TAG_PREFIX = "// **BNF**"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BNF_TAG_RE = re.compile(r"^(\s*)//\s*\*\*BNF\*\*\s+(.*)$")
 
 
 def read_bnf_definitions(bnf_filename):
@@ -42,21 +43,24 @@ def _extract_bnf_name_from_after_tag(after: str):
     return m.group(1) if m else None
 
 
+def _match_bnf_tag(line: str):
+    return BNF_TAG_RE.match(line)
+
+
 def _find_safe_slot_before(lines, right_idx):
     """
     Find a 'safe' insertion slot immediately before a BNF marker at right_idx.
-    Safe slot = a contiguous block of comment/blank lines right before right_idx.
+    Safe slot = the contiguous block of non-BNF comment/blank lines right before right_idx.
     Returns (insert_pos, indent) or None.
     """
+    m = _match_bnf_tag(lines[right_idx])
+    if not m:
+        return None
+
     j = right_idx - 1
-    while j >= 0 and _is_comment_or_blank(lines[j]):
+    while j >= 0 and _is_comment_or_blank(lines[j]) and not _match_bnf_tag(lines[j]):
         j -= 1
-    block_start = j + 1
-    if block_start < right_idx:
-        m = re.match(rf"^(\s*){BNF_TAG_PATTERN}(.*)$", lines[right_idx])
-        indent = m.group(1) if m else ""
-        return (block_start, indent)
-    return None
+    return (j + 1, m.group(1))
 
 
 def _ensure_todo_remove_for_unknown(lines, bnf_dict):
@@ -65,23 +69,17 @@ def _ensure_todo_remove_for_unknown(lines, bnf_dict):
     insert an immediate next line '<indent>// TODO: REMOVE IT' if not already present.
     Returns (modified_lines, modified_flag)
     """
-    tag_pat = re.compile(rf"^(\s*){BNF_TAG_PATTERN}(.*)$")
     modified = False
     i = 0
     while i < len(lines):
-        m = tag_pat.match(lines[i])
+        m = _match_bnf_tag(lines[i])
         if not m:
             i += 1
             continue
         indent, after = m.group(1), m.group(2)
         name = _extract_bnf_name_from_after_tag(after)
         if not name or name not in bnf_dict:
-            # Check if the very next line is already the TODO marker (with same indent)
-            next_is_todo = False
-            if i + 1 < len(lines):
-                next_is_todo = lines[i + 1].rstrip("\n").strip() == "##__SHOULD_NOT_MATCH__##"  # sentinel, never true
-                # Better check exact text with indent:
-                next_is_todo = lines[i + 1] == f"{indent}// TODO: REMOVE IT!\n"
+            next_is_todo = i + 1 < len(lines) and lines[i + 1].strip() == "// TODO: REMOVE IT!"
             if not next_is_todo:
                 lines[i + 1:i + 1] = [f"{indent}// TODO: REMOVE IT!\n"]
                 modified = True
@@ -94,8 +92,8 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
     """
     - Normalize existing known BNF marker lines to canonical full definition.
     - Compute gaps between consecutive known BNF markers (by master order).
-    - Insert missing names only at 'safe slots' (comment/blank block) before the right marker.
-      If no safe slot for a gap, carry it forward to the next safe slot.
+    - Insert missing names immediately before the right marker, preserving any
+      non-BNF comment/blank prefix attached to that marker.
     - After all insertions, scan again and, for any unknown BNF, insert a '// TODO: REMOVE IT' line.
     Returns True if modified.
     """
@@ -105,12 +103,10 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
     except (UnicodeDecodeError, PermissionError):
         return False
 
-    tag_pat = re.compile(rf"^(\s*){BNF_TAG_PATTERN}(.*)$")
-
     # collect known markers
     markers = []
     for i, line in enumerate(lines):
-        m = tag_pat.match(line)
+        m = _match_bnf_tag(line)
         if not m:
             continue
         indent, after = m.group(1), m.group(2)
@@ -146,29 +142,15 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
         missing = ordered_names[pa + 1: pb] if pb - pa > 1 else []
         gaps.append((ib, indb, missing))
 
-    # 3) plan insertions with carry-forward to next safe slot
+    # 3) plan insertions before the right marker of each gap
     insertion_plans = []
-    carry = []
     for right_idx, right_indent, missing in gaps:
-        names_to_place = carry + missing
-        if not names_to_place:
+        if not missing:
             continue
         slot = _find_safe_slot_before(lines, right_idx)
-        if slot is None:
-            carry = names_to_place
-        else:
-            insert_pos, indent = slot
-            insertion_plans.append((insert_pos, indent, names_to_place))
-            carry = []
-
-    # try final slot before the last known marker
-    if carry:
-        last_idx, last_indent, _ = markers_sorted[-1]
-        slot = _find_safe_slot_before(lines, last_idx)
         if slot is not None:
             insert_pos, indent = slot
-            insertion_plans.append((insert_pos, indent, carry))
-            carry = []
+            insertion_plans.append((insert_pos, indent, missing))
 
     # 4) apply insertions (bottom-to-top)
     for insert_pos, indent, names in sorted(insertion_plans, key=lambda x: x[0], reverse=True):
@@ -194,7 +176,7 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
 
 
 def main():
-    bnf_filename = "bnf.txt"
+    bnf_filename = os.path.join(SCRIPT_DIR, "bnf.txt")
     if not os.path.isfile(bnf_filename):
         print(f"Error: {bnf_filename} not found.")
         return
@@ -206,11 +188,12 @@ def main():
 
     usage_dict = {name: 0 for name in bnf_dict}
 
-    for root, dirs, files in os.walk("."):
+    for root, dirs, files in os.walk(SCRIPT_DIR):
+        dirs[:] = [d for d in dirs if d not in {"node_modules", "out"}]
         for name in files:
-            if name == bnf_filename:
-                continue
             path = os.path.join(root, name)
+            if path == bnf_filename:
+                continue
             replace_and_insert_bnf_in_file(path, bnf_dict, ordered_names, usage_dict)
 
     total_usage = sum(usage_dict.values())
