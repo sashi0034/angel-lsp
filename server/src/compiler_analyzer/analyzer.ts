@@ -30,6 +30,7 @@ import {
     Node_Literal,
     NodeName,
     Node_ParamList,
+    ReferenceModifier,
     Node_Return,
     Node_Scope,
     Node_StatBlock,
@@ -63,6 +64,7 @@ import {checkFunctionCall} from './functionCall';
 import {checkTypeCast, assertTypeCast} from './typeCast';
 import {
     builtinBoolType,
+    resolvedBuiltinNull,
     resolvedBuiltinBool,
     resolvedBuiltinDouble,
     resolvedBuiltinFloat,
@@ -301,7 +303,8 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
                 scope,
                 typeIdentifier,
                 specializationSymbol.symbol,
-                specializationSymbol.scope
+                specializationSymbol.scope,
+                isTypeNodeHandle(typeNode)
             );
         }
     }
@@ -331,10 +334,24 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     } else if (foundSymbol instanceof TypeSymbol === false) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
+    } else if (isTypeNodeHandle(typeNode) && foundSymbol.isPrimitiveOrEnum()) {
+        analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
+        return undefined;
     } else {
         const typeTemplates = analyzeTemplateTypes(scope, givenTypeTemplates, foundSymbol.templateTypes);
-        return completeAnalyzingType(scope, typeIdentifier, foundSymbol, foundScope, undefined, typeTemplates);
+        return completeAnalyzingType(
+            scope,
+            typeIdentifier,
+            foundSymbol,
+            foundScope,
+            isTypeNodeHandle(typeNode),
+            typeTemplates
+        );
     }
+}
+
+function isTypeNodeHandle(typeNode: Node_Type): boolean {
+    return typeNode.refModifier === ReferenceModifier.At || typeNode.refModifier === ReferenceModifier.AtConst;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -386,7 +403,12 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
 
     const builtinType = tryGetBuiltinType(typeIdentifier);
     if (builtinType !== undefined) {
-        return new ResolvedType(builtinType);
+        if (isTypeNodeHandle(typeNode) && builtinType.isPrimitiveOrEnum()) {
+            analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
+            return undefined;
+        }
+
+        return new ResolvedType(builtinType, isTypeNodeHandle(typeNode));
     }
 
     return undefined;
@@ -1037,6 +1059,10 @@ export function analyzeConstructorCall(
 // **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue: ResolvedType) {
     // TODO: Implement like opNeg
+    if (exprPreOp.text === '@') {
+        return exprValue.cloneWithHandler(true).cloneWithExplicitHandleAccess(true);
+    }
+
     return exprValue;
 }
 
@@ -1163,7 +1189,12 @@ function analyzeExprPostOp2(
 // **BNF**: CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefined {
     const castedType = analyzeType(scope, cast.type);
-    analyzeAssign(scope, cast.assign);
+    const sourceType = analyzeAssign(scope, cast.assign);
+
+    if (sourceType?.isHandler === true && castedType?.typeOrFunc.isType() === true) {
+        return castedType.cloneWithHandler(true);
+    }
+
     return castedType;
 }
 
@@ -1224,7 +1255,10 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
         return resolvedBuiltinBool;
     }
 
-    // FIXME: Handling null?
+    if (literalValue.text === 'null') {
+        return resolvedBuiltinNull;
+    }
+
     return undefined;
 }
 
@@ -1670,6 +1704,18 @@ function analyzeCompOp(
     lhsRange: TokenRange,
     rhsRange: TokenRange
 ): ResolvedType | undefined {
+    if (callerOperator.text === 'is' || callerOperator.text === '!is') {
+        if (canReferenceComparison(lhs, rhs)) {
+            return resolvedBuiltinBool;
+        }
+
+        analyzerDiagnostic.error(
+            callerOperator.location,
+            `Operator '${callerOperator.text}' requires handles or null.`
+        );
+        return undefined;
+    }
+
     if (canComparisonOperatorCall(lhs, rhs)) {
         return resolvedBuiltinBool;
     }
@@ -1685,6 +1731,16 @@ function analyzeCompOp(
         rhs,
         rhsRange
     });
+}
+
+function canReferenceComparison(lhs: ResolvedType, rhs: ResolvedType): boolean {
+    const lhsIsReference = lhs.isHandler || lhs.isNullType();
+    const rhsIsReference = rhs.isHandler || rhs.isNullType();
+    if (lhsIsReference === false || rhsIsReference === false) {
+        return false;
+    }
+
+    return checkTypeCast(lhs, rhs) || checkTypeCast(rhs, lhs);
 }
 
 const compOpAliases = new Map<string, string>([
@@ -1727,6 +1783,14 @@ function analyzeAssignOp(
     }
 
     if (callerOperator.text === '=') {
+        if (lhs.isHandler && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
+            analyzerDiagnostic.error(
+                rhsRange.getBoundingLocation(),
+                `Use '@' to assign null to the object handle itself.`
+            );
+            return undefined;
+        }
+
         if (checkTypeCast(rhs, lhs)) {
             return lhs;
         }

@@ -79,6 +79,10 @@ function evaluateTypeConversionInternal(
         return {cost: ConversionCost.Unknown};
     }
 
+    if (src.isNullType() || dest.isNullType()) {
+        return evaluateNullConversion(src, dest);
+    }
+
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
 
@@ -258,8 +262,6 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     assert(srcType.isType() && destType.isType());
     assert(srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum());
 
-    // FIXME: An explicit handle cannot be converted to a primitive
-
     // FIXME: Consider ConversionType
     const convFuncList = collectOpConvFunctions(srcType);
 
@@ -367,6 +369,19 @@ function evaluateConvObjectToObject(
 // -----------------------------------------------
 // Helper functions
 
+function evaluateNullConversion(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
+    if (src.isNullType() && dest.isNullType()) {
+        return {cost: ConversionCost.NoConv};
+    }
+
+    const nonNullType = src.isNullType() ? dest : src;
+    if (nonNullType.isHandler === true) {
+        return {cost: ConversionCost.RefConv};
+    }
+
+    return undefined;
+}
+
 export function normalizeType(type: ResolvedType | undefined) {
     if (type === undefined) {
         return undefined;
@@ -374,11 +389,11 @@ export function normalizeType(type: ResolvedType | undefined) {
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') {
-        return resolvedBuiltinInt;
+        return resolvedBuiltinInt.cloneWithHandler(type.isHandler);
     }
 
     if (type.identifierText === 'uint32') {
-        return resolvedBuiltinUInt;
+        return resolvedBuiltinUInt.cloneWithHandler(type.isHandler);
     }
 
     return type;
@@ -557,6 +572,10 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
         }
 
         if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) {
+            return false;
+        }
+
+        if (srcParam.isHandler !== destParam.isHandler) {
             return false;
         }
 

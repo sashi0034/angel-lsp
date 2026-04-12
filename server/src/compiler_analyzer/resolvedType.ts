@@ -65,9 +65,10 @@ export class ResolvedType {
     constructor(
         // A type or function that has been resolved.
         public readonly typeOrFunc: TypeSymbol | FunctionSymbol,
-        public readonly isHandler?: boolean,
+        public readonly isHandler?: boolean, // TODO: Rename
         public readonly templateTranslator?: TemplateTranslator,
-        public readonly accessSource?: VariableSymbol | TokenObject // This is attached when accessing from the variable.
+        public readonly accessSource?: VariableSymbol | TokenObject, // This is attached when accessing from the variable.
+        public readonly isExplicitHandleAccess?: boolean
     ) {}
 
     public static create(args: {
@@ -75,16 +76,55 @@ export class ResolvedType {
         isHandler?: boolean;
         templateTranslator?: TemplateTranslator;
         accessSource?: VariableSymbol | TokenObject;
+        isExplicitHandleReference?: boolean;
     }) {
-        return new ResolvedType(args.typeOrFunc, args.isHandler, args.templateTranslator, args.accessSource);
+        return new ResolvedType(
+            args.typeOrFunc,
+            args.isHandler,
+            args.templateTranslator,
+            args.accessSource,
+            args.isExplicitHandleReference
+        );
     }
 
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
-        return new ResolvedType(this.typeOrFunc, this.isHandler, templateTranslator, this.accessSource);
+        return new ResolvedType(
+            this.typeOrFunc,
+            this.isHandler,
+            templateTranslator,
+            this.accessSource,
+            this.isExplicitHandleAccess
+        );
+    }
+
+    public cloneWithHandler(isHandler: boolean | undefined): ResolvedType {
+        return new ResolvedType(
+            this.typeOrFunc,
+            isHandler,
+            this.templateTranslator,
+            this.accessSource,
+            this.isExplicitHandleAccess
+        );
+    }
+
+    public cloneWithExplicitHandleAccess(isExplicitHandleReference: boolean | undefined): ResolvedType {
+        return new ResolvedType(
+            this.typeOrFunc,
+            this.isHandler,
+            this.templateTranslator,
+            this.accessSource,
+            isExplicitHandleReference
+        );
     }
 
     public cloneWithAccessSource(accessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
-        return new ResolvedType(this.typeOrFunc, this.isHandler, this.templateTranslator, accessSource);
+        return new ResolvedType(
+            this.typeOrFunc,
+            this.isHandler,
+            this.templateTranslator,
+            accessSource,
+            this.isExplicitHandleAccess
+        );
     }
 
     public get scopePath(): ScopePath | undefined {
@@ -124,6 +164,10 @@ export class ResolvedType {
             return false;
         }
 
+        if (this.isHandler !== other.isHandler) {
+            return false;
+        }
+
         // Compare the template types.
         if (this.typeOrFunc.templateTypes !== undefined && other.typeOrFunc.templateTypes !== undefined) {
             if (this.typeOrFunc.templateTypes.length !== other.typeOrFunc.templateTypes.length) {
@@ -149,5 +193,9 @@ export class ResolvedType {
 
     public isAnyType(): boolean {
         return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === '?';
+    }
+
+    public isNullType(): boolean {
+        return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === 'null';
     }
 }
