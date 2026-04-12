@@ -173,12 +173,24 @@ export function analyzeVar(scope: SymbolScope, varNode: Node_Var, isInstanceMemb
 
         if (initType !== undefined && varType?.isAutoType()) {
             // Resolved the auto type
-            varType = initType;
+            varType = resolveAutoType(varType, initType, declaredVar.identifier);
             pushAutoTypeResolutionInfo(declaredVar.identifier, varType);
         }
     }
 
     insertVariables(scope, varType, varNode, isInstanceMember);
+}
+
+function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, identifier: TokenObject): ResolvedType {
+    if (initType.typeOrFunc.isType() && !initType.typeOrFunc.isPrimitiveOrEnum()) {
+        return initType.cloneWithHandle(true);
+    }
+
+    if (autoType.isHandle && !initType.isHandle) {
+        analyzerDiagnostic.error(identifier.location, `Object handle is not supported for this type.`);
+    }
+
+    return initType;
 }
 
 function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedType) {
@@ -403,7 +415,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
 
     const builtinType = tryGetBuiltinType(typeIdentifier);
     if (builtinType !== undefined) {
-        if (isTypeNodeHandle(typeNode) && builtinType.isPrimitiveOrEnum()) {
+        if (isTypeNodeHandle(typeNode) && builtinType.isPrimitiveOrEnum() && typeIdentifier.text !== 'auto') {
             analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
             return undefined;
         }
@@ -769,7 +781,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: Node_ExprStat) {
     }
 
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (assign?.isHandle !== true && assign?.typeOrFunc.isFunction()) {
+    if (!assign?.isHandle && assign?.typeOrFunc.isFunction()) {
         analyzerDiagnostic.error(exprStat.assign.nodeRange.getBoundingLocation(), `Function value is not callable.`);
     }
 }

@@ -24,6 +24,56 @@ describe('analyzer/handleType', () => {
         `);
     });
 
+    it('accepts: Auto variables initialized from handles resolve to handles.', () => {
+        expectSuccess(`
+            class Value { }
+
+            void main() {
+                Value@ source = Value();
+                Value sourceValue;
+                auto inferred = source;
+                auto fromValue = Value();
+                auto fromValueVariable = sourceValue;
+                auto@ explicit = source;
+
+                if (inferred is source) {
+                    @inferred = null;
+                }
+
+                if (fromValue is source) {
+                    @fromValue = null;
+                }
+
+                if (fromValueVariable is source) {
+                    @fromValueVariable = null;
+                }
+
+                if (explicit is source) {
+                    @explicit = null;
+                }
+            }
+        `);
+    });
+
+    it('rejects: Auto reference variables are not valid declarations.', () => {
+        expectError(`
+            class Value { }
+
+            void main() {
+                Value@ source = Value();
+                auto& inferred = source;
+            }
+        `);
+    });
+
+    it('rejects: Auto handles cannot be inferred from primitive values.', () => {
+        expectError(`
+            void main() {
+                auto@ value = 1;
+            }
+        `);
+    });
+
     it('accepts: Handle references can be passed to compatible handle parameters.', () => {
         expectSuccess(`
             class Base { }
