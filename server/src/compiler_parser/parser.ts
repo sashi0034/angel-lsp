@@ -553,8 +553,7 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPE IDENTIFIER
-function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
-    const rangeStart = parser.next();
+function parseVariableInForEach(parser: ParserState): VariableInForEach | undefined {
     const type = expectType(parser);
 
     if (type === undefined) {
@@ -568,8 +567,6 @@ function parseForEachVar(parser: ParserState): VariableInForEach | undefined {
     }
 
     return {
-        nodeName: NodeName.ForEachVar,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
         identifier: identifier
     };
@@ -2072,7 +2069,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
             break;
         }
 
-        const variable = parseForEachVar(parser);
+        const variable = parseVariableInForEach(parser);
 
         if (variable === undefined) {
             parser.error('Invalid variable declaration.');

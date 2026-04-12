@@ -63,7 +63,6 @@ export enum NodeName {
     Break = 'Break',
     For = 'For',
     ForEach = 'ForEach',
-    ForEachVar = 'ForEachVar',
     While = 'While',
     DoWhile = 'DoWhile',
     If = 'If',
@@ -441,8 +440,7 @@ export interface Node_ForEach extends NodeBase {
 }
 
 // like Node_Var but no initializer or modifier
-export interface VariableInForEach extends NodeBase {
-    readonly nodeName: NodeName.ForEachVar;
+export interface VariableInForEach {
     readonly type: Node_Type;
     readonly identifier: TokenObject;
 }

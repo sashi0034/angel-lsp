@@ -717,7 +717,11 @@ function analyzeForEach(scope: SymbolScope, forEachNode: Node_ForEach) {
                 variableType = forValueType;
                 pushAutoTypeResolutionInfo(variableDeclaration.identifier, variableType);
             } else {
-                assertTypeCast(forValueType, variableType, variableDeclaration.nodeRange);
+                assertTypeCast(
+                    forValueType,
+                    variableType,
+                    new TokenRange(variableDeclaration.type.nodeRange.start, variableDeclaration.identifier)
+                );
             }
         }
 
