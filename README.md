@@ -78,7 +78,7 @@ The Language Server analyzes AngelScript files within your project and offers th
 The following features are currently under development:
 
 - Detailed AngelScript features: Support for `import` is still incomplete.
-- Enhanced Type Checking: Current support for handlers and const is limited.
+- Enhanced Type Checking: Current support for handles and const is limited.
 
 
 # Other Clients

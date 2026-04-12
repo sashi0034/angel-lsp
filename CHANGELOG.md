@@ -168,7 +168,7 @@ Fix README.md
 
 ## [0.1.5] - 2024/04/05
 
-- Support for function handler.
+- Support for function handle.
 
 ## [0.1.4] - 2024/04/03
 

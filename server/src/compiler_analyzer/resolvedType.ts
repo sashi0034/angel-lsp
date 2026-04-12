@@ -65,7 +65,7 @@ export class ResolvedType {
     constructor(
         // A type or function that has been resolved.
         public readonly typeOrFunc: TypeSymbol | FunctionSymbol,
-        public readonly isHandler?: boolean, // TODO: Rename
+        public readonly isHandle?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
         public readonly accessSource?: VariableSymbol | TokenObject, // This is attached when accessing from the variable.
         public readonly isExplicitHandleAccess?: boolean
@@ -73,14 +73,14 @@ export class ResolvedType {
 
     public static create(args: {
         typeOrFunc: TypeSymbol | FunctionSymbol;
-        isHandler?: boolean;
+        isHandle?: boolean;
         templateTranslator?: TemplateTranslator;
         accessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
     }) {
         return new ResolvedType(
             args.typeOrFunc,
-            args.isHandler,
+            args.isHandle,
             args.templateTranslator,
             args.accessSource,
             args.isExplicitHandleReference
@@ -90,17 +90,17 @@ export class ResolvedType {
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandler,
+            this.isHandle,
             templateTranslator,
             this.accessSource,
             this.isExplicitHandleAccess
         );
     }
 
-    public cloneWithHandler(isHandler: boolean | undefined): ResolvedType {
+    public cloneWithHandle(isHandle: boolean | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            isHandler,
+            isHandle,
             this.templateTranslator,
             this.accessSource,
             this.isExplicitHandleAccess
@@ -110,7 +110,7 @@ export class ResolvedType {
     public cloneWithExplicitHandleAccess(isExplicitHandleReference: boolean | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandler,
+            this.isHandle,
             this.templateTranslator,
             this.accessSource,
             isExplicitHandleReference
@@ -120,7 +120,7 @@ export class ResolvedType {
     public cloneWithAccessSource(accessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandler,
+            this.isHandle,
             this.templateTranslator,
             accessSource,
             this.isExplicitHandleAccess
@@ -164,7 +164,7 @@ export class ResolvedType {
             return false;
         }
 
-        if (this.isHandler !== other.isHandler) {
+        if (this.isHandle !== other.isHandle) {
             return false;
         }
 

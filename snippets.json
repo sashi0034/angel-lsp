@@ -79,10 +79,10 @@
         "body": ["typedef ${1:PRIMITIVE} ${2:IDENTIFIER};"],
         "description": "Alias for a type"
     },
-    "Function handler definition": {
+    "Function handle definition": {
         "prefix": "funcdef",
         "body": ["funcdef ${1:RETURN} ${2:IDENTIFIER}(${3:PARAMS});"],
-        "description": "Function handler definition"
+        "description": "Function handle definition"
     },
     "Virtual property getter": {
         "prefix": "getter",

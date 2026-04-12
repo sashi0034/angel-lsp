@@ -375,7 +375,7 @@ function evaluateNullConversion(src: ResolvedType, dest: ResolvedType): Conversi
     }
 
     const nonNullType = src.isNullType() ? dest : src;
-    if (nonNullType.isHandler === true) {
+    if (nonNullType.isHandle === true) {
         return {cost: ConversionCost.RefConv};
     }
 
@@ -389,11 +389,11 @@ export function normalizeType(type: ResolvedType | undefined) {
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') {
-        return resolvedBuiltinInt.cloneWithHandler(type.isHandler);
+        return resolvedBuiltinInt.cloneWithHandle(type.isHandle);
     }
 
     if (type.identifierText === 'uint32') {
-        return resolvedBuiltinUInt.cloneWithHandler(type.isHandler);
+        return resolvedBuiltinUInt.cloneWithHandle(type.isHandle);
     }
 
     return type;
@@ -575,7 +575,7 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
             return false;
         }
 
-        if (srcParam.isHandler !== destParam.isHandler) {
+        if (srcParam.isHandle !== destParam.isHandle) {
             return false;
         }
 
@@ -599,7 +599,7 @@ function collectOpConvFunctions(srcType: TypeSymbol | FunctionSymbol) {
             [
                 'opConv',
                 'opImplConv',
-                'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handler.
+                'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handle.
             ].includes(methodHolder.identifierText)
         ) {
             convFuncList.push(...methodHolder.toList());

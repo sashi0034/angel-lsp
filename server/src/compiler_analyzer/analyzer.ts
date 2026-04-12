@@ -372,7 +372,7 @@ function completeAnalyzingType(
     identifier: TokenObject,
     foundSymbol: TypeSymbol | FunctionSymbol,
     foundScope: SymbolScope,
-    isHandler?: boolean,
+    isHandle?: boolean,
     typeTemplates?: TemplateTranslator | undefined
 ): ResolvedType | undefined {
     getActiveGlobalScope().pushReference({
@@ -382,7 +382,7 @@ function completeAnalyzingType(
 
     return ResolvedType.create({
         typeOrFunc: foundSymbol,
-        isHandler: isHandler,
+        isHandle: isHandle,
         templateTranslator: typeTemplates
     });
 }
@@ -769,7 +769,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: Node_ExprStat) {
     }
 
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (assign?.isHandler !== true && assign?.typeOrFunc.isFunction()) {
+    if (assign?.isHandle !== true && assign?.typeOrFunc.isFunction()) {
         analyzerDiagnostic.error(exprStat.assign.nodeRange.getBoundingLocation(), `Function value is not callable.`);
     }
 }
@@ -1060,7 +1060,7 @@ export function analyzeConstructorCall(
 function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue: ResolvedType) {
     // TODO: Implement like opNeg
     if (exprPreOp.text === '@') {
-        return exprValue.cloneWithHandler(true).cloneWithExplicitHandleAccess(true);
+        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true);
     }
 
     return exprValue;
@@ -1191,8 +1191,8 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
     const castedType = analyzeType(scope, cast.type);
     const sourceType = analyzeAssign(scope, cast.assign);
 
-    if (sourceType?.isHandler === true && castedType?.typeOrFunc.isType() === true) {
-        return castedType.cloneWithHandler(true);
+    if (sourceType?.isHandle === true && castedType?.typeOrFunc.isType() === true) {
+        return castedType.cloneWithHandle(true);
     }
 
     return castedType;
@@ -1292,7 +1292,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
     const callTemplateTypes = funcCall.typeTemplates ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
-        // Invoke function handler
+        // Invoke function handle
         const callTemplateTranslator =
             callTemplateTypes.length > 0
                 ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.type.typeOrFunc.templateTypes)
@@ -1734,8 +1734,8 @@ function analyzeCompOp(
 }
 
 function canReferenceComparison(lhs: ResolvedType, rhs: ResolvedType): boolean {
-    const lhsIsReference = lhs.isHandler || lhs.isNullType();
-    const rhsIsReference = rhs.isHandler || rhs.isNullType();
+    const lhsIsReference = lhs.isHandle || lhs.isNullType();
+    const rhsIsReference = rhs.isHandle || rhs.isNullType();
     if (lhsIsReference === false || rhsIsReference === false) {
         return false;
     }
@@ -1783,7 +1783,7 @@ function analyzeAssignOp(
     }
 
     if (callerOperator.text === '=') {
-        if (lhs.isHandler && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
+        if (lhs.isHandle && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
             analyzerDiagnostic.error(
                 rhsRange.getBoundingLocation(),
                 `Use '@' to assign null to the object handle itself.`
