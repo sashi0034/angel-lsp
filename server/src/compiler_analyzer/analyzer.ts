@@ -1326,6 +1326,7 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
 function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedType | undefined {
     let searchScope = findOptimalScope(scope, funcCall.scope, funcCall.identifier);
     if (funcCall.scope !== undefined && searchScope === undefined) {
+        analyzeArgList(scope, funcCall.argList);
         return undefined;
     } else {
         searchScope = searchScope ?? scope;
@@ -1339,6 +1340,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
             analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not defined.`);
         }
 
+        analyzeArgList(scope, funcCall.argList);
         return undefined;
     }
 
@@ -1373,6 +1375,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
 
     if (calleeSymbol.isFunctionHolder() === false) {
         analyzerDiagnostic.error(funcCall.identifier.location, `'${funcCall.identifier.text}' is not a function.`);
+        analyzeArgList(scope, funcCall.argList);
         return undefined;
     }
 

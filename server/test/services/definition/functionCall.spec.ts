@@ -30,4 +30,26 @@ describe('definition/functionCall', () => {
                 foo.value$C1$ = 2;
             }`);
     });
+
+    it('resolves an argument reference in an undefined function call', () => {
+        testDefinition(`
+            int x$C0$;
+
+            void main() {
+                int y, z;
+
+                undefined_function(z, (y + x$C1$));
+            }`);
+    });
+
+    it('resolves an argument reference with an unresolved variable type in an undefined function call', () => {
+        testDefinition(`
+            undefined_type x$C0$;
+
+            void main() {
+                int y, z;
+
+                undefined_function(z, (y + x$C1$));
+            }`);
+    });
 });
