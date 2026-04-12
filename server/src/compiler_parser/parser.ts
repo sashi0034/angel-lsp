@@ -205,46 +205,6 @@ function parseScript(parser: ParserState): Node_Script {
     return script;
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-function parseUsing(parser: ParserState): ParseResult<Node_Using> {
-    if (parser.next().text !== 'using') {
-        return ParseFailure.Mismatch;
-    }
-
-    const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
-
-    parser.expect('namespace', HighlightForToken.Keyword);
-
-    const namespaceList: TokenObject[] = [];
-    while (parser.isEnd() === false) {
-        const loopStart = parser.next();
-
-        const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
-        if (identifier !== undefined) {
-            namespaceList.push(identifier);
-        }
-
-        if (expectSeparatorOrClose(parser, '::', ';', true) === BreakOrThrough.Break) {
-            break;
-        }
-
-        if (parser.next() === loopStart) {
-            parser.step();
-        }
-    }
-
-    if (namespaceList.length === 0) {
-        return ParseFailure.Pending;
-    }
-
-    return {
-        nodeName: NodeName.Using,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
-        namespaceList: namespaceList
-    };
-}
-
 // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
     if (parser.next().text !== 'namespace') {
@@ -285,6 +245,46 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         namespaceList: namespaceList,
         script: script
+    };
+}
+
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+function parseUsing(parser: ParserState): ParseResult<Node_Using> {
+    if (parser.next().text !== 'using') {
+        return ParseFailure.Mismatch;
+    }
+
+    const rangeStart = parser.next();
+    parser.commit(HighlightForToken.Keyword);
+
+    parser.expect('namespace', HighlightForToken.Keyword);
+
+    const namespaceList: TokenObject[] = [];
+    while (parser.isEnd() === false) {
+        const loopStart = parser.next();
+
+        const identifier = expectIdentifier(parser, HighlightForToken.Namespace);
+        if (identifier !== undefined) {
+            namespaceList.push(identifier);
+        }
+
+        if (expectSeparatorOrClose(parser, '::', ';', true) === BreakOrThrough.Break) {
+            break;
+        }
+
+        if (parser.next() === loopStart) {
+            parser.step();
+        }
+    }
+
+    if (namespaceList.length === 0) {
+        return ParseFailure.Pending;
+    }
+
+    return {
+        nodeName: NodeName.Using,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        namespaceList: namespaceList
     };
 }
 

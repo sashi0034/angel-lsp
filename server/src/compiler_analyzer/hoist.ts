@@ -81,8 +81,6 @@ function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: A
     }
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-
 // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function hoistNamespace(
     parentScope: SymbolScope,
@@ -105,6 +103,8 @@ function hoistNamespace(
 
     pushScopeRegionInfo(scopeIterator, namespaceNode.nodeRange);
 }
+
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum) {

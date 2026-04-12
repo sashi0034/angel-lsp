@@ -35,8 +35,8 @@ export interface FunctionAttribute {
 
 export enum NodeName {
     NodeName = 'NodeName',
-    Using = 'Using',
     Namespace = 'Namespace',
+    Using = 'Using',
     Enum = 'Enum',
     Class = 'Class',
     TypeDef = 'TypeDef',
@@ -123,17 +123,17 @@ export type ScriptElement =
     | Node_Namespace
     | Node_Using;
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-export interface Node_Using extends NodeBase {
-    readonly nodeName: NodeName.Using;
-    readonly namespaceList: TokenObject[];
-}
-
 // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 export interface Node_Namespace extends NodeBase {
     readonly nodeName: NodeName.Namespace;
     readonly namespaceList: TokenObject[];
     readonly script: Node_Script;
+}
+
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+export interface Node_Using extends NodeBase {
+    readonly nodeName: NodeName.Using;
+    readonly namespaceList: TokenObject[];
 }
 
 // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))

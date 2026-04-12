@@ -86,27 +86,6 @@ function formatScript(format: FormatterState, scriptNode: Node_Script) {
     }
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-function formatUsing(format: FormatterState, usingNode: Node_Using) {
-    formatMoveUntilNodeStart(format, usingNode);
-    format.pushWrap();
-
-    formatTargetBy(format, 'using', {});
-
-    formatTargetBy(format, 'namespace', {});
-
-    for (let i = 0; i < usingNode.namespaceList.length; i++) {
-        if (i > 0) {
-            formatTargetBy(format, '::', {condenseSides: true});
-        }
-
-        const namespaceIdentifier = usingNode.namespaceList[i];
-        formatTargetBy(format, namespaceIdentifier.text, {});
-    }
-
-    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
-}
-
 // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function formatNamespace(format: FormatterState, namespaceNode: Node_Namespace) {
     formatMoveUntilNodeStart(format, namespaceNode);
@@ -129,6 +108,27 @@ function formatNamespace(format: FormatterState, namespaceNode: Node_Namespace) 
     formatBraceBlock(format, () => {
         formatScript(format, namespaceNode.script);
     });
+}
+
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+function formatUsing(format: FormatterState, usingNode: Node_Using) {
+    formatMoveUntilNodeStart(format, usingNode);
+    format.pushWrap();
+
+    formatTargetBy(format, 'using', {});
+
+    formatTargetBy(format, 'namespace', {});
+
+    for (let i = 0; i < usingNode.namespaceList.length; i++) {
+        if (i > 0) {
+            formatTargetBy(format, '::', {condenseSides: true});
+        }
+
+        const namespaceIdentifier = usingNode.namespaceList[i];
+        formatTargetBy(format, namespaceIdentifier.text, {});
+    }
+
+    formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
 function formatBraceBlock(format: FormatterState, action: () => void, isIndent: boolean = true) {
