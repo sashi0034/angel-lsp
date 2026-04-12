@@ -6,15 +6,15 @@ export enum AccessModifier {
     Protected = 'Protected'
 }
 
-export enum TypeModifier {
+export enum InOutModifier {
     In = 'In',
     Out = 'Out',
     InOut = 'InOut'
 }
 
 export enum ReferenceModifier {
-    At = 'At',
-    AtConst = 'AtConst'
+    Ref = 'Ref',
+    RefConst = 'RefConst'
 }
 
 export interface EntityAttribute {
@@ -353,7 +353,7 @@ export type Node_ParamList = ElementInParamList[];
 
 export interface ElementInParamList {
     readonly type: Node_Type;
-    readonly modifier: TypeModifier | undefined;
+    readonly modifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
     readonly defaultExpr: Node_Expr | Node_ExprVoid | undefined;
     readonly isVariadic: boolean;
@@ -612,7 +612,7 @@ export interface Node_Lambda extends NodeBase {
 
 export interface ParamListInLambda {
     readonly type: Node_Type | undefined;
-    readonly typeModifier: TypeModifier | undefined;
+    readonly typeModifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
 }
 

@@ -599,7 +599,7 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 
     if (typeNode.refModifier !== undefined) {
         formatTargetBy(format, '@', {condenseLeft: true});
-        if (typeNode.refModifier === ReferenceModifier.AtConst) {
+        if (typeNode.refModifier === ReferenceModifier.RefConst) {
             formatTargetBy(format, 'const', {});
         }
     }

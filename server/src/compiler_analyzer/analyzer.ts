@@ -363,7 +363,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 }
 
 function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.refModifier === ReferenceModifier.At || typeNode.refModifier === ReferenceModifier.AtConst;
+    return typeNode.refModifier === ReferenceModifier.Ref || typeNode.refModifier === ReferenceModifier.RefConst;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
