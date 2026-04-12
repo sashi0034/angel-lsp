@@ -2,8 +2,8 @@ import os
 import re
 from collections import OrderedDict
 
-BNF_TAG_PATTERN = r"//\s*(?:\*\*BNF\*\*|BNF):\s*"
-BNF_TAG_PREFIX = "// **BNF**:"
+BNF_TAG_PATTERN = r"//\s*(?:\*\*BNF\*\*|BNF)\s*"
+BNF_TAG_PREFIX = "// **BNF**"
 
 
 def read_bnf_definitions(bnf_filename):

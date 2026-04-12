@@ -51,7 +51,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 
-// **BNF**: SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -81,9 +81,9 @@ function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: A
     }
 }
 
-// **BNF**: USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
-// **BNF**: NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+// **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 function hoistNamespace(
     parentScope: SymbolScope,
     namespaceNode: Node_Namespace,
@@ -106,7 +106,7 @@ function hoistNamespace(
     pushScopeRegionInfo(scopeIterator, namespaceNode.nodeRange);
 }
 
-// **BNF**: ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+// **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum) {
     const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: enumNode.identifier,
@@ -139,7 +139,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOpt
     }
 }
 
-// **BNF**: CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(
     parentScope: SymbolScope,
     classNode: Node_Class,
@@ -363,7 +363,7 @@ function hoistClassMembers(
     }
 }
 
-// **BNF**: TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
+// **BNF** TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     const builtInType = tryGetBuiltinType(typeDef.type);
     if (builtInType === undefined) {
@@ -379,7 +379,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     parentScope.insertSymbolAndCheck(symbol);
 }
 
-// **BNF**: FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
     parentScope: SymbolScope,
     funcNode: Node_Func,
@@ -483,13 +483,13 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
-// **BNF**: LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+// **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 // TODO: IMPLEMENT IT!
 
-// **BNF**: LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+// **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
 // TODO: IMPLEMENT IT!
 
-// **BNF**: INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
+// **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function hoistInterface(
     parentScope: SymbolScope,
     interfaceNode: Node_Interface,
@@ -539,7 +539,7 @@ function hoistInterfaceMembers(
     }
 }
 
-// **BNF**: VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+// **BNF** VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 function hoistVar(
     scope: SymbolScope,
     varNode: Node_Var,
@@ -567,9 +567,9 @@ function hoistVar(
     });
 }
 
-// **BNF**: IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+// **BNF** IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 
-// **BNF**: FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+// **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 function hoistFuncDef(
     parentScope: SymbolScope,
     funcDef: Node_FuncDef,
@@ -599,7 +599,7 @@ function hoistFuncDef(
     });
 }
 
-// **BNF**: VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+// **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 function hoistVirtualProp(
     parentScope: SymbolScope,
     virtualProp: Node_VirtualProp,
@@ -651,12 +651,12 @@ function hoistVirtualProp(
     }
 }
 
-// **BNF**: MIXIN ::= 'mixin' CLASS
+// **BNF** MIXIN ::= 'mixin' CLASS
 function hoistMixin(parentScope: SymbolScope, mixin: Node_Mixin, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
 }
 
-// **BNF**: INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+// **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_InterfaceMethod, hoistQueue: HoistQueue) {
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: intfMethod.identifier,
@@ -683,9 +683,9 @@ function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_Interfa
     });
 }
 
-// **BNF**: STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
+// **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 
-// **BNF**: PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 function hoistParamList(
     functionHolderScope: SymbolScope,
     functionScope: SymbolScope | undefined,
@@ -720,46 +720,46 @@ function hoistParamList(
     return resolvedTypes;
 }
 
-// **BNF**: TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-// **BNF**: TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-// **BNF**: INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-// **BNF**: SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-// **BNF**: DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
-// **BNF**: PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-// **BNF**: FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
-// **BNF**: STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-// **BNF**: SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-// **BNF**: BREAK ::= 'break' ';'
-// **BNF**: FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-// **BNF**: FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
-// **BNF**: WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
-// **BNF**: DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-// **BNF**: IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-// **BNF**: CONTINUE ::= 'continue' ';'
-// **BNF**: EXPRSTAT ::= [ASSIGN] ';'
-// **BNF**: TRY ::= 'try' STATBLOCK 'catch' STATBLOCK
-// **BNF**: RETURN ::= 'return' [ASSIGN] ';'
-// **BNF**: CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-// **BNF**: EXPR ::= EXPRTERM {EXPROP EXPRTERM}
-// **BNF**: EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-// **BNF**: EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-// **BNF**: CONSTRUCTORCALL ::= TYPE ARGLIST
-// **BNF**: EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-// **BNF**: EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
-// **BNF**: CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-// **BNF**: LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
-// **BNF**: LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-// **BNF**: FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
-// **BNF**: VARACCESS ::= SCOPE IDENTIFIER
-// **BNF**: ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-// **BNF**: ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
-// **BNF**: CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
-// **BNF**: EXPROP ::= MATHOP | COMPOP | LOGICOP | BITOP
-// **BNF**: BITOP ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
-// **BNF**: MATHOP ::= '+' | '-' | '*' | '/' | '%' | '**'
-// **BNF**: COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
-// **BNF**: LOGICOP ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
-// **BNF**: ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+// **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+// **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+// **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+// **BNF** DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF** PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+// **BNF** SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+// **BNF** BREAK ::= 'break' ';'
+// **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
+// **BNF** DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+// **BNF** IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+// **BNF** CONTINUE ::= 'continue' ';'
+// **BNF** EXPRSTAT ::= [ASSIGN] ';'
+// **BNF** TRY ::= 'try' STATBLOCK 'catch' STATBLOCK
+// **BNF** RETURN ::= 'return' [ASSIGN] ';'
+// **BNF** CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+// **BNF** EXPR ::= EXPRTERM {EXPROP EXPRTERM}
+// **BNF** EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
+// **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
+// **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** VARACCESS ::= SCOPE IDENTIFIER
+// **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+// **BNF** ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
+// **BNF** CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
+// **BNF** EXPROP ::= MATHOP | COMPOP | LOGICOP | BITOP
+// **BNF** BITOP ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
+// **BNF** MATHOP ::= '+' | '-' | '*' | '/' | '%' | '**'
+// **BNF** COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
+// **BNF** LOGICOP ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
+// **BNF** ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
 
 function collectBaseClassesAndDeivedClasses(
     scope: SymbolScope,
