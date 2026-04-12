@@ -58,6 +58,10 @@ export const builtinAnyType: TypeSymbol = createBuiltinType(ReservedToken.create
 
 export const builtinAutoType: TypeSymbol = createBuiltinType(ReservedToken.createVirtual('auto'));
 
+export const builtinNullType: TypeSymbol = createBuiltinType(ReservedToken.createVirtual('null'));
+
+export const resolvedBuiltinNull: ResolvedType = new ResolvedType(builtinNullType);
+
 export function tryGetBuiltinType(token: TokenObject): TypeSymbol | undefined {
     if (token.kind !== TokenKind.Reserved) {
         return undefined;

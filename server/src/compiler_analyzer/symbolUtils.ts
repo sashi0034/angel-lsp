@@ -40,7 +40,7 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
     }
 
     let suffix = '';
-    if (type.isHandler === true) {
+    if (type.isHandle === true) {
         suffix = `${suffix}@`;
     }
 

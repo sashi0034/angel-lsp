@@ -113,7 +113,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
         private _templateTypes?: TokenObject[],
         private _baseList?: (ResolvedType | undefined)[],
-        public readonly isHandler?: boolean,
+        public readonly isHandle?: boolean,
         public readonly multipleEnumCandidates?: VariableSymbol[]
     ) {
         super();
@@ -133,7 +133,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         isTypeParameter?: boolean;
         templateTypes?: TokenObject[];
         baseList?: (ResolvedType | undefined)[];
-        isHandler?: boolean;
+        isHandle?: boolean;
         multipleEnumCandidates?: VariableSymbol[];
     }) {
         return new TypeSymbol(
@@ -145,7 +145,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
             args.isTypeParameter,
             args.templateTypes,
             args.baseList,
-            args.isHandler,
+            args.isHandle,
             args.multipleEnumCandidates
         );
     }
