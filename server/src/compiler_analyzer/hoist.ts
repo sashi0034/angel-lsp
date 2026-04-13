@@ -695,13 +695,16 @@ function hoistParamList(
 
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
-        const type = analyzeType(functionHolderScope, param.type);
+        const type = analyzeType(functionScope ?? functionHolderScope, param.type);
         if (type === undefined) {
             resolvedTypes.push(undefined);
         } else {
             resolvedTypes.push(type);
         }
+    }
 
+    for (let i = 0; i < paramList.length; i++) {
+        const param = paramList[i];
         if (param.identifier === undefined) {
             continue;
         }
@@ -710,7 +713,7 @@ function hoistParamList(
             VariableSymbol.create({
                 identifierToken: param.identifier,
                 scopePath: functionScope.scopePath,
-                type: type,
+                type: resolvedTypes[i],
                 isInstanceMember: false,
                 accessRestriction: undefined
             })

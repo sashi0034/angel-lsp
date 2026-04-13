@@ -60,12 +60,14 @@ describe('analyzer/usingNamespace', () => {
             },
             {
                 uri: 'file:///path/to/file_2.as',
-                content: `// This is an error because the other file is not included.
-                #include "file_1.as"
-
-                namespace A::B {
-                    void fn_a_b();
+                content: `
+                namespace A {
+                    namespace B {
+                        void fn_a_b() {}
+                    }
                 }
+
+                #include "file_1.as"
                 `
             },
             {
