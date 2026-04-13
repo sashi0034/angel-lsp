@@ -1,31 +1,16 @@
-import {
-    FunctionSymbol,
-    FunctionSymbolHolder,
-    SymbolObject,
-    SymbolObjectHolder,
-    TypeSymbol,
-    VariableSymbol
-} from './symbolObject';
+import {SymbolObject, SymbolObjectHolder} from './symbolObject';
 import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
     SymbolAndScope,
-    SymbolGlobalScope,
     SymbolScope
 } from './symbolScope';
-import {ResolvedType} from './resolvedType';
-import {
-    AccessModifier,
-    hasFuncReturnValue,
-    InOutModifier,
-    NodeName,
-    Node_Type,
-    ReferenceModifier
-} from '../compiler_parser/nodes';
-import {stringifyNodeType} from '../compiler_parser/nodesUtils';
+import {AccessModifier, NodeName} from '../compiler_parser/nodes';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');
+
+export {stringifyResolvedType, stringifyResolvedTypes, stringifySymbolObject} from './symbolStringifier';
 
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     let suffix = '';
@@ -40,135 +25,6 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     }
 
     return suffix.length === 0 ? '' : suffix + '::';
-}
-
-export function stringifyResolvedType(type: ResolvedType | undefined): string {
-    if (type === undefined) {
-        return '(undefined)';
-    }
-
-    let suffix = '';
-    if (type.isHandle === true) {
-        suffix = `${suffix}@`;
-    }
-
-    if (type.typeOrFunc.isFunction()) {
-        const func: FunctionSymbol = type.typeOrFunc;
-        const returnType = func.returnType;
-        const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
-        return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
-    }
-
-    const templateTypes = type.typeOrFunc.templateTypes;
-    if (templateTypes !== undefined) {
-        const templateTypesText = templateTypes
-            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text)
-            .join(', ');
-        suffix = `<${templateTypesText}>${suffix}`;
-    }
-
-    return type.typeOrFunc.identifierText + suffix;
-}
-
-export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
-    return types.map(t => stringifyResolvedType(t)).join(', ');
-}
-
-function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Node_Type | undefined): string {
-    if (node === undefined) {
-        return stringifyResolvedType(type);
-    }
-
-    if (type === undefined) {
-        return stringifyNodeType(node);
-    }
-
-    let text = stringifyResolvedType(type);
-    if (node.refModifier === ReferenceModifier.RefConst && text.endsWith('@')) {
-        text = text.substring(0, text.length - 1) + '@const';
-    }
-
-    if (node.isConst) {
-        text = 'const ' + text;
-    }
-
-    return text;
-}
-
-function stringifyInOutModifier(modifier: InOutModifier | undefined): string {
-    if (modifier === InOutModifier.In) {
-        return '&in';
-    } else if (modifier === InOutModifier.Out) {
-        return '&out';
-    } else if (modifier === InOutModifier.InOut) {
-        return '&inout';
-    }
-
-    return '';
-}
-
-function stringifyFunctionParameters(symbol: FunctionSymbol): string {
-    const paramList = symbol.linkedNode.paramList;
-    return symbol.parameterTypes
-        .map((type, index) => {
-            const param = paramList[index];
-            const typeText = stringifyResolvedTypeWithNode(type, param?.type);
-            const modifierText = stringifyInOutModifier(param?.modifier);
-            const identifierText = param?.identifier === undefined ? '' : ` ${param.identifier.text}`;
-            const variadicText = param?.isVariadic ? ' ...' : '';
-            return `${typeText}${modifierText}${identifierText}${variadicText}`;
-        })
-        .join(', ');
-}
-
-function stringifyFunctionReturnType(symbol: FunctionSymbol): string {
-    const linkedNode = symbol.linkedNode;
-    if (linkedNode.nodeName === NodeName.FuncDef) {
-        return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
-    } else if (linkedNode.nodeName === NodeName.InterfaceMethod) {
-        return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
-    } else if (hasFuncReturnValue(linkedNode.head)) {
-        return (
-            stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.head.returnType) +
-            (linkedNode.head.isRef ? '&' : '')
-        );
-    }
-
-    return symbol.returnType === undefined ? '' : stringifyResolvedType(symbol.returnType);
-}
-
-function stringifyFunctionConstSuffix(symbol: FunctionSymbol): string {
-    const linkedNode = symbol.linkedNode;
-    if (linkedNode.nodeName === NodeName.FuncDef) {
-        return '';
-    }
-
-    return linkedNode.isConst ? ' const' : '';
-}
-
-function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): string {
-    if (symbol.templateTypes === undefined) {
-        return '';
-    }
-
-    return `<${symbol.templateTypes.map(type => type.text).join(', ')}>`;
-}
-
-/**
- * Build a string representation of a symbol object.
- */
-export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
-    if (symbol.isType()) {
-        return fullName + stringifyTemplateTypeParameters(symbol);
-    } else if (symbol.isFunction()) {
-        const head = symbol.returnType === undefined ? '' : stringifyFunctionReturnType(symbol) + ' ';
-        return `${head}${fullName}${stringifyTemplateTypeParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(symbol)}`;
-    } else if (symbol.isVariable()) {
-        return `${stringifyResolvedType(symbol.type)} ${fullName}`;
-    }
-
-    assert(false);
 }
 
 // TODO: This should be a member variable
