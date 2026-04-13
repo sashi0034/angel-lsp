@@ -33,6 +33,16 @@ describe('compiler/symbolUtils', () => {
         );
     });
 
+    it('stringifies template types', () => {
+        expectStringifiedSymbol(
+            `
+            class Container<T> {}
+            `,
+            globalScope => globalScope.lookupSymbol('Container'),
+            'Container<T>'
+        );
+    });
+
     it('stringifies variables', () => {
         expectStringifiedSymbol(
             `
@@ -41,6 +51,61 @@ describe('compiler/symbolUtils', () => {
             `,
             globalScope => globalScope.lookupSymbol('value'),
             'Obj@ value'
+        );
+    });
+
+    it('stringifies template variables', () => {
+        expectStringifiedSymbol(
+            `
+            class Container<T> {}
+            class Obj {}
+
+            Container<Obj> value;
+            `,
+            globalScope => globalScope.lookupSymbol('value'),
+            'Container<Obj> value'
+        );
+    });
+
+    it('stringifies nested template variables with handles', () => {
+        expectStringifiedSymbol(
+            `
+            class Container<T> {}
+            class Pair<T, U> {}
+            class Obj {}
+
+            Pair<Container<Obj@>, Obj@> value;
+            `,
+            globalScope => globalScope.lookupSymbol('value'),
+            'Pair<Container<Obj@>, Obj@> value'
+        );
+    });
+
+    it('stringifies template function return and parameter types', () => {
+        expectStringifiedSymbol(
+            `
+            class Container<T> {}
+            class Obj {}
+
+            Container<Obj@> make(const Container<Obj@>@const&in incoming) {
+                Container<Obj@> result;
+                return result;
+            }
+            `,
+            globalScope => globalScope.lookupSymbol('make'),
+            'Container<Obj@> make(const Container<Obj@>@const&in incoming)'
+        );
+    });
+
+    it('stringifies function templates', () => {
+        expectStringifiedSymbol(
+            `
+            T getValue<T>(T value) {
+                return value;
+            }
+            `,
+            globalScope => globalScope.lookupSymbol('getValue'),
+            'T getValue<T>(T value)'
         );
     });
 

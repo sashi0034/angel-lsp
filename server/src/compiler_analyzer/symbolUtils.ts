@@ -146,16 +146,24 @@ function stringifyFunctionConstSuffix(symbol: FunctionSymbol): string {
     return linkedNode.isConst ? ' const' : '';
 }
 
+function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): string {
+    if (symbol.templateTypes === undefined) {
+        return '';
+    }
+
+    return `<${symbol.templateTypes.map(type => type.text).join(', ')}>`;
+}
+
 /**
  * Build a string representation of a symbol object.
  */
 export function stringifySymbolObject(symbol: SymbolObject): string {
     const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
     if (symbol.isType()) {
-        return fullName;
+        return fullName + stringifyTemplateTypeParameters(symbol);
     } else if (symbol.isFunction()) {
         const head = symbol.returnType === undefined ? '' : stringifyFunctionReturnType(symbol) + ' ';
-        return `${head}${fullName}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(symbol)}`;
+        return `${head}${fullName}${stringifyTemplateTypeParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(symbol)}`;
     } else if (symbol.isVariable()) {
         return `${stringifyResolvedType(symbol.type)} ${fullName}`;
     }
