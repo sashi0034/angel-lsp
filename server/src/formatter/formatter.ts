@@ -210,7 +210,7 @@ function formatClass(format: FormatterState, classNode: Node_Class) {
     }
 }
 
-// **BNF** TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
+// **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
     formatMoveUntilNodeStart(format, typeDef);
     format.pushWrap();
@@ -670,14 +670,14 @@ function formatScope(format: FormatterState, scope: Node_Scope) {
     }
 }
 
-// **BNF** DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
 function formatDataType(format: FormatterState, dataType: Node_DataType) {
     formatMoveUntilNodeStart(format, dataType);
 
     formatTargetBy(format, dataType.identifier.text, {});
 }
 
-// **BNF** PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function formatFuncAttr(format: FormatterState) {

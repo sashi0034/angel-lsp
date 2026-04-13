@@ -340,7 +340,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
     let enumType: ReservedToken | undefined;
     if (getGlobalSettings().supportsTypedEnumerations && parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
-        const typeIdentifier = parsePrimeType(parser);
+        const typeIdentifier = parsePrimitiveType(parser);
 
         if (typeIdentifier === undefined) {
             parser.backtrack(rangeStart);
@@ -572,7 +572,7 @@ function parseVariableInForEach(parser: ParserState): VariableInForEach | undefi
     };
 }
 
-// **BNF** TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
+// **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     if (parser.next().text !== 'typedef') {
         return ParseFailure.Mismatch;
@@ -581,8 +581,8 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     const rangeStart = parser.next();
     parser.commit(HighlightForToken.Keyword);
 
-    const primeType = parsePrimeType(parser);
-    if (primeType === undefined) {
+    const primitiveType = parsePrimitiveType(parser);
+    if (primitiveType === undefined) {
         parser.error('Expected primitive type.');
         return ParseFailure.Pending;
     }
@@ -595,7 +595,7 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     return {
         nodeName: NodeName.TypeDef,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        type: primeType,
+        type: primitiveType,
         identifier: identifier
     };
 }
@@ -1720,7 +1720,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
     return scopeNode;
 }
 
-// **BNF** DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
 function parseDatatype(parser: ParserState): Node_DataType | undefined {
     const next = parser.next();
     if (next.kind === TokenKind.Identifier) {
@@ -1741,22 +1741,22 @@ function parseDatatype(parser: ParserState): Node_DataType | undefined {
         };
     }
 
-    const primeType = parsePrimeType(parser);
-    if (primeType !== undefined) {
+    const primitiveType = parsePrimitiveType(parser);
+    if (primitiveType !== undefined) {
         return {
             nodeName: NodeName.DataType,
             nodeRange: new TokenRange(next, next),
-            identifier: primeType
+            identifier: primitiveType
         };
     }
 
     return undefined;
 }
 
-// **BNF** PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-function parsePrimeType(parser: ParserState) {
+// **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+function parsePrimitiveType(parser: ParserState) {
     const next = parser.next();
-    if (next.isReservedToken() === false || next.property.isPrimeType === false) {
+    if (next.isReservedToken() === false || next.property.isPrimitiveType === false) {
         return undefined;
     }
 

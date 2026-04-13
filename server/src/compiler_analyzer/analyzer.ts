@@ -110,7 +110,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 
-// **BNF** TYPEDEF ::= 'typedef' PRIMETYPE IDENTIFIER ';'
+// **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 
 // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
@@ -395,7 +395,7 @@ function completeAnalyzingType(
     });
 }
 
-// PRIMETYPE | '?' | 'auto'
+// PRIMITIVETYPE | '?' | 'auto'
 function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
     const typeIdentifier = typeNode.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) {
@@ -592,9 +592,9 @@ function evaluateScope(
     return {ok, accessScope, accessIndex, sideEffects: sideEffect};
 }
 
-// **BNF** DATATYPE ::= (IDENTIFIER | PRIMETYPE | '?' | 'auto')
+// **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
 
-// **BNF** PRIMETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
 
 // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 

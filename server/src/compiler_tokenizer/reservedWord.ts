@@ -205,7 +205,7 @@ export const numberTypeSet = new Set<string>([
     'double'
 ]);
 
-const primeTypeSet = new Set<string>([
+const primitiveTypeSet = new Set<string>([
     'void',
     'int',
     'int8',
@@ -240,7 +240,7 @@ export interface ReservedWordProperty {
     readonly isLogicOp: boolean;
     readonly isAssignOp: boolean;
     readonly isNumber: boolean;
-    readonly isPrimeType: boolean;
+    readonly isPrimitiveType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
     readonly isFloat: boolean;
@@ -258,7 +258,7 @@ function makeEmptyProperty(): ReservedWordProperty {
         isLogicOp: false,
         isAssignOp: false,
         isNumber: false,
-        isPrimeType: false,
+        isPrimitiveType: false,
         isSignedInteger: false,
         isUnsignedInteger: false,
         isFloat: false,
@@ -310,8 +310,8 @@ function createProperties() {
         properties.get(symbol)!.isNumber = true;
     }
 
-    for (const symbol of primeTypeSet) {
-        properties.get(symbol)!.isPrimeType = true;
+    for (const symbol of primitiveTypeSet) {
+        properties.get(symbol)!.isPrimitiveType = true;
     }
 
     for (const symbol of signedIntegerTypeSet) {
