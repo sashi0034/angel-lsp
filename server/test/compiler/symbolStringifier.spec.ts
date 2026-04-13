@@ -146,4 +146,16 @@ describe('compiler/symbolStringifier', () => {
             'void consume(const Missing@const&in value)'
         );
     });
+
+    it('stringifies funcdef handle variables', () => {
+        expectStringifiedSymbol(
+            `
+            class Obj { }
+            funcdef Obj callback_f(int a, int b);
+            callback_f@ c;
+            `,
+            globalScope => globalScope.lookupSymbol('c'),
+            'callback_f@ c'
+        );
+    });
 });

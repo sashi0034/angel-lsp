@@ -16,6 +16,10 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
 
     if (type.typeOrFunc.isFunction()) {
         const func: FunctionSymbol = type.typeOrFunc;
+        if (func.linkedNode.nodeName === NodeName.FuncDef) {
+            return func.identifierText + suffix;
+        }
+
         const returnType = func.returnType;
         const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
         return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
