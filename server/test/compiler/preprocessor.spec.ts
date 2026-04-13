@@ -17,7 +17,7 @@ function getPreprocessedTokenTexts(): string[] {
     return inspector.getRecord(uri).preprocessedOutput.preprocessedTokens.map(token => token.text);
 }
 
-describe('inspector/preprocessor settings', () => {
+describe('compiler/preprocessor', () => {
     afterEach(() => {
         resetGlobalSettings(undefined);
     });
