@@ -158,4 +158,48 @@ describe('compiler/symbolStringifier', () => {
             'callback_f@ c'
         );
     });
+
+    it('stringifies auto variables initialized by funcdef handle calls', () => {
+        expectStringifiedSymbol(
+            `
+            class Obj { }
+
+            funcdef Obj@ callback_t(int);
+
+            void f(callback_t@ cb) {
+                auto o = cb(1);
+            }
+            `,
+            globalScope => {
+                // f
+                // |-- (anonymous scope)
+                //     |-- o
+                const f = globalScope.lookupScope('f')?.childScopeTable?.values().next().value;
+                return f ? f.lookupSymbol('o') : undefined;
+            },
+            'Obj@ o'
+        );
+    });
+
+    it('preserves funcdef handle call return types when an argument is unresolved', () => {
+        expectStringifiedSymbol(
+            `
+            class Obj { }
+
+            funcdef Obj@ callback_t(int);
+
+            void f(callback_t@ cb) {
+                auto o = cb(UNDEFINED_VALUE);
+            }
+            `,
+            globalScope => {
+                // f
+                // |-- (anonymous scope)
+                //     |-- o
+                const f = globalScope.lookupScope('f')?.childScopeTable?.values().next().value;
+                return f ? f.lookupSymbol('o') : undefined;
+            },
+            'Obj@ o'
+        );
+    });
 });

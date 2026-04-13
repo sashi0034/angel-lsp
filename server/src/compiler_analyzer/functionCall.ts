@@ -215,9 +215,13 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Fun
 }
 
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
-    const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
+    const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator, calleeDelegateVariable} = args;
 
     if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) {
+        return undefined;
+    }
+
+    if (calleeDelegateVariable !== undefined) {
         return undefined;
     }
 
