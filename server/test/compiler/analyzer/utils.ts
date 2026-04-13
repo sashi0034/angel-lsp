@@ -3,34 +3,28 @@ import {FileContents, inspectFileContents, makeFileContentList} from '../../insp
 
 function testAnalyzer(fileContents: FileContents, expectSuccess: boolean) {
     const fileContentList = makeFileContentList(fileContents);
-    const targetUri = fileContentList.at(-1)!.uri;
 
     const inspector = inspectFileContents(fileContentList);
 
-    const diagnostics = [
-        ...inspector
-            .getRecord(targetUri)
-            .diagnosticsInParser.filter(
-                diagnostic =>
-                    diagnostic.severity === DiagnosticSeverity.Error ||
-                    diagnostic.severity === DiagnosticSeverity.Warning
-            ),
-        ...inspector
-            .getRecord(targetUri)
-            .diagnosticsInAnalyzer.filter(
-                diagnostic =>
-                    diagnostic.severity === DiagnosticSeverity.Error ||
-                    diagnostic.severity === DiagnosticSeverity.Warning
-            )
-    ];
+    const diagnostics = inspector
+        .getAllRecords()
+        .flatMap(record =>
+            [...record.diagnosticsInParser, ...record.diagnosticsInAnalyzer]
+                .filter(
+                    diagnostic =>
+                        diagnostic.severity === DiagnosticSeverity.Error ||
+                        diagnostic.severity === DiagnosticSeverity.Warning
+                )
+                .map(diagnostic => ({uri: record.uri, diagnostic}))
+        );
 
     const hasError = diagnostics.length > 0;
     if (expectSuccess && hasError) {
-        const diagnostic = diagnostics[0];
+        const {uri, diagnostic} = diagnostics[0];
         const message = diagnostic.message;
         const line = diagnostic.range.start.line;
         const character = diagnostic.range.start.character;
-        throw new Error(`${message} (:${line}:${character})`);
+        throw new Error(`${message} (${uri}:${line}:${character})`);
     } else if (!expectSuccess && !hasError) {
         throw new Error('Expecting error but got none.');
     }

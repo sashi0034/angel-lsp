@@ -155,4 +155,25 @@ describe('analyzer/templateSpecialization', () => {
             }
         ]);
     });
+
+    it('accepts function template declarations in predefined files', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                namespace math {
+                    T abs<T>(const T&in v); // Reported in #286
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                int fn() {
+                    return math::abs(-1);
+                }
+                `
+            }
+        ]);
+    });
 });
