@@ -1,8 +1,8 @@
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
+import {stringifySymbolObject} from '../compiler_analyzer/symbolStringifier';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {provideDefinition} from './definition';
 import {getDocumentCommentOfSymbol} from './utils';
-import {stringifySymbolObject} from '../compiler_analyzer/symbolUtils';
 
 import * as lsp from 'vscode-languageserver';
 

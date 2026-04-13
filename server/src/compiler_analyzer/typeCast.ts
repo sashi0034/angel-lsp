@@ -1,9 +1,9 @@
-import {stringifyResolvedType} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {evaluateTypeConversion} from './typeConversion';
 import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
+import {stringifyResolvedType} from './symbolStringifier';
 
 /**
  * Ensure that a type cast is valid.

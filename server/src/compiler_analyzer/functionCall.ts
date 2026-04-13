@@ -1,5 +1,4 @@
 import {FunctionSymbol, FunctionSymbolHolder, SymbolObject, VariableSymbol} from './symbolObject';
-import {stringifyResolvedType, stringifyResolvedTypes} from './symbolUtils';
 import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
 import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
@@ -8,6 +7,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {evaluateTypeConversion} from './typeConversion';
 import {NodeName} from '../compiler_parser/nodes';
 import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
+import {stringifyResolvedType, stringifyResolvedTypes} from './symbolStringifier';
 
 interface CallerArgument {
     name: TokenObject | undefined; // Support for named arguments

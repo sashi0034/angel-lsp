@@ -1,11 +1,11 @@
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
-import {stringifyResolvedType, stringifySymbolObject} from '../compiler_analyzer/symbolUtils';
 import {InsertTextFormat} from 'vscode-languageserver';
 import {FunctionSymbolHolder, TypeSymbol, VariableSymbol} from '../compiler_analyzer/symbolObject';
 import {CompletionItemWrapper} from './completion';
 import {NodeName} from '../compiler_parser/nodes';
 import * as path from 'path';
+import {stringifyResolvedType, stringifySymbolObject} from '../compiler_analyzer/symbolStringifier';
 
 /**
  * Completion Resolve is invoked when the user sees the completion item.

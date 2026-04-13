@@ -10,8 +10,6 @@ import {AccessModifier, NodeName} from '../compiler_parser/nodes';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');
 
-export {stringifyResolvedType, stringifyResolvedTypes, stringifySymbolObject} from './symbolStringifier';
-
 export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     let suffix = '';
     let scopeIterator: SymbolScope | undefined = scope;

@@ -3,7 +3,7 @@ import {TextLocation} from '../compiler_tokenizer/textLocation';
 import {isNodeClassOrInterface} from '../compiler_analyzer/symbolObject';
 import * as lsp from 'vscode-languageserver/node';
 import {NodeName} from '../compiler_parser/nodes';
-import {stringifyResolvedType} from '../compiler_analyzer/symbolUtils';
+import {stringifyResolvedType} from '../compiler_analyzer/symbolStringifier';
 
 export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextLocation): lsp.InlayHint[] {
     return [
