@@ -4,12 +4,12 @@ import {ResolvedType} from './resolvedType';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {evaluateFunctionCall} from './functionCall';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
-import {stringifyResolvedType, stringifyResolvedTypes} from './symbolUtils';
 import assert = require('node:assert');
 import {checkTypeCast} from './typeCast';
 import {resolvedBuiltinInt} from './builtinType';
 import {canTypeConvert, normalizeType} from './typeConversion';
 import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
+import {stringifyResolvedType, stringifyResolvedTypes} from './symbolStringifier';
 
 type OverloadedOperatorCallArgs =
     | {

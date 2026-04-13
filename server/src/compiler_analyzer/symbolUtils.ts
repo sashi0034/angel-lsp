@@ -1,20 +1,11 @@
-import {
-    FunctionSymbol,
-    FunctionSymbolHolder,
-    SymbolObject,
-    SymbolObjectHolder,
-    TypeSymbol,
-    VariableSymbol
-} from './symbolObject';
+import {SymbolObject, SymbolObjectHolder} from './symbolObject';
 import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
     SymbolAndScope,
-    SymbolGlobalScope,
     SymbolScope
 } from './symbolScope';
-import {ResolvedType} from './resolvedType';
 import {AccessModifier, NodeName} from '../compiler_parser/nodes';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');
@@ -32,55 +23,6 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     }
 
     return suffix.length === 0 ? '' : suffix + '::';
-}
-
-export function stringifyResolvedType(type: ResolvedType | undefined): string {
-    if (type === undefined) {
-        return '(undefined)';
-    }
-
-    let suffix = '';
-    if (type.isHandle === true) {
-        suffix = `${suffix}@`;
-    }
-
-    if (type.typeOrFunc.isFunction()) {
-        const func: FunctionSymbol = type.typeOrFunc;
-        const returnType = func.returnType;
-        const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
-        return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
-    }
-
-    const templateTypes = type.typeOrFunc.templateTypes;
-    if (templateTypes !== undefined) {
-        const templateTypesText = templateTypes
-            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text)
-            .join(', ');
-        suffix = `<${templateTypesText}>${suffix}`;
-    }
-
-    return type.typeOrFunc.identifierText + suffix;
-}
-
-export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
-    return types.map(t => stringifyResolvedType(t)).join(', ');
-}
-
-/**
- * Build a string representation of a symbol object.
- */
-export function stringifySymbolObject(symbol: SymbolObject): string {
-    const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
-    if (symbol.isType()) {
-        return fullName;
-    } else if (symbol.isFunction()) {
-        const head = symbol.returnType === undefined ? '' : stringifyResolvedType(symbol.returnType) + ' ';
-        return `${head}${fullName}(${stringifyResolvedTypes(symbol.parameterTypes)})`;
-    } else if (symbol.isVariable()) {
-        return `${stringifyResolvedType(symbol.type)} ${fullName}`;
-    }
-
-    assert(false);
 }
 
 // TODO: This should be a member variable

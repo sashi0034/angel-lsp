@@ -2,11 +2,11 @@ import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import {Position, SignatureHelp, URI} from 'vscode-languageserver';
 import {ParameterInformation, SignatureInformation} from 'vscode-languageserver-types';
 import {FunctionCallInfo} from '../compiler_analyzer/info';
-import {stringifyResolvedType} from '../compiler_analyzer/symbolUtils';
 import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {applyTemplateTranslator} from '../compiler_analyzer/resolvedType';
 import {getDocumentCommentOfSymbol} from './utils';
+import {stringifyResolvedType} from '../compiler_analyzer/symbolStringifier';
 
 export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Position, uri: URI): SignatureHelp {
     const signatures: SignatureInformation[] = [];

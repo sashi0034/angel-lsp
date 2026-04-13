@@ -71,12 +71,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from './builtinType';
-import {
-    canAccessInstanceMember,
-    findSymbolWithParent,
-    getSymbolAndScopeIfExist,
-    stringifyResolvedType
-} from './symbolUtils';
+import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
 import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
@@ -88,6 +83,7 @@ import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {checkForEachIterator} from './foreachStatement';
+import {stringifyResolvedType} from './symbolStringifier';
 
 export type HoistQueue = (() => void)[];
 

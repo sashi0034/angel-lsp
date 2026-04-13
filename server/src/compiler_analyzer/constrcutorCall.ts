@@ -5,8 +5,8 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {assertTypeCast} from './typeCast';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
-import {stringifyResolvedType} from './symbolUtils';
 import {isConstructorFunc, Node_FuncCall, NodeName} from '../compiler_parser/nodes';
+import {stringifyResolvedType} from './symbolStringifier';
 import * as assert from 'node:assert';
 
 export function findConstructorOfType(resolvedType: ResolvedType | undefined): SymbolObjectHolder | undefined {
