@@ -36,6 +36,7 @@ enum ConversionCost {
 export interface ConversionEvaluation {
     cost: ConversionCost;
     resolvedOverload?: FunctionSymbol;
+    lambdaTarget?: ResolvedType;
 }
 
 export function canTypeConvert(
@@ -85,6 +86,10 @@ function evaluateTypeConversionInternal(
 
     const srcTypeOrFunc = src.typeOrFunc;
     const destTypeOrFunc = dest.typeOrFunc;
+
+    if (src.lambdaInfo !== undefined) {
+        return evaluateLambdaConversion(src, dest);
+    }
 
     if (destTypeOrFunc.isType()) {
         // Any type can be converted to a var/auto type
@@ -148,6 +153,33 @@ function evaluateTypeConversionInternal(
             return evaluateConvObjectToObject(state, src, dest);
         }
     }
+}
+
+function evaluateLambdaConversion(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
+    assert(src.lambdaInfo !== undefined);
+
+    const destTypeOrFunc = dest.typeOrFunc;
+    if (!destTypeOrFunc.isFunction() || destTypeOrFunc.linkedNode.nodeName !== NodeName.FuncDef) {
+        return undefined;
+    }
+
+    if (src.lambdaInfo.node.paramList.length !== destTypeOrFunc.parameterTypes.length) {
+        return undefined;
+    }
+
+    for (let i = 0; i < src.lambdaInfo.parameterTypes.length; i++) {
+        const explicitLambdaParam = normalizeType(src.lambdaInfo.parameterTypes[i]);
+        const expectedParam = normalizeType(destTypeOrFunc.parameterTypes[i]);
+        if (explicitLambdaParam === undefined || expectedParam === undefined) {
+            continue;
+        }
+
+        if (!explicitLambdaParam.equals(expectedParam)) {
+            return undefined;
+        }
+    }
+
+    return {cost: ConversionCost.RefConv, lambdaTarget: dest};
 }
 
 // -----------------------------------------------

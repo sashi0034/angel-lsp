@@ -64,6 +64,7 @@ import {checkFunctionCall} from './functionCall';
 import {checkTypeCast, assertTypeCast} from './typeCast';
 import {
     builtinBoolType,
+    builtinAnyType,
     resolvedBuiltinNull,
     resolvedBuiltinBool,
     resolvedBuiltinDouble,
@@ -1256,18 +1257,52 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
 
 // **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: Node_Lambda): ResolvedType | undefined {
+    const parameterTypes: (ResolvedType | undefined)[] = [];
+
+    for (const param of lambda.paramList) {
+        parameterTypes.push(param.type !== undefined ? analyzeType(scope, param.type) : undefined);
+    }
+
+    return ResolvedType.create({
+        typeOrFunc: builtinAnyType,
+        lambdaInfo: {
+            node: lambda,
+            parameterTypes: parameterTypes,
+            resolve: (expectedType, nodeRange) =>
+                analyzeLambdaAsFuncdef(scope, lambda, parameterTypes, expectedType, nodeRange)
+        }
+    });
+}
+
+function analyzeLambdaAsFuncdef(
+    scope: SymbolScope,
+    lambda: Node_Lambda,
+    parameterTypes: (ResolvedType | undefined)[],
+    expectedType: ResolvedType,
+    nodeRange: TokenRange | undefined
+): ResolvedType | undefined {
+    const expectedFunc = expectedType.typeOrFunc;
+    if (!expectedFunc.isFunction() || expectedFunc.linkedNode.nodeName !== NodeName.FuncDef) {
+        analyzerDiagnostic.error(
+            (nodeRange ?? lambda.nodeRange).getBoundingLocation(),
+            `Lambda requires a funcdef target type.`
+        );
+        return undefined;
+    }
+
     const childScope = scope.insertScope(createAnonymousIdentifier(), lambda);
 
-    // Append arguments to the scope
-    for (const param of lambda.paramList) {
+    for (let i = 0; i < lambda.paramList.length; i++) {
+        const param = lambda.paramList[i];
         if (param.identifier === undefined) {
             continue;
         }
 
+        const inferredType = applyTemplateTranslator(expectedFunc.parameterTypes[i], expectedType.templateTranslator);
         const argument: VariableSymbol = VariableSymbol.create({
             identifierToken: param.identifier,
-            scopePath: scope.scopePath,
-            type: param.type !== undefined ? analyzeType(scope, param.type) : undefined,
+            scopePath: childScope.scopePath,
+            type: parameterTypes[i] ?? inferredType,
             isInstanceMember: false,
             accessRestriction: undefined
         });
@@ -1278,9 +1313,7 @@ function analyzeLambda(scope: SymbolScope, lambda: Node_Lambda): ResolvedType | 
         analyzeStatBlock(childScope, lambda.statBlock);
     }
 
-    // TODO: 左辺からラムダ式の型を推定したい
-
-    return undefined;
+    return expectedType;
 }
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'

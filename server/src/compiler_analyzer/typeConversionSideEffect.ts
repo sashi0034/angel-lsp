@@ -13,6 +13,11 @@ export function causeTypeConversionSideEffect(
         return false;
     }
 
+    if (evaluation.lambdaTarget !== undefined) {
+        // e.g., resolving the lambda target of a lambda expression when it's being converted to a delegate type.
+        src.lambdaInfo?.resolve(evaluation.lambdaTarget, nodeRange);
+    }
+
     if (evaluation.resolvedOverload !== undefined && src.accessSourceToken !== undefined) {
         // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
         getActiveGlobalScope().pushReference({

@@ -1,10 +1,23 @@
 import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import type {Node_Lambda} from '../compiler_parser/nodes';
+import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
-// Template translation is resolved as a mapping from tokens to types.
-// In other words, for example, when instantiating `array<T>` as `array<int>`,
-// the key 'T' is mapped to the type `int`.
+/**
+ * Mapping from template parameter tokens to the types they are resolved to.
+ * For example, when instantiating `array<T>` as `array<int>`,
+ * the token `T` is mapped to the type `int`.
+ */
 export type TemplateTranslator = Map<TokenObject, ResolvedType | undefined>;
+
+/**
+ * Metadata for a lambda expression whose type is resolved later from a funcdef target.
+ */
+export interface LambdaInfo {
+    node: Node_Lambda;
+    parameterTypes: (ResolvedType | undefined)[];
+    resolve: (expectedType: ResolvedType, nodeRange?: TokenRange) => void;
+}
 
 /**
  * Apply the template translator to the target type.
@@ -68,7 +81,8 @@ export class ResolvedType {
         public readonly isHandle?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
         public readonly accessSource?: VariableSymbol | TokenObject, // This is attached when accessing from the variable.
-        public readonly isExplicitHandleAccess?: boolean
+        public readonly isExplicitHandleAccess?: boolean,
+        public readonly lambdaInfo?: LambdaInfo
     ) {}
 
     public static create(args: {
@@ -77,13 +91,15 @@ export class ResolvedType {
         templateTranslator?: TemplateTranslator;
         accessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
+        lambdaInfo?: LambdaInfo;
     }) {
         return new ResolvedType(
             args.typeOrFunc,
             args.isHandle,
             args.templateTranslator,
             args.accessSource,
-            args.isExplicitHandleReference
+            args.isExplicitHandleReference,
+            args.lambdaInfo
         );
     }
 
@@ -93,7 +109,8 @@ export class ResolvedType {
             this.isHandle,
             templateTranslator,
             this.accessSource,
-            this.isExplicitHandleAccess
+            this.isExplicitHandleAccess,
+            this.lambdaInfo
         );
     }
 
@@ -103,7 +120,8 @@ export class ResolvedType {
             isHandle,
             this.templateTranslator,
             this.accessSource,
-            this.isExplicitHandleAccess
+            this.isExplicitHandleAccess,
+            this.lambdaInfo
         );
     }
 
@@ -113,7 +131,8 @@ export class ResolvedType {
             this.isHandle,
             this.templateTranslator,
             this.accessSource,
-            isExplicitHandleReference
+            isExplicitHandleReference,
+            this.lambdaInfo
         );
     }
 
@@ -123,7 +142,8 @@ export class ResolvedType {
             this.isHandle,
             this.templateTranslator,
             accessSource,
-            this.isExplicitHandleAccess
+            this.isExplicitHandleAccess,
+            this.lambdaInfo
         );
     }
 

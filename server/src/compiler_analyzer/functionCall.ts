@@ -75,7 +75,8 @@ enum MismatchKind {
     InvalidNamedArgumentOrder = 'InvalidNamedArgumentOrder',
     DuplicateNamedArgument = 'DuplicateNamedArgument',
     NotFoundNamedArgument = 'NotFoundNamedArgument',
-    ParameterMismatch = 'ParameterMismatch'
+    ParameterMismatch = 'ParameterMismatch',
+    AmbiguousOverload = 'AmbiguousOverload'
 }
 
 const mismatchPriority: Map<MismatchKind, number> = new Map([
@@ -84,7 +85,8 @@ const mismatchPriority: Map<MismatchKind, number> = new Map([
     [MismatchKind.InvalidNamedArgumentOrder, 10], // Prioritize named-argument errors highly.
     [MismatchKind.DuplicateNamedArgument, 10],
     [MismatchKind.NotFoundNamedArgument, 10],
-    [MismatchKind.ParameterMismatch, 5]
+    [MismatchKind.ParameterMismatch, 5],
+    [MismatchKind.AmbiguousOverload, 100] // FIXME?
 ]);
 
 type MismatchReason =
@@ -107,6 +109,9 @@ type MismatchReason =
           nameIndex: number;
       }
     | {
+          reason: MismatchKind.AmbiguousOverload;
+      }
+    | {
           reason: MismatchKind.ParameterMismatch;
           mismatchIndex: number;
           expectedType: ResolvedType | undefined;
@@ -127,6 +132,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     }
 
     let bestMatching: BestMatching | undefined = undefined;
+    let hasAmbiguousLambdaOverload = false;
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
     // Find the best-matching overload.
@@ -145,10 +151,13 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         if (bestMatching === undefined || evaluated < bestMatching.cost) {
             // Update the current best match.
             bestMatching = {function: callee, cost: evaluated, sideEffects: sideEffectBuffer};
+            hasAmbiguousLambdaOverload = false;
+        } else if (evaluated === bestMatching.cost && args.callerArgs.some(arg => arg.type?.lambdaInfo !== undefined)) {
+            hasAmbiguousLambdaOverload = true;
         }
     }
 
-    if (bestMatching !== undefined) {
+    if (bestMatching !== undefined && !hasAmbiguousLambdaOverload) {
         // Return the best-matching function's return type.
         return {
             bestMatching: bestMatching.function,
@@ -166,6 +175,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             }
         };
     } else {
+        if (hasAmbiguousLambdaOverload) {
+            mismatchReason = {reason: MismatchKind.AmbiguousOverload};
+        }
+
         return {
             bestMatching: undefined,
             returnType: undefined,
@@ -462,6 +475,9 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
             argLocation ?? callerRange.getBoundingLocation(),
             `Named argument '${callerArgs[mismatchReason.nameIndex].name?.text}' was not found in '${calleeFuncHolder.identifierText}'.`
         );
+        return;
+    } else if (mismatchReason.reason === MismatchKind.AmbiguousOverload) {
+        analyzerDiagnostic.error(callerRange.getBoundingLocation(), 'Ambiguous overload for lambda argument.');
         return;
     }
 
