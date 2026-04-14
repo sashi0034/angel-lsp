@@ -46,7 +46,7 @@ function getFunctionSignature(info: FunctionCallInfo, expectedCallee: FunctionSy
 
     let activeIndex = 0;
 
-    let signatureLabel = expectedCallee.linkedNode.identifier.text + '(';
+    let signatureLabel = expectedCallee.actualIdentifierToken.text + '(';
     for (let i = 0; i < expectedCallee.linkedNode.paramList.length; i++) {
         const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
