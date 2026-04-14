@@ -348,9 +348,9 @@ export type NodeListValidOperators =
     | NodeListOperatorStartList;
 
 // **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
-export type Node_ParamList = ElementInParamList[];
+export type Node_ParamList = FunctionParameter[];
 
-export interface ElementInParamList {
+interface FunctionParameter {
     readonly type: Node_Type;
     readonly modifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
@@ -604,11 +604,11 @@ export interface Node_Cast extends NodeBase {
 // **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
 export interface Node_Lambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
-    readonly paramList: ParamListInLambda[];
+    readonly paramList: LambdaFunctionParameter[];
     readonly statBlock: Node_StatBlock | undefined;
 }
 
-export interface ParamListInLambda {
+interface LambdaFunctionParameter {
     readonly type: Node_Type | undefined;
     readonly typeModifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
