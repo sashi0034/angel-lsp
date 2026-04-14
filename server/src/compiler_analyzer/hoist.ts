@@ -51,6 +51,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
+import {buildFunctionScopeIdentifier} from './symbolStringifier';
 
 // **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
@@ -393,14 +394,14 @@ function hoistFunc(
     }
 
     // Function holder scope (with no node)
-    // |-- Anonymous scope of one of the overloads (with Node_Func)
+    // |-- Signature scope of one of the overloads (with Node_Func)
     //     |-- ...
 
     // Create a new scope for the function
     const funcionHolderScope: SymbolScope =
         // This doesn't have a linked node because the function may be overloaded.
         parentScope.insertScope(funcNode.identifier.text, undefined);
-    const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), funcNode);
+    const functionScope = funcionHolderScope.insertScope(buildFunctionScopeIdentifier(funcNode), funcNode);
 
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: funcNode.identifier,
