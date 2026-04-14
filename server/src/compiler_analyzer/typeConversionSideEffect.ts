@@ -2,6 +2,7 @@ import {ResolvedType} from './resolvedType';
 import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {ConversionEvaluation} from './typeConversion';
+import {VariableSymbol} from './symbolObject';
 
 export function causeTypeConversionSideEffect(
     evaluation: ConversionEvaluation,
@@ -18,15 +19,15 @@ export function causeTypeConversionSideEffect(
         src.lambdaInfo?.resolve(evaluation.lambdaTarget, nodeRange);
     }
 
-    if (evaluation.resolvedOverload !== undefined && src.accessSourceToken !== undefined) {
+    if (evaluation.resolvedOverload !== undefined && src.attachedAccessSourceFunctionToken !== undefined) {
         // e.g., adding a reference for `my_function` in `@my_funcdef(my_function)
         getActiveGlobalScope().pushReference({
             toSymbol: evaluation.resolvedOverload,
-            fromToken: src.accessSourceToken
+            fromToken: src.attachedAccessSourceFunctionToken
         });
     }
 
-    // Resolve the type of an ambiguous enum member.
+    // Resolve the type of ambiguous enum member.
     if (src.typeOrFunc.isType() && src.typeOrFunc.multipleEnumCandidates !== undefined) {
         const enumScope = resolveActiveScope(dest.scopePath ?? []).lookupScope(dest.identifierText);
         const enumMember = enumScope?.lookupSymbol(src.typeOrFunc.identifierText);

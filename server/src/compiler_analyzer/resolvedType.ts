@@ -80,7 +80,9 @@ export class ResolvedType {
         public readonly typeOrFunc: TypeSymbol | FunctionSymbol,
         public readonly isHandle?: boolean,
         public readonly templateTranslator?: TemplateTranslator,
-        public readonly accessSource?: VariableSymbol | TokenObject, // This is attached when accessing from the variable.
+        // This is attached when accessed through a variable, including a delegate variable.
+        // For functions, only the token information of the access source is retained.
+        private _attachedAccessSource?: VariableSymbol | TokenObject,
         public readonly isExplicitHandleAccess?: boolean,
         public readonly lambdaInfo?: LambdaInfo
     ) {}
@@ -89,7 +91,7 @@ export class ResolvedType {
         typeOrFunc: TypeSymbol | FunctionSymbol;
         isHandle?: boolean;
         templateTranslator?: TemplateTranslator;
-        accessSource?: VariableSymbol | TokenObject;
+        attachedAccessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
         lambdaInfo?: LambdaInfo;
     }) {
@@ -97,7 +99,7 @@ export class ResolvedType {
             args.typeOrFunc,
             args.isHandle,
             args.templateTranslator,
-            args.accessSource,
+            args.attachedAccessSource,
             args.isExplicitHandleReference,
             args.lambdaInfo
         );
@@ -108,7 +110,7 @@ export class ResolvedType {
             this.typeOrFunc,
             this.isHandle,
             templateTranslator,
-            this.accessSource,
+            this._attachedAccessSource,
             this.isExplicitHandleAccess,
             this.lambdaInfo
         );
@@ -119,7 +121,7 @@ export class ResolvedType {
             this.typeOrFunc,
             isHandle,
             this.templateTranslator,
-            this.accessSource,
+            this._attachedAccessSource,
             this.isExplicitHandleAccess,
             this.lambdaInfo
         );
@@ -130,18 +132,18 @@ export class ResolvedType {
             this.typeOrFunc,
             this.isHandle,
             this.templateTranslator,
-            this.accessSource,
+            this._attachedAccessSource,
             isExplicitHandleReference,
             this.lambdaInfo
         );
     }
 
-    public cloneWithAccessSource(accessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
+    public cloneWithAttachedAccessSource(attachedAccessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
             this.isHandle,
             this.templateTranslator,
-            accessSource,
+            attachedAccessSource,
             this.isExplicitHandleAccess,
             this.lambdaInfo
         );
@@ -159,20 +161,24 @@ export class ResolvedType {
         return this.typeOrFunc.identifierToken.text;
     }
 
-    public get accessSourceVariable(): VariableSymbol | undefined {
-        return this.accessSource instanceof VariableSymbol ? this.accessSource : undefined;
+    public get attachedAccessSourceVariable(): VariableSymbol | undefined {
+        return this._attachedAccessSource instanceof VariableSymbol ? this._attachedAccessSource : undefined;
     }
 
-    public get accessSourceToken(): TokenObject | undefined {
-        if (this.accessSource === undefined) {
+    public get attachedAccessSourceFunctionToken(): TokenObject | undefined {
+        return this._attachedAccessSource instanceof VariableSymbol === false ? this._attachedAccessSource : undefined;
+    }
+
+    public get attachedAccessSourceToken(): TokenObject | undefined {
+        if (this._attachedAccessSource === undefined) {
             return undefined;
         }
 
-        if (this.accessSource instanceof VariableSymbol) {
-            return this.accessSource.identifierToken;
+        if (this._attachedAccessSource instanceof VariableSymbol) {
+            return this._attachedAccessSource.identifierToken;
         }
 
-        return this.accessSource;
+        return this._attachedAccessSource;
     }
 
     public equals(other: ResolvedType | undefined): boolean {
