@@ -157,32 +157,43 @@ function consumeNumber(tokenizer: TokenizerState) {
     }
 
     // Read until it is 0-9.
+    let integerDigits = 0;
     while (tokenizer.isEnd() === false && isDigit(tokenizer)) {
         tokenizer.stepNext();
+        integerDigits++;
     }
 
     let numberLiteral = NumberLiteral.Integer;
+    let hasSignificandDigit = integerDigits > 0;
 
     // Check if it is a floating point number
     let f = 0;
     if (tokenizer.next() === '.') {
-        f++;
-        while (isDigit(tokenizer, f)) {
-            f++;
+        let fractionOffset = 1;
+        let fractionDigits = 0;
+        while (isDigit(tokenizer, fractionOffset)) {
+            fractionOffset++;
+            fractionDigits++;
         }
 
-        numberLiteral = NumberLiteral.Double;
+        if (fractionDigits > 0 || integerDigits > 0) {
+            f = fractionOffset;
+            numberLiteral = NumberLiteral.Double;
+            hasSignificandDigit = true;
+        }
     }
 
     // Check if it has an exponent
-    // e.g. 1e+3, 1E-3
-    if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2)) {
-        f += 3;
-        while (isDigit(tokenizer, f)) {
-            f++;
-        }
+    // e.g. 1e3, 1e+3, 1E-3
+    if (hasSignificandDigit && /^[eE]$/.test(tokenizer.next(f))) {
+        const hasSign = /^[+-]$/.test(tokenizer.next(f + 1));
+        const exponentOffset = hasSign ? f + 2 : f + 1;
 
-        numberLiteral = NumberLiteral.Double;
+        if (isDigit(tokenizer, exponentOffset)) {
+            f = exponentOffset + 1;
+            while (isDigit(tokenizer, f)) f++;
+            numberLiteral = NumberLiteral.Double;
+        }
     }
 
     if (f >= 1) {
