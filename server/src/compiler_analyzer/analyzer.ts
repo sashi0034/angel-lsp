@@ -1525,6 +1525,8 @@ function analyzeVariableAccess(
     }
 
     if (found.symbol.isVariable()) {
+        // NOTE: Delegate variables also go through here.
+
         const accessedVariable = found.symbol.toList()[0];
         if (accessedVariable.identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
@@ -1540,8 +1542,7 @@ function analyzeVariableAccess(
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return ResolvedType.create({typeOrFunc: found.symbol.first, accessSource: varIdentifier});
-        // <-- Function (tentatively using the first overload)
+        return ResolvedType.create({typeOrFunc: found.symbol.first, accessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
     }
 }
 

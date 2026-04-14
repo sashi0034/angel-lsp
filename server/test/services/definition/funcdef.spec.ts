@@ -62,4 +62,32 @@ describe('definition/funcdef', () => {
             }
         `);
     });
+
+    it('resolves an auto funcdef handle variable at its declaration', () => {
+        testDefinition(`
+            funcdef void callback_f();
+            
+            void ignore(callback_f@ f) { }
+            
+            void do_nothing() { }
+            
+            auto my_f$C0$$C1$ = callback_f(@do_nothing);
+        `);
+    });
+
+    it('resolves an auto funcdef handle variable after it is used as an argument', () => {
+        testDefinition(`
+            funcdef void callback_f();
+            
+            void ignore(callback_f@ f) { }
+            
+            void do_nothing() { }
+            
+            auto my_f$C0$$C1$ = callback_f(@do_nothing);
+            
+            void f() {
+               ignore(my_f$C2$);
+            }
+        `);
+    });
 });
