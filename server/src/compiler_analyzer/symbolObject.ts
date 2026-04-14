@@ -81,7 +81,17 @@ export abstract class SymbolBase {
     }
 
     public equals(other: SymbolBase): boolean {
-        return this.identifierText === other.identifierText && isScopePathEquals(this.scopePath, other.scopePath);
+        if (this === other) {
+            return true;
+        }
+
+        if (other.isType() === false || this.isType() === false) {
+            return this.identifierText === other.identifierText && isScopePathEquals(this.scopePath, other.scopePath);
+        }
+
+        const lhs = this.canonicalType;
+        const rhs = other.canonicalType;
+        return lhs.identifierText === rhs.identifierText && isScopePathEquals(lhs.scopePath, rhs.scopePath);
     }
 }
 
@@ -114,7 +124,8 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         private _templateTypes?: TokenObject[],
         private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandle?: boolean,
-        public readonly multipleEnumCandidates?: VariableSymbol[]
+        public readonly multipleEnumCandidates?: VariableSymbol[],
+        public readonly aliasOf?: TypeSymbol
     ) {
         super();
 
@@ -135,6 +146,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         baseList?: (ResolvedType | undefined)[];
         isHandle?: boolean;
         multipleEnumCandidates?: VariableSymbol[];
+        aliasOf?: TypeSymbol;
     }) {
         return new TypeSymbol(
             args.identifierToken,
@@ -146,7 +158,8 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
             args.templateTypes,
             args.baseList,
             args.isHandle,
-            args.multipleEnumCandidates
+            args.multipleEnumCandidates,
+            args.aliasOf
         );
     }
 
@@ -194,7 +207,17 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
      * Note: enum is not a primitive type here.
      */
     public isPrimitiveType(): boolean {
-        return this.linkedNode === undefined;
+        return this.canonicalType.linkedNode === undefined;
+    }
+
+    public get canonicalType(): TypeSymbol {
+        let current: TypeSymbol = this;
+        const visited = new Set<TypeSymbol>();
+        while (current.aliasOf !== undefined && !visited.has(current.aliasOf)) {
+            visited.add(current);
+            current = current.aliasOf;
+        }
+        return current;
     }
 
     public isNumberType(): boolean {

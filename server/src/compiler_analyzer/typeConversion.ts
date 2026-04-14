@@ -428,6 +428,10 @@ export function normalizeType(type: ResolvedType | undefined) {
         return resolvedBuiltinUInt.cloneWithHandle(type.isHandle);
     }
 
+    if (type.typeOrFunc.isType() && type.typeOrFunc.canonicalType !== type.typeOrFunc) {
+        return type.cloneWithTypeOrFunc(type.typeOrFunc.canonicalType);
+    }
+
     return type;
 }
 

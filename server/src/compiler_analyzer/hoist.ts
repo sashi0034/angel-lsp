@@ -375,7 +375,8 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
         identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
         linkedNode: builtInType.linkedNode,
-        membersScopePath: undefined
+        membersScopePath: undefined,
+        aliasOf: builtInType
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
