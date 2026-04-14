@@ -305,9 +305,9 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     if (typeNode.isArray) {
         // If the type is an array, we replace the identifier with array type.
         givenIdentifier = getGlobalSettings().builtinArrayType;
-        const copiedNodeType: Mutable<Node_Type> = {...typeNode};
-        copiedNodeType.isArray = false;
-        givenTypeTemplates = [copiedNodeType];
+        const copiedTypeNode: Mutable<Node_Type> = {...typeNode};
+        copiedTypeNode.isArray = false;
+        givenTypeTemplates = [copiedTypeNode];
     }
 
     if (givenTypeTemplates.length > 0) {

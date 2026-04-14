@@ -32,7 +32,7 @@ import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
 import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
-import {buildTemplateSignature, getIdentifierInNodeType} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodesUtils';
 import {
     analyzeFunc,
     AnalyzeQueue,
@@ -241,7 +241,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefi
     for (const type of types ?? []) {
         scope.insertSymbolAndCheck(
             TypeSymbol.create({
-                identifierToken: getIdentifierInNodeType(type),
+                identifierToken: getIdentifierInTypeNode(type),
                 scopePath: scope.scopePath,
                 linkedNode: undefined,
                 membersScopePath: undefined,
@@ -249,7 +249,7 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefi
             })
         );
 
-        templateTypes.push(getIdentifierInNodeType(type));
+        templateTypes.push(getIdentifierInTypeNode(type));
     }
 
     return templateTypes;

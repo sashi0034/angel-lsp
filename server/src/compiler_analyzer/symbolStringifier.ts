@@ -1,7 +1,7 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {ResolvedType} from './resolvedType';
 import {hasFuncReturnValue, InOutModifier, NodeName, Node_Type, ReferenceModifier} from '../compiler_parser/nodes';
-import {stringifyNodeType} from '../compiler_parser/nodesUtils';
+import {stringifyTypeNode} from '../compiler_parser/nodesUtils';
 import assert = require('node:assert');
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {
@@ -50,7 +50,7 @@ function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Nod
     }
 
     if (type === undefined) {
-        return stringifyNodeType(node);
+        return stringifyTypeNode(node);
     }
 
     let text = stringifyResolvedType(type);
