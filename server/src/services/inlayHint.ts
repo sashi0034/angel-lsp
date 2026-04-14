@@ -118,7 +118,7 @@ function inlayHintOperatorOverloadDefinition(scope: SymbolScope, location: TextL
                 }
 
                 // Push the operator overload info, e.g., "int opAdd() 'operator +'"
-                const identifier = symbol.linkedNode.identifier;
+                const identifier = symbol.actualIdentifierToken;
                 result.push({
                     position: identifier.location.end,
                     label: `: ${operatorText} `

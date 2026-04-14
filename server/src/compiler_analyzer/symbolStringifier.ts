@@ -6,7 +6,11 @@ import assert = require('node:assert');
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {
     if (type === undefined) {
-        return '(undefined)';
+        return '(unresolved)';
+    }
+
+    if (type.lambdaInfo !== undefined) {
+        return '(lambda)';
     }
 
     let suffix = '';
@@ -129,7 +133,9 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
         return fullName + stringifyTemplateTypeParameters(symbol);
     } else if (symbol.isFunction()) {
         const head = symbol.returnType === undefined ? '' : stringifyFunctionReturnType(symbol) + ' ';
-        return `${head}${fullName}${stringifyTemplateTypeParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(symbol)}`;
+        return `${head}${fullName}${stringifyTemplateTypeParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(
+            symbol
+        )}`;
     } else if (symbol.isVariable()) {
         return `${stringifyResolvedType(symbol.type)} ${fullName}`;
     }
