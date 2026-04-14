@@ -60,11 +60,21 @@ export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
  * The base interface for all symbols.
  */
 export abstract class SymbolBase {
+    private _qualifiedIdentifier: string | undefined;
+
     public abstract get kind(): SymbolKind;
 
     public abstract get scopePath(): ScopePath;
 
     public abstract get identifierText(): string;
+
+    public get qualifiedIdentifier(): string {
+        if (this._qualifiedIdentifier === undefined) {
+            this._qualifiedIdentifier = [...this.scopePath, this.identifierText].join('.');
+        }
+
+        return this._qualifiedIdentifier;
+    }
 
     public abstract toHolder(): SymbolObjectHolder;
 
@@ -331,16 +341,17 @@ export class FunctionSymbol extends SymbolBase {
     }
 
     public clone(option?: {identifierToken?: TokenObject; accessRestriction?: AccessModifier}): this {
-        const clone = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
-        if (option?.identifierToken !== undefined) {
-            clone.identifierToken = option.identifierToken;
-        }
-
-        if (option?.accessRestriction !== undefined) {
-            clone.accessRestriction = option.accessRestriction;
-        }
-
-        return clone;
+        return new FunctionSymbol(
+            option?.identifierToken ?? this.identifierToken,
+            this.scopePath,
+            this.linkedNode,
+            this.functionScopePath,
+            this._returnType,
+            this._parameterTypes,
+            this.isInstanceMember,
+            option?.accessRestriction ?? this.accessRestriction,
+            this._templateTypes
+        ) as this;
     }
 
     public get returnType(): ResolvedType | undefined {

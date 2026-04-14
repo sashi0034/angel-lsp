@@ -27,7 +27,7 @@ import {
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
 import {FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
-import {findSymbolWithParent, getFullIdentifierOfSymbol} from './symbolUtils';
+import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
@@ -799,7 +799,7 @@ function collectBaseClassesAndDeivedClasses(
             if (symbol.baseList.length >= 1) {
                 derivedClassList.push(symbol);
             } else {
-                baseClassSet.add(getFullIdentifierOfSymbol(symbol));
+                baseClassSet.add(symbol.qualifiedIdentifier);
             }
         }
     }
@@ -830,7 +830,7 @@ function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
                     continue;
                 }
 
-                if (resolvedClassSet.has(getFullIdentifierOfSymbol(baseType.typeOrFunc)) === false) {
+                if (resolvedClassSet.has(baseType.typeOrFunc.qualifiedIdentifier) === false) {
                     resolveBaseClasses = false;
                     break;
                 }
@@ -847,7 +847,7 @@ function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
                 if (scope !== undefined) {
                     copyBaseMembers(scope, derivedClass.baseList, false);
 
-                    resolvedClassSet.add(getFullIdentifierOfSymbol(derivedClass));
+                    resolvedClassSet.add(derivedClass.qualifiedIdentifier);
                     continue;
                 }
             }
