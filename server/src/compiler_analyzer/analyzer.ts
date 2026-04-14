@@ -1537,12 +1537,12 @@ function analyzeVariableAccess(
             });
         }
 
-        return found.symbol.type?.cloneWithAccessSource(accessedVariable); // <-- Variable
+        return found.symbol.type?.cloneWithAttachedAccessSource(accessedVariable); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return ResolvedType.create({typeOrFunc: found.symbol.first, accessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
+        return ResolvedType.create({typeOrFunc: found.symbol.first, attachedAccessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
     }
 }
 

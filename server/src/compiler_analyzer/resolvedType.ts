@@ -91,7 +91,7 @@ export class ResolvedType {
         typeOrFunc: TypeSymbol | FunctionSymbol;
         isHandle?: boolean;
         templateTranslator?: TemplateTranslator;
-        accessSource?: VariableSymbol | TokenObject;
+        attachedAccessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
         lambdaInfo?: LambdaInfo;
     }) {
@@ -99,7 +99,7 @@ export class ResolvedType {
             args.typeOrFunc,
             args.isHandle,
             args.templateTranslator,
-            args.accessSource,
+            args.attachedAccessSource,
             args.isExplicitHandleReference,
             args.lambdaInfo
         );
@@ -138,12 +138,12 @@ export class ResolvedType {
         );
     }
 
-    public cloneWithAccessSource(accessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
+    public cloneWithAttachedAccessSource(attachedAccessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
             this.isHandle,
             this.templateTranslator,
-            accessSource,
+            attachedAccessSource,
             this.isExplicitHandleAccess,
             this.lambdaInfo
         );
@@ -161,7 +161,7 @@ export class ResolvedType {
         return this.typeOrFunc.identifierToken.text;
     }
 
-    public get accessSourceVariable(): VariableSymbol | undefined {
+    public get attachedAccessSourceVariable(): VariableSymbol | undefined {
         return this._attachedAccessSource instanceof VariableSymbol ? this._attachedAccessSource : undefined;
     }
 
@@ -169,7 +169,7 @@ export class ResolvedType {
         return this._attachedAccessSource instanceof VariableSymbol === false ? this._attachedAccessSource : undefined;
     }
 
-    public get accessSourceToken(): TokenObject | undefined {
+    public get attachedAccessSourceToken(): TokenObject | undefined {
         if (this._attachedAccessSource === undefined) {
             return undefined;
         }

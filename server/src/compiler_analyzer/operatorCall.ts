@@ -168,7 +168,7 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
         const rhsText = Array.isArray(rhs) ? stringifyResolvedTypes(rhs) : stringifyResolvedType(rhs);
         analyzerDiagnostic.error(
             args.rhsRange.getBoundingLocation(),
-            `'${lhs.accessSourceToken?.text ?? '[ ]'}' expects one integer argument, but got '${rhsText}'.`
+            `'${lhs.attachedAccessSourceToken?.text ?? '[ ]'}' expects one integer argument, but got '${rhsText}'.`
         );
         return;
     }
@@ -216,10 +216,10 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
 
     const rhsArgs = Array.isArray(args.rhs) ? args.rhs : [args.rhs];
 
-    if (lhs.accessSourceVariable?.isIndexedPropertyAccessor) {
+    if (lhs.attachedAccessSourceVariable?.isIndexedPropertyAccessor) {
         if (rhsArgs.length == 1 && canTypeConvert(rhsArgs[0], resolvedBuiltinInt)) {
             // e.g., `myNotebook[123]` where `class MyNotebook { string get_texts(int idx) property { ... } }`
-            return lhs.accessSourceVariable.type;
+            return lhs.attachedAccessSourceVariable.type;
         }
 
         return {reason: MismatchKind.MismatchIndexedPropertyAccessor};
