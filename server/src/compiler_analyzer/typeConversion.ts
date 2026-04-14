@@ -517,6 +517,12 @@ function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
         return false;
     }
 
+    const srcReturnType = normalizeType(src.returnType);
+    const destReturnType = normalizeType(dest.returnType);
+    if (srcReturnType?.equals(destReturnType) === false) {
+        return false;
+    }
+
     for (let i = 0; i < src.parameterTypes.length; i++) {
         const srcParam = normalizeType(src.parameterTypes[i]);
         const destParam = normalizeType(dest.parameterTypes[i]);
