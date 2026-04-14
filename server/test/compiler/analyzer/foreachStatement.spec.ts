@@ -60,4 +60,27 @@ describe('analyzer/foreachStatement', () => {
             }
         ]);
     });
+
+    it('rejects: Auto handles cannot be inferred from primitive foreach values.', () => {
+        expectError([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class array<T>{
+                    uint opForBegin() const;
+                    bool opForEnd(uint) const;
+                    uint opForNext(uint) const;
+                    const T& opForValue(uint index) const;
+                }`
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void iterate(array<int> arr) {
+                    foreach (const auto@ value : arr) {
+                    }
+                }`
+            }
+        ]);
+    });
 });

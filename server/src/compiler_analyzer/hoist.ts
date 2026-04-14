@@ -44,7 +44,6 @@ import {
     HoistQueue,
     HoistResult,
     insertVariables,
-    pushAutoTypeResolutionInfo,
     pushScopeRegionInfo,
     resolveAutoType
 } from './analyzer';
@@ -575,7 +574,6 @@ function hoistVar(
                 const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
                 if (initType !== undefined && varType?.isAutoType()) {
                     varType = resolveAutoType(varType, initType, declaredVar.identifier);
-                    pushAutoTypeResolutionInfo(declaredVar.identifier, varType);
 
                     for (const variable of variables) {
                         if (variable.type === undefined) {

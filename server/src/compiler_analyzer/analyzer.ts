@@ -171,7 +171,6 @@ export function analyzeVar(scope: SymbolScope, varNode: Node_Var, isInstanceMemb
         if (initType !== undefined && varType?.isAutoType()) {
             // Resolved the auto type
             varType = resolveAutoType(varType, initType, declaredVar.identifier);
-            pushAutoTypeResolutionInfo(declaredVar.identifier, varType);
         }
     }
 
@@ -179,19 +178,26 @@ export function analyzeVar(scope: SymbolScope, varNode: Node_Var, isInstanceMemb
 }
 
 export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, identifier: TokenObject): ResolvedType {
+    let resolvedType: ResolvedType;
+
     if (initType.typeOrFunc.isType() && !initType.typeOrFunc.isPrimitiveOrEnum()) {
-        return initType.cloneWithHandle(true);
+        resolvedType = initType.cloneWithHandle(true);
+    } else {
+        if (autoType.isHandle && !initType.isHandle) {
+            analyzerDiagnostic.error(identifier.location, `Object handle is not supported for this type.`);
+        }
+
+        resolvedType = initType;
     }
 
-    if (autoType.isHandle && !initType.isHandle) {
-        analyzerDiagnostic.error(identifier.location, `Object handle is not supported for this type.`);
+    if (resolvedType !== undefined) {
+        getActiveGlobalScope().info.autoTypeResolution.push({
+            autoToken: identifier,
+            resolvedType
+        });
     }
 
-    return initType;
-}
-
-export function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedType) {
-    getActiveGlobalScope().info.autoTypeResolution.push({autoToken: identifier, resolvedType: initType});
+    return resolvedType;
 }
 
 export function insertVariables(
@@ -711,8 +717,7 @@ function analyzeForEach(scope: SymbolScope, forEachNode: Node_ForEach) {
         if (forValueType !== undefined) {
             if (variableType?.isAutoType()) {
                 // Resolved the auto type
-                variableType = forValueType;
-                pushAutoTypeResolutionInfo(variableDeclaration.identifier, variableType);
+                variableType = resolveAutoType(variableType, forValueType, variableDeclaration.identifier);
             } else {
                 assertTypeCast(
                     forValueType,
