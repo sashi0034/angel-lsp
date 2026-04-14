@@ -178,7 +178,7 @@ export function analyzeVar(scope: SymbolScope, varNode: Node_Var, isInstanceMemb
     insertVariables(scope, varType, varNode, isInstanceMember);
 }
 
-function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, identifier: TokenObject): ResolvedType {
+export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, identifier: TokenObject): ResolvedType {
     if (initType.typeOrFunc.isType() && !initType.typeOrFunc.isPrimitiveOrEnum()) {
         return initType.cloneWithHandle(true);
     }
@@ -190,7 +190,7 @@ function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, identif
     return initType;
 }
 
-function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedType) {
+export function pushAutoTypeResolutionInfo(identifier: TokenObject, initType: ResolvedType) {
     getActiveGlobalScope().info.autoTypeResolution.push({autoToken: identifier, resolvedType: initType});
 }
 

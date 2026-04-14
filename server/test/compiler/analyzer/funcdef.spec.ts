@@ -21,6 +21,22 @@ describe('analyzer/funcdef', () => {
         `);
     });
 
+    it("accepts: Global auto variables can be initialized from funcdef handles", () => {
+        expectSuccess(`// Global auto variables can be initialized from funcdef handles
+            funcdef void MyCallbackHook();
+
+            void DoSomething(MyCallbackHook@ value) { }
+
+            void myCallback() { }
+
+            auto pCallback = MyCallbackHook(@myCallback);
+
+            void main() {
+                DoSomething(pCallback);
+            }
+        `);
+    });
+
     it("rejects: No suitable overload found for funcdef", () => {
         expectError(`// No suitable overload found for funcdef
             funcdef void my_funcdef(float);
