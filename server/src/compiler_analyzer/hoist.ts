@@ -44,7 +44,8 @@ import {
     HoistQueue,
     HoistResult,
     insertVariables,
-    pushScopeRegionInfo
+    pushScopeRegionInfo,
+    resolveAutoType
 } from './analyzer';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
@@ -549,21 +550,45 @@ function hoistVar(
 ) {
     const variables = insertVariables(scope, undefined, varNode, isInstanceMember);
     hoistQueue.push(() => {
-        const varType = analyzeType(scope, varNode.type);
-        for (const variable of variables) {
-            variable.assignType(varType);
+        let varType = analyzeType(scope, varNode.type);
+        if (!varType?.isAutoType()) {
+            for (const variable of variables) {
+                variable.assignType(varType);
+            }
         }
 
-        analyzeQueue.push(() => {
+        const analyzeInitializers = () => {
             for (const declaredVar of varNode.variables) {
                 const initializer = declaredVar.initializer;
                 if (initializer === undefined) {
+                    if (varType?.isAutoType()) {
+                        analyzerDiagnostic.error(
+                            declaredVar.identifier.location,
+                            `Variables declared using 'auto' must be initialized.`
+                        );
+                    }
+
                     continue;
                 }
 
-                analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+                const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+                if (initType !== undefined && varType?.isAutoType()) {
+                    varType = resolveAutoType(varType, initType, declaredVar.identifier);
+
+                    for (const variable of variables) {
+                        if (variable.type === undefined) {
+                            variable.assignType(varType);
+                        }
+                    }
+                }
             }
-        });
+        };
+
+        if (varType?.isAutoType()) {
+            hoistQueue.push(analyzeInitializers);
+        } else {
+            analyzeQueue.push(analyzeInitializers);
+        }
     });
 }
 
