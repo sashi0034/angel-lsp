@@ -1,7 +1,16 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {ResolvedType} from './resolvedType';
-import {hasFuncReturnValue, InOutModifier, NodeName, Node_Type, ReferenceModifier} from '../compiler_parser/nodes';
-import {stringifyNodeType} from '../compiler_parser/nodesUtils';
+import {
+    hasFuncReturnValue,
+    InOutModifier,
+    NodeName,
+    Node_Type,
+    ReferenceModifier,
+    Node_Func,
+    Node_ParamList,
+    Node_Scope
+} from '../compiler_parser/nodes';
+import {stringifyTypeNode} from '../compiler_parser/nodesUtils';
 import assert = require('node:assert');
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {
@@ -31,8 +40,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
 
     const templateTypes = type.typeOrFunc.templateTypes;
     if (templateTypes !== undefined) {
-        const templateTypesText = templateTypes
-            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text)
+        const templateTypesText = type.mappedTemplateTypes
+            .map((templateType, i) => stringifyResolvedType(templateType) ?? templateTypes[i].identifierToken.text)
             .join(', ');
         suffix = `<${templateTypesText}>${suffix}`;
     }
@@ -50,7 +59,7 @@ function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Nod
     }
 
     if (type === undefined) {
-        return stringifyNodeType(node);
+        return stringifyTypeNode(node);
     }
 
     let text = stringifyResolvedType(type);
@@ -121,7 +130,7 @@ function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): s
         return '';
     }
 
-    return `<${symbol.templateTypes.map(type => type.text).join(', ')}>`;
+    return `<${symbol.templateTypes.map(t => t.identifierToken.text).join(', ')}>`;
 }
 
 /**
@@ -141,4 +150,51 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
     }
 
     assert(false);
+}
+
+// -----------------------------------------------
+
+export function buildFunctionScopeIdentifier(funcNode: Node_Func): string {
+    const parts = funcNode.paramList.map(param => stringifyFunctionScopeParameter(param));
+    if (funcNode.isConst) {
+        parts.push('const');
+    }
+
+    return '~' + parts.join(',');
+}
+
+function stringifyFunctionScopeParameter(param: Node_ParamList[number]): string {
+    const modifierText = stringifyFunctionScopeParamModifier(param.modifier);
+    const variadicText = param.isVariadic ? '...' : '';
+    return `${stringifyFunctionScopeType(param.type)}${modifierText}${variadicText}`;
+}
+
+function stringifyFunctionScopeParamModifier(modifier: InOutModifier | undefined): string {
+    if (modifier === InOutModifier.In) {
+        return '&in';
+    } else if (modifier === InOutModifier.Out) {
+        return '&out';
+    } else if (modifier === InOutModifier.InOut) {
+        return '&inout';
+    }
+
+    return '';
+}
+
+function stringifyFunctionScopeType(type: Node_Type): string {
+    return stringifyFunctionScopePrefix(type.scope) + stringifyTypeNode(type, ',');
+}
+
+function stringifyFunctionScopePrefix(scope: Node_Scope | undefined): string {
+    if (scope === undefined || scope.scopeList.length === 0) {
+        return '';
+    }
+
+    const scopeNames = scope.scopeList.map(scopeToken => scopeToken.text);
+    if (scope.typeTemplates.length > 0) {
+        scopeNames[scopeNames.length - 1] +=
+            '<' + scope.typeTemplates.map(type => stringifyFunctionScopeType(type)).join(',') + '>';
+    }
+
+    return scopeNames.join('.') + '.';
 }

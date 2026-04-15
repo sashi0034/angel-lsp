@@ -26,13 +26,13 @@ import {
     Node_VirtualProp,
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
-import {FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
-import {findSymbolWithParent, getFullIdentifierOfSymbol} from './symbolUtils';
+import {FunctionSymbol, TemplateTypeParameter, TypeSymbol, VariableSymbol} from './symbolObject';
+import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
 import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
-import {buildTemplateSignature, getIdentifierInNodeType} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodesUtils';
 import {
     analyzeFunc,
     AnalyzeQueue,
@@ -51,6 +51,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
+import {buildFunctionScopeIdentifier} from './symbolStringifier';
 
 // **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
@@ -237,19 +238,22 @@ function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): b
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefined) {
-    const templateTypes: TokenObject[] = [];
+    const templateTypes: TemplateTypeParameter[] = [];
     for (const type of types ?? []) {
-        scope.insertSymbolAndCheck(
-            TypeSymbol.create({
-                identifierToken: getIdentifierInNodeType(type),
-                scopePath: scope.scopePath,
-                linkedNode: undefined,
-                membersScopePath: undefined,
-                isTypeParameter: true
-            })
-        );
+        const identifierToken = getIdentifierInTypeNode(type);
+        const symbol = TypeSymbol.create({
+            identifierToken: identifierToken,
+            scopePath: scope.scopePath,
+            linkedNode: undefined,
+            membersScopePath: undefined,
+            isTypeParameter: true
+        });
 
-        templateTypes.push(getIdentifierInNodeType(type));
+        scope.insertSymbolAndCheck(symbol);
+        templateTypes.push({
+            qualifiedIdentifier: symbol.qualifiedIdentifier,
+            identifierToken: identifierToken
+        });
     }
 
     return templateTypes;
@@ -366,16 +370,17 @@ function hoistClassMembers(
 
 // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
-    const builtInType = tryGetBuiltinType(typeDef.type);
-    if (builtInType === undefined) {
+    const builtinType = tryGetBuiltinType(typeDef.type);
+    if (builtinType === undefined) {
         return;
     }
 
     const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
-        linkedNode: builtInType.linkedNode,
-        membersScopePath: undefined
+        linkedNode: undefined, // builtinType.linkedNode,
+        membersScopePath: undefined,
+        aliasTargetType: builtinType
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
@@ -393,14 +398,14 @@ function hoistFunc(
     }
 
     // Function holder scope (with no node)
-    // |-- Anonymous scope of one of the overloads (with Node_Func)
+    // |-- Signature scope of one of the overloads (with Node_Func)
     //     |-- ...
 
     // Create a new scope for the function
     const funcionHolderScope: SymbolScope =
         // This doesn't have a linked node because the function may be overloaded.
         parentScope.insertScope(funcNode.identifier.text, undefined);
-    const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), funcNode);
+    const functionScope = funcionHolderScope.insertScope(buildFunctionScopeIdentifier(funcNode), funcNode);
 
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: funcNode.identifier,
@@ -799,7 +804,7 @@ function collectBaseClassesAndDeivedClasses(
             if (symbol.baseList.length >= 1) {
                 derivedClassList.push(symbol);
             } else {
-                baseClassSet.add(getFullIdentifierOfSymbol(symbol));
+                baseClassSet.add(symbol.qualifiedIdentifier);
             }
         }
     }
@@ -830,7 +835,7 @@ function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
                     continue;
                 }
 
-                if (resolvedClassSet.has(getFullIdentifierOfSymbol(baseType.typeOrFunc)) === false) {
+                if (resolvedClassSet.has(baseType.typeOrFunc.qualifiedIdentifier) === false) {
                     resolveBaseClasses = false;
                     break;
                 }
@@ -847,7 +852,7 @@ function applyInheritanceBeforeHoist(globalScope: SymbolGlobalScope) {
                 if (scope !== undefined) {
                     copyBaseMembers(scope, derivedClass.baseList, false);
 
-                    resolvedClassSet.add(getFullIdentifierOfSymbol(derivedClass));
+                    resolvedClassSet.add(derivedClass.qualifiedIdentifier);
                     continue;
                 }
             }

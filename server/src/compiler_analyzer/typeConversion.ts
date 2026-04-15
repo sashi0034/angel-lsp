@@ -318,8 +318,8 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     } else {
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
-            const returnType = convFunc.returnType?.typeOrFunc;
-            if (returnType?.identifierToken.equals(destType.identifierToken)) {
+            const returnType = normalizeType(convFunc.returnType);
+            if (returnType?.typeOrFunc.equals(destType)) {
                 selectedConvFunc = convFunc;
                 break;
             }
@@ -372,7 +372,7 @@ function evaluateConvObjectToObject(
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
     // Check if these are identical
-    if (src.identifierToken?.equals(dest.identifierToken)) {
+    if (srcType.equals(destType)) {
         return {cost: ConversionCost.NoConv};
     }
 
@@ -417,6 +417,10 @@ function evaluateNullConversion(src: ResolvedType, dest: ResolvedType): Conversi
 export function normalizeType(type: ResolvedType | undefined) {
     if (type === undefined) {
         return undefined;
+    }
+
+    if (type.typeOrFunc.isType() && type.typeOrFunc.aliasTargetType !== undefined) {
+        return normalizeType(type.cloneWithType(type.typeOrFunc.aliasTargetType));
     }
 
     // We use int and uint instead of int32 and uint32 respectively here.
@@ -501,7 +505,7 @@ export function canDownCast(srcType: TypeSymbol, destType: TypeSymbol): boolean 
     }
 
     // Check if these are identical
-    if (srcType.identifierToken.equals(destType.identifierToken)) {
+    if (srcType.equals(destType)) {
         return true;
     }
 
@@ -592,8 +596,8 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
         return true;
     }
 
-    const srcTemplateTypes = srcType.templateTypes?.map(token => src.templateTranslator?.get(token));
-    const destTemplates = destType.templateTypes?.map(token => dest.templateTranslator?.get(token));
+    const srcTemplateTypes = src.mappedTemplateTypes;
+    const destTemplates = dest.mappedTemplateTypes;
 
     // Check if the template types are the same respectively.
     for (let i = 0; i < srcTemplateTypes.length; i++) {

@@ -176,4 +176,209 @@ describe('analyzer/templateSpecialization', () => {
             }
         ]);
     });
+
+    it('accepts specialized members without losing the generic template fallback', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item {
+                    int weight;
+                }
+
+                class Other {
+                    int durability;
+                }
+
+                class Box<T> {
+                    T get();
+                }
+
+                class Box<Item> {
+                    Item get();
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Item> itemBox;
+                    auto item = itemBox.get();
+                    item.weight = 1;
+
+                    Box<Other> otherBox;
+                    auto other = otherBox.get();
+                    other.durability = 2;
+                }
+                `
+            }
+        ]);
+    });
+
+    it('accepts template class methods that call function templates with class type arguments', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item {
+                    int weight;
+                }
+
+                T identity<T>(T value) {
+                    return value;
+                }
+
+                class Box<T> {
+                    T make(T input);
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Item> box;
+                    Item item;
+
+                    auto output = box.make(item);
+                    output.weight = 3;
+                }
+                `
+            }
+        ]);
+    });
+
+    it('rejects member template calls when specialized class arguments differ', () => {
+        expectError([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item { }
+
+                class Other { }
+
+                class Box<T> {
+                    T value;
+                }
+
+                class Box<Item> {
+                    int specialWeight;
+                }
+
+                class Consumer<T> {
+                    void consume<U>(T first, U second);
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Consumer<Box<Item>> consumer;
+                    Box<Other> otherBox;
+                    Other other;
+
+                    consumer.consume<Other>(otherBox, other);
+                }
+                `
+            }
+        ]);
+    });
+
+    it('accepts funcdef handles with specialized template return and parameter types', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item { }
+
+                class Box<T> {
+                    T value;
+                }
+
+                class Box<Item> {
+                    int specialWeight;
+
+                    void push<Number>(Item item, Number number);
+                }
+
+                funcdef Box<Item> ItemBoxFactory();
+                funcdef void ItemBoxConsumer(Box<Item> box);
+
+                Box<Item> makeItemBox();
+
+                void consumeItemBox(Box<Item> box);
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    ItemBoxFactory@ factory = @ItemBoxFactory(makeItemBox);
+                    auto box = factory();
+                    box.specialWeight = 1;
+                    box.push<int64>(Item(), 123);
+
+                    ItemBoxConsumer@ consumer = @ItemBoxConsumer(consumeItemBox);
+                    consumer(box);
+                }
+                `
+            }
+        ]);
+    });
+
+    it('keeps class and function template parameters with the same name separate', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item {
+                    int itemValue;
+                }
+
+                class Other {
+                    int otherValue;
+                }
+
+                class Box<T> {
+                    T value;
+
+                    T echo<T>(T arg) {
+                        return arg;
+                    }
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Item> box;
+                    Other other;
+
+                    auto result = box.echo<Other>(other);
+                    result.otherValue = 1;
+                    box.value.itemValue = 2;
+                }
+                `
+            }
+        ]);
+    });
+
+    it('accepts array of typedef primitive matches array of original primitive', () => {
+        expectSuccess(`
+            typedef uint8 byte;
+
+            class array<T> { }
+
+            void main() {
+                array<byte> src;
+                array<uint8> dst = src;
+
+                array<array<byte>> src2;
+                array<array<uint8>> dst2 = src2;
+            }
+        `);
+    });
 });

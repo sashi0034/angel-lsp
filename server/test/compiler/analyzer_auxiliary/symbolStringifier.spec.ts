@@ -1,7 +1,7 @@
-import {stringifySymbolObject} from '../../src/compiler_analyzer/symbolStringifier';
-import {inspectFileContents, makeFileContentList} from '../inspectorUtils';
-import type {SymbolGlobalScope} from '../../src/compiler_analyzer/symbolScope';
-import type {SymbolObjectHolder} from '../../src/compiler_analyzer/symbolObject';
+import {stringifySymbolObject} from '../../../src/compiler_analyzer/symbolStringifier';
+import {inspectFileContents, makeFileContentList} from '../../inspectorUtils';
+import type {SymbolGlobalScope} from '../../../src/compiler_analyzer/symbolScope';
+import type {SymbolObjectHolder} from '../../../src/compiler_analyzer/symbolObject';
 
 function expectStringifiedSymbol(
     content: string,
@@ -22,7 +22,7 @@ function expectStringifiedSymbol(
     }
 }
 
-describe('compiler/symbolStringifier', () => {
+describe('analyzer/symbolStringifier', () => {
     it('stringifies types', () => {
         expectStringifiedSymbol(
             `

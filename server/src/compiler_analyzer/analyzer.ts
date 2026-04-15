@@ -75,7 +75,7 @@ import {
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
-import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
+import {applyTemplateTranslator, mergeTemplateTranslators, ResolvedType, TemplateTranslator} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
@@ -130,8 +130,8 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
 
     const typeTemplates = analyzeTemplateTypes(
         scope,
-        func.typeTemplates,
-        (declared.symbol as FunctionSymbolHolder)?.first?.templateTypes
+        declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
+        func.typeTemplates
     ); // FIXME?
 
     // Add arguments to the scope
@@ -305,9 +305,9 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     if (typeNode.isArray) {
         // If the type is an array, we replace the identifier with array type.
         givenIdentifier = getGlobalSettings().builtinArrayType;
-        const copiedNodeType: Mutable<Node_Type> = {...typeNode};
-        copiedNodeType.isArray = false;
-        givenTypeTemplates = [copiedNodeType];
+        const copiedTypeNode: Mutable<Node_Type> = {...typeNode};
+        copiedTypeNode.isArray = false;
+        givenTypeTemplates = [copiedTypeNode];
     }
 
     if (givenTypeTemplates.length > 0) {
@@ -353,7 +353,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
-        const typeTemplates = analyzeTemplateTypes(scope, givenTypeTemplates, foundSymbol.templateTypes);
+        const typeTemplates = analyzeTemplateTypes(scope, foundSymbol, givenTypeTemplates);
         return completeAnalyzingType(
             scope,
             typeIdentifier,
@@ -429,8 +429,13 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, typeNode: Node_Type[], templateTypes: TokenObject[] | undefined) {
-    if (templateTypes === undefined) {
+function analyzeTemplateTypes(
+    scope: SymbolScope,
+    templateOwner: TypeSymbol | FunctionSymbol | undefined,
+    typeNode: Node_Type[]
+) {
+    const templateTypes = templateOwner?.templateTypes;
+    if (templateOwner === undefined || templateTypes === undefined) {
         return undefined;
     }
 
@@ -445,34 +450,10 @@ function analyzeTemplateTypes(scope: SymbolScope, typeNode: Node_Type[], templat
         }
 
         const template = typeNode[i];
-        translation.set(templateTypes[i], analyzeType(scope, template));
+        translation.set(templateTypes[i].qualifiedIdentifier, analyzeType(scope, template));
     }
 
     return translation;
-}
-
-function mergeTemplateTranslators(
-    base: TemplateTranslator | undefined,
-    overlay: TemplateTranslator | undefined
-): TemplateTranslator | undefined {
-    if (base === undefined && overlay === undefined) {
-        return undefined;
-    }
-
-    if (base === undefined) {
-        return overlay;
-    }
-
-    if (overlay === undefined) {
-        return base;
-    }
-
-    const merged: TemplateTranslator = new Map(base);
-    for (const [token, type] of overlay) {
-        merged.set(token, type);
-    }
-
-    return merged;
 }
 
 // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -1191,7 +1172,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             // This instance member is a method.
             const callTemplateTranslator =
                 callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.first.templateTypes)
+                    ? analyzeTemplateTypes(scope, instanceMember.first, callTemplateTypes)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
@@ -1207,7 +1188,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             const delegate = instanceMember.type.typeOrFunc.toHolder();
             const callTemplateTranslator =
                 callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.type.typeOrFunc.templateTypes)
+                    ? analyzeTemplateTypes(scope, instanceMember.type.typeOrFunc, callTemplateTypes)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
@@ -1391,7 +1372,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         // Invoke function handle
         const callTemplateTranslator =
             callTemplateTypes.length > 0
-                ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.type.typeOrFunc.templateTypes)
+                ? analyzeTemplateTypes(scope, calleeSymbol.type.typeOrFunc, callTemplateTypes)
                 : undefined;
         return analyzeFunctionCall(
             scope,
@@ -1414,9 +1395,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
     }
 
     const callTemplateTranslator =
-        callTemplateTypes.length > 0
-            ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.first.templateTypes)
-            : undefined;
+        callTemplateTypes.length > 0 ? analyzeTemplateTypes(scope, calleeSymbol.first, callTemplateTypes) : undefined;
     return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateTranslator);
 }
 

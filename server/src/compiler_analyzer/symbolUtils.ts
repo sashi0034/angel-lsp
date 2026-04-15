@@ -25,11 +25,6 @@ export function stringifyScopeSuffix(scope: SymbolScope | undefined): string {
     return suffix.length === 0 ? '' : suffix + '::';
 }
 
-// TODO: This should be a member variable
-export function getFullIdentifierOfSymbol(symbol: SymbolObject): string {
-    return [...symbol.scopePath, symbol.identifierToken.text].join('.');
-}
-
 export function printSymbolScope(scope: SymbolScope, indent: string = ''): string {
     let result = '';
 

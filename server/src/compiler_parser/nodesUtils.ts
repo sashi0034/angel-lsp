@@ -5,11 +5,11 @@ export function isEntityModifierForClass(modifier: EntityAttribute) {
     return modifier.isAbstract || modifier.isFinal;
 }
 
-export function stringifyNodeType(type: Node_Type): string {
+export function stringifyTypeNode(type: Node_Type, separator: string = ', '): string {
     let str = type.isConst ? 'const ' : '';
     str += type.dataType.identifier.text;
     if (type.typeTemplates.length > 0) {
-        str += '<' + type.typeTemplates.map(stringifyNodeType).join(', ') + '>';
+        str += '<' + type.typeTemplates.map(t => stringifyTypeNode(t, separator)).join(separator) + '>';
     }
 
     if (type.isArray) {
@@ -23,7 +23,7 @@ export function stringifyNodeType(type: Node_Type): string {
     return str;
 }
 
-export function getIdentifierInNodeType(type: Node_Type): TokenObject {
+export function getIdentifierInTypeNode(type: Node_Type): TokenObject {
     return type.dataType.identifier;
 }
 
