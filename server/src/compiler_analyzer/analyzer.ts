@@ -75,7 +75,7 @@ import {
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
-import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
+import {applyTemplateTranslator, mergeTemplateTranslators, ResolvedType, TemplateTranslator} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
@@ -449,30 +449,6 @@ function analyzeTemplateTypes(scope: SymbolScope, typeNode: Node_Type[], templat
     }
 
     return translation;
-}
-
-function mergeTemplateTranslators(
-    base: TemplateTranslator | undefined,
-    overlay: TemplateTranslator | undefined
-): TemplateTranslator | undefined {
-    if (base === undefined && overlay === undefined) {
-        return undefined;
-    }
-
-    if (base === undefined) {
-        return overlay;
-    }
-
-    if (overlay === undefined) {
-        return base;
-    }
-
-    const merged: TemplateTranslator = new Map(base);
-    for (const [token, type] of overlay) {
-        merged.set(token, type);
-    }
-
-    return merged;
 }
 
 // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'

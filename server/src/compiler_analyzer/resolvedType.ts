@@ -1,6 +1,6 @@
 import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import type {Node_Lambda} from '../compiler_parser/nodes';
+import {Node_Lambda} from '../compiler_parser/nodes';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
@@ -68,6 +68,29 @@ export function applyTemplateTranslator(
     }
 
     return target.cloneWithTemplateTranslator(translator);
+}
+
+/**
+ * Merge two template translators, with the overlay taking precedence over the base.
+ */
+export function mergeTemplateTranslators(
+    base: TemplateTranslator | undefined,
+    overlay: TemplateTranslator | undefined
+): TemplateTranslator | undefined {
+    if (base === undefined) {
+        return overlay;
+    }
+
+    if (overlay === undefined) {
+        return base;
+    }
+
+    const merged: TemplateTranslator = new Map(base);
+    for (const [token, type] of overlay) {
+        merged.set(token, type);
+    }
+
+    return merged;
 }
 
 /**
