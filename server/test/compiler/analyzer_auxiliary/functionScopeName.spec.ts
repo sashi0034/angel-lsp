@@ -1,39 +1,32 @@
 import {inspectFileContents, makeFileContentList} from '../../inspectorUtils';
 import type {SymbolGlobalScope, SymbolScope} from '../../../src/compiler_analyzer/symbolScope';
 
-function lookupScopePath(globalScope: SymbolGlobalScope, scopePathText: string): SymbolScope | undefined {
-    let scope: SymbolScope | undefined = globalScope;
-    for (const scopeName of scopePathText.split('::')) {
-        scope = scope?.lookupScope(scopeName);
-    }
-
-    return scope;
-}
-
-function expectFunctionScopeNames(content: string, expectedScopesByFunction: Record<string, string[]>) {
+function expectFunctionScopeNames(
+    content: string,
+    lookup: (globalScope: SymbolGlobalScope) => SymbolScope | undefined,
+    expected: string[]
+) {
     const inspector = inspectFileContents(makeFileContentList(content));
     const globalScope = inspector.getRecord('file:///path/to/file.as').analyzerScope.globalScope;
+    const functionHolderScope = lookup(globalScope);
 
-    for (const [functionPath, expectedScopes] of Object.entries(expectedScopesByFunction)) {
-        const functionHolderScope = lookupScopePath(globalScope, functionPath);
-        if (functionHolderScope === undefined) {
-            throw new Error(`Expected function holder scope "${functionPath}", but got none.`);
-        }
+    if (functionHolderScope === undefined) {
+        throw new Error('Expected function holder scope, but got none.');
+    }
 
-        const actualScopes = [...functionHolderScope.childScopeTable.keys()];
-        const missingScopes = expectedScopes.filter(scope => actualScopes.includes(scope) === false);
-        const unexpectedScopes = actualScopes.filter(scope => expectedScopes.includes(scope) === false);
-        if (missingScopes.length > 0 || unexpectedScopes.length > 0) {
-            throw new Error(
-                [
-                    `Incorrect function scope names for "${functionPath}".`,
-                    `expected: ${expectedScopes.join(', ')}`,
-                    `actual  : ${actualScopes.join(', ')}`,
-                    `missing : ${missingScopes.join(', ')}`,
-                    `extra   : ${unexpectedScopes.join(', ')}`
-                ].join('\n')
-            );
-        }
+    const actual = [...functionHolderScope.childScopeTable.keys()];
+    const missing = expected.filter(scope => actual.includes(scope) === false);
+    const unexpected = actual.filter(scope => expected.includes(scope) === false);
+    if (missing.length > 0 || unexpected.length > 0) {
+        throw new Error(
+            [
+                'Incorrect function scope names.',
+                `expected: ${expected.join(', ')}`,
+                `actual  : ${actual.join(', ')}`,
+                `missing : ${missing.join(', ')}`,
+                `extra   : ${unexpected.join(', ')}`
+            ].join('\n')
+        );
     }
 }
 
@@ -48,9 +41,8 @@ describe('analyzer/functionScopeName', () => {
                 int fn(const Obj@ a, int b, array<int, int> c) const { return 0; }
             }
             `,
-            {
-                'Example::fn': ['~const Obj@,int,array<int,int>', '~const Obj@,int,array<int,int>,const']
-            }
+            globalScope => globalScope.lookupScope('Example')?.lookupScope('fn'),
+            ['~const Obj@,int,array<int,int>', '~const Obj@,int,array<int,int>,const']
         );
     });
 
@@ -62,10 +54,19 @@ describe('analyzer/functionScopeName', () => {
                 void assign(const array<T>&in other) {}
             }
             `,
-            {
-                'array::insertLast': ['~const T&in'],
-                'array::assign': ['~const array<T>&in']
+            globalScope => globalScope.lookupScope('array')?.lookupScope('insertLast'),
+            ['~const T&in']
+        );
+
+        expectFunctionScopeNames(
+            `
+            class array<T> {
+                void insertLast(const T&in value) {}
+                void assign(const array<T>&in other) {}
             }
+            `,
+            globalScope => globalScope.lookupScope('array')?.lookupScope('assign'),
+            ['~const array<T>&in']
         );
     });
 
@@ -82,10 +83,24 @@ describe('analyzer/functionScopeName', () => {
                 return value;
             }
             `,
-            {
-                fn: ['~T'],
-                makeArray: ['~array<T>']
+            globalScope => globalScope.lookupScope('fn'),
+            ['~T']
+        );
+
+        expectFunctionScopeNames(
+            `
+            class array<T> {}
+
+            T fn<T>(T value) {
+                return value;
             }
+
+            array<T> makeArray<T>(array<T> value) {
+                return value;
+            }
+            `,
+            globalScope => globalScope.lookupScope('makeArray'),
+            ['~array<T>']
         );
     });
 });
