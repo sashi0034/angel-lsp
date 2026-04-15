@@ -318,8 +318,8 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     } else {
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
-            const returnType = convFunc.returnType?.typeOrFunc;
-            if (returnType?.identifierToken.equals(destType.identifierToken)) {
+            const returnType = normalizeType(convFunc.returnType);
+            if (returnType?.typeOrFunc.equals(destType)) {
                 selectedConvFunc = convFunc;
                 break;
             }
@@ -372,7 +372,7 @@ function evaluateConvObjectToObject(
     assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
 
     // Check if these are identical
-    if (src.identifierToken?.equals(dest.identifierToken)) {
+    if (srcType.equals(destType)) {
         return {cost: ConversionCost.NoConv};
     }
 
@@ -501,7 +501,7 @@ export function canDownCast(srcType: TypeSymbol, destType: TypeSymbol): boolean 
     }
 
     // Check if these are identical
-    if (srcType.identifierToken.equals(destType.identifierToken)) {
+    if (srcType.equals(destType)) {
         return true;
     }
 

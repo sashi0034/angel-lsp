@@ -91,7 +91,7 @@ export abstract class SymbolBase {
     }
 
     public equals(other: SymbolBase): boolean {
-        return this.identifierText === other.identifierText && isScopePathEquals(this.scopePath, other.scopePath);
+        return this.qualifiedIdentifier === other.qualifiedIdentifier;
     }
 }
 
