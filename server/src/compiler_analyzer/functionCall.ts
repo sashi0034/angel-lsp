@@ -1,6 +1,6 @@
 import {FunctionSymbol, FunctionSymbolHolder, SymbolObject, VariableSymbol} from './symbolObject';
 import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
-import {applyTemplateTranslator, ResolvedType, TemplateTranslator} from './resolvedType';
+import {applyTemplateMapping, ResolvedType, TemplateMapping} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
@@ -23,7 +23,7 @@ interface FunctionCallArgs {
 
     // Callee-side arguments
     calleeFuncHolder: FunctionSymbolHolder;
-    calleeTemplateTranslator: TemplateTranslator | undefined;
+    calleeTemplateMapping: TemplateMapping | undefined;
     calleeDelegateVariable?: VariableSymbol; // This is required because the delegate is called by a variable.
 }
 
@@ -161,7 +161,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         // Return the best-matching function's return type.
         return {
             bestMatching: bestMatching.function,
-            returnType: applyTemplateTranslator(bestMatching.function.returnType, args.calleeTemplateTranslator),
+            returnType: applyTemplateMapping(bestMatching.function.returnType, args.calleeTemplateMapping),
             sideEffect: () => {
                 bestMatching?.sideEffects.forEach(sideEffect => sideEffect());
 
@@ -228,7 +228,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Fun
 }
 
 function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | undefined {
-    const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateTranslator, calleeDelegateVariable} = args;
+    const {callerIdentifier, callerArgs, calleeFuncHolder, calleeTemplateMapping, calleeDelegateVariable} = args;
 
     if (calleeFuncHolder.first.linkedNode.nodeName !== NodeName.FuncDef) {
         return undefined;
@@ -241,7 +241,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
     // If the callee is a delegate, check whether the argument can be cast to it.
     const delegateType = ResolvedType.create({
         typeOrFunc: calleeFuncHolder.first,
-        templateTranslator: calleeTemplateTranslator
+        templateMapping: calleeTemplateMapping
     });
 
     if (callerArgs.length !== 1) {
@@ -255,7 +255,7 @@ function evaluateDelegateCast(args: FunctionCallArgs): FunctionCallResult | unde
 
     return {
         bestMatching: calleeFuncHolder.first,
-        returnType: applyTemplateTranslator(delegateType, calleeTemplateTranslator),
+        returnType: applyTemplateMapping(delegateType, calleeTemplateMapping),
         sideEffect: () => {
             causeTypeConversionSideEffect(evaluation, callerArgs[0].type, delegateType, callerArgs[0].range);
 
@@ -428,8 +428,8 @@ function evaluatePassingArgument(
     calleeParam: ResolvedType | undefined,
     sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
-    const {callerArgs, calleeTemplateTranslator} = args;
-    const expectedType = applyTemplateTranslator(calleeParam, calleeTemplateTranslator);
+    const {callerArgs, calleeTemplateMapping} = args;
+    const expectedType = applyTemplateMapping(calleeParam, calleeTemplateMapping);
 
     const actualType = callerArgs[callerArgId].type;
 
@@ -453,7 +453,7 @@ function evaluatePassingArgument(
 // -----------------------------------------------
 
 function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchReason) {
-    const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateTranslator} = args;
+    const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateMapping} = args;
 
     if (mismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
         const argRange = callerArgs[mismatchReason.invalidArgumentIndex].range;
@@ -509,7 +509,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {
             const resolvedTypes = overload.parameterTypes.map(t =>
-                applyTemplateTranslator(t, calleeTemplateTranslator)
+                applyTemplateMapping(t, calleeTemplateMapping)
             );
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
