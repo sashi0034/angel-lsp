@@ -592,8 +592,8 @@ function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
         return true;
     }
 
-    const srcTemplateTypes = srcType.templateTypes?.map(token => src.templateTranslator?.get(token));
-    const destTemplates = destType.templateTypes?.map(token => dest.templateTranslator?.get(token));
+    const srcTemplateTypes = src.mappedTemplateTypes;
+    const destTemplates = dest.mappedTemplateTypes;
 
     // Check if the template types are the same respectively.
     for (let i = 0; i < srcTemplateTypes.length; i++) {

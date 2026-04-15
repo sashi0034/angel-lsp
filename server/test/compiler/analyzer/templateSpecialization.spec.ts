@@ -176,4 +176,42 @@ describe('analyzer/templateSpecialization', () => {
             }
         ]);
     });
+
+    it('keeps class and function template parameters with the same name separate', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Item {
+                    int itemValue;
+                }
+
+                class Other {
+                    int otherValue;
+                }
+
+                class Box<T> {
+                    T value;
+
+                    T echo<T>(T arg) {
+                        return arg;
+                    }
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Item> box;
+                    Other other;
+
+                    auto result = box.echo<Other>(other);
+                    result.otherValue = 1;
+                    box.value.itemValue = 2;
+                }
+                `
+            }
+        ]);
+    });
 });

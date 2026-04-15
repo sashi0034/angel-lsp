@@ -130,8 +130,8 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
 
     const typeTemplates = analyzeTemplateTypes(
         scope,
-        func.typeTemplates,
-        (declared.symbol as FunctionSymbolHolder)?.first?.templateTypes
+        declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
+        func.typeTemplates
     ); // FIXME?
 
     // Add arguments to the scope
@@ -353,7 +353,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
-        const typeTemplates = analyzeTemplateTypes(scope, givenTypeTemplates, foundSymbol.templateTypes);
+        const typeTemplates = analyzeTemplateTypes(scope, foundSymbol, givenTypeTemplates);
         return completeAnalyzingType(
             scope,
             typeIdentifier,
@@ -429,8 +429,13 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     return undefined;
 }
 
-function analyzeTemplateTypes(scope: SymbolScope, typeNode: Node_Type[], templateTypes: TokenObject[] | undefined) {
-    if (templateTypes === undefined) {
+function analyzeTemplateTypes(
+    scope: SymbolScope,
+    templateOwner: TypeSymbol | FunctionSymbol | undefined,
+    typeNode: Node_Type[]
+) {
+    const templateTypes = templateOwner?.templateTypes;
+    if (templateOwner === undefined || templateTypes === undefined) {
         return undefined;
     }
 
@@ -445,7 +450,7 @@ function analyzeTemplateTypes(scope: SymbolScope, typeNode: Node_Type[], templat
         }
 
         const template = typeNode[i];
-        translation.set(templateTypes[i], analyzeType(scope, template));
+        translation.set(templateTypes[i].qualifiedIdentifier, analyzeType(scope, template));
     }
 
     return translation;
@@ -1167,7 +1172,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             // This instance member is a method.
             const callTemplateTranslator =
                 callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.first.templateTypes)
+                    ? analyzeTemplateTypes(scope, instanceMember.first, callTemplateTypes)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
@@ -1183,7 +1188,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             const delegate = instanceMember.type.typeOrFunc.toHolder();
             const callTemplateTranslator =
                 callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, callTemplateTypes, instanceMember.type.typeOrFunc.templateTypes)
+                    ? analyzeTemplateTypes(scope, instanceMember.type.typeOrFunc, callTemplateTypes)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
@@ -1367,7 +1372,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         // Invoke function handle
         const callTemplateTranslator =
             callTemplateTypes.length > 0
-                ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.type.typeOrFunc.templateTypes)
+                ? analyzeTemplateTypes(scope, calleeSymbol.type.typeOrFunc, callTemplateTypes)
                 : undefined;
         return analyzeFunctionCall(
             scope,
@@ -1390,9 +1395,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
     }
 
     const callTemplateTranslator =
-        callTemplateTypes.length > 0
-            ? analyzeTemplateTypes(scope, callTemplateTypes, calleeSymbol.first.templateTypes)
-            : undefined;
+        callTemplateTypes.length > 0 ? analyzeTemplateTypes(scope, calleeSymbol.first, callTemplateTypes) : undefined;
     return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateTranslator);
 }
 

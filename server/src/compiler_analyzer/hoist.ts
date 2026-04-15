@@ -26,7 +26,7 @@ import {
     Node_VirtualProp,
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
-import {FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
+import {FunctionSymbol, TemplateTypeParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
@@ -238,19 +238,22 @@ function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): b
 }
 
 function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefined) {
-    const templateTypes: TokenObject[] = [];
+    const templateTypes: TemplateTypeParameter[] = [];
     for (const type of types ?? []) {
-        scope.insertSymbolAndCheck(
-            TypeSymbol.create({
-                identifierToken: getIdentifierInTypeNode(type),
-                scopePath: scope.scopePath,
-                linkedNode: undefined,
-                membersScopePath: undefined,
-                isTypeParameter: true
-            })
-        );
+        const identifierToken = getIdentifierInTypeNode(type);
+        const symbol = TypeSymbol.create({
+            identifierToken: identifierToken,
+            scopePath: scope.scopePath,
+            linkedNode: undefined,
+            membersScopePath: undefined,
+            isTypeParameter: true
+        });
 
-        templateTypes.push(getIdentifierInTypeNode(type));
+        scope.insertSymbolAndCheck(symbol);
+        templateTypes.push({
+            qualifiedIdentifier: symbol.qualifiedIdentifier,
+            identifierToken: identifierToken
+        });
     }
 
     return templateTypes;

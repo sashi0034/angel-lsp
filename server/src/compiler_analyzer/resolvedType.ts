@@ -1,14 +1,14 @@
-import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol} from './symbolObject';
+import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol, QualifiedIdentifier} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {Node_Lambda} from '../compiler_parser/nodes';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
- * Mapping from template parameter tokens to the types they are resolved to.
+ * Mapping from template parameter qualified identifiers to the types they are resolved to.
  * For example, when instantiating `array<T>` as `array<int>`,
- * the token `T` is mapped to the type `int`.
+ * the qualified identifier of `T` is mapped to the type `int`.
  */
-export type TemplateTranslator = Map<TokenObject, ResolvedType | undefined>;
+export type TemplateTranslator = Map<QualifiedIdentifier, ResolvedType | undefined>;
 
 /**
  * Metadata for a lambda expression whose type is resolved later from a funcdef target.
@@ -26,16 +26,16 @@ export function applyTemplateTranslator(
     target: ResolvedType | undefined,
     translator: TemplateTranslator | undefined
 ): ResolvedType | undefined {
-    // e.g.1:
+    // e.g. 1:
     // target: array<T> with {T: T}
     // translator: {T: int}
-    // -> array<T> with {T: int}
+    // --> array<T> with {T: int}
     // i.e., T at the end of the target is replaced with int
 
-    // e.g.2:
+    // e.g. 2:
     // target: array<T> with {T: array<T> with {T: T}}
     // translator: {T: bool}
-    // -> array<T> with {T: array<T> with {T: bool}}
+    // --> array<T> with {T: array<T> with {T: bool}}
     // i.e., T at the end of the target is replaced with bool
 
     if (target === undefined || translator === undefined) {
@@ -46,7 +46,11 @@ export function applyTemplateTranslator(
         // The target has no templates.
         if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
             // If the target is a type parameter such as `T`, translate it.
-            return translator.get(target.typeOrFunc.identifierToken) ?? target;
+            // e.g.:
+            // target: T
+            // translator: {T: bool}
+            // --> bool
+            return translator.get(target.typeOrFunc.qualifiedIdentifier) ?? target;
         }
 
         return target;
@@ -56,18 +60,18 @@ export function applyTemplateTranslator(
     // At this point, the target has template parameters.
 
     // Create a new template translator by replacing the template type with the translated type.
-    const newTranslator = new Map<TokenObject, ResolvedType | undefined>();
-    for (const [token, translatedType] of target.templateTranslator) {
-        if (translatedType?.identifierToken !== undefined && translator.has(translatedType?.identifierToken)) {
+    const newTranslator: TemplateTranslator = new Map();
+    for (const [qualifiedIdentifier, translatedType] of target.templateTranslator) {
+        if (translatedType?.typeOrFunc.isType() && translator.has(translatedType.typeOrFunc.qualifiedIdentifier)) {
             // Replace `T` at the end of the target with the translated type.
-            newTranslator.set(token, translator.get(translatedType?.identifierToken));
+            newTranslator.set(qualifiedIdentifier, translator.get(translatedType.typeOrFunc.qualifiedIdentifier));
         } else {
             // Templates may be nested, so visit recursively.
-            newTranslator.set(token, applyTemplateTranslator(translatedType, translator));
+            newTranslator.set(qualifiedIdentifier, applyTemplateTranslator(translatedType, translator));
         }
     }
 
-    return target.cloneWithTemplateTranslator(translator);
+    return target.cloneWithTemplateTranslator(newTranslator);
 }
 
 /**
@@ -204,6 +208,10 @@ export class ResolvedType {
         return this._attachedAccessSource;
     }
 
+    public get mappedTemplateTypes(): (ResolvedType | undefined)[] {
+        return this.typeOrFunc.templateTypes?.map(type => this.templateTranslator?.get(type.qualifiedIdentifier)) ?? [];
+    }
+
     public equals(other: ResolvedType | undefined): boolean {
         if (other === undefined) {
             return false;
@@ -223,8 +231,8 @@ export class ResolvedType {
                 return false;
             }
 
-            const thisTemplates = this.typeOrFunc.templateTypes.map(type => this.templateTranslator?.get(type));
-            const otherTemplates = other.typeOrFunc.templateTypes.map(type => other.templateTranslator?.get(type));
+            const thisTemplates = this.mappedTemplateTypes;
+            const otherTemplates = other.mappedTemplateTypes;
 
             for (let i = 0; i < thisTemplates.length; i++) {
                 if (thisTemplates[i]?.equals(otherTemplates[i]) === false) {

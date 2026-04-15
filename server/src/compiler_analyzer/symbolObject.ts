@@ -56,11 +56,18 @@ export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
     return true;
 }
 
+export type QualifiedIdentifier = string;
+
+export interface TemplateTypeParameter {
+    qualifiedIdentifier: QualifiedIdentifier;
+    identifierToken: TokenObject;
+}
+
 /**
  * The base interface for all symbols.
  */
 export abstract class SymbolBase {
-    private _qualifiedIdentifier: string | undefined;
+    private _qualifiedIdentifier: QualifiedIdentifier | undefined;
 
     public abstract get kind(): SymbolKind;
 
@@ -68,7 +75,7 @@ export abstract class SymbolBase {
 
     public abstract get identifierText(): string;
 
-    public get qualifiedIdentifier(): string {
+    public get qualifiedIdentifier(): QualifiedIdentifier {
         if (this._qualifiedIdentifier === undefined) {
             this._qualifiedIdentifier = [...this.scopePath, this.identifierText].join('.');
         }
@@ -120,8 +127,9 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         public readonly isMixin?: boolean,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
-        // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        private _templateTypes?: TokenObject[],
+        // Template type parameter qualified identifiers.
+        // e.g., 'class A<T, U>' has two template identifiers for 'T' and 'U'.
+        private _templateTypes?: TemplateTypeParameter[],
         private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandle?: boolean,
         public readonly multipleEnumCandidates?: VariableSymbol[]
@@ -141,7 +149,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         membersScopePath: ScopePath | undefined;
         isMixin?: boolean;
         isTypeParameter?: boolean;
-        templateTypes?: TokenObject[];
+        templateTypes?: TemplateTypeParameter[];
         baseList?: (ResolvedType | undefined)[];
         isHandle?: boolean;
         multipleEnumCandidates?: VariableSymbol[];
@@ -169,11 +177,11 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         this._membersScopePath = scope;
     }
 
-    public get templateTypes(): TokenObject[] | undefined {
+    public get templateTypes(): TemplateTypeParameter[] | undefined {
         return this._templateTypes;
     }
 
-    public assignTemplateTypes(templateTypes: TokenObject[]) {
+    public assignTemplateTypes(templateTypes: TemplateTypeParameter[]) {
         assert(this._templateTypes === undefined);
         this._templateTypes = templateTypes;
     }
@@ -312,8 +320,9 @@ export class FunctionSymbol extends SymbolBase {
         private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
-        // Template type parameters (i.e., 'class A<T, U>' has two template types 'T' and 'U')
-        private _templateTypes?: TokenObject[]
+        // Template type parameter qualified identifiers.
+        // For example, 'func<T, U>' has two template identifiers for 'T' and 'U'.
+        private _templateTypes?: TemplateTypeParameter[]
     ) {
         super();
     }
@@ -372,11 +381,11 @@ export class FunctionSymbol extends SymbolBase {
         this._parameterTypes = parameterTypes;
     }
 
-    public get templateTypes(): TokenObject[] | undefined {
+    public get templateTypes(): TemplateTypeParameter[] | undefined {
         return this._templateTypes;
     }
 
-    public assignTemplateTypes(templateTypes: TokenObject[]) {
+    public assignTemplateTypes(templateTypes: TemplateTypeParameter[]) {
         assert(this._templateTypes === undefined);
         this._templateTypes = templateTypes;
     }

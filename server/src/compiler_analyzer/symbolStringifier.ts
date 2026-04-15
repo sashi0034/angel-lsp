@@ -40,8 +40,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
 
     const templateTypes = type.typeOrFunc.templateTypes;
     if (templateTypes !== undefined) {
-        const templateTypesText = templateTypes
-            .map(t => stringifyResolvedType(type.templateTranslator?.get(t)) ?? t.text)
+        const templateTypesText = type.mappedTemplateTypes
+            .map((templateType, i) => stringifyResolvedType(templateType) ?? templateTypes[i].identifierToken.text)
             .join(', ');
         suffix = `<${templateTypesText}>${suffix}`;
     }
@@ -130,7 +130,7 @@ function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): s
         return '';
     }
 
-    return `<${symbol.templateTypes.map(type => type.text).join(', ')}>`;
+    return `<${symbol.templateTypes.map(t => t.identifierToken.text).join(', ')}>`;
 }
 
 /**
