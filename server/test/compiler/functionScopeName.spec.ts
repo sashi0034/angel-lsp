@@ -37,7 +37,7 @@ function expectFunctionScopeNames(content: string, expectedScopesByFunction: Rec
     }
 }
 
-describe('analyzer/functionScope', () => {
+describe('analyzer/functionScopeName', () => {
     it('names overloaded function scopes from parameter signatures', () => {
         expectFunctionScopeNames(
             `
@@ -50,6 +50,41 @@ describe('analyzer/functionScope', () => {
             `,
             {
                 'Example::fn': ['~const Obj@,int,array<int,int>', '~const Obj@,int,array<int,int>,const']
+            }
+        );
+    });
+
+    it('names class template parameter scopes from parameter signatures', () => {
+        expectFunctionScopeNames(
+            `
+            class array<T> {
+                void insertLast(const T&in value) {}
+                void assign(const array<T>&in other) {}
+            }
+            `,
+            {
+                'array::insertLast': ['~const T&in'],
+                'array::assign': ['~const array<T>&in']
+            }
+        );
+    });
+
+    it('names function template parameter scopes from parameter signatures', () => {
+        expectFunctionScopeNames(
+            `
+            class array<T> {}
+
+            T fn<T>(T value) {
+                return value;
+            }
+
+            array<T> makeArray<T>(array<T> value) {
+                return value;
+            }
+            `,
+            {
+                fn: ['~T'],
+                makeArray: ['~array<T>']
             }
         );
     });
