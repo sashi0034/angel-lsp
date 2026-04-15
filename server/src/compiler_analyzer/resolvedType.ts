@@ -4,7 +4,7 @@ import {Node_Lambda} from '../compiler_parser/nodes';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
- * Mapping from template parameter qualified identifiers to the types they are resolved to.
+ * Mapping from template parameter qualifiedIdentifier to the types they are resolved to.
  * For example, when instantiating `array<T>` as `array<int>`,
  * the qualified identifier of `T` is mapped to the type `int`.
  */

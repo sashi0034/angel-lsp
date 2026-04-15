@@ -127,7 +127,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         public readonly isMixin?: boolean,
         // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
         public readonly isTypeParameter?: boolean,
-        // Template type parameter qualified identifiers.
+        // Template type parameter qualifiedIdentifier.
         // e.g., 'class A<T, U>' has two template identifiers for 'T' and 'U'.
         private _templateTypes?: TemplateTypeParameter[],
         private _baseList?: (ResolvedType | undefined)[],
@@ -323,7 +323,7 @@ export class FunctionSymbol extends SymbolBase {
         private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
-        // Template type parameter qualified identifiers.
+        // Template type parameter qualifiedIdentifier.
         // For example, 'func<T, U>' has two template identifiers for 'T' and 'U'.
         private _templateTypes?: TemplateTypeParameter[]
     ) {
