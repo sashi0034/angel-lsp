@@ -1,5 +1,5 @@
-import {inspectFileContents, makeFileContentList} from '../inspectorUtils';
-import type {SymbolGlobalScope, SymbolScope} from '../../src/compiler_analyzer/symbolScope';
+import {inspectFileContents, makeFileContentList} from '../../inspectorUtils';
+import type {SymbolGlobalScope, SymbolScope} from '../../../src/compiler_analyzer/symbolScope';
 
 function lookupScopePath(globalScope: SymbolGlobalScope, scopePathText: string): SymbolScope | undefined {
     let scope: SymbolScope | undefined = globalScope;
