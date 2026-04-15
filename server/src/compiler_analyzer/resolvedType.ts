@@ -132,6 +132,17 @@ export class ResolvedType {
         );
     }
 
+    public cloneWithType(type: TypeSymbol): ResolvedType {
+        return new ResolvedType(
+            type,
+            this.isHandle,
+            this.templateTranslator,
+            this._attachedAccessSource,
+            this.isExplicitHandleAccess,
+            this.lambdaInfo
+        );
+    }
+
     public cloneWithTemplateTranslator(templateTranslator: TemplateTranslator | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,

@@ -419,6 +419,10 @@ export function normalizeType(type: ResolvedType | undefined) {
         return undefined;
     }
 
+    if (type.typeOrFunc.isType() && type.typeOrFunc.aliasTargetType !== undefined) {
+        return normalizeType(type.cloneWithType(type.typeOrFunc.aliasTargetType));
+    }
+
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') {
         return resolvedBuiltinInt.cloneWithHandle(type.isHandle);

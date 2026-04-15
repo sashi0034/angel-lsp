@@ -370,16 +370,17 @@ function hoistClassMembers(
 
 // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
-    const builtInType = tryGetBuiltinType(typeDef.type);
-    if (builtInType === undefined) {
+    const builtinType = tryGetBuiltinType(typeDef.type);
+    if (builtinType === undefined) {
         return;
     }
 
     const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: typeDef.identifier,
         scopePath: parentScope.scopePath,
-        linkedNode: builtInType.linkedNode,
-        membersScopePath: undefined
+        linkedNode: undefined, // builtinType.linkedNode,
+        membersScopePath: undefined,
+        aliasTargetType: builtinType
     });
     parentScope.insertSymbolAndCheck(symbol);
 }
