@@ -219,7 +219,7 @@ export class ResolvedType {
         return this._attachedAccessSource;
     }
 
-    public get mappedTemplateTypes(): (ResolvedType | undefined)[] {
+    public getMappedTemplateTypes(): (ResolvedType | undefined)[] {
         return this.typeOrFunc.templateTypes?.map(type => this.templateMapping?.get(type.qualifiedIdentifier)) ?? [];
     }
 
@@ -242,8 +242,8 @@ export class ResolvedType {
                 return false;
             }
 
-            const thisTemplates = this.mappedTemplateTypes;
-            const otherTemplates = other.mappedTemplateTypes;
+            const thisTemplates = this.getMappedTemplateTypes();
+            const otherTemplates = other.getMappedTemplateTypes();
 
             for (let i = 0; i < thisTemplates.length; i++) {
                 if (thisTemplates[i]?.equals(otherTemplates[i]) === false) {

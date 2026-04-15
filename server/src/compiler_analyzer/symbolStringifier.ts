@@ -40,7 +40,8 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
 
     const templateTypes = type.typeOrFunc.templateTypes;
     if (templateTypes !== undefined) {
-        const templateTypesText = type.mappedTemplateTypes
+        const templateTypesText = type
+            .getMappedTemplateTypes()
             .map((templateType, i) => stringifyResolvedType(templateType) ?? templateTypes[i].identifierToken.text)
             .join(', ');
         suffix = `<${templateTypesText}>${suffix}`;
