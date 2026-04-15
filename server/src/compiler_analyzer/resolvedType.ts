@@ -4,7 +4,7 @@ import {Node_Lambda} from '../compiler_parser/nodes';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
- * Mapping from template parameter qualifiedIdentifier to the types they are resolved to.
+ * Mapping from template parameter qualifiedIdentifier to the template arguments they resolve to.
  * For example, when instantiating `array<T>` as `array<int>`,
  * the qualified identifier of `T` is mapped to the type `int`.
  */
@@ -30,22 +30,22 @@ export function applyTemplateMapping(
     // target: array<T> with {T: T}
     // mapping: {T: int}
     // --> array<T> with {T: int}
-    // i.e., T at the end of the target is replaced with int
+    // i.e., the template parameter T at the end of the target is resolved to the argument int
 
     // e.g. 2:
     // target: array<T> with {T: array<T> with {T: T}}
     // mapping: {T: bool}
     // --> array<T> with {T: array<T> with {T: bool}}
-    // i.e., T at the end of the target is replaced with bool
+    // i.e., the nested template parameter T is resolved to the argument bool
 
     if (target === undefined || mapping === undefined) {
         return target;
     }
 
-    if (target.typeOrFunc.templateTypes?.length === 0 || target.templateMapping === undefined) {
+    if (target.typeOrFunc.templateParameters?.length === 0 || target.templateMapping === undefined) {
         // The target has no templates.
-        if (target.typeOrFunc.isType() && target.typeOrFunc.isTypeParameter) {
-            // If the target is a type parameter such as `T`, translate it.
+        if (target.typeOrFunc.isType() && target.typeOrFunc.isTemplateParameterType) {
+            // If the target is a template parameter such as `T`, translate it.
             // e.g.:
             // target: T
             // mapping: {T: bool}
@@ -59,11 +59,11 @@ export function applyTemplateMapping(
     // -----------------------------------------------
     // At this point, the target has template parameters.
 
-    // Create a new template mapping by replacing the template type with the mapped type.
+    // Create a new template mapping by replacing the template parameter with the mapped argument.
     const newMapping: TemplateMapping = new Map();
     for (const [qualifiedIdentifier, translatedType] of target.templateMapping) {
         if (translatedType?.typeOrFunc.isType() && mapping.has(translatedType.typeOrFunc.qualifiedIdentifier)) {
-            // Replace `T` at the end of the target with the mapped type.
+            // Replace `T` at the end of the target with the mapped argument.
             newMapping.set(qualifiedIdentifier, mapping.get(translatedType.typeOrFunc.qualifiedIdentifier));
         } else {
             // Templates may be nested, so visit recursively.
@@ -99,7 +99,7 @@ export function mergeTemplateMappings(
 
 /**
  * The type of symbol that has been resolved by deduction.
- * This has the template mapping from `T` to actual types.
+ * This has the template mapping from parameters such as `T` to concrete arguments.
  */
 export class ResolvedType {
     constructor(
@@ -219,8 +219,12 @@ export class ResolvedType {
         return this._attachedAccessSource;
     }
 
-    public getMappedTemplateTypes(): (ResolvedType | undefined)[] {
-        return this.typeOrFunc.templateTypes?.map(type => this.templateMapping?.get(type.qualifiedIdentifier)) ?? [];
+    public getTemplateArguments(): (ResolvedType | undefined)[] {
+        return (
+            this.typeOrFunc.templateParameters?.map(parameter =>
+                this.templateMapping?.get(parameter.qualifiedIdentifier)
+            ) ?? []
+        );
     }
 
     public equals(other: ResolvedType | undefined): boolean {
@@ -236,17 +240,17 @@ export class ResolvedType {
             return false;
         }
 
-        // Compare the template types.
-        if (this.typeOrFunc.templateTypes !== undefined && other.typeOrFunc.templateTypes !== undefined) {
-            if (this.typeOrFunc.templateTypes.length !== other.typeOrFunc.templateTypes.length) {
+        // Compare the template arguments.
+        if (this.typeOrFunc.templateParameters !== undefined && other.typeOrFunc.templateParameters !== undefined) {
+            if (this.typeOrFunc.templateParameters.length !== other.typeOrFunc.templateParameters.length) {
                 return false;
             }
 
-            const thisTemplates = this.getMappedTemplateTypes();
-            const otherTemplates = other.getMappedTemplateTypes();
+            const thisArguments = this.getTemplateArguments();
+            const otherArguments = other.getTemplateArguments();
 
-            for (let i = 0; i < thisTemplates.length; i++) {
-                if (thisTemplates[i]?.equals(otherTemplates[i]) === false) {
+            for (let i = 0; i < thisArguments.length; i++) {
+                if (thisArguments[i]?.equals(otherArguments[i]) === false) {
                     return false;
                 }
             }
