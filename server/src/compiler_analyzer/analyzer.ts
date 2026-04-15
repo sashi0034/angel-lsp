@@ -75,7 +75,7 @@ import {
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
-import {applyTemplateTranslator, mergeTemplateTranslators, ResolvedType, TemplateTranslator} from './resolvedType';
+import {applyTemplateMapping, mergeTemplateMappings, ResolvedType, TemplateMapping} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
@@ -128,7 +128,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
         return;
     }
 
-    const typeTemplates = analyzeTemplateTypes(
+    analyzeTemplateArguments(
         scope,
         declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
         func.typeTemplates
@@ -299,7 +299,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     const searchScope = findOptimalScope(scope, typeNode.scope, typeIdentifier) ?? scope;
 
-    let givenTypeTemplates = typeNode.typeTemplates;
+    let givenTemplateArguments = typeNode.typeTemplates;
     let givenIdentifier = typeIdentifier.text;
 
     if (typeNode.isArray) {
@@ -307,11 +307,11 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
         givenIdentifier = getGlobalSettings().builtinArrayType;
         const copiedTypeNode: Mutable<Node_Type> = {...typeNode};
         copiedTypeNode.isArray = false;
-        givenTypeTemplates = [copiedTypeNode];
+        givenTemplateArguments = [copiedTypeNode];
     }
 
-    if (givenTypeTemplates.length > 0) {
-        const specializationKey = givenIdentifier + buildTemplateSignature(givenTypeTemplates);
+    if (givenTemplateArguments.length > 0) {
+        const specializationKey = givenIdentifier + buildTemplateSignature(givenTemplateArguments);
         const specializationSymbol = findSymbolWithParent(searchScope, specializationKey);
         if (specializationSymbol !== undefined && specializationSymbol.symbol.isType()) {
             return completeAnalyzingType(
@@ -353,14 +353,14 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
-        const typeTemplates = analyzeTemplateTypes(scope, foundSymbol, givenTypeTemplates);
+        const templateArguments = analyzeTemplateArguments(scope, foundSymbol, givenTemplateArguments);
         return completeAnalyzingType(
             scope,
             typeIdentifier,
             foundSymbol,
             foundScope,
             isTypeNodeHandle(typeNode),
-            typeTemplates
+            templateArguments
         );
     }
 }
@@ -388,7 +388,7 @@ function completeAnalyzingType(
     foundSymbol: TypeSymbol | FunctionSymbol,
     foundScope: SymbolScope,
     isHandle?: boolean,
-    typeTemplates?: TemplateTranslator | undefined
+    templateArguments?: TemplateMapping | undefined
 ): ResolvedType | undefined {
     getActiveGlobalScope().pushReference({
         toSymbol: foundSymbol,
@@ -398,7 +398,7 @@ function completeAnalyzingType(
     return ResolvedType.create({
         typeOrFunc: foundSymbol,
         isHandle: isHandle,
-        templateTranslator: typeTemplates
+        templateMapping: templateArguments
     });
 }
 
@@ -429,28 +429,28 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     return undefined;
 }
 
-function analyzeTemplateTypes(
+function analyzeTemplateArguments(
     scope: SymbolScope,
     templateOwner: TypeSymbol | FunctionSymbol | undefined,
-    typeNode: Node_Type[]
+    templateArgumentNodes: Node_Type[]
 ) {
-    const templateTypes = templateOwner?.templateTypes;
-    if (templateOwner === undefined || templateTypes === undefined) {
+    const templateParameters = templateOwner?.templateParameters;
+    if (templateOwner === undefined || templateParameters === undefined) {
         return undefined;
     }
 
-    const translation: TemplateTranslator = new Map();
-    for (let i = 0; i < typeNode.length; i++) {
-        if (i >= templateTypes.length) {
+    const translation: TemplateMapping = new Map();
+    for (let i = 0; i < templateArgumentNodes.length; i++) {
+        if (i >= templateParameters.length) {
             analyzerDiagnostic.error(
-                typeNode[typeNode.length - 1].nodeRange.getBoundingLocation(),
-                `Too many template types.`
+                templateArgumentNodes[templateArgumentNodes.length - 1].nodeRange.getBoundingLocation(),
+                `Too many template arguments.`
             );
             break;
         }
 
-        const template = typeNode[i];
-        translation.set(templateTypes[i].qualifiedIdentifier, analyzeType(scope, template));
+        const templateArgument = templateArgumentNodes[i];
+        translation.set(templateParameters[i].qualifiedIdentifier, analyzeType(scope, templateArgument));
     }
 
     return translation;
@@ -1051,7 +1051,7 @@ export function analyzeConstructorCall(
         return checkDefaultConstructorCall(callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType);
     }
 
-    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateTranslator);
+    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateMapping);
     return constructorType;
 }
 
@@ -1166,36 +1166,36 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateTypes = member.typeTemplates ?? [];
+        const callTemplateArguments = member.typeTemplates ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
-            const callTemplateTranslator =
-                callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, instanceMember.first, callTemplateTypes)
+            const callTemplateMapping =
+                callTemplateArguments.length > 0
+                    ? analyzeTemplateArguments(scope, instanceMember.first, callTemplateArguments)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
                 identifier,
                 member.argList,
                 instanceMember,
-                mergeTemplateTranslators(exprValue.templateTranslator, callTemplateTranslator)
+                mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping)
             );
         }
 
         if (instanceMember.isVariable() && instanceMember.type?.typeOrFunc.isFunction()) {
             // This instance member is a delegate.
             const delegate = instanceMember.type.typeOrFunc.toHolder();
-            const callTemplateTranslator =
-                callTemplateTypes.length > 0
-                    ? analyzeTemplateTypes(scope, instanceMember.type.typeOrFunc, callTemplateTypes)
+            const callTemplateMapping =
+                callTemplateArguments.length > 0
+                    ? analyzeTemplateArguments(scope, instanceMember.type.typeOrFunc, callTemplateArguments)
                     : undefined;
             return analyzeFunctionCall(
                 scope,
                 identifier,
                 member.argList,
                 delegate,
-                mergeTemplateTranslators(exprValue.templateTranslator, callTemplateTranslator),
+                mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping),
                 instanceMember
             );
         }
@@ -1205,7 +1205,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
     } else {
         // Analyze field access.
         const fieldType = analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
-        return applyTemplateTranslator(fieldType, exprValue.templateTranslator);
+        return applyTemplateMapping(fieldType, exprValue.templateMapping);
     }
 }
 
@@ -1284,7 +1284,7 @@ function analyzeLambdaAsFuncdef(
             continue;
         }
 
-        const inferredType = applyTemplateTranslator(expectedFunc.parameterTypes[i], expectedType.templateTranslator);
+        const inferredType = applyTemplateMapping(expectedFunc.parameterTypes[i], expectedType.templateMapping);
         const argument: VariableSymbol = VariableSymbol.create({
             identifierToken: param.identifier,
             scopePath: childScope.scopePath,
@@ -1366,20 +1366,20 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    const callTemplateTypes = funcCall.typeTemplates ?? [];
+    const callTemplateArguments = funcCall.typeTemplates ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handle
-        const callTemplateTranslator =
-            callTemplateTypes.length > 0
-                ? analyzeTemplateTypes(scope, calleeSymbol.type.typeOrFunc, callTemplateTypes)
+        const callTemplateMapping =
+            callTemplateArguments.length > 0
+                ? analyzeTemplateArguments(scope, calleeSymbol.type.typeOrFunc, callTemplateArguments)
                 : undefined;
         return analyzeFunctionCall(
             scope,
             funcCall.identifier,
             funcCall.argList,
             new FunctionSymbolHolder(calleeSymbol.type.typeOrFunc),
-            callTemplateTranslator,
+            callTemplateMapping,
             calleeSymbol
         );
     }
@@ -1394,9 +1394,11 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return undefined;
     }
 
-    const callTemplateTranslator =
-        callTemplateTypes.length > 0 ? analyzeTemplateTypes(scope, calleeSymbol.first, callTemplateTypes) : undefined;
-    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateTranslator);
+    const callTemplateMapping =
+        callTemplateArguments.length > 0
+            ? analyzeTemplateArguments(scope, calleeSymbol.first, callTemplateArguments)
+            : undefined;
+    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, calleeSymbol, callTemplateMapping);
 }
 
 function analyzeOpCallCaller(scope: SymbolScope, funcCall: Node_FuncCall, calleeVariable: VariableSymbol) {
@@ -1420,7 +1422,7 @@ function analyzeOpCallCaller(scope: SymbolScope, funcCall: Node_FuncCall, callee
         return;
     }
 
-    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateTranslator);
+    return analyzeFunctionCall(scope, funcCall.identifier, funcCall.argList, opCall, varType.templateMapping);
 }
 
 function analyzeFunctionCall(
@@ -1428,14 +1430,14 @@ function analyzeFunctionCall(
     callerIdentifier: TokenObject,
     callerArgList: Node_ArgList,
     calleeFuncHolder: FunctionSymbolHolder,
-    calleeTemplateTranslator: TemplateTranslator | undefined,
+    calleeTemplateMapping: TemplateMapping | undefined,
     calleeDelegateVariable?: VariableSymbol
 ) {
     getActiveGlobalScope().info.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,
-        calleeTemplateTranslator: calleeTemplateTranslator
+        calleeTemplateMapping: calleeTemplateMapping
     });
 
     const callerArgTypes = analyzeArgList(scope, callerArgList);
@@ -1450,7 +1452,7 @@ function analyzeFunctionCall(
         callerRange: callerArgList.nodeRange,
         callerArgs: callerArgs,
         calleeFuncHolder: calleeFuncHolder,
-        calleeTemplateTranslator: calleeTemplateTranslator,
+        calleeTemplateMapping: calleeTemplateMapping,
         calleeDelegateVariable: calleeDelegateVariable
     });
 }

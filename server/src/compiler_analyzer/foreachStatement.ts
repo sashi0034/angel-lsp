@@ -1,4 +1,4 @@
-import {applyTemplateTranslator, ResolvedType} from './resolvedType';
+import {applyTemplateMapping, ResolvedType} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {resolveActiveScope} from './symbolScope';
@@ -63,7 +63,7 @@ export function checkForEachIterator(
         }
 
         let type = opForValue.isFunctionHolder() ? opForValue.first.returnType : undefined;
-        type = applyTemplateTranslator(type, iteratorType.templateTranslator);
+        type = applyTemplateMapping(type, iteratorType.templateMapping);
 
         forValueTypes.push(type);
 

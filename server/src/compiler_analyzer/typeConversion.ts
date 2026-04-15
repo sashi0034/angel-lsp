@@ -98,8 +98,8 @@ function evaluateTypeConversionInternal(
         }
     }
 
-    // Template types must be the same
-    if (areTemplateTypesEqual(src, dest) === false) {
+    // Template arguments must be the same.
+    if (areTemplateArgumentsEqual(src, dest) === false) {
         return undefined;
     }
 
@@ -575,53 +575,53 @@ function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
     return true;
 }
 
-function areTemplateTypesEqual(src: ResolvedType, dest: ResolvedType): boolean {
+function areTemplateArgumentsEqual(src: ResolvedType, dest: ResolvedType): boolean {
     if (src.typeOrFunc.isFunction() || dest.typeOrFunc.isFunction()) {
-        // TODO: Function template types
+        // TODO: Function template arguments.
         return true;
     }
 
     const srcType = src.typeOrFunc;
     const destType = dest.typeOrFunc;
 
-    if (srcType.templateTypes?.length !== destType.templateTypes?.length) {
-        // The number of template types is different.
+    if (srcType.templateParameters?.length !== destType.templateParameters?.length) {
+        // The number of template arguments is different.
         return false;
     } else if (
-        srcType.templateTypes === undefined ||
-        destType.templateTypes === undefined ||
-        srcType.templateTypes.length == 0
+        srcType.templateParameters === undefined ||
+        destType.templateParameters === undefined ||
+        srcType.templateParameters.length == 0
     ) {
-        // Both types do not have template types.
+        // Both types do not have template parameters.
         return true;
     }
 
-    const srcTemplateTypes = src.mappedTemplateTypes;
-    const destTemplates = dest.mappedTemplateTypes;
+    const srcTemplateArguments = src.getTemplateArguments();
+    const destTemplateArguments = dest.getTemplateArguments();
 
-    // Check if the template types are the same respectively.
-    for (let i = 0; i < srcTemplateTypes.length; i++) {
-        const srcParam = normalizeType(srcTemplateTypes[i]);
-        const destParam = normalizeType(destTemplates[i]);
+    // Check if the template arguments are the same respectively.
+    for (let i = 0; i < srcTemplateArguments.length; i++) {
+        const srcArg = normalizeType(srcTemplateArguments[i]);
+        const destArg = normalizeType(destTemplateArguments[i]);
 
         if (
-            srcParam === undefined ||
-            destParam === undefined ||
-            srcParam.identifierText === '?' ||
-            destParam.identifierText === '?'
+            srcArg === undefined ||
+            destArg === undefined ||
+            srcArg.identifierText === '?' ||
+            destArg.identifierText === '?'
         ) {
             continue; // FIXME?
         }
 
-        if (srcParam.typeOrFunc.equals(destParam.typeOrFunc) === false) {
+        if (srcArg.typeOrFunc.equals(destArg.typeOrFunc) === false) {
             return false;
         }
 
-        if (srcParam.isHandle !== destParam.isHandle) {
+        if (srcArg.isHandle !== destArg.isHandle) {
             return false;
         }
 
-        if (areTemplateTypesEqual(srcParam, destParam) === false) {
+        if (areTemplateArgumentsEqual(srcArg, destArg) === false) {
             return false;
         }
     }

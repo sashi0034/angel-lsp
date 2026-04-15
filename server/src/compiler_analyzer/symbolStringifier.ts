@@ -38,12 +38,16 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
         return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
     }
 
-    const templateTypes = type.typeOrFunc.templateTypes;
-    if (templateTypes !== undefined) {
-        const templateTypesText = type.mappedTemplateTypes
-            .map((templateType, i) => stringifyResolvedType(templateType) ?? templateTypes[i].identifierToken.text)
+    const templateParameters = type.typeOrFunc.templateParameters;
+    if (templateParameters !== undefined) {
+        const templateArgumentsText = type
+            .getTemplateArguments()
+            .map(
+                (templateArgument, i) =>
+                    stringifyResolvedType(templateArgument) ?? templateParameters[i].identifierToken.text
+            )
             .join(', ');
-        suffix = `<${templateTypesText}>${suffix}`;
+        suffix = `<${templateArgumentsText}>${suffix}`;
     }
 
     return type.typeOrFunc.identifierText + suffix;
@@ -125,12 +129,12 @@ function stringifyFunctionConstSuffix(symbol: FunctionSymbol): string {
     return linkedNode.isConst ? ' const' : '';
 }
 
-function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): string {
-    if (symbol.templateTypes === undefined) {
+function stringifyTemplateParameters(symbol: TypeSymbol | FunctionSymbol): string {
+    if (symbol.templateParameters === undefined) {
         return '';
     }
 
-    return `<${symbol.templateTypes.map(t => t.identifierToken.text).join(', ')}>`;
+    return `<${symbol.templateParameters.map(t => t.identifierToken.text).join(', ')}>`;
 }
 
 /**
@@ -139,10 +143,10 @@ function stringifyTemplateTypeParameters(symbol: TypeSymbol | FunctionSymbol): s
 export function stringifySymbolObject(symbol: SymbolObject): string {
     const fullName = symbol.identifierToken.text; // `${stringifyScopeSuffix(symbol.scopePath)}${symbol.identifierToken.text}`;
     if (symbol.isType()) {
-        return fullName + stringifyTemplateTypeParameters(symbol);
+        return fullName + stringifyTemplateParameters(symbol);
     } else if (symbol.isFunction()) {
         const head = symbol.returnType === undefined ? '' : stringifyFunctionReturnType(symbol) + ' ';
-        return `${head}${fullName}${stringifyTemplateTypeParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(
+        return `${head}${fullName}${stringifyTemplateParameters(symbol)}(${stringifyFunctionParameters(symbol)})${stringifyFunctionConstSuffix(
             symbol
         )}`;
     } else if (symbol.isVariable()) {

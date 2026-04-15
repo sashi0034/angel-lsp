@@ -58,7 +58,7 @@ export function isScopePathEquals(lhs: ScopePath, rhs: ScopePath): boolean {
 
 export type QualifiedIdentifier = string;
 
-export interface TemplateTypeParameter {
+export interface TemplateParameter {
     qualifiedIdentifier: QualifiedIdentifier;
     identifierToken: TokenObject;
 }
@@ -125,11 +125,11 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         public readonly linkedNode: TypeDefinitionNode | undefined,
         private _membersScopePath: ScopePath | undefined,
         public readonly isMixin?: boolean,
-        // Whether this is a template type parameter (i.e., true when this is 'T' in 'class array<T>')
-        public readonly isTypeParameter?: boolean,
-        // Template type parameter qualified identifiers.
-        // e.g., 'class A<T, U>' has two template identifiers for 'T' and 'U'.
-        private _templateTypes?: TemplateTypeParameter[],
+        // Whether this is a template parameter (i.e., true when this is 'T' in 'class array<T>')
+        public readonly isTemplateParameterType?: boolean,
+        // Template parameter qualifiedIdentifier.
+        // e.g., 'class A<T, U>' has two template parameters for 'T' and 'U'.
+        private _templateParameters?: TemplateParameter[],
         private _baseList?: (ResolvedType | undefined)[],
         public readonly isHandle?: boolean,
         public readonly aliasTargetType?: TypeSymbol,
@@ -149,8 +149,8 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         linkedNode: TypeDefinitionNode | undefined;
         membersScopePath: ScopePath | undefined;
         isMixin?: boolean;
-        isTypeParameter?: boolean;
-        templateTypes?: TemplateTypeParameter[];
+        isTemplateParameterType?: boolean;
+        templateParameters?: TemplateParameter[];
         baseList?: (ResolvedType | undefined)[];
         isHandle?: boolean;
         aliasTargetType?: TypeSymbol;
@@ -162,8 +162,8 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
             args.linkedNode,
             args.membersScopePath,
             args.isMixin,
-            args.isTypeParameter,
-            args.templateTypes,
+            args.isTemplateParameterType,
+            args.templateParameters,
             args.baseList,
             args.isHandle,
             args.aliasTargetType,
@@ -180,13 +180,13 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         this._membersScopePath = scope;
     }
 
-    public get templateTypes(): TemplateTypeParameter[] | undefined {
-        return this._templateTypes;
+    public get templateParameters(): TemplateParameter[] | undefined {
+        return this._templateParameters;
     }
 
-    public assignTemplateTypes(templateTypes: TemplateTypeParameter[]) {
-        assert(this._templateTypes === undefined);
-        this._templateTypes = templateTypes;
+    public assignTemplateParameters(templateParameters: TemplateParameter[]) {
+        assert(this._templateParameters === undefined);
+        this._templateParameters = templateParameters;
     }
 
     public get baseList(): (ResolvedType | undefined)[] {
@@ -323,9 +323,9 @@ export class FunctionSymbol extends SymbolBase {
         private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessModifier | undefined,
-        // Template type parameter qualified identifiers.
-        // For example, 'func<T, U>' has two template identifiers for 'T' and 'U'.
-        private _templateTypes?: TemplateTypeParameter[]
+        // Template parameter qualifiedIdentifier.
+        // For example, 'func<T, U>' has two template parameters for 'T' and 'U'.
+        private _templateParameters?: TemplateParameter[]
     ) {
         super();
     }
@@ -362,7 +362,7 @@ export class FunctionSymbol extends SymbolBase {
             this._parameterTypes,
             this.isInstanceMember,
             option?.accessRestriction ?? this.accessRestriction,
-            this._templateTypes
+            this._templateParameters
         ) as this;
     }
 
@@ -384,13 +384,13 @@ export class FunctionSymbol extends SymbolBase {
         this._parameterTypes = parameterTypes;
     }
 
-    public get templateTypes(): TemplateTypeParameter[] | undefined {
-        return this._templateTypes;
+    public get templateParameters(): TemplateParameter[] | undefined {
+        return this._templateParameters;
     }
 
-    public assignTemplateTypes(templateTypes: TemplateTypeParameter[]) {
-        assert(this._templateTypes === undefined);
-        this._templateTypes = templateTypes;
+    public assignTemplateParameters(templateParameters: TemplateParameter[]) {
+        assert(this._templateParameters === undefined);
+        this._templateParameters = templateParameters;
     }
 
     // public mutate(): Mutable<this> {

@@ -4,7 +4,7 @@ import {ParameterInformation, SignatureInformation} from 'vscode-languageserver-
 import {FunctionCallInfo} from '../compiler_analyzer/info';
 import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
-import {applyTemplateTranslator} from '../compiler_analyzer/resolvedType';
+import {applyTemplateMapping} from '../compiler_analyzer/resolvedType';
 import {getDocumentCommentOfSymbol} from './utils';
 import {stringifyResolvedType} from '../compiler_analyzer/symbolStringifier';
 
@@ -51,7 +51,7 @@ function getFunctionSignature(info: FunctionCallInfo, expectedCallee: FunctionSy
         const paramIdentifier = expectedCallee.linkedNode.paramList[i];
         const paramType = expectedCallee.parameterTypes[i];
 
-        let label = stringifyResolvedType(applyTemplateTranslator(paramType, info.calleeTemplateTranslator));
+        let label = stringifyResolvedType(applyTemplateMapping(paramType, info.calleeTemplateMapping));
         if (paramIdentifier.identifier !== undefined) {
             label += ' ' + paramIdentifier.identifier?.text;
         }

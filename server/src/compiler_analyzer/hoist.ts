@@ -26,7 +26,7 @@ import {
     Node_VirtualProp,
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
-import {FunctionSymbol, TemplateTypeParameter, TypeSymbol, VariableSymbol} from './symbolObject';
+import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
@@ -185,9 +185,9 @@ function hoistClass(
     scope.insertSymbolAndCheck(thisVariable);
 
     if (!isSpecialization) {
-        const templateTypes = hoistClassTemplateTypes(scope, classNode.typeTemplates);
-        if (templateTypes.length > 0) {
-            symbol.assignTemplateTypes(templateTypes);
+        const templateParameters = hoistTemplateParameters(scope, classNode.typeTemplates);
+        if (templateParameters.length > 0) {
+            symbol.assignTemplateParameters(templateParameters);
         }
     }
 
@@ -237,8 +237,8 @@ function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): b
     return findSymbolWithParent(parentScope, type.identifier.text) !== undefined;
 }
 
-function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefined) {
-    const templateTypes: TemplateTypeParameter[] = [];
+function hoistTemplateParameters(scope: SymbolScope, types: Node_Type[] | undefined) {
+    const templateParameters: TemplateParameter[] = [];
     for (const type of types ?? []) {
         const identifierToken = getIdentifierInTypeNode(type);
         const symbol = TypeSymbol.create({
@@ -246,17 +246,17 @@ function hoistClassTemplateTypes(scope: SymbolScope, types: Node_Type[] | undefi
             scopePath: scope.scopePath,
             linkedNode: undefined,
             membersScopePath: undefined,
-            isTypeParameter: true
+            isTemplateParameterType: true
         });
 
         scope.insertSymbolAndCheck(symbol);
-        templateTypes.push({
+        templateParameters.push({
             qualifiedIdentifier: symbol.qualifiedIdentifier,
             identifierToken: identifierToken
         });
     }
 
-    return templateTypes;
+    return templateParameters;
 }
 
 function hoistBaseList(
@@ -418,9 +418,9 @@ function hoistFunc(
         accessRestriction: funcNode.accessor
     });
 
-    const templateTypes = hoistClassTemplateTypes(functionScope, funcNode.typeTemplates);
-    if (templateTypes.length > 0) {
-        symbol.assignTemplateTypes(templateTypes);
+    const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeTemplates);
+    if (templateParameters.length > 0) {
+        symbol.assignTemplateParameters(templateParameters);
     }
 
     if (parentScope.insertSymbolAndCheck(symbol) === false) {

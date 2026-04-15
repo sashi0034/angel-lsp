@@ -17,7 +17,7 @@ describe('analyzer/templateSpecialization', () => {
             },
             {
                 uri: 'file:///path/to/file.as',
-                content: `// Generic type parameter resolves correctly for member access.
+                content: `// Generic template parameter resolves correctly for member access.
                 void main() {
                     Container<Player> container;
                     container.item.health = 100;
@@ -216,7 +216,7 @@ describe('analyzer/templateSpecialization', () => {
         ]);
     });
 
-    it('accepts template class methods that call function templates with class type arguments', () => {
+    it('accepts template class methods that call function templates with class-typed template arguments', () => {
         expectSuccess([
             {
                 uri: 'file:///path/to/as.predefined',
@@ -286,7 +286,7 @@ describe('analyzer/templateSpecialization', () => {
         ]);
     });
 
-    it('accepts funcdef handles with specialized template return and parameter types', () => {
+    it('accepts funcdef handles with specialized template arguments in return and parameter types', () => {
         expectSuccess([
             {
                 uri: 'file:///path/to/as.predefined',

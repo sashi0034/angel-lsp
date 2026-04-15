@@ -2,7 +2,7 @@ import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
 import {SymbolScope} from './symbolScope';
 import {TextLocation} from '../compiler_tokenizer/textLocation';
-import {ResolvedType, TemplateTranslator} from './resolvedType';
+import {ResolvedType, TemplateMapping} from './resolvedType';
 import {Node_ArgList} from '../compiler_parser/nodes';
 
 /**
@@ -51,7 +51,7 @@ export interface FunctionCallInfo {
     readonly callerIdentifier: TokenObject;
     readonly callerArgumentsNode: Node_ArgList;
     readonly calleeFuncHolder: FunctionSymbolHolder;
-    readonly calleeTemplateTranslator: TemplateTranslator | undefined;
+    readonly calleeTemplateMapping: TemplateMapping | undefined;
 }
 
 /**

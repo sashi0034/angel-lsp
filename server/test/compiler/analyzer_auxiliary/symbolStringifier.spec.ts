@@ -33,7 +33,7 @@ describe('analyzer/symbolStringifier', () => {
         );
     });
 
-    it('stringifies template types', () => {
+    it('stringifies template parameters', () => {
         expectStringifiedSymbol(
             `
             class Container<T> {}
@@ -54,7 +54,7 @@ describe('analyzer/symbolStringifier', () => {
         );
     });
 
-    it('stringifies template variables', () => {
+    it('stringifies variables with template arguments', () => {
         expectStringifiedSymbol(
             `
             class Container<T> {}
@@ -67,7 +67,7 @@ describe('analyzer/symbolStringifier', () => {
         );
     });
 
-    it('stringifies nested template variables with handles', () => {
+    it('stringifies nested template arguments with handles', () => {
         expectStringifiedSymbol(
             `
             class Container<T> {}

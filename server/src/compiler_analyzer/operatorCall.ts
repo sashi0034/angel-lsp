@@ -253,7 +253,7 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
         callerRange: new TokenRange(callerOperator, callerOperator),
         callerArgs: callerArgs,
         calleeFuncHolder: aliasFunction,
-        calleeTemplateTranslator: lhs.templateTranslator // FIXME?
+        calleeTemplateMapping: lhs.templateMapping // FIXME?
     });
 
     if (evaluated.bestMatching === undefined) {
