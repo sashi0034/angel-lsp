@@ -43,7 +43,7 @@ import {
     Node_VarAccess,
     Node_While
 } from '../compiler_parser/nodes';
-import {buildTemplateSignature} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,

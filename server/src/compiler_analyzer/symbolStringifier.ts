@@ -10,7 +10,7 @@ import {
     Node_ParamList,
     Node_Scope
 } from '../compiler_parser/nodes';
-import {stringifyTypeNode} from '../compiler_parser/nodesUtils';
+import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
 import assert = require('node:assert');
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {

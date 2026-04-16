@@ -32,7 +32,7 @@ import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
 import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
-import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodeUtils';
 import {
     analyzeFunc,
     AnalyzeQueue,
