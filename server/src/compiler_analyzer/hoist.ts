@@ -52,6 +52,7 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {buildFunctionScopeIdentifier} from './symbolStringifier';
+import {checkDuplicateFunctionOverload} from './functionOverload';
 
 // **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
@@ -437,6 +438,8 @@ function hoistFunc(
         tryInsertVirtualSetterOrGetter(parentScope, funcNode, returnType, isInstanceMember);
 
         symbol.assignParameterTypes(hoistParamList(funcionHolderScope, functionScope, funcNode.paramList));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 
     analyzeQueue.push(() => {
@@ -626,6 +629,8 @@ function hoistFuncDef(
 
     hoistQueue.push(() => {
         symbol.assignParameterTypes(funcDef.paramList.map(param => analyzeType(parentScope, param.type)));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 }
 
@@ -710,6 +715,8 @@ function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_Interfa
         tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
 
         symbol.assignParameterTypes(hoistParamList(parentScope, undefined, intfMethod.paramList));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 }
 
