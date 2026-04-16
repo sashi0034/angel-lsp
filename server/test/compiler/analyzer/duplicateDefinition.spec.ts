@@ -152,4 +152,40 @@ describe('analyzer/duplicateDefinition', () => {
             }
         `);
     });
+
+    it('accepts overloaded global functions with typedef parameters when another parameter differs', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class array<T> { }`
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void iterate(array<int> arr) { }
+                void iterate(const array<int>@ arr) { }
+                void iterate(array<int> arr) const { }
+                void iterate(array<bool> arr) { }
+                }`
+            }
+        ]);
+    });
+
+    it('detects duplicate global functions with typedef parameters', () => {
+        expectError([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class array<T> { }`
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void iterate(array<int> arr) { }
+                void iterate(array<int> arr) { }
+                }`
+            }
+        ]);
+    });
 });
