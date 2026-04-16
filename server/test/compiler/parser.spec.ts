@@ -138,4 +138,21 @@ describe('Parser', () => {
     it('rejects an incomplete function declaration', () => {
         expectFailure('void foo(');
     });
+
+    it('parses exponential notation', () => {
+        expectSuccess(`
+            double e0 = 1e10;
+            e0 = 1e+10;
+            e0 = 1e-10;
+            e0 = 1.5e10;
+            e0 = 1.5e+10;
+            e0 = 1.5e-10;
+            e0 = .5e10;
+            e0 = .5e+10;
+            e0 = .5e-10;
+            e0 = 1.E10;
+            e0 = 1.E+10;
+            e0 = 1.E-10;
+        `);
+    });
 });

@@ -175,14 +175,18 @@ function consumeNumber(tokenizer: TokenizerState) {
     }
 
     // Check if it has an exponent
-    // e.g. 1e+3, 1E-3
-    if (/^[eE]$/.test(tokenizer.next(f)) && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2)) {
-        f += 3;
-        while (isDigit(tokenizer, f)) {
-            f++;
-        }
+    // e.g., 1e+3, 1E-3
+    if (/^[eE]$/.test(tokenizer.next(f))) {
+        const case1 = isDigit(tokenizer, f + 1); // e.g., 1e2
+        const case2 = !case1 && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2); // e.g., 1e+3
+        if (case1 || case2) {
+            f += case1 ? 2 : 3;
+            while (isDigit(tokenizer, f)) {
+                f++;
+            }
 
-        numberLiteral = NumberLiteral.Double;
+            numberLiteral = NumberLiteral.Double;
+        }
     }
 
     if (f >= 1) {
