@@ -1,5 +1,5 @@
 import {tokenize} from '../../src/compiler_tokenizer/tokenizer';
-import {parseAfterPreprocesse} from '../../src/compiler_parser/parser';
+import {parseAfterPreprocess} from '../../src/compiler_parser/parser';
 import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
 
@@ -9,7 +9,7 @@ function testParser(content: string, expectSuccess: boolean) {
     const uri = '/foo/bar.as';
     const rawTokens = tokenize(uri, content);
     const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
-    parseAfterPreprocesse(preprocessedTokens.preprocessedTokens);
+    parseAfterPreprocess(preprocessedTokens.preprocessedTokens);
 
     const diagnosticsInParser = diagnostic.endSession();
     const hasError = diagnosticsInParser.length > 0;

@@ -6,7 +6,7 @@ import {logger} from '../core/logger';
 import {Profiler} from '../core/profiler';
 import {tokenize} from '../compiler_tokenizer/tokenizer';
 import {preprocessAfterTokenize, PreprocessedOutput} from '../compiler_parser/parserPreprocess';
-import {parseAfterPreprocesse} from '../compiler_parser/parser';
+import {parseAfterPreprocess} from '../compiler_parser/parser';
 import {diagnostic} from '../core/diagnostic';
 import {AnalysisResolver, DiagnosticsCallback} from './analysisResolver';
 import {AnalyzerScope} from '../compiler_analyzer/analyzerScope';
@@ -123,7 +123,7 @@ export class Inspector {
         profiler.mark('Preprocessor'.padEnd(profilerDescriptionLength));
 
         // Run the parser.
-        record.ast = parseAfterPreprocesse(record.preprocessedOutput.preprocessedTokens);
+        record.ast = parseAfterPreprocess(record.preprocessedOutput.preprocessedTokens);
         profiler.mark('Parser'.padEnd(profilerDescriptionLength));
 
         record.diagnosticsInParser = diagnostic.endSession();
