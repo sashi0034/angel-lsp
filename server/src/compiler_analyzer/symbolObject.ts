@@ -18,7 +18,9 @@ import assert = require('node:assert');
  */
 export type TypeDefinitionNode = Node_Enum | Node_Class | Node_Interface;
 
-export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type is Node_Class {
+export function isNodeEnumOrClassOrInterface(
+    type: NodeBase | undefined
+): type is Node_Enum | Node_Class | Node_Interface {
     if (type === undefined) {
         return false;
     }
@@ -26,7 +28,7 @@ export function isNodeEnumOrClassOrInterface(type: NodeBase | undefined): type i
     return type.nodeName === NodeName.Enum || type.nodeName === NodeName.Class || type.nodeName === NodeName.Interface;
 }
 
-export function isNodeClassOrInterface(type: NodeBase | undefined): type is Node_Class {
+export function isNodeClassOrInterface(type: NodeBase | undefined): type is Node_Class | Node_Interface {
     if (type === undefined) {
         return false;
     }
