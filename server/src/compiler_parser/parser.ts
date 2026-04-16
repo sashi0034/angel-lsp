@@ -43,9 +43,8 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
-    NodeListOp,
+    Node_ListEntry,
     Node_ListPattern,
-    NodeListValidOperators,
     Node_Literal,
     Node_Mixin,
     NodeName,
@@ -70,7 +69,8 @@ import {
     GetterOrSetter,
     IdentifierAndInitializer,
     ReferenceModifier,
-    InOutModifier
+    InOutModifier,
+    RepeatModifier
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -815,76 +815,133 @@ function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
 
     parser.commit(HighlightForToken.Operator);
 
-    const listOperations: NodeListValidOperators[] = [];
+    const entries: Node_ListEntry[] = [];
 
-    // Parse the list entries.
     while (!parser.isEnd()) {
         if (parser.next().text === '}') {
             break;
         }
 
-        const entry = parseListEntry(parser, listOperations);
+        if (entries.length > 0) {
+            if (parser.next().text !== ',') {
+                parser.backtrack(rangeStart);
+                return undefined;
+            }
 
-        if (entry === false) {
+            parser.commit(HighlightForToken.Operator);
+        }
+
+        const entry = parseListEntry(parser);
+        if (entry === undefined) {
             parser.backtrack(rangeStart);
             return undefined;
         }
+
+        entries.push(entry);
     }
 
-    if (parser.next().text !== '}' || listOperations.length === 0) {
+    if (parser.next().text !== '}' || entries.length === 0) {
         parser.backtrack(rangeStart);
         return undefined;
     }
 
     parser.commit(HighlightForToken.Operator);
+
+    return {
+        nodeName: NodeName.ListPattern,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        entries: entries
+    };
 }
 
 // **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]): boolean {
-    let listDepth = 0;
+function parseListEntry(parser: ParserState): Node_ListEntry | undefined {
+    const rangeStart = parser.next();
 
-    while (!parser.isEnd()) {
+    const repeatModifier = parseRepeatModifier(parser);
+    if (repeatModifier !== undefined) {
+        let entry: Node_ListEntry | undefined;
+        let type: Node_Type | undefined;
         if (parser.next().text === '{') {
             parser.commit(HighlightForToken.Operator);
-
-            operators.push({
-                operator: NodeListOp.StartList
-            });
-            listDepth++;
-        } else if (parser.next().text === '}') {
-            if (!listDepth) {
-                break;
-            } else {
-                parser.commit(HighlightForToken.Operator);
-                listDepth--;
-
-                operators.push({
-                    operator: NodeListOp.EndList
-                });
+            entry = parseListEntry(parser);
+            if (entry === undefined || parser.next().text !== '}') {
+                parser.backtrack(rangeStart);
+                return undefined;
             }
-        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
-            parser.commit(HighlightForToken.Keyword);
 
-            operators.push({
-                operator: parser.next().text === 'repeat' ? NodeListOp.Repeat : NodeListOp.RepeatSame
-            });
-        } else if (parser.next().text === ',') {
             parser.commit(HighlightForToken.Operator);
         } else {
-            const type = parseType(parser);
-
+            type = parseListEntryType(parser);
             if (type === undefined) {
-                return false;
+                parser.backtrack(rangeStart);
+                return undefined;
             }
+        }
 
-            operators.push({
-                operator: NodeListOp.Type,
-                type: type
-            });
+        return {
+            nodeName: NodeName.ListEntry,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            entryPattern: 1,
+            repeatModifier: repeatModifier,
+            entry: entry ?? type
+        };
+    }
+
+    const typeList: Node_Type[] = [];
+    while (parser.isEnd() === false) {
+        const type = parseType(parser);
+        if (type === undefined) {
+            break;
+        }
+
+        typeList.push(type);
+
+        if (parser.next().text !== ',') {
+            break;
+        }
+
+        const comma = parser.next();
+        parser.commit(HighlightForToken.Operator);
+
+        const nextTypeStart = parser.next();
+        const nextType = parseType(parser);
+        parser.backtrack(nextTypeStart);
+        if (nextType === undefined) {
+            parser.backtrack(comma);
+            break;
         }
     }
 
-    return listDepth === 0;
+    if (typeList.length === 0) {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
+    return {
+        nodeName: NodeName.ListEntry,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        entryPattern: 2,
+        typeList: typeList
+    };
+}
+
+function parseListEntryType(parser: ParserState): Node_Type | undefined {
+    if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
+        return undefined;
+    }
+
+    return parseType(parser);
+}
+
+function parseRepeatModifier(parser: ParserState): RepeatModifier | undefined {
+    const next = parser.next().text;
+    if (next !== 'repeat' && next !== 'repeat_same') {
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Keyword);
+    return next === 'repeat' ? RepeatModifier.Repeat : RepeatModifier.RepeatSame;
 }
 
 // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))

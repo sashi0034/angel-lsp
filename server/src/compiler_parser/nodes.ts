@@ -42,6 +42,7 @@ export enum NodeName {
     TypeDef = 'TypeDef',
     Func = 'Func',
     ListPattern = 'ListPattern',
+    ListEntry = 'ListEntry',
     Interface = 'Interface',
     Var = 'Var',
     Import = 'Import',
@@ -218,10 +219,29 @@ export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 export interface Node_ListPattern extends NodeBase {
     readonly nodeName: NodeName.ListPattern;
-    readonly operators: NodeListValidOperators[];
+    readonly entries: Node_ListEntry[];
 }
 
 // **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+export type Node_ListEntry = Node_ListEntry1 | Node_ListEntry2;
+
+export interface Node_ListEntry1 extends NodeBase {
+    readonly nodeName: NodeName.ListEntry;
+    readonly entryPattern: 1;
+    readonly repeatModifier: RepeatModifier | undefined;
+    readonly entry: Node_ListEntry | Node_Type | undefined;
+}
+
+export enum RepeatModifier {
+    Repeat = 'Repeat',
+    RepeatSame = 'RepeatSame'
+}
+
+export interface Node_ListEntry2 extends NodeBase {
+    readonly nodeName: NodeName.ListEntry;
+    readonly entryPattern: 2;
+    readonly typeList: Node_Type[];
+}
 
 // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 export interface Node_Interface extends NodeBase {
@@ -306,46 +326,6 @@ export interface Node_StatBlock extends NodeBase {
     readonly nodeName: NodeName.StatBlock;
     readonly statementList: (Node_Var | Node_Statement | Node_Using)[];
 }
-
-export enum NodeListOp {
-    StartList = 'StartList',
-    EndList = 'EndList',
-    Repeat = 'Repeat',
-    RepeatSame = 'RepeatSame',
-    Type = 'Type'
-}
-
-export interface NodeListOperator {
-    readonly operator: NodeListOp;
-}
-
-export interface NodeListOperatorStartList extends NodeListOperator {
-    readonly operator: NodeListOp.StartList;
-}
-
-export interface NodeListOperatorEndList extends NodeListOperator {
-    readonly operator: NodeListOp.EndList;
-}
-
-export interface NodeListOperatorRepeat extends NodeListOperator {
-    readonly operator: NodeListOp.Repeat;
-}
-
-export interface NodeListOperatorRepeatSame extends NodeListOperator {
-    readonly operator: NodeListOp.RepeatSame;
-}
-
-export interface NodeListOperatorType extends NodeListOperator {
-    readonly operator: NodeListOp.Type;
-    readonly type: Node_Type;
-}
-
-export type NodeListValidOperators =
-    | NodeListOperatorType
-    | NodeListOperatorRepeatSame
-    | NodeListOperatorRepeat
-    | NodeListOperatorEndList
-    | NodeListOperatorStartList;
 
 // **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export type Node_ParamList = FunctionParameter[];
