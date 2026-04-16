@@ -167,7 +167,7 @@ describe('analyzer/duplicateDefinition', () => {
                 void iterate(const array<int>@ arr) { }
                 void iterate(array<int> arr) const { }
                 void iterate(array<bool> arr) { }
-                }`
+                `
             }
         ]);
     });
