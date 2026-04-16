@@ -51,7 +51,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
-import {buildFunctionScopeIdentifier} from './symbolStringifier';
+import {checkDuplicateFunctionOverload} from './functionOverload';
 
 // **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
@@ -398,14 +398,14 @@ function hoistFunc(
     }
 
     // Function holder scope (with no node)
-    // |-- Signature scope of one of the overloads (with Node_Func)
+    // |-- Anonymouse scope of one of the overloads (with Node_Func)
     //     |-- ...
 
     // Create a new scope for the function
     const funcionHolderScope: SymbolScope =
         // This doesn't have a linked node because the function may be overloaded.
         parentScope.insertScope(funcNode.identifier.text, undefined);
-    const functionScope = funcionHolderScope.insertScope(buildFunctionScopeIdentifier(funcNode), funcNode);
+    const functionScope = funcionHolderScope.insertScope(createAnonymousIdentifier(), funcNode);
 
     const symbol: FunctionSymbol = FunctionSymbol.create({
         identifierToken: funcNode.identifier,
@@ -437,6 +437,8 @@ function hoistFunc(
         tryInsertVirtualSetterOrGetter(parentScope, funcNode, returnType, isInstanceMember);
 
         symbol.assignParameterTypes(hoistParamList(funcionHolderScope, functionScope, funcNode.paramList));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 
     analyzeQueue.push(() => {
@@ -626,6 +628,8 @@ function hoistFuncDef(
 
     hoistQueue.push(() => {
         symbol.assignParameterTypes(funcDef.paramList.map(param => analyzeType(parentScope, param.type)));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 }
 
@@ -710,6 +714,8 @@ function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_Interfa
         tryInsertVirtualSetterOrGetter(parentScope, intfMethod, symbol.returnType, true);
 
         symbol.assignParameterTypes(hoistParamList(parentScope, undefined, intfMethod.paramList));
+
+        checkDuplicateFunctionOverload(parentScope, symbol);
     });
 }
 

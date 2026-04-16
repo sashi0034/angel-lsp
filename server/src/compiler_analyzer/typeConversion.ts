@@ -565,7 +565,7 @@ function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
 
         if (srcParam === undefined || destParam === undefined) {
             continue;
-        } // FIXME?
+        }
 
         if (srcParam.equals(destParam) === false) {
             return false;
