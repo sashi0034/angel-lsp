@@ -27,6 +27,7 @@ import {
     Node_If,
     Node_InitList,
     Node_Lambda,
+    Node_LambdaParam,
     Node_Literal,
     NodeName,
     Node_Parameter,
@@ -1248,12 +1249,12 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
     return castedType;
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: Node_Lambda): ResolvedType | undefined {
     const parameterTypes: (ResolvedType | undefined)[] = [];
 
     for (const param of lambda.paramList) {
-        parameterTypes.push(param.type !== undefined ? analyzeType(scope, param.type) : undefined);
+        parameterTypes.push(analyzeLambdaParam(scope, param));
     }
 
     return ResolvedType.create({
@@ -1307,6 +1308,11 @@ function analyzeLambdaAsFuncdef(
     }
 
     return expectedType;
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): ResolvedType | undefined {
+    return param.type !== undefined ? analyzeType(scope, param.type) : undefined;
 }
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'

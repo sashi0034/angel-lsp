@@ -73,6 +73,7 @@ export enum NodeName {
     ExprPostOp = 'ExprPostOp',
     Cast = 'Cast',
     Lambda = 'Lambda',
+    LambdaParam = 'LambdaParam',
     Literal = 'Literal',
     FuncCall = 'FuncCall',
     VarAccess = 'VarAccess',
@@ -565,14 +566,16 @@ export interface Node_Cast extends NodeBase {
     readonly assign: Node_Assign;
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 export interface Node_Lambda extends NodeBase {
     readonly nodeName: NodeName.Lambda;
-    readonly paramList: LambdaFunctionParameter[];
+    readonly paramList: Node_LambdaParam[];
     readonly statBlock: Node_StatBlock | undefined;
 }
 
-interface LambdaFunctionParameter {
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+export interface Node_LambdaParam extends NodeBase {
+    readonly nodeName: NodeName.LambdaParam;
     readonly type: Node_Type | undefined;
     readonly typeModifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;

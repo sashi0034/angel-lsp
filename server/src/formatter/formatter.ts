@@ -28,6 +28,7 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
+    Node_LambdaParam,
     Node_Mixin,
     NodeName,
     Node_Namespace,
@@ -1106,7 +1107,7 @@ function formatCast(format: FormatterState, castNode: Node_Cast) {
     });
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
     formatMoveUntilNodeStart(format, lambdaNode);
 
@@ -1118,21 +1119,25 @@ function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            const param = lambdaNode.paramList[i];
-            if (param.type !== undefined) {
-                formatType(format, param.type);
-            }
-
-            formatTypeModifier(format);
-
-            if (param.identifier !== undefined) {
-                formatTargetBy(format, param.identifier.text, {});
-            }
+            formatLambdaParam(format, lambdaNode.paramList[i]);
         }
     });
 
     if (lambdaNode.statBlock !== undefined) {
         formatStatBlock(format, lambdaNode.statBlock);
+    }
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function formatLambdaParam(format: FormatterState, param: Node_LambdaParam) {
+    if (param.type !== undefined) {
+        formatType(format, param.type);
+    }
+
+    formatTypeModifier(format);
+
+    if (param.identifier !== undefined) {
+        formatTargetBy(format, param.identifier.text, {});
     }
 }
 

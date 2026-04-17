@@ -26,6 +26,7 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
+    Node_LambdaParam,
     Node_ListEntry,
     Node_ListPattern,
     Node_Mixin,
@@ -325,10 +326,16 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
         return [cast.type, cast.assign];
     },
 
-    // **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+    // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
     [NodeName.Lambda]: function (node) {
         const lambda = node as Node_Lambda;
-        return children(...lambda.paramList.map(param => param.type), lambda.statBlock);
+        return children(...lambda.paramList, lambda.statBlock);
+    },
+
+    // **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+    [NodeName.LambdaParam]: function (node) {
+        const param = node as Node_LambdaParam;
+        return children(param.type);
     },
 
     // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'

@@ -42,6 +42,7 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
+    Node_LambdaParam,
     Node_ListEntry,
     Node_ListPattern,
     Node_Literal,
@@ -2825,7 +2826,7 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
     };
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
     // Detect a lambda by checking whether `{` appears after the closing `)` of the parameter list.
     if (canParseLambda(parser) === false) {
@@ -2849,19 +2850,7 @@ const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
             break;
         }
 
-        if (parser.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parser.next(1).text)) {
-            result.paramList.push({type: undefined, typeModifier: undefined, identifier: parser.next()});
-            parser.commit(HighlightForToken.Parameter);
-            continue;
-        }
-
-        const type = parseType(parser);
-
-        const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
-
-        const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightForToken.Parameter);
-
-        result.paramList.push({type: type, typeModifier: typeModifier, identifier: identifier});
+        result.paramList.push(parseLambdaParam(parser));
     }
 
     result.statBlock = expectStatBlock(parser);
@@ -2887,6 +2876,35 @@ function canParseLambda(parser: ParserState): boolean {
     }
 
     return false;
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function parseLambdaParam(parser: ParserState): Node_LambdaParam {
+    const rangeStart = parser.next();
+
+    if (parser.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parser.next(1).text)) {
+        const identifier = parser.next();
+        parser.commit(HighlightForToken.Parameter);
+        return {
+            nodeName: NodeName.LambdaParam,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            type: undefined,
+            typeModifier: undefined,
+            identifier: identifier
+        };
+    }
+
+    const type = parseType(parser);
+    const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
+    const identifier = parseIdentifier(parser, HighlightForToken.Parameter);
+
+    return {
+        nodeName: NodeName.LambdaParam,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        type: type,
+        typeModifier: typeModifier,
+        identifier: identifier
+    };
 }
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
