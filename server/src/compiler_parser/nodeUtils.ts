@@ -1,9 +1,5 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {EntityAttribute, Node_Type, ReferenceModifier} from './nodes';
-
-export function isEntityModifierForClass(modifier: EntityAttribute) {
-    return modifier.isAbstract || modifier.isFinal;
-}
+import {Node_Type, ReferenceModifier} from './nodes';
 
 export function stringifyTypeNode(type: Node_Type, separator: string = ', '): string {
     let str = type.isConst ? 'const ' : '';
