@@ -1045,7 +1045,7 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
 
     format.pushIndent();
 
-    if (postOp.postOp === 1) {
+    if (postOp.postOpPattern === 1) {
         formatTargetBy(format, '.', {condenseSides: true});
 
         if (postOp.member !== undefined) {
@@ -1055,7 +1055,7 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
                 formatTargetBy(format, postOp.member.text, {});
             }
         }
-    } else if (postOp.postOp === 2) {
+    } else if (postOp.postOpPattern === 2) {
         formatBracketsBlock(format, () => {
             for (let i = 0; i < postOp.indexingList.length; i++) {
                 if (i > 0) {
@@ -1071,9 +1071,9 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
                 formatAssign(format, index.assign);
             }
         });
-    } else if (postOp.postOp === 3) {
+    } else if (postOp.postOpPattern === 3) {
         formatArgList(format, postOp.args);
-    } else if (postOp.postOp === 4) {
+    } else if (postOp.postOpPattern === 4) {
         formatTargetBy(format, postOp.operator, {condenseLeft: true});
     }
 

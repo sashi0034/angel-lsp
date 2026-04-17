@@ -525,7 +525,7 @@ export type Node_ExprPostOp = Node_ExprPostOp1 | Node_ExprPostOp2 | Node_ExprPos
 // ('.' (FUNCCALL | IDENTIFIER))
 export interface Node_ExprPostOp1 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
-    readonly postOp: 1;
+    readonly postOpPattern: 1;
     readonly member: Node_FuncCall | TokenObject | undefined;
 }
 
@@ -536,7 +536,7 @@ export function isMemberMethodInPostOp(member: Node_FuncCall | TokenObject | und
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
 export interface Node_ExprPostOp2 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
-    readonly postOp: 2;
+    readonly postOpPattern: 2;
     readonly indexingList: OptionalIdentifierAndAssign[];
 }
 
@@ -548,14 +548,14 @@ export interface OptionalIdentifierAndAssign {
 // ARGLIST
 export interface Node_ExprPostOp3 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
-    readonly postOp: 3;
+    readonly postOpPattern: 3;
     readonly args: Node_ArgList;
 }
 
 // ++ | --
 export interface Node_ExprPostOp4 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
-    readonly postOp: 4;
+    readonly postOpPattern: 4;
     readonly operator: '++' | '--';
 }
 

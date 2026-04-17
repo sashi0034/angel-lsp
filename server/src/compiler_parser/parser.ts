@@ -2689,7 +2689,7 @@ function parseExprPostOp(parser: ParserState): Node_ExprPostOp | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 3,
+            postOpPattern: 3,
             args: argList
         };
     }
@@ -2700,7 +2700,7 @@ function parseExprPostOp(parser: ParserState): Node_ExprPostOp | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 4,
+            postOpPattern: 4,
             operator: maybeOperator
         };
     }
@@ -2722,7 +2722,7 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 1,
+            postOpPattern: 1,
             member: funcCall
         };
     }
@@ -2731,7 +2731,7 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        postOp: 1,
+        postOpPattern: 1,
         member: identifier
     };
 }
@@ -2768,7 +2768,7 @@ function parseExprPostOp2(parser: ParserState): Node_ExprPostOp2 | undefined {
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        postOp: 2,
+        postOpPattern: 2,
         indexingList: indexingList
     };
 }

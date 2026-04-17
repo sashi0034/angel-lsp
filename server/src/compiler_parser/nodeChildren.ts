@@ -305,15 +305,15 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
     // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
     [NodeName.ExprPostOp]: function (node) {
         const exprPostOp = node as Node_ExprPostOp;
-        if (exprPostOp.postOp === 1) {
+        if (exprPostOp.postOpPattern === 1) {
             return isMemberMethodInPostOp(exprPostOp.member) ? [exprPostOp.member] : [];
         }
 
-        if (exprPostOp.postOp === 2) {
+        if (exprPostOp.postOpPattern === 2) {
             return exprPostOp.indexingList.map(indexing => indexing.assign);
         }
 
-        if (exprPostOp.postOp === 3) {
+        if (exprPostOp.postOpPattern === 3) {
             return [exprPostOp.args];
         }
 

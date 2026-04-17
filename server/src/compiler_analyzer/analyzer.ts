@@ -1124,9 +1124,9 @@ function analyzeExprPostOp(
     exprValue: ResolvedType,
     exprRange: TokenRange
 ) {
-    if (exprPostOp.postOp === 1) {
+    if (exprPostOp.postOpPattern === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
-    } else if (exprPostOp.postOp === 2) {
+    } else if (exprPostOp.postOpPattern === 2) {
         return analyzeExprPostOp2(scope, exprPostOp, exprValue, exprRange);
     }
 }
