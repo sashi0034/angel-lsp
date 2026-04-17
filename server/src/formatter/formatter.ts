@@ -1,6 +1,4 @@
 import {
-    destructorFuncHead,
-    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     Node_Break,
@@ -235,12 +233,12 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatEntityModifier(format);
     formatAccessModifier(format);
 
-    if (hasFuncReturnValue(funcNode.head)) {
+    if (funcNode.head.tag === 'function') {
         formatType(format, funcNode.head.returnType);
         if (funcNode.head.isRef) {
             formatTargetBy(format, '&', {condenseLeft: true});
         }
-    } else if (funcNode.head === destructorFuncHead) {
+    } else if (funcNode.head.tag === 'destructor') {
         formatTargetBy(format, '~', {condenseRight: true});
     }
 
@@ -1049,10 +1047,10 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
         formatTargetBy(format, '.', {condenseSides: true});
 
         if (postOp.member !== undefined) {
-            if ('nodeName' in postOp.member) {
-                formatFuncCall(format, postOp.member);
+            if (postOp.member.access === 'method') {
+                formatFuncCall(format, postOp.member.node);
             } else {
-                formatTargetBy(format, postOp.member.text, {});
+                formatTargetBy(format, postOp.member.token.text, {});
             }
         }
     } else if (postOp.postOpPattern === 2) {

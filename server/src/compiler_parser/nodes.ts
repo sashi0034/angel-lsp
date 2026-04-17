@@ -141,11 +141,11 @@ export interface Node_Class extends NodeBase {
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
     readonly typeTemplates: Node_Type[] | undefined;
-    readonly baseList: ClassBasePart[];
+    readonly baseList: ScopeAndIdentifier[];
     readonly memberList: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[];
 }
 
-export interface ClassBasePart {
+export interface ScopeAndIdentifier {
     readonly scope: Node_Scope | undefined;
     readonly identifier: TokenObject | undefined;
 }
@@ -162,7 +162,7 @@ export interface Node_Func extends NodeBase {
     readonly nodeName: NodeName.Func;
     readonly entity: EntityAttribute | undefined;
     readonly accessor: AccessModifier | undefined;
-    readonly head: FuncHead;
+    readonly head: FunctionReturnValue | {tag: 'constructor'} | {tag: 'destructor'};
     readonly identifier: TokenObject;
     readonly paramList: Node_ParamList;
     readonly isConst: boolean;
@@ -172,29 +172,10 @@ export interface Node_Func extends NodeBase {
     readonly listPattern: Node_ListPattern | undefined;
 }
 
-export interface FuncReturnValue {
+interface FunctionReturnValue {
+    readonly tag: 'function';
     readonly returnType: Node_Type;
     readonly isRef: boolean;
-}
-
-export const destructorFuncHead = Symbol();
-export type DestructorFuncHead = typeof destructorFuncHead;
-
-export const constructorFuncHead = Symbol();
-export type ConstructorFuncHead = typeof constructorFuncHead;
-
-export type FuncHead = FuncReturnValue | DestructorFuncHead | ConstructorFuncHead;
-
-export function isConstructorFunc(head: FuncHead): head is ConstructorFuncHead {
-    return head === constructorFuncHead;
-}
-
-export function isDestructorFunc(head: FuncHead): head is DestructorFuncHead {
-    return head === destructorFuncHead;
-}
-
-export function hasFuncReturnValue(head: FuncHead): head is FuncReturnValue {
-    return head !== destructorFuncHead && head !== constructorFuncHead;
 }
 
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
@@ -229,7 +210,7 @@ export interface Node_Interface extends NodeBase {
     readonly nodeName: NodeName.Interface;
     readonly entity: EntityAttribute | undefined;
     readonly identifier: TokenObject;
-    readonly baseList: ClassBasePart[];
+    readonly baseList: ScopeAndIdentifier[];
     readonly memberList: (Node_VirtualProp | Node_InterfaceMethod)[];
 }
 
@@ -311,9 +292,6 @@ export interface Node_StatBlock extends NodeBase {
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 export type Node_ParamList = Node_Parameter[];
 
-export const voidParameter = Symbol();
-export type VoidParameter = typeof voidParameter;
-
 // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
 export interface Node_Parameter extends NodeBase {
     readonly nodeName: NodeName.Parameter;
@@ -323,6 +301,9 @@ export interface Node_Parameter extends NodeBase {
     readonly defaultExpr: Node_Expr | VoidParameter | undefined;
     readonly isVariadic: boolean;
 }
+
+export const voidParameter = Symbol();
+export type VoidParameter = typeof voidParameter;
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 // n/a
@@ -526,11 +507,7 @@ export type Node_ExprPostOp = Node_ExprPostOp1 | Node_ExprPostOp2 | Node_ExprPos
 export interface Node_ExprPostOp1 extends NodeBase {
     readonly nodeName: NodeName.ExprPostOp;
     readonly postOpPattern: 1;
-    readonly member: Node_FuncCall | TokenObject | undefined;
-}
-
-export function isMemberMethodInPostOp(member: Node_FuncCall | TokenObject | undefined): member is Node_FuncCall {
-    return member !== undefined && 'nodeName' in member;
+    readonly member: {access: 'method'; node: Node_FuncCall} | {access: 'field'; token: TokenObject} | undefined;
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')

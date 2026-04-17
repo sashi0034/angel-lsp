@@ -1,7 +1,6 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {ResolvedType} from './resolvedType';
 import {
-    hasFuncReturnValue,
     InOutModifier,
     NodeName,
     Node_Type,
@@ -110,7 +109,7 @@ function stringifyFunctionReturnType(symbol: FunctionSymbol): string {
         return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
     } else if (linkedNode.nodeName === NodeName.InterfaceMethod) {
         return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
-    } else if (hasFuncReturnValue(linkedNode.head)) {
+    } else if (linkedNode.head.tag === 'function') {
         return (
             stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.head.returnType) +
             (linkedNode.head.isRef ? '&' : '')

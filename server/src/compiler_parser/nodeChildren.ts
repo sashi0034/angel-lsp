@@ -1,6 +1,4 @@
 import {
-    hasFuncReturnValue,
-    isMemberMethodInPostOp,
     Node_ArgList,
     Node_Assign,
     NodeBase,
@@ -89,7 +87,7 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
     [NodeName.Func]: function (node) {
         const funcNode = node as Node_Func;
         return [
-            ...children(hasFuncReturnValue(funcNode.head) ? funcNode.head.returnType : undefined),
+            ...children(funcNode.head.tag === 'function' ? funcNode.head.returnType : undefined),
             ...funcNode.paramList,
             ...children(funcNode.statBlock, funcNode.listPattern),
             ...funcNode.typeTemplates
@@ -306,7 +304,7 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
     [NodeName.ExprPostOp]: function (node) {
         const exprPostOp = node as Node_ExprPostOp;
         if (exprPostOp.postOpPattern === 1) {
-            return isMemberMethodInPostOp(exprPostOp.member) ? [exprPostOp.member] : [];
+            return exprPostOp.member?.access === 'method' ? [exprPostOp.member.node] : [];
         }
 
         if (exprPostOp.postOpPattern === 2) {

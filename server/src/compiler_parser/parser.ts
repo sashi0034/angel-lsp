@@ -2,13 +2,8 @@
 
 import {
     AccessModifier,
-    ClassBasePart,
     EntityAttribute,
-    FuncHead,
-    constructorFuncHead,
-    destructorFuncHead,
     FunctionAttribute,
-    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     NodeBase,
@@ -73,7 +68,8 @@ import {
     InOutModifier,
     RepeatModifier,
     VoidParameter,
-    voidParameter
+    voidParameter,
+    ScopeAndIdentifier
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -470,7 +466,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
 
     const typeTemplates = parseTypeTemplates(parser);
 
-    const baseList: ClassBasePart[] = [];
+    const baseList: ScopeAndIdentifier[] = [];
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
@@ -613,12 +609,12 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
 
     const accessor = parseAccessModifier(parser);
 
-    let head: FuncHead;
+    let head: Node_Func['head'];
     if (parser.next().text === '~') {
         parser.commit(HighlightForToken.Operator);
-        head = destructorFuncHead;
+        head = {tag: 'destructor'};
     } else if (parser.next(0).kind === TokenKind.Identifier && parser.next(1).text === '(') {
-        head = constructorFuncHead;
+        head = {tag: 'constructor'};
     } else {
         const returnType = parseType(parser);
         if (returnType === undefined) {
@@ -628,11 +624,11 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
 
         const isRef = parseRef(parser);
 
-        head = {returnType: returnType, isRef: isRef};
+        head = {tag: 'function', returnType: returnType, isRef: isRef};
     }
 
     const identifier = parser.next();
-    parser.commit(hasFuncReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
+    parser.commit(head.tag === 'function' ? HighlightForToken.Function : HighlightForToken.Type);
 
     const typeTemplates = parseTypeTemplates(parser) ?? [];
 
@@ -2723,7 +2719,7 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
             postOpPattern: 1,
-            member: funcCall
+            member: {access: 'method', node: funcCall}
         };
     }
 
@@ -2732,7 +2728,7 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         postOpPattern: 1,
-        member: identifier
+        member: identifier === undefined ? undefined : {access: 'field', token: identifier}
     };
 }
 

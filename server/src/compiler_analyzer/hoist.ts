@@ -7,8 +7,6 @@ import {
 } from './symbolScope';
 import {
     AccessModifier,
-    destructorFuncHead,
-    hasFuncReturnValue,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -394,7 +392,7 @@ function hoistFunc(
     hoistQueue: HoistQueue,
     isInstanceMember: boolean
 ) {
-    if (funcNode.head === destructorFuncHead) {
+    if (funcNode.head.tag === 'destructor') {
         return;
     }
 
@@ -429,9 +427,8 @@ function hoistFunc(
     }
 
     hoistQueue.push(() => {
-        const returnType = hasFuncReturnValue(funcNode.head)
-            ? analyzeType(functionScope, funcNode.head.returnType)
-            : undefined;
+        const returnType =
+            funcNode.head.tag === 'function' ? analyzeType(functionScope, funcNode.head.returnType) : undefined;
         symbol.assignReturnType(returnType);
 
         // Check if the function is a virtual property setter or getter

@@ -1,9 +1,6 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    destructorFuncHead,
-    hasFuncReturnValue,
-    isMemberMethodInPostOp,
     Node_ArgList,
     Node_Assign,
     Node_Case,
@@ -118,7 +115,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
-    if (func.head === destructorFuncHead) {
+    if (func.head.tag === 'destructor') {
         analyzeStatBlock(scope, func.statBlock);
         return;
     }
@@ -387,7 +384,7 @@ function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
         return false;
     }
 
-    return hasFuncReturnValue(linkedNode.head) === false;
+    return linkedNode.head.tag !== 'function';
 }
 
 function completeAnalyzingType(
@@ -1149,9 +1146,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
     });
 
     const member = exprPostOp.member;
-    const isMemberMethod = isMemberMethodInPostOp(member);
+    const isMemberMethod = member?.access === 'method';
 
-    const identifier = isMemberMethod ? member.identifier : member;
+    const identifier = isMemberMethod ? member.node.identifier : member?.token;
     if (identifier === undefined) {
         return undefined;
     }
@@ -1174,7 +1171,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateArguments = member.typeTemplates ?? [];
+        const callTemplateArguments = member.node.typeTemplates ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
@@ -1185,7 +1182,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return analyzeFunctionCall(
                 scope,
                 identifier,
-                member.argList,
+                member.node.argList,
                 instanceMember,
                 mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping)
             );
@@ -1201,7 +1198,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return analyzeFunctionCall(
                 scope,
                 identifier,
-                member.argList,
+                member.node.argList,
                 delegate,
                 mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping),
                 instanceMember

@@ -5,7 +5,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {assertTypeCast} from './typeCast';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
-import {isConstructorFunc, Node_FuncCall, NodeName} from '../compiler_parser/nodes';
+import {Node_FuncCall, NodeName} from '../compiler_parser/nodes';
 import {stringifyResolvedType} from './symbolStringifier';
 import * as assert from 'node:assert';
 
@@ -82,7 +82,7 @@ export function assertDefaultSuperConstructorCall(scope: SymbolScope, funcCall: 
     const functionScope = scope.takeParentByNode([NodeName.Func]);
     const classScope = functionScope?.takeParentByNode([NodeName.Class]);
     const isInConstructor =
-        functionScope?.linkedNode?.nodeName === NodeName.Func && isConstructorFunc(functionScope.linkedNode.head);
+        functionScope?.linkedNode?.nodeName === NodeName.Func && functionScope.linkedNode.head.tag === 'constructor';
     if (functionScope === undefined || classScope === undefined || isInConstructor === false) {
         analyzerDiagnostic.error(
             callerRange.getBoundingLocation(),
