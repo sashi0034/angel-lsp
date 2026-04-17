@@ -41,14 +41,13 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    VoidExpression,
     voidExpression
 } from './nodes';
 
 type NodeChildrenMap = (node: NodeBase) => NodeBase[];
 
-function children(...nodes: (NodeBase | VoidExpression | undefined)[]): NodeBase[] {
-    return nodes.filter((node): node is NodeBase => node !== undefined && node !== voidExpression);
+function children(...nodes: (NodeBase | undefined)[]): NodeBase[] {
+    return nodes.filter((node): node is NodeBase => node !== undefined);
 }
 
 const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
@@ -89,7 +88,9 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
         const funcNode = node as Node_Func;
         return [
             ...children(hasFuncReturnValue(funcNode.head) ? funcNode.head.returnType : undefined),
-            ...funcNode.paramList.flatMap(param => children(param.type, param.defaultExpr)),
+            ...funcNode.paramList.flatMap(param =>
+                children(param.type, param.defaultExpr === voidExpression ? undefined : param.defaultExpr)
+            ),
             ...children(funcNode.statBlock, funcNode.listPattern),
             ...funcNode.typeTemplates
         ];
@@ -126,13 +127,23 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
     // **BNF** IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
     [NodeName.Import]: function (node) {
         const importNode = node as Node_Import;
-        return [importNode.type, ...importNode.paramList.flatMap(param => children(param.type, param.defaultExpr))];
+        return [
+            importNode.type,
+            ...importNode.paramList.flatMap(param =>
+                children(param.type, param.defaultExpr === voidExpression ? undefined : param.defaultExpr)
+            )
+        ];
     },
 
     // **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
     [NodeName.FuncDef]: function (node) {
         const funcDef = node as Node_FuncDef;
-        return [funcDef.returnType, ...funcDef.paramList.flatMap(param => children(param.type, param.defaultExpr))];
+        return [
+            funcDef.returnType,
+            ...funcDef.paramList.flatMap(param =>
+                children(param.type, param.defaultExpr === voidExpression ? undefined : param.defaultExpr)
+            )
+        ];
     },
 
     // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
@@ -152,7 +163,9 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
         const intfMethod = node as Node_InterfaceMethod;
         return [
             intfMethod.returnType,
-            ...intfMethod.paramList.flatMap(param => children(param.type, param.defaultExpr))
+            ...intfMethod.paramList.flatMap(param =>
+                children(param.type, param.defaultExpr === voidExpression ? undefined : param.defaultExpr)
+            )
         ];
     },
 
