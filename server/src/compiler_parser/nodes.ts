@@ -321,6 +321,7 @@ export const voidExpression = Symbol();
 export type VoidExpression = typeof voidExpression;
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+// n/a
 
 // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface Node_Type extends NodeBase {
@@ -354,8 +355,10 @@ export interface Node_DataType extends NodeBase {
 }
 
 // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+// n/a
 
 // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// n/a
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 export type Node_Statement =
@@ -510,6 +513,7 @@ export interface Node_ConstructorCall extends NodeBase {
 }
 
 // **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+// n/a
 
 // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 export type Node_ExprPostOp = Node_ExprPostOp1 | Node_ExprPostOp2 | Node_ExprPostOp3 | Node_ExprPostOp4;
