@@ -1,9 +1,23 @@
 import {provideCompletion} from '../../../src/services/completion';
+import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 import {FileContents, makeFileContentList, inspectFileContents} from '../../inspectorUtils';
 import {CaretMap} from '../caretMap';
+import {afterEach, beforeEach} from 'mocha';
 
 function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
+}
+
+export function useCompletionWithoutBuiltinItems() {
+    beforeEach(() => {
+        const settings = copyGlobalSettings();
+        settings.completion.builtinItems = false;
+        resetGlobalSettings(settings);
+    });
+
+    afterEach(() => {
+        resetGlobalSettings(undefined);
+    });
 }
 
 export function testCompletion(fileContents: FileContents, ...expectedList: string[][]) {

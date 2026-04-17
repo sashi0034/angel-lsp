@@ -19,6 +19,9 @@ interface LanguageServerSettings {
     builtinStringType: string;
     builtinArrayType: string;
     definedSymbols: string[];
+    completion: {
+        builtinItems: boolean;
+    };
     files: {
         angelScript: string[];
         exclude: string[];
@@ -48,6 +51,9 @@ const defaultSettings: LanguageServerSettings = {
     builtinStringType: 'string',
     builtinArrayType: 'array',
     definedSymbols: [],
+    completion: {
+        builtinItems: true
+    },
     files: {
         angelScript: ['*.as'],
         exclude: []

@@ -1,6 +1,8 @@
-import {testCompletion} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinItems} from './utils';
 
 describe('completion/namespace', () => {
+    useCompletionWithoutBuiltinItems();
+
     it('completes nested namespace members', () => {
         testCompletion(
             `// Nested namespace completion
