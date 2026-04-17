@@ -478,12 +478,12 @@ function analyzeInitList(scope: SymbolScope, initList: Node_InitList) {
 export function findOptimalScope(
     parentScope: SymbolScope,
     scopeNode: Node_Scope | undefined,
-    tokenAfterNamespaces: TokenObject | undefined
+    tokenAfterScopeAccess: TokenObject | undefined
 ): SymbolScope | undefined {
     let bestMatch = undefined; // If no valid scope exists, fall back to the most appropriate invalid one.
 
     if (scopeNode?.isGlobal) {
-        bestMatch = evaluateScope(parentScope.getGlobalScope(), scopeNode, tokenAfterNamespaces);
+        bestMatch = evaluateScope(parentScope.getGlobalScope(), scopeNode, tokenAfterScopeAccess);
     } else {
         // Iterate through all using namespaces
         const scopeList = [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)];
@@ -502,7 +502,7 @@ export function findOptimalScope(
 
                 const relativeScope = scopeIterator.resolveRelativeScope(usingScope);
                 if (relativeScope !== undefined) {
-                    const candidate = evaluateScope(relativeScope, scopeNode, tokenAfterNamespaces);
+                    const candidate = evaluateScope(relativeScope, scopeNode, tokenAfterScopeAccess);
                     if (bestMatch === undefined || candidate.ok || candidate.accessIndex > bestMatch.accessIndex) {
                         // If the candidate is valid or has a higher access index, update the best match.
                         bestMatch = candidate;
@@ -530,10 +530,10 @@ export function findOptimalScope(
 function evaluateScope(
     parentScope: SymbolScope,
     scopeNode: Node_Scope | undefined,
-    tokenAfterNamespaces: TokenObject | undefined
+    tokenAfterScopeAccess: TokenObject | undefined
 ) {
     if (scopeNode === undefined) {
-        const ok = parentScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
+        const ok = parentScope.lookupSymbol(tokenAfterScopeAccess?.text ?? '') !== undefined;
 
         return {
             ok,
@@ -543,7 +543,7 @@ function evaluateScope(
         };
     }
 
-    // assert(scopeNode.nodeRange.end.next === identifierAfterNamespaces);
+    // assert(scopeNode.nodeRange.end.next === tokenAfterScopeAccess);
 
     const sideEffect: (() => void)[] = [];
 
@@ -569,7 +569,7 @@ function evaluateScope(
                 scopeAccessNode: scopeNode,
                 listIndex: currentAccessIndex,
                 targetScope: found,
-                tokenAfterNamespaces: tokenAfterNamespaces
+                tokenAfterScopeAccess: tokenAfterScopeAccess
             });
         });
     }
@@ -577,7 +577,7 @@ function evaluateScope(
     const ok: boolean =
         accessIndex === scopeNode.scopeList.length &&
         // Can the identifier after the qualifiers be accessed?
-        accessScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
+        accessScope.lookupSymbol(tokenAfterScopeAccess?.text ?? '') !== undefined;
 
     return {ok, accessScope, accessIndex, sideEffects: sideEffect};
 }

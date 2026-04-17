@@ -50,7 +50,7 @@ export interface ScopeAccessMarker {
     readonly scopeAccessNode: Node_Scope;
     readonly listIndex: number;
     readonly targetScope: SymbolScope;
-    readonly tokenAfterNamespaces: TokenObject | undefined; // TODO: Rename to tokenAfterScopeAccess
+    readonly tokenAfterScopeAccess: TokenObject | undefined;
 }
 
 export function getScopeAccessMarkerToken(marker: ScopeAccessMarker): TokenObject {

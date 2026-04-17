@@ -88,17 +88,17 @@ function provideNamespaceDefinition(
     // -----------------------------------------------
     // Since the namespace declaration token is not found, it is a namespace access token like 'A::B::C'
 
-    // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterNamespaces
-    const {accessScope, tokenOnCaret, tokenAfterNamespace} = findNamespaceTokenOnCaret(globalScope, caret);
+    // namespaceList[0] --> '::' --> tokenOnCaret --> '::' --> ... --> tokenAfterScopeAccess
+    const {accessScope, tokenOnCaret, tokenAfterScopeAccess} = findNamespaceTokenOnCaret(globalScope, caret);
     if (accessScope === undefined || tokenOnCaret === undefined) {
         return undefined;
     }
 
-    // The definition of token after namespace
+    // The definition of token after scope access
     const closetTokenDefinitionSymbol =
-        tokenAfterNamespace === undefined
+        tokenAfterScopeAccess === undefined
             ? undefined
-            : provideDefinitionInternal(globalScope, tokenAfterNamespace.location.start);
+            : provideDefinitionInternal(globalScope, tokenAfterScopeAccess.location.start);
 
     if (closetTokenDefinitionSymbol !== undefined) {
         // The definition of token after namespace exits, find the namespace token in its global scope.
@@ -151,10 +151,10 @@ function findNamespaceDeclarationToken(scope: SymbolScope, caret: Position): Tok
 }
 
 function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Position) {
-    // namespaceList[0] --> '::' --> namespaceList[1] --> '::' --> tokenAfterNamespace
+    // namespaceList[0] --> '::' --> namespaceList[1] --> '::' --> tokenAfterScopeAccess
     let accessScope: SymbolScope | undefined;
     let tokenOnCaret: TokenObject | undefined;
-    let tokenAfterNamespace: TokenObject | undefined;
+    let tokenAfterScopeAccess: TokenObject | undefined;
 
     // Use scope access markers to find the qualifier token under the caret.
     for (const info of globalScope.markers.scopeAccess) {
@@ -162,12 +162,12 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
         if (namespaceToken.location.positionInRange(caret)) {
             accessScope = info.targetScope;
             tokenOnCaret = namespaceToken;
-            tokenAfterNamespace = info.tokenAfterNamespaces;
+            tokenAfterScopeAccess = info.tokenAfterScopeAccess;
             break;
         }
     }
 
-    return {accessScope, tokenOnCaret, tokenAfterNamespace};
+    return {accessScope, tokenOnCaret, tokenAfterScopeAccess};
 }
 
 function findNamespaceTokenNearPosition(
