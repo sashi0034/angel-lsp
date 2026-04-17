@@ -43,7 +43,7 @@ import {
     HoistQueue,
     HoistResult,
     insertVariables,
-    pushScopeRegionInfo,
+    pushScopeRegionMarker,
     resolveAutoType
 } from './analyzer';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
@@ -102,7 +102,7 @@ function hoistNamespace(
 
     hoistScript(scopeIterator, namespaceNode.script, analyzeQueue, hoistQueue);
 
-    pushScopeRegionInfo(scopeIterator, namespaceNode.nodeRange);
+    pushScopeRegionMarker(scopeIterator, namespaceNode.nodeRange);
 }
 
 // **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
@@ -222,7 +222,7 @@ function hoistClass(
         });
     });
 
-    pushScopeRegionInfo(scope, classNode.nodeRange);
+    pushScopeRegionMarker(scope, classNode.nodeRange);
 }
 
 // e.g.,
@@ -527,7 +527,7 @@ function hoistInterface(
         }
     });
 
-    pushScopeRegionInfo(scope, interfaceNode.nodeRange);
+    pushScopeRegionMarker(scope, interfaceNode.nodeRange);
 }
 
 function hoistInterfaceMembers(

@@ -3,7 +3,7 @@ import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {TextRange} from '../compiler_tokenizer/textLocation';
 import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import * as lsp from 'vscode-languageserver';
-import {FunctionCallInfo} from '../compiler_analyzer/info';
+import {FunctionCallMarker} from '../compiler_analyzer/marker';
 
 export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: TextRange): CodeActionWrapper[] {
     for (const info of globalScope.info.functionCall) {
@@ -29,7 +29,7 @@ export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: 
     return [];
 }
 
-function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: FunctionCallInfo) {
+function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: FunctionCallMarker) {
     const callerNode = info.callerArgumentsNode;
     if (callerNode === undefined) {
         return [];

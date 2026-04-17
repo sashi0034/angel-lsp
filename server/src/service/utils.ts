@@ -1,8 +1,8 @@
 import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
-import {ScopeRegionInfo} from '../compiler_analyzer/info';
+import {ScopeRegionMarker} from '../compiler_analyzer/marker';
 
-export function takeNarrowestScopeRegion(lhs: ScopeRegionInfo, rhs: ScopeRegionInfo): ScopeRegionInfo {
+export function takeNarrowestScopeRegion(lhs: ScopeRegionMarker, rhs: ScopeRegionMarker): ScopeRegionMarker {
     const lhsDiff = lhs.boundingLocation.getDifference();
     const rhsDiff = rhs.boundingLocation.getDifference();
 
@@ -28,7 +28,7 @@ interface ScopeAndLocation {
 export function findScopeContainingPosition(globalScope: SymbolGlobalScope, caret: TextPosition): ScopeAndLocation {
     const path = globalScope.getContext().filepath;
 
-    let found: ScopeRegionInfo | undefined = undefined;
+    let found: ScopeRegionMarker | undefined = undefined;
     for (const info of globalScope.info.scopeRegion) {
         const location = info.boundingLocation;
         if (location.path !== path) {

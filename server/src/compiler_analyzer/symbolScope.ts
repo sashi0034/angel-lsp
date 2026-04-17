@@ -25,13 +25,13 @@ import {
     Node_While
 } from '../compiler_parser/nodes';
 import {
-    AutoTypeResolutionInfo,
-    FunctionCallInfo,
-    AutocompleteInstanceMemberInfo,
-    AutocompleteNamespaceAccessInfo,
-    ScopeRegionInfo,
-    ReferenceInfo
-} from './info';
+    AutoTypeResolutionMarker,
+    FunctionCallMarker,
+    AutocompleteInstanceMemberMarker,
+    AutocompleteNamespaceAccessMarker,
+    ScopeRegionMarker,
+    ReferenceMarker
+} from './marker';
 import {getGlobalSettings} from '../core/settings';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
@@ -45,20 +45,20 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface DetailScopeInformation {
-    reference: ReferenceInfo[];
-    scopeRegion: ScopeRegionInfo[];
-    autocompleteInstanceMember: AutocompleteInstanceMemberInfo[];
-    autocompleteNamespaceAccess: AutocompleteNamespaceAccessInfo[];
-    functionCall: FunctionCallInfo[];
-    autoTypeResolution: AutoTypeResolutionInfo[];
+interface DetailScopeMarkers {
+    reference: ReferenceMarker[];
+    scopeRegion: ScopeRegionMarker[];
+    autocompleteInstanceMember: AutocompleteInstanceMemberMarker[];
+    autocompleteNamespaceAccess: AutocompleteNamespaceAccessMarker[];
+    functionCall: FunctionCallMarker[];
+    autoTypeResolution: AutoTypeResolutionMarker[];
 }
 
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
-    info: DetailScopeInformation;
+    info: DetailScopeMarkers;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -467,11 +467,11 @@ export class SymbolGlobalScope extends SymbolScope {
         this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
-    public get info(): Readonly<DetailScopeInformation> {
+    public get info(): Readonly<DetailScopeMarkers> {
         return this._context.info;
     }
 
-    public pushReference(info: ReferenceInfo) {
+    public pushReference(info: ReferenceMarker) {
         this._context.info.reference.push(info);
     }
 

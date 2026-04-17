@@ -91,7 +91,7 @@ export type HoistQueue = (() => void)[];
 export type AnalyzeQueue = (() => void)[];
 
 /** @internal */
-export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenRange) {
+export function pushScopeRegionMarker(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().info.scopeRegion.push({
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
@@ -261,8 +261,8 @@ export function analyzeVarInitializer(
 
 // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) {
-    // Append completion information to the scope
-    pushScopeRegionInfo(scope, statBlock.nodeRange);
+    // Append completion markers to the scope
+    pushScopeRegionMarker(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -415,7 +415,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     }
 
     if (typeNode.scope !== undefined) {
-        // This may seem like redundant processing, but it is invoked to add infos, which are used for autocompletion.
+        // This may seem like redundant processing, but it is invoked to add markers, which are used for autocompletion.
         findOptimalScope(scope, typeNode.scope, typeIdentifier);
 
         analyzerDiagnostic.error(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);

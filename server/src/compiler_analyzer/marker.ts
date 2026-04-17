@@ -6,18 +6,18 @@ import {ResolvedType, TemplateMapping} from './resolvedType';
 import {Node_ArgList} from '../compiler_parser/nodes';
 
 /**
- * Information about a symbol that references a symbol declared elsewhere.
+ * Marker for a symbol that references a symbol declared elsewhere.
  */
-export interface ReferenceInfo {
+export interface ReferenceMarker {
     readonly toSymbol: SymbolObject;
     readonly fromToken: TokenObject;
 }
 
 /**
- * Location information within the file where the target scope exists.
+ * Location marker within the file where the target scope exists.
  * e.g., the code block inside `{}` in `void fn() { ... }`.
  */
-export interface ScopeRegionInfo {
+export interface ScopeRegionMarker {
     readonly boundingLocation: TextLocation;
     readonly targetScope: SymbolScope;
 }
@@ -26,17 +26,17 @@ export interface ScopeRegionInfo {
  * Represents an autocomplete target for instance members.
  * e.g., suggesting methods or properties of an instance of a class.
  */
-export interface AutocompleteInstanceMemberInfo {
+export interface AutocompleteInstanceMemberMarker {
     readonly autocompleteLocation: TextLocation;
     readonly targetType: TypeSymbol;
 }
 
 /**
  * Represents an autocomplete target for namespace symbols.
- * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two infos.
+ * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two markers.
  * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
  */
-export interface AutocompleteNamespaceAccessInfo {
+export interface AutocompleteNamespaceAccessMarker {
     readonly autocompleteLocation: TextLocation;
     readonly accessScope: SymbolScope;
     readonly namespaceToken: TokenObject; // The namespace qualifier token.
@@ -44,10 +44,10 @@ export interface AutocompleteNamespaceAccessInfo {
 }
 
 /**
- * Function call information that can be used when suggesting possible values.
+ * Function call marker that can be used when suggesting possible values.
  * e.g., providing argument suggestions when typing inside a function call `fn($C$)`, where `$C$` is the caret.
  */
-export interface FunctionCallInfo {
+export interface FunctionCallMarker {
     readonly callerIdentifier: TokenObject;
     readonly callerArgumentsNode: Node_ArgList;
     readonly calleeFuncHolder: FunctionSymbolHolder;
@@ -58,7 +58,7 @@ export interface FunctionCallInfo {
  * Represents the type resolution information for the auto keyword.
  * e.g., providing the resolved type for the auto keyword.
  */
-export interface AutoTypeResolutionInfo {
+export interface AutoTypeResolutionMarker {
     readonly autoToken: TokenObject;
     readonly resolvedType: ResolvedType;
 }
