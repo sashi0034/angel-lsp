@@ -7,8 +7,6 @@ import {
 } from './symbolScope';
 import {
     AccessModifier,
-    destructorFuncHead,
-    hasFuncReturnValue,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -18,6 +16,7 @@ import {
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Script,
     Node_Type,
@@ -32,7 +31,7 @@ import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
 import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
-import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodeUtils';
 import {
     analyzeFunc,
     AnalyzeQueue,
@@ -393,7 +392,7 @@ function hoistFunc(
     hoistQueue: HoistQueue,
     isInstanceMember: boolean
 ) {
-    if (funcNode.head === destructorFuncHead) {
+    if (funcNode.head.tag === 'destructor') {
         return;
     }
 
@@ -428,9 +427,8 @@ function hoistFunc(
     }
 
     hoistQueue.push(() => {
-        const returnType = hasFuncReturnValue(funcNode.head)
-            ? analyzeType(functionScope, funcNode.head.returnType)
-            : undefined;
+        const returnType =
+            funcNode.head.tag === 'function' ? analyzeType(functionScope, funcNode.head.returnType) : undefined;
         symbol.assignReturnType(returnType);
 
         // Check if the function is a virtual property setter or getter
@@ -721,7 +719,7 @@ function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_Interfa
 
 // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function hoistParamList(
     functionHolderScope: SymbolScope,
     functionScope: SymbolScope | undefined,
@@ -731,12 +729,7 @@ function hoistParamList(
 
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
-        const type = analyzeType(functionScope ?? functionHolderScope, param.type);
-        if (type === undefined) {
-            resolvedTypes.push(undefined);
-        } else {
-            resolvedTypes.push(type);
-        }
+        resolvedTypes.push(hoistParameter(functionScope ?? functionHolderScope, param));
     }
 
     for (let i = 0; i < paramList.length; i++) {
@@ -757,6 +750,11 @@ function hoistParamList(
     }
 
     return resolvedTypes;
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function hoistParameter(scope: SymbolScope, parameter: Node_Parameter): ResolvedType | undefined {
+    return analyzeType(scope, parameter.type);
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
@@ -786,7 +784,8 @@ function hoistParamList(
 // **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 // **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
 // **BNF** VARACCESS ::= SCOPE IDENTIFIER

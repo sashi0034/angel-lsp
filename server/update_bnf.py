@@ -156,7 +156,7 @@ def replace_and_insert_bnf_in_file(filepath, bnf_dict, ordered_names, usage_dict
     for insert_pos, indent, names in sorted(insertion_plans, key=lambda x: x[0], reverse=True):
         block = []
         for nm in names:
-            block.append(f"{indent}{BNF_TAG_PREFIX} {bnf_dict[nm]}\n")
+            block.append(f"\n{indent}{BNF_TAG_PREFIX} {bnf_dict[nm]}\n")
             block.append(f"{indent}// TODO: IMPLEMENT IT!\n")
             block.append("\n")
             usage_dict[nm] += 1

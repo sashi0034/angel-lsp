@@ -15,7 +15,8 @@ VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 's
 MIXIN ::= 'mixin' CLASS
 INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
-PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
+PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
 TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -43,7 +44,8 @@ CONSTRUCTORCALL ::= TYPE ARGLIST
 EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
 EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
+LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
 LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
 VARACCESS ::= SCOPE IDENTIFIER

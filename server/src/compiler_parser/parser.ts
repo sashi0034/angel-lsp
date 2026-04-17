@@ -2,13 +2,8 @@
 
 import {
     AccessModifier,
-    ClassBasePart,
     EntityAttribute,
-    FuncHead,
-    constructorFuncHead,
-    destructorFuncHead,
     FunctionAttribute,
-    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     NodeBase,
@@ -30,7 +25,6 @@ import {
     Node_ExprTerm1,
     Node_ExprTerm2,
     Node_ExprValue,
-    Node_ExprVoid,
     Node_For,
     Node_ForEach,
     VariableInForEach,
@@ -43,13 +37,14 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
-    NodeListOp,
+    Node_LambdaParam,
+    Node_ListEntry,
     Node_ListPattern,
-    NodeListValidOperators,
     Node_Literal,
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Return,
     Node_Scope,
@@ -70,7 +65,11 @@ import {
     GetterOrSetter,
     IdentifierAndInitializer,
     ReferenceModifier,
-    InOutModifier
+    InOutModifier,
+    RepeatModifier,
+    VoidParameter,
+    voidParameter,
+    ScopeAndIdentifier
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -467,7 +466,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
 
     const typeTemplates = parseTypeTemplates(parser);
 
-    const baseList: ClassBasePart[] = [];
+    const baseList: ScopeAndIdentifier[] = [];
     if (parser.next().text === ':') {
         parser.commit(HighlightForToken.Operator);
         while (parser.isEnd() === false) {
@@ -610,12 +609,12 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
 
     const accessor = parseAccessModifier(parser);
 
-    let head: FuncHead;
+    let head: Node_Func['head'];
     if (parser.next().text === '~') {
         parser.commit(HighlightForToken.Operator);
-        head = destructorFuncHead;
+        head = {tag: 'destructor'};
     } else if (parser.next(0).kind === TokenKind.Identifier && parser.next(1).text === '(') {
-        head = constructorFuncHead;
+        head = {tag: 'constructor'};
     } else {
         const returnType = parseType(parser);
         if (returnType === undefined) {
@@ -625,11 +624,11 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
 
         const isRef = parseRef(parser);
 
-        head = {returnType: returnType, isRef: isRef};
+        head = {tag: 'function', returnType: returnType, isRef: isRef};
     }
 
     const identifier = parser.next();
-    parser.commit(hasFuncReturnValue(head) ? HighlightForToken.Function : HighlightForToken.Type);
+    parser.commit(head.tag === 'function' ? HighlightForToken.Function : HighlightForToken.Type);
 
     const typeTemplates = parseTypeTemplates(parser) ?? [];
 
@@ -815,76 +814,133 @@ function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
 
     parser.commit(HighlightForToken.Operator);
 
-    const listOperations: NodeListValidOperators[] = [];
+    const entries: Node_ListEntry[] = [];
 
-    // Parse the list entries.
     while (!parser.isEnd()) {
         if (parser.next().text === '}') {
             break;
         }
 
-        const entry = parseListEntry(parser, listOperations);
+        if (entries.length > 0) {
+            if (parser.next().text !== ',') {
+                parser.backtrack(rangeStart);
+                return undefined;
+            }
 
-        if (entry === false) {
+            parser.commit(HighlightForToken.Operator);
+        }
+
+        const entry = parseListEntry(parser);
+        if (entry === undefined) {
             parser.backtrack(rangeStart);
             return undefined;
         }
+
+        entries.push(entry);
     }
 
-    if (parser.next().text !== '}' || listOperations.length === 0) {
+    if (parser.next().text !== '}' || entries.length === 0) {
         parser.backtrack(rangeStart);
         return undefined;
     }
 
     parser.commit(HighlightForToken.Operator);
+
+    return {
+        nodeName: NodeName.ListPattern,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        entries: entries
+    };
 }
 
 // **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-function parseListEntry(parser: ParserState, operators: NodeListValidOperators[]): boolean {
-    let listDepth = 0;
+function parseListEntry(parser: ParserState): Node_ListEntry | undefined {
+    const rangeStart = parser.next();
 
-    while (!parser.isEnd()) {
+    const repeatModifier = parseRepeatModifier(parser);
+    if (repeatModifier !== undefined) {
+        let entry: Node_ListEntry | undefined;
+        let type: Node_Type | undefined;
         if (parser.next().text === '{') {
             parser.commit(HighlightForToken.Operator);
-
-            operators.push({
-                operator: NodeListOp.StartList
-            });
-            listDepth++;
-        } else if (parser.next().text === '}') {
-            if (!listDepth) {
-                break;
-            } else {
-                parser.commit(HighlightForToken.Operator);
-                listDepth--;
-
-                operators.push({
-                    operator: NodeListOp.EndList
-                });
+            entry = parseListEntry(parser);
+            if (entry === undefined || parser.next().text !== '}') {
+                parser.backtrack(rangeStart);
+                return undefined;
             }
-        } else if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
-            parser.commit(HighlightForToken.Keyword);
 
-            operators.push({
-                operator: parser.next().text === 'repeat' ? NodeListOp.Repeat : NodeListOp.RepeatSame
-            });
-        } else if (parser.next().text === ',') {
             parser.commit(HighlightForToken.Operator);
         } else {
-            const type = parseType(parser);
-
+            type = parseListEntryType(parser);
             if (type === undefined) {
-                return false;
+                parser.backtrack(rangeStart);
+                return undefined;
             }
+        }
 
-            operators.push({
-                operator: NodeListOp.Type,
-                type: type
-            });
+        return {
+            nodeName: NodeName.ListEntry,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            entryPattern: 1,
+            repeatModifier: repeatModifier,
+            entry: entry ?? type
+        };
+    }
+
+    const typeList: Node_Type[] = [];
+    while (parser.isEnd() === false) {
+        const type = parseType(parser);
+        if (type === undefined) {
+            break;
+        }
+
+        typeList.push(type);
+
+        if (parser.next().text !== ',') {
+            break;
+        }
+
+        const comma = parser.next();
+        parser.commit(HighlightForToken.Operator);
+
+        const nextTypeStart = parser.next();
+        const nextType = parseType(parser);
+        parser.backtrack(nextTypeStart);
+        if (nextType === undefined) {
+            parser.backtrack(comma);
+            break;
         }
     }
 
-    return listDepth === 0;
+    if (typeList.length === 0) {
+        parser.backtrack(rangeStart);
+        return undefined;
+    }
+
+    return {
+        nodeName: NodeName.ListEntry,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        entryPattern: 2,
+        typeList: typeList
+    };
+}
+
+function parseListEntryType(parser: ParserState): Node_Type | undefined {
+    if (parser.next().text === 'repeat' || parser.next().text === 'repeat_same') {
+        return undefined;
+    }
+
+    return parseType(parser);
+}
+
+function parseRepeatModifier(parser: ParserState): RepeatModifier | undefined {
+    const next = parser.next().text;
+    if (next !== 'repeat' && next !== 'repeat_same') {
+        return undefined;
+    }
+
+    parser.commit(HighlightForToken.Keyword);
+    return next === 'repeat' ? RepeatModifier.Repeat : RepeatModifier.RepeatSame;
 }
 
 // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
@@ -1335,7 +1391,7 @@ function expectStatBlock(parser: ParserState): Node_StatBlock | undefined {
     return statBlock;
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function parseParamList(parser: ParserState): Node_ParamList | undefined {
     if (parser.next().text !== '(') {
         return undefined;
@@ -1349,8 +1405,8 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
         return [];
     }
 
-    const paramList: Node_ParamList = [];
     let isVariadic = false;
+    const paramList: Node_ParamList = [];
 
     while (parser.isEnd() === false) {
         if (expectCommaOrParensClose(parser, paramList.length > 0) === BreakOrThrough.Break) {
@@ -1361,46 +1417,20 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
             parser.error('Variadic ellipses must be the last parameter.');
         }
 
-        // If this is not a type, it is probably a variable followed by a constructor call.
-        const type = parseType(parser);
-        if (type === undefined) {
+        const param = parseParameter(parser, isVariadic);
+        if (param === undefined) {
             // If this is not a valid identifier, it can never become a valid constructor call.
             if (parser.next().kind === TokenKind.String || parser.next().kind === TokenKind.Number) {
                 return undefined;
             }
 
+            // If this is not a type, it is probably a variable followed by a constructor call.
             parser.step();
             continue;
         }
 
-        const typeModifier = parseTypeModifier(parser);
-
-        let identifier: TokenObject | undefined = undefined;
-        if (parser.next().text === '...') {
-            parser.commit(HighlightForToken.Operator);
-            isVariadic = true;
-        } else if (parser.next().kind === TokenKind.Identifier) {
-            identifier = parser.next();
-            parser.commit(HighlightForToken.Variable);
-        }
-
-        let defaultExpr: Node_Expr | Node_ExprVoid | undefined = undefined;
-        if (parser.next().text === '=') {
-            if (isVariadic) {
-                parser.error('Variadic functions cannot have a default expression.');
-            }
-
-            parser.commit(HighlightForToken.Operator);
-            defaultExpr = expectExprOrVoid(parser);
-        }
-
-        paramList.push({
-            type: type,
-            modifier: typeModifier,
-            identifier: identifier,
-            defaultExpr: defaultExpr,
-            isVariadic: isVariadic
-        });
+        isVariadic = isVariadic || param.isVariadic;
+        paramList.push(param);
     }
 
     return paramList;
@@ -1476,6 +1506,50 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     }
 
     return BreakOrThrough.Through;
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolean): Node_Parameter | undefined {
+    const rangeStart = parser.next();
+
+    const type = parseType(parser);
+    if (type === undefined) {
+        return undefined;
+    }
+
+    const typeModifier = parseTypeModifier(parser);
+
+    let identifier: TokenObject | undefined = undefined;
+    if (parser.next().kind === TokenKind.Identifier) {
+        identifier = parser.next();
+        parser.commit(HighlightForToken.Variable);
+    }
+
+    let isVariadic = false;
+    if (parser.next().text === '...') {
+        parser.commit(HighlightForToken.Operator);
+        isVariadic = true;
+    }
+
+    let defaultExpr: Node_Expr | VoidParameter | undefined = undefined;
+    if (parser.next().text === '=') {
+        if (isPreviousParameterVariadic || isVariadic) {
+            parser.error('Variadic functions cannot have a default expression.');
+        }
+
+        parser.commit(HighlightForToken.Operator);
+        defaultExpr = expectExprOrVoid(parser);
+    }
+
+    return {
+        nodeName: NodeName.Parameter,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        type: type,
+        modifier: typeModifier,
+        identifier: identifier,
+        defaultExpr: defaultExpr,
+        isVariadic: isVariadic
+    };
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
@@ -2411,14 +2485,10 @@ function expectExpr(parser: ParserState): Node_Expr | undefined {
 }
 
 // for optional parameters
-function expectExprOrVoid(parser: ParserState): Node_Expr | Node_ExprVoid | undefined {
+function expectExprOrVoid(parser: ParserState): Node_Expr | VoidParameter | undefined {
     if (parser.next().text === 'void') {
-        const rangeStart = parser.next();
         parser.commit(HighlightForToken.Keyword);
-        return {
-            nodeName: NodeName.ExprVoid,
-            nodeRange: new TokenRange(rangeStart, parser.prev())
-        };
+        return voidParameter;
     }
 
     const expr = parseExpr(parser);
@@ -2615,7 +2685,7 @@ function parseExprPostOp(parser: ParserState): Node_ExprPostOp | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 3,
+            postOpPattern: 3,
             args: argList
         };
     }
@@ -2626,7 +2696,7 @@ function parseExprPostOp(parser: ParserState): Node_ExprPostOp | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 4,
+            postOpPattern: 4,
             operator: maybeOperator
         };
     }
@@ -2648,8 +2718,8 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
         return {
             nodeName: NodeName.ExprPostOp,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
-            postOp: 1,
-            member: funcCall
+            postOpPattern: 1,
+            member: {access: 'method', node: funcCall}
         };
     }
 
@@ -2657,8 +2727,8 @@ function parseExprPostOp1(parser: ParserState): Node_ExprPostOp1 | undefined {
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        postOp: 1,
-        member: identifier
+        postOpPattern: 1,
+        member: identifier === undefined ? undefined : {access: 'field', token: identifier}
     };
 }
 
@@ -2694,7 +2764,7 @@ function parseExprPostOp2(parser: ParserState): Node_ExprPostOp2 | undefined {
     return {
         nodeName: NodeName.ExprPostOp,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        postOp: 2,
+        postOpPattern: 2,
         indexingList: indexingList
     };
 }
@@ -2752,7 +2822,7 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
     };
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
     // Detect a lambda by checking whether `{` appears after the closing `)` of the parameter list.
     if (canParseLambda(parser) === false) {
@@ -2776,19 +2846,7 @@ const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
             break;
         }
 
-        if (parser.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parser.next(1).text)) {
-            result.paramList.push({type: undefined, typeModifier: undefined, identifier: parser.next()});
-            parser.commit(HighlightForToken.Parameter);
-            continue;
-        }
-
-        const type = parseType(parser);
-
-        const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
-
-        const identifier: TokenObject | undefined = parseIdentifier(parser, HighlightForToken.Parameter);
-
-        result.paramList.push({type: type, typeModifier: typeModifier, identifier: identifier});
+        result.paramList.push(parseLambdaParam(parser));
     }
 
     result.statBlock = expectStatBlock(parser);
@@ -2814,6 +2872,35 @@ function canParseLambda(parser: ParserState): boolean {
     }
 
     return false;
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function parseLambdaParam(parser: ParserState): Node_LambdaParam {
+    const rangeStart = parser.next();
+
+    if (parser.next(0).kind === TokenKind.Identifier && isCommaOrParensClose(parser.next(1).text)) {
+        const identifier = parser.next();
+        parser.commit(HighlightForToken.Parameter);
+        return {
+            nodeName: NodeName.LambdaParam,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            type: undefined,
+            typeModifier: undefined,
+            identifier: identifier
+        };
+    }
+
+    const type = parseType(parser);
+    const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
+    const identifier = parseIdentifier(parser, HighlightForToken.Parameter);
+
+    return {
+        nodeName: NodeName.LambdaParam,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        type: type,
+        typeModifier: typeModifier,
+        identifier: identifier
+    };
 }
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'

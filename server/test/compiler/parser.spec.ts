@@ -2,11 +2,21 @@ import {tokenize} from '../../src/compiler_tokenizer/tokenizer';
 import {parseAfterPreprocess} from '../../src/compiler_parser/parser';
 import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
+import {FileContentUnit} from '../inspectorUtils';
 
-function testParser(content: string, expectSuccess: boolean) {
+function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
     diagnostic.beginSession();
 
-    const uri = '/foo/bar.as';
+    let content: string;
+    let uri: string;
+    if (typeof file === 'string') {
+        content = file;
+        uri = 'file:///path/to/file.as';
+    } else {
+        content = file.content;
+        uri = file.uri;
+    }
+
     const rawTokens = tokenize(uri, content);
     const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
     parseAfterPreprocess(preprocessedTokens.preprocessedTokens);
@@ -22,12 +32,12 @@ function testParser(content: string, expectSuccess: boolean) {
     }
 }
 
-function expectSuccess(content: string) {
+function expectSuccess(content: string | FileContentUnit, uri: string = `file:///path/to/file.as`) {
     testParser(content, true);
 }
 
 // We also should test for failures to avoid an infinite loop.
-function expectFailure(content: string) {
+function expectFailure(content: string | FileContentUnit, uri: string = `file:///path/to/file.as`) {
     testParser(content, false);
 }
 
@@ -93,6 +103,26 @@ describe('Parser', () => {
 
     it('parses typedef declarations', () => {
         expectSuccess('typedef double real64;');
+    });
+
+    it('parses list factory declarations and initializer lists', () => {
+        expectSuccess({
+            uri: 'file:///path/to/as.predefined',
+            content: `
+            class int_array {
+                // List patterns require a semicolon after the closing brace.
+                int_array@ f(int &in) {repeat int};
+            }
+
+            class dictionary {
+                dictionary@ f(int &in) {repeat {string, ?}};
+            }
+
+            class grid {
+                grid@ f(int &in) {repeat {repeat_same int}};
+            }
+            `
+        });
     });
 
     it('parses namespace declarations', () => {

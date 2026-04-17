@@ -1,6 +1,4 @@
 import {
-    destructorFuncHead,
-    hasFuncReturnValue,
     Node_ArgList,
     Node_Assign,
     Node_Break,
@@ -28,9 +26,11 @@ import {
     Node_Interface,
     Node_InterfaceMethod,
     Node_Lambda,
+    Node_LambdaParam,
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Return,
     Node_Scope,
@@ -46,7 +46,8 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    ReferenceModifier
+    ReferenceModifier,
+    voidParameter
 } from '../compiler_parser/nodes';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
@@ -232,12 +233,12 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatEntityModifier(format);
     formatAccessModifier(format);
 
-    if (hasFuncReturnValue(funcNode.head)) {
+    if (funcNode.head.tag === 'function') {
         formatType(format, funcNode.head.returnType);
         if (funcNode.head.isRef) {
             formatTargetBy(format, '&', {condenseLeft: true});
         }
-    } else if (funcNode.head === destructorFuncHead) {
+    } else if (funcNode.head.tag === 'destructor') {
         formatTargetBy(format, '~', {condenseRight: true});
     }
 
@@ -513,7 +514,7 @@ function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
     });
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function formatParamList(format: FormatterState, paramList: Node_ParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -525,20 +526,7 @@ function formatParamList(format: FormatterState, paramList: Node_ParamList) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            formatType(format, paramList[i].type);
-            formatTypeModifier(format);
-
-            const identifier = paramList[i].identifier;
-            if (identifier !== undefined) {
-                formatTargetBy(format, identifier.text, {});
-            }
-
-            const defaultExpr = paramList[i].defaultExpr;
-            // TODO format void?
-            if (defaultExpr !== undefined && defaultExpr.nodeName !== NodeName.ExprVoid) {
-                formatTargetBy(format, '=', {});
-                formatExpr(format, defaultExpr);
-            }
+            formatParameter(format, paramList[i]);
         }
     });
 }
@@ -553,6 +541,30 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     format.popIndent();
 
     formatTargetBy(format, ')', {condenseLeft: true});
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function formatParameter(format: FormatterState, parameter: Node_Parameter) {
+    formatType(format, parameter.type);
+    formatTypeModifier(format);
+
+    if (parameter.identifier !== undefined) {
+        formatTargetBy(format, parameter.identifier.text, {});
+    }
+
+    if (parameter.isVariadic) {
+        formatTargetBy(format, '...', {});
+    }
+
+    const defaultExpr = parameter.defaultExpr;
+    if (defaultExpr !== undefined) {
+        formatTargetBy(format, '=', {});
+        if (defaultExpr === voidParameter) {
+            formatTargetBy(format, 'void', {});
+        } else {
+            formatExpr(format, defaultExpr);
+        }
+    }
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
@@ -1031,17 +1043,17 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
 
     format.pushIndent();
 
-    if (postOp.postOp === 1) {
+    if (postOp.postOpPattern === 1) {
         formatTargetBy(format, '.', {condenseSides: true});
 
         if (postOp.member !== undefined) {
-            if ('nodeName' in postOp.member) {
-                formatFuncCall(format, postOp.member);
+            if (postOp.member.access === 'method') {
+                formatFuncCall(format, postOp.member.node);
             } else {
-                formatTargetBy(format, postOp.member.text, {});
+                formatTargetBy(format, postOp.member.token.text, {});
             }
         }
-    } else if (postOp.postOp === 2) {
+    } else if (postOp.postOpPattern === 2) {
         formatBracketsBlock(format, () => {
             for (let i = 0; i < postOp.indexingList.length; i++) {
                 if (i > 0) {
@@ -1057,9 +1069,9 @@ function formatExprPostOp(format: FormatterState, postOp: Node_ExprPostOp) {
                 formatAssign(format, index.assign);
             }
         });
-    } else if (postOp.postOp === 3) {
+    } else if (postOp.postOpPattern === 3) {
         formatArgList(format, postOp.args);
-    } else if (postOp.postOp === 4) {
+    } else if (postOp.postOpPattern === 4) {
         formatTargetBy(format, postOp.operator, {condenseLeft: true});
     }
 
@@ -1093,7 +1105,7 @@ function formatCast(format: FormatterState, castNode: Node_Cast) {
     });
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
     formatMoveUntilNodeStart(format, lambdaNode);
 
@@ -1105,21 +1117,25 @@ function formatLambda(format: FormatterState, lambdaNode: Node_Lambda) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            const param = lambdaNode.paramList[i];
-            if (param.type !== undefined) {
-                formatType(format, param.type);
-            }
-
-            formatTypeModifier(format);
-
-            if (param.identifier !== undefined) {
-                formatTargetBy(format, param.identifier.text, {});
-            }
+            formatLambdaParam(format, lambdaNode.paramList[i]);
         }
     });
 
     if (lambdaNode.statBlock !== undefined) {
         formatStatBlock(format, lambdaNode.statBlock);
+    }
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function formatLambdaParam(format: FormatterState, param: Node_LambdaParam) {
+    if (param.type !== undefined) {
+        formatType(format, param.type);
+    }
+
+    formatTypeModifier(format);
+
+    if (param.identifier !== undefined) {
+        formatTargetBy(format, param.identifier.text, {});
     }
 }
 

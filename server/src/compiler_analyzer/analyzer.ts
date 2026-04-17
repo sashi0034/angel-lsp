@@ -1,9 +1,6 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
-    destructorFuncHead,
-    hasFuncReturnValue,
-    isMemberMethodInPostOp,
     Node_ArgList,
     Node_Assign,
     Node_Case,
@@ -27,8 +24,10 @@ import {
     Node_If,
     Node_InitList,
     Node_Lambda,
+    Node_LambdaParam,
     Node_Literal,
     NodeName,
+    Node_Parameter,
     Node_ParamList,
     ReferenceModifier,
     Node_Return,
@@ -41,9 +40,10 @@ import {
     Node_Using,
     Node_Var,
     Node_VarAccess,
-    Node_While
+    Node_While,
+    voidParameter
 } from '../compiler_parser/nodes';
-import {buildTemplateSignature} from '../compiler_parser/nodesUtils';
+import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -115,7 +115,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
-    if (func.head === destructorFuncHead) {
+    if (func.head.tag === 'destructor') {
         analyzeStatBlock(scope, func.statBlock);
         return;
     }
@@ -275,15 +275,20 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
     }
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
     for (const param of paramList) {
-        if (param.defaultExpr === undefined || param.defaultExpr.nodeName === NodeName.ExprVoid) {
-            continue;
-        }
-
-        analyzeExpr(scope, param.defaultExpr);
+        analyzeParameter(scope, param);
     }
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
+    if (parameter.defaultExpr === undefined || parameter.defaultExpr === voidParameter) {
+        return;
+    }
+
+    analyzeExpr(scope, parameter.defaultExpr);
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
@@ -379,7 +384,7 @@ function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
         return false;
     }
 
-    return hasFuncReturnValue(linkedNode.head) === false;
+    return linkedNode.head.tag !== 'function';
 }
 
 function completeAnalyzingType(
@@ -1116,9 +1121,9 @@ function analyzeExprPostOp(
     exprValue: ResolvedType,
     exprRange: TokenRange
 ) {
-    if (exprPostOp.postOp === 1) {
+    if (exprPostOp.postOpPattern === 1) {
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
-    } else if (exprPostOp.postOp === 2) {
+    } else if (exprPostOp.postOpPattern === 2) {
         return analyzeExprPostOp2(scope, exprPostOp, exprValue, exprRange);
     }
 }
@@ -1141,9 +1146,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
     });
 
     const member = exprPostOp.member;
-    const isMemberMethod = isMemberMethodInPostOp(member);
+    const isMemberMethod = member?.access === 'method';
 
-    const identifier = isMemberMethod ? member.identifier : member;
+    const identifier = isMemberMethod ? member.node.identifier : member?.token;
     if (identifier === undefined) {
         return undefined;
     }
@@ -1166,7 +1171,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateArguments = member.typeTemplates ?? [];
+        const callTemplateArguments = member.node.typeTemplates ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
@@ -1177,7 +1182,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return analyzeFunctionCall(
                 scope,
                 identifier,
-                member.argList,
+                member.node.argList,
                 instanceMember,
                 mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping)
             );
@@ -1193,7 +1198,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return analyzeFunctionCall(
                 scope,
                 identifier,
-                member.argList,
+                member.node.argList,
                 delegate,
                 mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping),
                 instanceMember
@@ -1241,12 +1246,12 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
     return castedType;
 }
 
-// **BNF** LAMBDA ::= 'function' '(' [[TYPE TYPEMODIFIER] [IDENTIFIER] {',' [TYPE TYPEMODIFIER] [IDENTIFIER]}] ')' STATBLOCK
+// **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 function analyzeLambda(scope: SymbolScope, lambda: Node_Lambda): ResolvedType | undefined {
     const parameterTypes: (ResolvedType | undefined)[] = [];
 
     for (const param of lambda.paramList) {
-        parameterTypes.push(param.type !== undefined ? analyzeType(scope, param.type) : undefined);
+        parameterTypes.push(analyzeLambdaParam(scope, param));
     }
 
     return ResolvedType.create({
@@ -1300,6 +1305,11 @@ function analyzeLambdaAsFuncdef(
     }
 
     return expectedType;
+}
+
+// **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): ResolvedType | undefined {
+    return param.type !== undefined ? analyzeType(scope, param.type) : undefined;
 }
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
