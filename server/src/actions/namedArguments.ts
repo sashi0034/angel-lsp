@@ -6,7 +6,7 @@ import * as lsp from 'vscode-languageserver';
 import {FunctionCallMarker} from '../compiler_analyzer/marker';
 
 export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: TextRange): CodeActionWrapper[] {
-    for (const info of globalScope.info.functionCall) {
+    for (const info of globalScope.markers.functionCall) {
         if (info.callerIdentifier.location.intersects(range)) {
             return [
                 {
@@ -37,7 +37,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     // -----------------------------------------------
 
     let calleeFunction: FunctionSymbol | undefined = undefined;
-    for (const reference of globalScope.info.reference) {
+    for (const reference of globalScope.markers.reference) {
         if (reference.toSymbol.isFunction() === false) {
             continue;
         }

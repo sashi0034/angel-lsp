@@ -12,8 +12,8 @@ export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Posi
     const signatures: SignatureInformation[] = [];
 
     // Since the nesting is deeper toward the end, iterate from the back.
-    for (let i = globalScope.info.functionCall.length - 1; i >= 0; i--) {
-        const info = globalScope.info.functionCall[i];
+    for (let i = globalScope.markers.functionCall.length - 1; i >= 0; i--) {
+        const info = globalScope.markers.functionCall[i];
 
         // Check if the caller location is at the cursor position in the scope.
         const shouldExtend = info.callerArgumentsNode.nodeRange.end.text == ','; // ',' indicates that user is still typing.

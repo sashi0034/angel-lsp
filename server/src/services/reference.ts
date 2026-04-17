@@ -28,7 +28,7 @@ export function provideReferences(
 function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken: TokenObject): TokenObject[] {
     const references = [];
 
-    for (const reference of globalScope.info.reference) {
+    for (const reference of globalScope.markers.reference) {
         // Add references that point to the target definition.
         if (reference.toSymbol.identifierToken.equals(toToken)) {
             references.push(reference.fromToken);
@@ -45,7 +45,7 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
 
     if (scope.isGlobalScope()) {
         // Add namespace access references from the autocomplete marker.
-        for (const info of scope.info.autocompleteNamespaceAccess) {
+        for (const info of scope.markers.autocompleteNamespaceAccess) {
             // This is a little rough, but we can reuse the autocomplete marker here.
             if (info.namespaceToken.text === toToken.text) {
                 references.push(info.namespaceToken);

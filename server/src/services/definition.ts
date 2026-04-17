@@ -31,7 +31,7 @@ function provideDefinitionInternal(globalScope: SymbolGlobalScope, caret: TextPo
     const filepath = globalScope.getContext().filepath;
 
     // Find the symbol that the caret is on in the reference list
-    for (const reference of globalScope.info.reference) {
+    for (const reference of globalScope.markers.reference) {
         const referencedLocation = reference.fromToken.location;
         if (referencedLocation.positionInRange(caret)) {
             // If the reference location is on the cursor, return the declaration
@@ -156,7 +156,7 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenAfterNamespace: TokenObject | undefined;
 
     // This is a little rough, but we can reuse the autocomplete marker here.
-    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+    for (const info of globalScope.markers.autocompleteNamespaceAccess) {
         if (info.namespaceToken.location.positionInRange(caret)) {
             accessScope = info.accessScope;
             tokenOnCaret = info.namespaceToken;

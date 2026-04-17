@@ -92,7 +92,7 @@ export type AnalyzeQueue = (() => void)[];
 
 /** @internal */
 export function pushScopeRegionMarker(targetScope: SymbolScope, tokenRange: TokenRange) {
-    getActiveGlobalScope().info.scopeRegion.push({
+    getActiveGlobalScope().markers.scopeRegion.push({
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
@@ -191,7 +191,7 @@ export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, 
     }
 
     if (resolvedType !== undefined) {
-        getActiveGlobalScope().info.autoTypeResolution.push({
+        getActiveGlobalScope().markers.autoTypeResolution.push({
             autoToken: identifier,
             resolvedType
         });
@@ -568,7 +568,7 @@ function evaluateScope(
 
         // Append an information for completion of the namespace to the scope.
         sideEffect.push(() => {
-            getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
+            getActiveGlobalScope().markers.autocompleteNamespaceAccess.push({
                 autocompleteLocation: extendTokenLocation(scopeToken, 0, 3), // scopeToken --> '::' --> <token> --> ...
                 accessScope: found,
                 namespaceToken: scopeToken,
@@ -1140,7 +1140,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         exprPostOp.nodeRange.start,
         exprPostOp.nodeRange.start.getNextOrSelf()
     );
-    getActiveGlobalScope().info.autocompleteInstanceMember.push({
+    getActiveGlobalScope().markers.autocompleteInstanceMember.push({
         autocompleteLocation: autocompleteLocation,
         targetType: exprValue.typeOrFunc
     });
@@ -1443,7 +1443,7 @@ function analyzeFunctionCall(
     calleeTemplateMapping: TemplateMapping | undefined,
     calleeDelegateVariable?: VariableSymbol
 ) {
-    getActiveGlobalScope().info.functionCall.push({
+    getActiveGlobalScope().markers.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,

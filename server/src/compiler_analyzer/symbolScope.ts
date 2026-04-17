@@ -45,7 +45,7 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface DetailScopeMarkers {
+interface HintMarkers {
     reference: ReferenceMarker[];
     scopeRegion: ScopeRegionMarker[];
     autocompleteInstanceMember: AutocompleteInstanceMemberMarker[];
@@ -58,7 +58,7 @@ interface GlobalScopeContext {
     filepath: string;
     builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
-    info: DetailScopeMarkers;
+    markers: HintMarkers;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -66,7 +66,7 @@ function createGlobalScopeContext(): GlobalScopeContext {
         filepath: '',
         builtinStringType: undefined,
         enumScopeList: [],
-        info: {
+        markers: {
             reference: [],
             scopeRegion: [],
             autocompleteInstanceMember: [],
@@ -467,12 +467,12 @@ export class SymbolGlobalScope extends SymbolScope {
         this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
-    public get info(): Readonly<DetailScopeMarkers> {
-        return this._context.info;
+    public get markers(): Readonly<HintMarkers> {
+        return this._context.markers;
     }
 
     public pushReference(info: ReferenceMarker) {
-        this._context.info.reference.push(info);
+        this._context.markers.reference.push(info);
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {

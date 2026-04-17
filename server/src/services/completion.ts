@@ -136,7 +136,7 @@ function getCompletionMembersInScope(
 }
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
-    for (const info of globalScope.info.autocompleteInstanceMember) {
+    for (const info of globalScope.markers.autocompleteInstanceMember) {
         // Check whether this higher-priority completion target is at the cursor position.
         const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {
@@ -148,7 +148,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         }
     }
 
-    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+    for (const info of globalScope.markers.autocompleteNamespaceAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
         const location = info.autocompleteLocation;
         if (location.positionInRange(caret)) {

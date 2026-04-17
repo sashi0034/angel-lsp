@@ -29,7 +29,7 @@ export function findScopeContainingPosition(globalScope: SymbolGlobalScope, care
     const path = globalScope.getContext().filepath;
 
     let found: ScopeRegionMarker | undefined = undefined;
-    for (const info of globalScope.info.scopeRegion) {
+    for (const info of globalScope.markers.scopeRegion) {
         const location = info.boundingLocation;
         if (location.path !== path) {
             continue;

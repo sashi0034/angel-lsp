@@ -17,14 +17,14 @@ export function provideInlayHint(globalScope: SymbolGlobalScope, location: TextL
 
 function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const info of globalScope.info.functionCall) {
+    for (const info of globalScope.markers.functionCall) {
         const callerIdentifier = info.callerIdentifier;
         if (location.intersects(callerIdentifier.location) === false) {
             continue;
         }
 
         // FIXME: Optimize the search
-        const callingReference = globalScope.info.reference.find(
+        const callingReference = globalScope.markers.reference.find(
             reference => reference.fromToken === info.callerIdentifier
         );
         if (callingReference === undefined) {
@@ -70,7 +70,7 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
 
 function inlayHintAutoType(globalScope: SymbolGlobalScope, location: TextLocation) {
     const result: lsp.InlayHint[] = [];
-    for (const info of globalScope.info.autoTypeResolution) {
+    for (const info of globalScope.markers.autoTypeResolution) {
         // TODO: Check with location?
 
         result.push({
