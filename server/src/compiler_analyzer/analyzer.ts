@@ -41,7 +41,8 @@ import {
     Node_Using,
     Node_Var,
     Node_VarAccess,
-    Node_While
+    Node_While,
+    voidExpression
 } from '../compiler_parser/nodes';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {
@@ -278,7 +279,7 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
 // **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
     for (const param of paramList) {
-        if (param.defaultExpr === undefined || param.defaultExpr.nodeName === NodeName.ExprVoid) {
+        if (param.defaultExpr === undefined || param.defaultExpr === voidExpression) {
             continue;
         }
 

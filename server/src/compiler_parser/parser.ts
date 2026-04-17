@@ -30,7 +30,6 @@ import {
     Node_ExprTerm1,
     Node_ExprTerm2,
     Node_ExprValue,
-    Node_ExprVoid,
     Node_For,
     Node_ForEach,
     VariableInForEach,
@@ -70,7 +69,9 @@ import {
     IdentifierAndInitializer,
     ReferenceModifier,
     InOutModifier,
-    RepeatModifier
+    RepeatModifier,
+    VoidExpression,
+    voidExpression
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -1441,7 +1442,7 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
             parser.commit(HighlightForToken.Variable);
         }
 
-        let defaultExpr: Node_Expr | Node_ExprVoid | undefined = undefined;
+        let defaultExpr: Node_Expr | VoidExpression | undefined = undefined;
         if (parser.next().text === '=') {
             if (isVariadic) {
                 parser.error('Variadic functions cannot have a default expression.');
@@ -2468,14 +2469,10 @@ function expectExpr(parser: ParserState): Node_Expr | undefined {
 }
 
 // for optional parameters
-function expectExprOrVoid(parser: ParserState): Node_Expr | Node_ExprVoid | undefined {
+function expectExprOrVoid(parser: ParserState): Node_Expr | VoidExpression | undefined {
     if (parser.next().text === 'void') {
-        const rangeStart = parser.next();
         parser.commit(HighlightForToken.Keyword);
-        return {
-            nodeName: NodeName.ExprVoid,
-            nodeRange: new TokenRange(rangeStart, parser.prev())
-        };
+        return voidExpression;
     }
 
     const expr = parseExpr(parser);

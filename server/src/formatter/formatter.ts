@@ -46,7 +46,8 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    ReferenceModifier
+    ReferenceModifier,
+    voidExpression
 } from '../compiler_parser/nodes';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
@@ -534,10 +535,13 @@ function formatParamList(format: FormatterState, paramList: Node_ParamList) {
             }
 
             const defaultExpr = paramList[i].defaultExpr;
-            // TODO format void?
-            if (defaultExpr !== undefined && defaultExpr.nodeName !== NodeName.ExprVoid) {
+            if (defaultExpr !== undefined) {
                 formatTargetBy(format, '=', {});
-                formatExpr(format, defaultExpr);
+                if (defaultExpr === voidExpression) {
+                    formatTargetBy(format, 'void', {});
+                } else {
+                    formatExpr(format, defaultExpr);
+                }
             }
         }
     });

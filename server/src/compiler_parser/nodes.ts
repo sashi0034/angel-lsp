@@ -34,7 +34,6 @@ export interface FunctionAttribute {
 }
 
 export enum NodeName {
-    NodeName = 'NodeName',
     Namespace = 'Namespace',
     Using = 'Using',
     Enum = 'Enum',
@@ -51,15 +50,10 @@ export enum NodeName {
     Mixin = 'Mixin',
     InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
-    ParamList = 'ParamList',
-    TypeModifier = 'TypeModifier',
     Type = 'Type',
     InitList = 'InitList',
     Scope = 'Scope',
     DataType = 'DataType',
-    PrimitiveType = 'PrimitiveType',
-    FuncAttr = 'FuncAttr',
-    Statement = 'Statement',
     Switch = 'Switch',
     Break = 'Break',
     For = 'For',
@@ -74,10 +68,7 @@ export enum NodeName {
     Case = 'Case',
     Expr = 'Expr',
     ExprTerm = 'ExprTerm',
-    ExprValue = 'ExprValue',
-    ExprVoid = 'ExprVoid',
     ConstructorCall = 'ConstructorCall',
-    ExprPreOp = 'ExprPreOp',
     ExprPostOp = 'ExprPostOp',
     Cast = 'Cast',
     Lambda = 'Lambda',
@@ -86,19 +77,7 @@ export enum NodeName {
     VarAccess = 'VarAccess',
     ArgList = 'ArgList',
     Assign = 'Assign',
-    Condition = 'Condition',
-    ExprOp = 'ExprOp',
-    BitOp = 'BitOp',
-    MathOp = 'MathOp',
-    CompOp = 'CompOp',
-    LogicOp = 'LogicOp',
-    AssignOp = 'AssignOp',
-    Identifier = 'Identifier',
-    Number = 'Number',
-    String = 'String',
-    Bits = 'Bits',
-    Comment = 'Comment',
-    Whitespace = 'Whitespace'
+    Condition = 'Condition'
 }
 
 export interface NodeBase {
@@ -334,9 +313,12 @@ interface FunctionParameter {
     readonly type: Node_Type;
     readonly modifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
-    readonly defaultExpr: Node_Expr | Node_ExprVoid | undefined;
+    readonly defaultExpr: Node_Expr | VoidExpression | undefined;
     readonly isVariadic: boolean;
 }
+
+export const voidExpression = Symbol();
+export type VoidExpression = typeof voidExpression;
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 
@@ -483,11 +465,6 @@ export interface Node_Expr extends NodeBase {
     readonly nodeName: NodeName.Expr;
     readonly head: Node_ExprTerm;
     readonly tail: OperatorAndExpr | undefined;
-}
-
-// EXPRVOID      ::= 'void'
-export interface Node_ExprVoid extends NodeBase {
-    readonly nodeName: NodeName.ExprVoid;
 }
 
 export interface OperatorAndExpr {
