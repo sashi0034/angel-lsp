@@ -27,8 +27,8 @@ import {
 import {
     AutoTypeResolutionMarker,
     FunctionCallMarker,
-    AutocompleteInstanceMemberMarker,
-    AutocompleteNamespaceAccessMarker,
+    InstanceAccessMarker,
+    ScopeAccessMarker,
     ScopeRegionMarker,
     ReferenceMarker
 } from './marker';
@@ -48,8 +48,8 @@ export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 interface HintMarkers {
     reference: ReferenceMarker[];
     scopeRegion: ScopeRegionMarker[];
-    autocompleteInstanceMember: AutocompleteInstanceMemberMarker[];
-    autocompleteNamespaceAccess: AutocompleteNamespaceAccessMarker[];
+    instanceAccess: InstanceAccessMarker[];
+    scopeAccess: ScopeAccessMarker[];
     functionCall: FunctionCallMarker[];
     autoTypeResolution: AutoTypeResolutionMarker[];
 }
@@ -69,8 +69,8 @@ function createGlobalScopeContext(): GlobalScopeContext {
         markers: {
             reference: [],
             scopeRegion: [],
-            autocompleteInstanceMember: [],
-            autocompleteNamespaceAccess: [],
+            instanceAccess: [],
+            scopeAccess: [],
             functionCall: [],
             autoTypeResolution: []
         }

@@ -7,7 +7,11 @@ import {
     SymbolGlobalScope,
     SymbolScope
 } from '../compiler_analyzer/symbolScope';
-import {AutocompleteInstanceMemberMarker} from '../compiler_analyzer/marker';
+import {
+    getInstanceAccessMarkerLocation,
+    getScopeAccessMarkerLocation,
+    InstanceAccessMarker
+} from '../compiler_analyzer/marker';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
@@ -136,9 +140,9 @@ function getCompletionMembersInScope(
 }
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
-    for (const info of globalScope.markers.autocompleteInstanceMember) {
+    for (const info of globalScope.markers.instanceAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
-        const location = info.autocompleteLocation;
+        const location = getInstanceAccessMarkerLocation(info);
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
             const result = autocompleteInstanceMember(globalScope, caretScope, info);
@@ -148,15 +152,15 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         }
     }
 
-    for (const info of globalScope.markers.autocompleteNamespaceAccess) {
+    for (const info of globalScope.markers.scopeAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
-        const location = info.autocompleteLocation;
+        const location = getScopeAccessMarkerLocation(info);
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
-            const result = getCompletionSymbolsInScope(info.accessScope, false);
+            const result = getCompletionSymbolsInScope(info.targetScope, false);
             if (result !== undefined && result.length > 0) {
-                if (info.accessScope.linkedNode?.nodeName !== NodeName.Enum) {
-                    result.push(...hoistEnumParentScope(globalScope, info.accessScope.scopePath));
+                if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
+                    result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
                 }
 
                 return result;
@@ -170,7 +174,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 function autocompleteInstanceMember(
     globalScope: SymbolScope,
     caretScope: SymbolScope,
-    completion: AutocompleteInstanceMemberMarker
+    completion: InstanceAccessMarker
 ) {
     // Find the scope that owns the type being completed.
     if (completion.targetType.membersScopePath === undefined) {

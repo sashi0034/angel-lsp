@@ -80,7 +80,6 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from './operatorCall';
-import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {checkForEachIterator} from './foreachStatement';
@@ -555,23 +554,21 @@ function evaluateScope(
         const found = accessScope.lookupScope(scopeToken.text);
         if (found === undefined || found.isFunctionHolderScope()) {
             sideEffect.push(() => {
-                analyzerDiagnostic.error(
-                    scopeNode.scopeList[accessIndex].location,
-                    `Undefined scope: ${scopeNode.scopeList[accessIndex].text}`
-                );
+                analyzerDiagnostic.error(scopeToken.location, `Undefined scope: ${scopeToken.text}`);
             });
 
             break;
         }
 
         accessScope = found;
+        const currentAccessIndex = accessIndex;
 
-        // Append an information for completion of the namespace to the scope.
+        // Record this qualifier so services can resolve, reference, or complete the scope access.
         sideEffect.push(() => {
-            getActiveGlobalScope().markers.autocompleteNamespaceAccess.push({
-                autocompleteLocation: extendTokenLocation(scopeToken, 0, 3), // scopeToken --> '::' --> <token> --> ...
-                accessScope: found,
-                namespaceToken: scopeToken,
+            getActiveGlobalScope().markers.scopeAccess.push({
+                scopeAccessNode: scopeNode,
+                listIndex: currentAccessIndex,
+                targetScope: found,
                 tokenAfterNamespaces: tokenAfterNamespaces
             });
         });
@@ -1135,13 +1132,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         return undefined;
     }
 
-    // Append an information for autocomplete of class members.
-    const autocompleteLocation = getBoundingLocationBetween(
-        exprPostOp.nodeRange.start,
-        exprPostOp.nodeRange.start.getNextOrSelf()
-    );
-    getActiveGlobalScope().markers.autocompleteInstanceMember.push({
-        autocompleteLocation: autocompleteLocation,
+    // Record this member access so services can complete instance members.
+    getActiveGlobalScope().markers.instanceAccess.push({
+        instanceAccessNode: exprPostOp,
         targetType: exprValue.typeOrFunc
     });
 

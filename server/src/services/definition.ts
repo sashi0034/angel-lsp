@@ -3,6 +3,7 @@ import {Position} from 'vscode-languageserver';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {getScopeAccessMarkerToken} from '../compiler_analyzer/marker';
 
 /**
  * Search for the definition of the symbol at the cursor position.
@@ -155,11 +156,12 @@ function findNamespaceTokenOnCaret(globalScope: SymbolGlobalScope, caret: Positi
     let tokenOnCaret: TokenObject | undefined;
     let tokenAfterNamespace: TokenObject | undefined;
 
-    // This is a little rough, but we can reuse the autocomplete marker here.
-    for (const info of globalScope.markers.autocompleteNamespaceAccess) {
-        if (info.namespaceToken.location.positionInRange(caret)) {
-            accessScope = info.accessScope;
-            tokenOnCaret = info.namespaceToken;
+    // Use scope access markers to find the qualifier token under the caret.
+    for (const info of globalScope.markers.scopeAccess) {
+        const namespaceToken = getScopeAccessMarkerToken(info);
+        if (namespaceToken.location.positionInRange(caret)) {
+            accessScope = info.targetScope;
+            tokenOnCaret = namespaceToken;
             tokenAfterNamespace = info.tokenAfterNamespaces;
             break;
         }

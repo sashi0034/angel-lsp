@@ -1,9 +1,11 @@
-import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
-import {SymbolScope} from './symbolScope';
-import {TextLocation} from '../compiler_tokenizer/textLocation';
-import {ResolvedType, TemplateMapping} from './resolvedType';
-import {Node_ArgList} from '../compiler_parser/nodes';
+import type {TokenObject} from '../compiler_tokenizer/tokenObject';
+import type {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
+import type {SymbolScope} from './symbolScope';
+import type {TextLocation} from '../compiler_tokenizer/textLocation';
+import type {ResolvedType, TemplateMapping} from './resolvedType';
+import type {Node_ArgList, Node_ExprPostOp1, Node_Scope} from '../compiler_parser/nodes';
+import {getBoundingLocationBetween} from '../compiler_tokenizer/tokenRange';
+import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 
 /**
  * Marker for a symbol that references a symbol declared elsewhere.
@@ -23,24 +25,41 @@ export interface ScopeRegionMarker {
 }
 
 /**
- * Represents an autocomplete target for instance members.
- * e.g., suggesting methods or properties of an instance of a class.
+ * Records an instance member access.
+ * e.g., `object.member`, where the target type is used to resolve member completions and references.
  */
-export interface AutocompleteInstanceMemberMarker {
-    readonly autocompleteLocation: TextLocation;
+export interface InstanceAccessMarker {
+    readonly instanceAccessNode: Node_ExprPostOp1;
     readonly targetType: TypeSymbol;
 }
 
+export function getInstanceAccessMarkerLocation(marker: InstanceAccessMarker): TextLocation {
+    const accessToken = marker.instanceAccessNode.nodeRange.start;
+    return getBoundingLocationBetween(
+        accessToken, // '.'
+        accessToken.getNextOrSelf() // IDENTIFIER
+    );
+}
+
 /**
- * Represents an autocomplete target for namespace symbols.
- * This is generated for each namespace token, i.e., `Outer::Inner::$C$` will generate two markers.
- * e.g., suggesting possible completions for `Outer::Inner::$C$`, where `$C$` is the caret.
+ * Records a scope access through namespace or type qualifiers.
+ * This is generated for each qualifier token, i.e., `Outer::Inner::$C$` will generate two markers.
+ * e.g., resolving or completing symbols after `Outer::Inner::`, where `$C$` is the caret.
  */
-export interface AutocompleteNamespaceAccessMarker {
-    readonly autocompleteLocation: TextLocation;
-    readonly accessScope: SymbolScope;
-    readonly namespaceToken: TokenObject; // The namespace qualifier token.
-    readonly tokenAfterNamespaces: TokenObject | undefined; // The token after the namespace qualifiers. This is outside the Node_Scope.
+export interface ScopeAccessMarker {
+    readonly scopeAccessNode: Node_Scope;
+    readonly listIndex: number;
+    readonly targetScope: SymbolScope;
+    readonly tokenAfterNamespaces: TokenObject | undefined; // TODO: Rename to tokenAfterScopeAccess
+}
+
+export function getScopeAccessMarkerToken(marker: ScopeAccessMarker): TokenObject {
+    return marker.scopeAccessNode.scopeList[marker.listIndex];
+}
+
+export function getScopeAccessMarkerLocation(marker: ScopeAccessMarker): TextLocation {
+    // <token[0]> --> '::' --> <token[2]> --> ...
+    return extendTokenLocation(getScopeAccessMarkerToken(marker), 0, 3);
 }
 
 /**
