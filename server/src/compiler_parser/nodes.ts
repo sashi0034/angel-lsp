@@ -50,6 +50,7 @@ export enum NodeName {
     Mixin = 'Mixin',
     InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
+    Parameter = 'Parameter',
     Type = 'Type',
     InitList = 'InitList',
     Scope = 'Scope',
@@ -306,19 +307,21 @@ export interface Node_StatBlock extends NodeBase {
     readonly statementList: (Node_Var | Node_Statement | Node_Using)[];
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
-export type Node_ParamList = FunctionParameter[];
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
+export type Node_ParamList = Node_Parameter[];
 
-interface FunctionParameter {
+export const voidParameter = Symbol();
+export type VoidParameter = typeof voidParameter;
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+export interface Node_Parameter extends NodeBase {
+    readonly nodeName: NodeName.Parameter;
     readonly type: Node_Type;
     readonly modifier: InOutModifier | undefined;
     readonly identifier: TokenObject | undefined;
-    readonly defaultExpr: Node_Expr | VoidExpression | undefined;
+    readonly defaultExpr: Node_Expr | VoidParameter | undefined;
     readonly isVariadic: boolean;
 }
-
-export const voidExpression = Symbol();
-export type VoidExpression = typeof voidExpression;
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
 // n/a

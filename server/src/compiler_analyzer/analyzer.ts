@@ -29,6 +29,7 @@ import {
     Node_Lambda,
     Node_Literal,
     NodeName,
+    Node_Parameter,
     Node_ParamList,
     ReferenceModifier,
     Node_Return,
@@ -42,7 +43,7 @@ import {
     Node_Var,
     Node_VarAccess,
     Node_While,
-    voidExpression
+    voidParameter
 } from '../compiler_parser/nodes';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {
@@ -276,15 +277,20 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
     }
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
     for (const param of paramList) {
-        if (param.defaultExpr === undefined || param.defaultExpr === voidExpression) {
-            continue;
-        }
-
-        analyzeExpr(scope, param.defaultExpr);
+        analyzeParameter(scope, param);
     }
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
+    if (parameter.defaultExpr === undefined || parameter.defaultExpr === voidParameter) {
+        return;
+    }
+
+    analyzeExpr(scope, parameter.defaultExpr);
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]

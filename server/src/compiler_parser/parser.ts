@@ -48,6 +48,7 @@ import {
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Return,
     Node_Scope,
@@ -70,8 +71,8 @@ import {
     ReferenceModifier,
     InOutModifier,
     RepeatModifier,
-    VoidExpression,
-    voidExpression
+    VoidParameter,
+    voidParameter
 } from './nodes';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -1393,7 +1394,7 @@ function expectStatBlock(parser: ParserState): Node_StatBlock | undefined {
     return statBlock;
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function parseParamList(parser: ParserState): Node_ParamList | undefined {
     if (parser.next().text !== '(') {
         return undefined;
@@ -1407,8 +1408,8 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
         return [];
     }
 
-    const paramList: Node_ParamList = [];
     let isVariadic = false;
+    const paramList: Node_ParamList = [];
 
     while (parser.isEnd() === false) {
         if (expectCommaOrParensClose(parser, paramList.length > 0) === BreakOrThrough.Break) {
@@ -1419,46 +1420,20 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
             parser.error('Variadic ellipses must be the last parameter.');
         }
 
-        // If this is not a type, it is probably a variable followed by a constructor call.
-        const type = parseType(parser);
-        if (type === undefined) {
+        const param = parseParameter(parser, isVariadic);
+        if (param === undefined) {
             // If this is not a valid identifier, it can never become a valid constructor call.
             if (parser.next().kind === TokenKind.String || parser.next().kind === TokenKind.Number) {
                 return undefined;
             }
 
+            // If this is not a type, it is probably a variable followed by a constructor call.
             parser.step();
             continue;
         }
 
-        const typeModifier = parseTypeModifier(parser);
-
-        let identifier: TokenObject | undefined = undefined;
-        if (parser.next().text === '...') {
-            parser.commit(HighlightForToken.Operator);
-            isVariadic = true;
-        } else if (parser.next().kind === TokenKind.Identifier) {
-            identifier = parser.next();
-            parser.commit(HighlightForToken.Variable);
-        }
-
-        let defaultExpr: Node_Expr | VoidExpression | undefined = undefined;
-        if (parser.next().text === '=') {
-            if (isVariadic) {
-                parser.error('Variadic functions cannot have a default expression.');
-            }
-
-            parser.commit(HighlightForToken.Operator);
-            defaultExpr = expectExprOrVoid(parser);
-        }
-
-        paramList.push({
-            type: type,
-            modifier: typeModifier,
-            identifier: identifier,
-            defaultExpr: defaultExpr,
-            isVariadic: isVariadic
-        });
+        isVariadic = isVariadic || param.isVariadic;
+        paramList.push(param);
     }
 
     return paramList;
@@ -1534,6 +1509,50 @@ function parseCloseOperator(parser: ParserState, closeOp: string): BreakOrThroug
     }
 
     return BreakOrThrough.Through;
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolean): Node_Parameter | undefined {
+    const rangeStart = parser.next();
+
+    const type = parseType(parser);
+    if (type === undefined) {
+        return undefined;
+    }
+
+    const typeModifier = parseTypeModifier(parser);
+
+    let identifier: TokenObject | undefined = undefined;
+    if (parser.next().kind === TokenKind.Identifier) {
+        identifier = parser.next();
+        parser.commit(HighlightForToken.Variable);
+    }
+
+    let isVariadic = false;
+    if (parser.next().text === '...') {
+        parser.commit(HighlightForToken.Operator);
+        isVariadic = true;
+    }
+
+    let defaultExpr: Node_Expr | VoidParameter | undefined = undefined;
+    if (parser.next().text === '=') {
+        if (isPreviousParameterVariadic || isVariadic) {
+            parser.error('Variadic functions cannot have a default expression.');
+        }
+
+        parser.commit(HighlightForToken.Operator);
+        defaultExpr = expectExprOrVoid(parser);
+    }
+
+    return {
+        nodeName: NodeName.Parameter,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        type: type,
+        modifier: typeModifier,
+        identifier: identifier,
+        defaultExpr: defaultExpr,
+        isVariadic: isVariadic
+    };
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
@@ -2469,10 +2488,10 @@ function expectExpr(parser: ParserState): Node_Expr | undefined {
 }
 
 // for optional parameters
-function expectExprOrVoid(parser: ParserState): Node_Expr | VoidExpression | undefined {
+function expectExprOrVoid(parser: ParserState): Node_Expr | VoidParameter | undefined {
     if (parser.next().text === 'void') {
         parser.commit(HighlightForToken.Keyword);
-        return voidExpression;
+        return voidParameter;
     }
 
     const expr = parseExpr(parser);

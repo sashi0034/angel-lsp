@@ -18,6 +18,7 @@ import {
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Script,
     Node_Type,
@@ -721,7 +722,7 @@ function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_Interfa
 
 // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function hoistParamList(
     functionHolderScope: SymbolScope,
     functionScope: SymbolScope | undefined,
@@ -731,12 +732,7 @@ function hoistParamList(
 
     const resolvedTypes: (ResolvedType | undefined)[] = [];
     for (const param of paramList) {
-        const type = analyzeType(functionScope ?? functionHolderScope, param.type);
-        if (type === undefined) {
-            resolvedTypes.push(undefined);
-        } else {
-            resolvedTypes.push(type);
-        }
+        resolvedTypes.push(hoistParameter(functionScope ?? functionHolderScope, param));
     }
 
     for (let i = 0; i < paramList.length; i++) {
@@ -757,6 +753,11 @@ function hoistParamList(
     }
 
     return resolvedTypes;
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function hoistParameter(scope: SymbolScope, parameter: Node_Parameter): ResolvedType | undefined {
+    return analyzeType(scope, parameter.type);
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]

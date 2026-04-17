@@ -31,6 +31,7 @@ import {
     Node_Mixin,
     NodeName,
     Node_Namespace,
+    Node_Parameter,
     Node_ParamList,
     Node_Return,
     Node_Scope,
@@ -47,7 +48,7 @@ import {
     Node_VirtualProp,
     Node_While,
     ReferenceModifier,
-    voidExpression
+    voidParameter
 } from '../compiler_parser/nodes';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
@@ -514,7 +515,7 @@ function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
     });
 }
 
-// **BNF** PARAMLIST ::= '(' ['void' | (TYPE TYPEMODIFIER [IDENTIFIER] ['=' [EXPR | 'void']] {',' TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' [EXPR | 'void'])]})] ')'
+// **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function formatParamList(format: FormatterState, paramList: Node_ParamList) {
     formatParenthesesBlock(format, () => {
         if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
@@ -526,23 +527,7 @@ function formatParamList(format: FormatterState, paramList: Node_ParamList) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            formatType(format, paramList[i].type);
-            formatTypeModifier(format);
-
-            const identifier = paramList[i].identifier;
-            if (identifier !== undefined) {
-                formatTargetBy(format, identifier.text, {});
-            }
-
-            const defaultExpr = paramList[i].defaultExpr;
-            if (defaultExpr !== undefined) {
-                formatTargetBy(format, '=', {});
-                if (defaultExpr === voidExpression) {
-                    formatTargetBy(format, 'void', {});
-                } else {
-                    formatExpr(format, defaultExpr);
-                }
-            }
+            formatParameter(format, paramList[i]);
         }
     });
 }
@@ -557,6 +542,30 @@ function formatParenthesesBlock(format: FormatterState, action: () => void, cond
     format.popIndent();
 
     formatTargetBy(format, ')', {condenseLeft: true});
+}
+
+// **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+function formatParameter(format: FormatterState, parameter: Node_Parameter) {
+    formatType(format, parameter.type);
+    formatTypeModifier(format);
+
+    if (parameter.identifier !== undefined) {
+        formatTargetBy(format, parameter.identifier.text, {});
+    }
+
+    if (parameter.isVariadic) {
+        formatTargetBy(format, '...', {});
+    }
+
+    const defaultExpr = parameter.defaultExpr;
+    if (defaultExpr !== undefined) {
+        formatTargetBy(format, '=', {});
+        if (defaultExpr === voidParameter) {
+            formatTargetBy(format, 'void', {});
+        } else {
+            formatExpr(format, defaultExpr);
+        }
+    }
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
