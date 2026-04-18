@@ -69,13 +69,13 @@ export class TextPosition implements lsp.Position {
     /**
      * Returns a new position moved by the specified amount.
      */
-    public movedBy(line: number, count: number): TextPosition {
+    public movedBy(line: number, character: number): TextPosition {
         let newLine = this.line + line;
         if (newLine < 0) {
             newLine = 0;
         }
 
-        let newCharacter = this.character + count;
+        let newCharacter = this.character + character;
         if (newCharacter < 0) {
             newCharacter = 0;
         }
