@@ -28,12 +28,12 @@ export interface CompletionItemWrapper {
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletion(
-    globalScope: SymbolGlobalScope,
+    preprocessedTokens: TokenObject[],
     ast: Node_Script,
-    tokens: TokenObject[],
+    globalScope: SymbolGlobalScope,
     caret: TextPosition
 ): CompletionItemWrapper[] {
-    if (isCaretInDeclarationPart(ast, caret)) {
+    if (isCaretInDeclarationPart(preprocessedTokens, ast, caret)) {
         return [];
     }
 

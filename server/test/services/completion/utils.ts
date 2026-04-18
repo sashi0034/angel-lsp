@@ -41,9 +41,9 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
         const expected = expectedList[i].sort().map(concatIndexAndItem).join(', ');
 
         const completions = provideCompletion(
-            globalScope,
-            record.ast,
             record.preprocessedOutput.preprocessedTokens,
+            record.ast,
+            globalScope,
             target.position
         )
             .map(c => c.item.label)

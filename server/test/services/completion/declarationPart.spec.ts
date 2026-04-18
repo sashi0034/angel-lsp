@@ -8,11 +8,21 @@ describe('completion/declarationPart', () => {
             `
             struct MyObj { }
             
-            void f() {
+            void f1() {
                 MyObj $C0$
             }
+
+            void f2() {
+                int $C1$
+            }
+
+            void f3() {
+                auto@ $C2$
+            }
         `,
-            /* $C0$ */ []
+            /* $C0$ */ [],
+            /* $C1$ */ [],
+            /* $C2$ */ []
         );
     });
 

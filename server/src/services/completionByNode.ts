@@ -2,8 +2,13 @@ import {Node_Script, NodeBase, NodeName} from '../compiler_parser/nodes';
 import {findNearestNode} from '../compiler_parser/nearestNode';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {findNearestToken} from './utils';
 
-export function isCaretInDeclarationPart(ast: Node_Script, caret: TextPosition): boolean {
+export function isCaretInDeclarationPart(
+    preprocessedTokens: TokenObject[],
+    ast: Node_Script,
+    caret: TextPosition
+): boolean {
     const nearestNodeList = findNearestNode(ast, caret);
     const nearestNode = nearestNodeList.at(-1);
     if (nearestNode?.containingNode !== undefined) {
@@ -14,7 +19,19 @@ export function isCaretInDeclarationPart(ast: Node_Script, caret: TextPosition):
         return detectDeclarationPartByNode(nearestNode.precedingNode, caret);
     }
 
-    return false;
+    // Built-in types may not produce parser nodes, so fall back to token-based detection.
+    // e.g., `auto@ $C0$`
+    return detectDeclarationPartByBuiltinTypeToken(preprocessedTokens, caret);
+}
+
+function detectDeclarationPartByBuiltinTypeToken(preprocessedTokens: TokenObject[], caret: TextPosition): boolean {
+    const precedingToken = findNearestToken(preprocessedTokens, caret).precedingToken;
+    const candidateToken = rewindReferenceModifier(precedingToken);
+    return (
+        candidateToken !== undefined &&
+        candidateToken.isReservedToken() &&
+        (candidateToken.property.isPrimitiveType || candidateToken.text === 'auto')
+    );
 }
 
 function detectDeclarationPartByNode(node: NodeBase, caret: TextPosition): boolean {
@@ -93,6 +110,18 @@ function isCaretInRange(start: TextPosition, end: TextPosition | undefined, care
 
 //     return token;
 // }
+
+function rewindReferenceModifier(token: TokenObject | undefined): TokenObject | undefined {
+    if (token?.text === '@') {
+        token = token.prev;
+    }
+
+    if (token?.text === 'const') {
+        token = token.prev;
+    }
+
+    return token;
+}
 
 function skipTypeModifiers(token: TokenObject | undefined): TokenObject | undefined {
     const typeModifiers = ['&', 'in', 'out', 'inout'];
