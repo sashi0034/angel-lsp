@@ -2,28 +2,28 @@ import {Node_Script, NodeBase} from './nodes';
 import {getNodeChildren} from './nodeChildren';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 
-type NearestNode =
-    | {
-          // Whether the caret is inside a child node.
-          hasChild: true;
-          containingNode: NodeBase;
-      }
-    | {
-          // When the caret is not on a node.
-          hasChild: false;
-          precedingNode: NodeBase | undefined;
-          containingNode: NodeBase | undefined;
-          followingNode: NodeBase | undefined;
-      };
+type NearestNode = {
+    precedingNode: NodeBase | undefined;
+    containingNode: NodeBase | undefined;
+    followingNode: NodeBase | undefined;
+};
 
 export function findNearestNode(node: NodeBase | Node_Script, caret: TextPosition): NearestNode[] {
     const children = [...getChildren(node)].sort(compareNodePosition);
     let precedingNode: NodeBase | undefined;
 
-    for (const child of children) {
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i];
         const childLocation = child.nodeRange.getBoundingLocation();
         if (childLocation.positionInRange(caret)) {
-            return [{hasChild: true, containingNode: child}, ...findNearestNode(child, caret)];
+            return [
+                {
+                    precedingNode,
+                    containingNode: child,
+                    followingNode: children[i + 1]
+                },
+                ...findNearestNode(child, caret)
+            ];
         }
 
         if (childLocation.end.isLessThan(caret)) {
@@ -33,9 +33,8 @@ export function findNearestNode(node: NodeBase | Node_Script, caret: TextPositio
 
         return [
             {
-                hasChild: false,
                 precedingNode,
-                containingNode: getContainingNode(node, caret),
+                containingNode: undefined,
                 followingNode: child
             }
         ];
@@ -43,9 +42,8 @@ export function findNearestNode(node: NodeBase | Node_Script, caret: TextPositio
 
     return [
         {
-            hasChild: false,
             precedingNode,
-            containingNode: getContainingNode(node, caret),
+            containingNode: undefined,
             followingNode: undefined
         }
     ];
@@ -53,14 +51,6 @@ export function findNearestNode(node: NodeBase | Node_Script, caret: TextPositio
 
 function getChildren(node: NodeBase | Node_Script): NodeBase[] {
     return Array.isArray(node) ? node : getNodeChildren(node);
-}
-
-function getContainingNode(node: NodeBase | Node_Script, caret: TextPosition): NodeBase | undefined {
-    if (Array.isArray(node)) {
-        return undefined;
-    }
-
-    return node.nodeRange.getBoundingLocation().positionInRange(caret) ? node : undefined;
 }
 
 function compareNodePosition(lhs: NodeBase, rhs: NodeBase): number {

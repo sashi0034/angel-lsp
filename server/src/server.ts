@@ -409,13 +409,19 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
 
     s_inspector.flushRecord(uri);
 
-    const globalScope = s_inspector.getRecord(uri).analyzerScope;
+    const record = s_inspector.getRecord(uri);
+    const globalScope = record.analyzerScope;
     if (globalScope === undefined) {
         return [];
     }
 
     // Collect completion candidates for symbols.
-    const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+    const items = provideCompletion(
+        globalScope.globalScope,
+        record.ast,
+        record.preprocessedOutput.preprocessedTokens,
+        TextPosition.create(params.position)
+    );
 
     items.forEach((item, index) => {
         // Attach the index to the data field so that we can resolve the item later.

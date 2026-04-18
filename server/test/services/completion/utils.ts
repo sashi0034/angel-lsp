@@ -35,18 +35,26 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
     // Iterate through each caret position and check if the completions are as expected.
     for (let i = 0; i < caretMap.length; i++) {
         const target = caretMap.get(i);
-        const globalScope = inspector.getRecord(target.uri).analyzerScope.globalScope;
+        const record = inspector.getRecord(target.uri);
+        const globalScope = record.analyzerScope.globalScope;
 
         const expected = expectedList[i].sort().map(concatIndexAndItem).join(', ');
 
-        const completions = provideCompletion(globalScope, target.position)
+        const completions = provideCompletion(
+            globalScope,
+            record.ast,
+            record.preprocessedOutput.preprocessedTokens,
+            target.position
+        )
             .map(c => c.item.label)
             .sort()
             .map(concatIndexAndItem)
             .join(', ');
 
         if (completions !== expected) {
-            throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);
+            throw new Error(
+                `Incorrect completion on caret: ${i}.\nexpected: [${expected}]\nactual  : [${completions}]`
+            );
         }
     }
 }

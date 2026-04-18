@@ -1,7 +1,7 @@
 import {Position} from 'vscode-languageserver';
 import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from '../compiler_analyzer/symbolObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
-import {NodeName} from '../compiler_parser/nodes';
+import {Node_Script, NodeName} from '../compiler_parser/nodes';
 import {
     collectScopeListWithParentAndUsingNamespace,
     SymbolGlobalScope,
@@ -13,9 +13,11 @@ import {
     InstanceAccessMarker
 } from '../compiler_analyzer/marker';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
 import {getGlobalSettings} from '../core/settings';
+import {isCaretInDeclarationPart} from './completionByNode';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -25,7 +27,16 @@ export interface CompletionItemWrapper {
 /**
  * Returns the completion candidates for the specified position.
  */
-export function provideCompletion(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
+export function provideCompletion(
+    globalScope: SymbolGlobalScope,
+    ast: Node_Script,
+    tokens: TokenObject[],
+    caret: TextPosition
+): CompletionItemWrapper[] {
+    if (isCaretInDeclarationPart(ast, caret)) {
+        return [];
+    }
+
     const items = provideCompletion_internal(globalScope, caret);
 
     // Assign sort keys to the completion items.
