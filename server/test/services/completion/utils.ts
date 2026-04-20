@@ -1,3 +1,4 @@
+import {CompletionItem} from 'vscode-languageserver/node';
 import {provideCompletion} from '../../../src/services/completion';
 import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 import {FileContents, makeFileContentList, inspectFileContents} from '../../inspectorUtils';
@@ -12,6 +13,7 @@ export function useCompletionWithoutBuiltinItems() {
     beforeEach(() => {
         const settings = copyGlobalSettings();
         settings.completion.builtinItems = false;
+        settings.completion.snippets = false;
         resetGlobalSettings(settings);
     });
 

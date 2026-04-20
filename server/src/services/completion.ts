@@ -18,6 +18,7 @@ import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
 import {getGlobalSettings} from '../core/settings';
 import {isCaretInDeclarationPart} from './completionByNode';
+import {provideSnippetCompletion} from './completionSnippet';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -37,7 +38,7 @@ export function provideCompletion(
         return [];
     }
 
-    const items = provideCompletion_internal(globalScope, caret);
+    const items = provideCompletion_internal(ast, globalScope, caret);
 
     // Assign sort keys to the completion items.
     for (const item of items) {
@@ -47,7 +48,11 @@ export function provideCompletion(
     return items;
 }
 
-function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
+function provideCompletion_internal(
+    ast: Node_Script,
+    globalScope: SymbolGlobalScope,
+    caret: TextPosition
+): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     const caretScope = findScopeContainingPosition(globalScope, caret).scope;
@@ -65,7 +70,11 @@ function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextP
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
 
+    // Hoist enum members to the global scope if the setting is enabled.
     items.push(...hoistEnumParentScope(globalScope, []));
+
+    // Return snippet completions if the setting is enabled and the context is appropriate.
+    items.push(...provideSnippetCompletion(ast, caret).map(item => ({item})));
 
     return items;
 }
@@ -231,6 +240,10 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
 
 // Sort symbols with leading underscores toward the end.
 function attackSortKey(item: CompletionItem) {
+    if (item.sortText !== undefined) {
+        return;
+    }
+
     const labelText: string = item.label;
 
     let underscoreCount = 0;

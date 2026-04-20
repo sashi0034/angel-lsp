@@ -77,12 +77,6 @@
                 "path": "./angelscript.tmLanguage.json"
             }
         ],
-        "snippets": [
-            {
-                "language": "angelscript",
-                "path": "./snippets.json"
-            }
-        ],
         "commands": [
             {
                 "command": "angelScript.debug.printGlobalScope",
@@ -172,6 +166,12 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Hoist enum members to their parents scope for auto-completion."
+                },
+                "angelScript.completion.snippets": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Provide context-aware snippets from the language server completion provider."
                 },
                 "angelScript.explicitPropertyAccessor": {
                     "scope": "window",
