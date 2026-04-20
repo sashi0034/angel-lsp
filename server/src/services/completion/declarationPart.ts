@@ -1,8 +1,8 @@
-import {Node_Script, NodeBase, NodeName} from '../compiler_parser/nodes';
-import {findNearestNode} from '../compiler_parser/nearestNode';
-import {TextPosition} from '../compiler_tokenizer/textLocation';
-import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {findNearestToken} from './utils';
+import {Node_Script, NodeBase, NodeName} from '../../compiler_parser/nodes';
+import {findNearestNode} from '../../compiler_parser/nearestNode';
+import {TextPosition} from '../../compiler_tokenizer/textLocation';
+import {TokenObject} from '../../compiler_tokenizer/tokenObject';
+import {findNearestToken} from '../utils';
 
 export function isCaretInDeclarationPart(
     preprocessedTokens: TokenObject[],

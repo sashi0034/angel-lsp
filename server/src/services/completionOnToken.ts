@@ -10,7 +10,7 @@ import {getIncludeUriList} from '../service/fileUtils';
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
  */
-export function provideCompletionOfToken(rawTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
+export function provideCompletionOnToken(rawTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
     const tokenOnCaret = findTokenContainingPosition(rawTokens, caret);
     if (tokenOnCaret === undefined) {
         return undefined;

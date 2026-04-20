@@ -1,9 +1,9 @@
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {InsertTextFormat} from 'vscode-languageserver';
-import {Node_Script, NodeBase, NodeName} from '../compiler_parser/nodes';
-import {getGlobalSettings} from '../core/settings';
-import {TextPosition} from '../compiler_tokenizer/textLocation';
-import {findNearestNode} from '../compiler_parser/nearestNode';
+import {Node_Script, NodeBase, NodeName} from '../../compiler_parser/nodes';
+import {getGlobalSettings} from '../../core/settings';
+import {TextPosition} from '../../compiler_tokenizer/textLocation';
+import {findNearestNode} from '../../compiler_parser/nearestNode';
 
 interface SnippetDefinition {
     readonly label: string;

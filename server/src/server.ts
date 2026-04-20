@@ -14,10 +14,8 @@ import {formatFile} from './formatter/formatter';
 import {provideSignatureHelp} from './services/signatureHelp';
 import {TextLocation, TextPosition, TextRange} from './compiler_tokenizer/textLocation';
 import {provideInlayHint} from './services/inlayHint';
-import {DiagnosticSeverity} from 'vscode-languageserver-types';
-import {CodeAction} from 'vscode-languageserver-protocol';
 import {provideCodeAction} from './services/codeAction';
-import {provideCompletionOfToken} from './services/completionExtension';
+import {provideCompletionOnToken} from './services/completionOnToken';
 import {provideCompletionResolve} from './services/completionResolve';
 import {logger} from './core/logger';
 import {provideHover} from './services/hover';
@@ -402,9 +400,9 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
 
     // Determine completion candidates based on the token.
     // If the token is a comment, suppress completion candidates here.
-    const completionsOfToken = provideCompletionOfToken(s_inspector.getRecord(uri).rawTokens, caret);
-    if (completionsOfToken !== undefined) {
-        return completionsOfToken;
+    const completionsOnToken = provideCompletionOnToken(s_inspector.getRecord(uri).rawTokens, caret);
+    if (completionsOnToken !== undefined) {
+        return completionsOnToken;
     }
 
     s_inspector.flushRecord(uri);

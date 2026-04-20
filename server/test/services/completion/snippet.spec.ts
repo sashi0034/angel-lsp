@@ -1,4 +1,4 @@
-import {SnippetContext, snippetDefinitions} from '../../../src/services/completionSnippet';
+import {SnippetContext, snippetDefinitions} from '../../../src/services/completion/snippet';
 import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 import {testCompletion} from './utils';
 import {ok} from 'node:assert';

@@ -17,8 +17,8 @@ import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
 import {getGlobalSettings} from '../core/settings';
-import {isCaretInDeclarationPart} from './completionByNode';
-import {provideSnippetCompletion} from './completionSnippet';
+import {isCaretInDeclarationPart} from './completion/declarationPart';
+import {provideSnippetCompletion} from './completion/snippet';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
