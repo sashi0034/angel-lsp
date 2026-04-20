@@ -98,15 +98,21 @@ export const snippetDefinitions: SnippetDefinition[] = [
         contexts: [SnippetContext.Script, SnippetContext.Statement]
     },
     {
-        label: 'interface',
-        insertText: 'interface ${1:IDENTIFIER} {\n\t$0\n}',
-        detail: 'Interface definition',
+        label: 'enum',
+        insertText: 'enum ${1:IDENTIFIER} {\n\t$0\n}',
+        detail: 'Enum definition',
         contexts: [SnippetContext.Script]
     },
     {
         label: 'class',
         insertText: 'class ${1:IDENTIFIER} {\n\t$0\n}',
         detail: 'Class definition',
+        contexts: [SnippetContext.Script]
+    },
+    {
+        label: 'interface',
+        insertText: 'interface ${1:IDENTIFIER} {\n\t$0\n}',
+        detail: 'Interface definition',
         contexts: [SnippetContext.Script]
     },
     {
