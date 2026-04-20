@@ -1,7 +1,7 @@
-import {testCompletion, useCompletionWithoutBuiltinItems} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinKeywords} from './utils';
 
 describe('completion/usingNamespace', () => {
-    useCompletionWithoutBuiltinItems();
+    useCompletionWithoutBuiltinKeywords();
 
     it('completes namespaces introduced in a statement block', () => {
         testCompletion(

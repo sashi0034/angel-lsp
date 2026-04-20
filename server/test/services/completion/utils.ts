@@ -9,10 +9,10 @@ function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
 }
 
-export function useCompletionWithoutBuiltinItems() {
+export function useCompletionWithoutBuiltinKeywords() {
     beforeEach(() => {
         const settings = copyGlobalSettings();
-        settings.completion.builtinItems = false;
+        settings.completion.builtinKeywords = false;
         settings.completion.snippets = false;
         resetGlobalSettings(settings);
     });

@@ -24,7 +24,7 @@ function snippetInStatement(): string[] {
 describe('completion/snippet', () => {
     beforeEach(() => {
         const settings = copyGlobalSettings();
-        settings.completion.builtinItems = false;
+        settings.completion.builtinKeywords = false;
         settings.completion.snippets = true;
         resetGlobalSettings(settings);
     });

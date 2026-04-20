@@ -20,7 +20,7 @@ interface LanguageServerSettings {
     builtinArrayType: string;
     definedSymbols: string[];
     completion: {
-        builtinItems: boolean;
+        builtinKeywords: boolean;
         snippets: boolean;
     };
     files: {
@@ -53,7 +53,7 @@ const defaultSettings: LanguageServerSettings = {
     builtinArrayType: 'array',
     definedSymbols: [],
     completion: {
-        builtinItems: true,
+        builtinKeywords: true,
         snippets: true
     },
     files: {

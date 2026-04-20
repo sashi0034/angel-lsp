@@ -1,7 +1,7 @@
-import {testCompletion, useCompletionWithoutBuiltinItems} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinKeywords} from './utils';
 
 describe('completion/declarationPart', () => {
-    useCompletionWithoutBuiltinItems();
+    useCompletionWithoutBuiltinKeywords();
 
     it('omits completions while declaring a local variable type', () => {
         testCompletion(

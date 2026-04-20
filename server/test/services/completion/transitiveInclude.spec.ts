@@ -1,7 +1,7 @@
-import {testCompletion, useCompletionWithoutBuiltinItems} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinKeywords} from './utils';
 
 describe('completion/transitiveInclude', () => {
-    useCompletionWithoutBuiltinItems();
+    useCompletionWithoutBuiltinKeywords();
 
     it('completes symbols from transitive includes', () => {
         testCompletion(
