@@ -75,4 +75,16 @@ describe('completion/functionAttribute', () => {
             /* $C0$ */ []
         );
     });
+
+    it('provides function suffix keywords after an existing suffix keyword', () => {
+        testCompletion(
+            `
+            class MyClass {
+                void f() const ov$C0$  {
+                }
+            }
+            `,
+            /* $C0$ */ functionAttributeCompletionKeywords.filter(keyword => keyword !== 'const')
+        );
+    });
 });
