@@ -152,7 +152,7 @@ function hoistClass(
 
     const baseIdentifier = classNode.identifier.text;
     const specializationSig =
-        isSpecialization && classNode.typeTemplates ? buildTemplateSignature(classNode.typeTemplates) : undefined;
+        isSpecialization && classNode.typeParameters ? buildTemplateSignature(classNode.typeParameters) : undefined;
     const symbolKey = specializationSig ? baseIdentifier + specializationSig : baseIdentifier;
 
     // Preserve the original location so the symbol can be copied into other scopes.
@@ -184,7 +184,7 @@ function hoistClass(
     scope.insertSymbolAndCheck(thisVariable);
 
     if (!isSpecialization) {
-        const templateParameters = hoistTemplateParameters(scope, classNode.typeTemplates);
+        const templateParameters = hoistTemplateParameters(scope, classNode.typeParameters);
         if (templateParameters.length > 0) {
             symbol.assignTemplateParameters(templateParameters);
         }
@@ -229,7 +229,7 @@ function hoistClass(
 // class Box<T> { ... } <-- isTemplateSpecialization() returns false
 // class Box<int> { ... } <-- isTemplateSpecialization() returns true
 function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): boolean {
-    if (!type.typeTemplates || type.typeTemplates.length === 0) {
+    if (!type.typeParameters || type.typeParameters.length === 0) {
         return false;
     }
 

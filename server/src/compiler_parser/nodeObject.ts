@@ -193,7 +193,7 @@ export interface Node_Class extends NodeBase {
     readonly metadata: TokenObject[][];
     readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
-    readonly typeTemplates: Node_Type[] | undefined;
+    readonly typeParameters: Node_Type[] | undefined;
     readonly baseList: ScopeAndIdentifier[];
     readonly memberList: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[];
 }
@@ -362,7 +362,7 @@ export interface Node_Type extends NodeBase {
     readonly constToken: ConstModifierToken | undefined;
     readonly scope: Node_Scope | undefined;
     readonly dataType: Node_DataType;
-    readonly typeTemplates: Node_Type[];
+    readonly typeArguments: Node_Type[];
     readonly isArray: boolean;
     readonly handle: HandleAndConstTokenPair | undefined;
 }
@@ -378,7 +378,7 @@ export interface Node_Scope extends NodeBase {
     readonly nodeName: NodeName.Scope;
     readonly isGlobal: boolean;
     readonly scopeList: TokenObject[];
-    readonly typeTemplates: Node_Type[];
+    readonly typeArguments: Node_Type[];
 }
 
 // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
@@ -618,7 +618,7 @@ export interface Node_FuncCall extends NodeBase {
     readonly scope: Node_Scope | undefined;
     readonly identifier: TokenObject;
     readonly argList: Node_ArgList;
-    readonly typeTemplates: Node_Type[] | undefined;
+    readonly typeArguments: Node_Type[] | undefined;
 }
 
 // **BNF** VARACCESS ::= SCOPE IDENTIFIER

@@ -449,7 +449,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         return ParseFailure.Pending;
     }
 
-    const typeTemplates = parseTypeTemplates(parser);
+    const typeParameters = parseTemplateTypes(parser);
 
     const baseList: ScopeAndIdentifier[] = [];
     if (parser.next().text === ':') {
@@ -486,7 +486,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         metadata: metadata,
         entityTokens: entityTokens,
         identifier: identifier,
-        typeTemplates: typeTemplates,
+        typeParameters: typeParameters,
         baseList: baseList,
         memberList: members
     };
@@ -615,7 +615,7 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
     const identifier = parser.next();
     parser.commit(head.tag === 'function' ? HighlightForToken.Function : HighlightForToken.Type);
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeParameters = parseTemplateTypes(parser) ?? [];
 
     if (parser.isPredefinedFile === false) {
         // Function declarations are not allowed outside `as.predefined`.
@@ -674,7 +674,7 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
         postfixConstToken: postfixConstToken,
         funcAttrTokens: funcAttrTokens,
         statBlock: statBlock,
-        typeParameters: typeTemplates,
+        typeParameters: typeParameters,
         listPattern: listPattern
     };
 }
@@ -1581,7 +1581,7 @@ function parseType(parser: ParserState): Node_Type | undefined {
         return undefined;
     }
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeArguments = parseTemplateTypes(parser) ?? [];
 
     const {isArray, handle} = parseTypeTail(parser);
 
@@ -1591,7 +1591,7 @@ function parseType(parser: ParserState): Node_Type | undefined {
         constToken: constToken,
         scope: scope,
         dataType: datatype,
-        typeTemplates: typeTemplates,
+        typeArguments: typeArguments,
         isArray: isArray,
         handle: handle
     };
@@ -1641,8 +1641,8 @@ function expectType(parser: ParserState): Node_Type | undefined {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
-    const cache = parser.cache(ParserCacheKind.TypeTemplates);
+function parseTemplateTypes(parser: ParserState): Node_Type[] | undefined {
+    const cache = parser.cache(ParserCacheKind.TypeList);
     if (cache.restore !== undefined) {
         return cache.restore();
     }
@@ -1654,7 +1654,7 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
 
     parser.commit(HighlightForToken.Operator);
 
-    const typeTemplates: Node_Type[] = [];
+    const typeList: Node_Type[] = [];
     while (parser.isEnd() === false) {
         const type = parseType(parser);
         if (type === undefined) {
@@ -1662,9 +1662,9 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
             return undefined;
         }
 
-        typeTemplates.push(type);
+        typeList.push(type);
 
-        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
+        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeList.length > 0);
         if (breakOrThrough === BreakOrThrough.Break) {
             break;
         } else if (breakOrThrough === undefined) {
@@ -1674,8 +1674,8 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
         }
     }
 
-    cache.store(typeTemplates);
-    return typeTemplates;
+    cache.store(typeList);
+    return typeList;
 }
 
 // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -1732,7 +1732,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
     }
 
     const scopeList: TokenObject[] = [];
-    let typeTemplates: Node_Type[] | undefined = undefined;
+    let typeArguments: Node_Type[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const identifier = parser.next(0);
         if (identifier.kind !== TokenKind.Identifier) {
@@ -1748,8 +1748,8 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
             const typesStart = parser.next();
             parser.commit(HighlightForToken.Class);
 
-            typeTemplates = parseTypeTemplates(parser);
-            if (typeTemplates === undefined || parser.next().text !== '::') {
+            typeArguments = parseTemplateTypes(parser);
+            if (typeArguments === undefined || parser.next().text !== '::') {
                 parser.backtrack(typesStart);
             } else {
                 parser.commit(HighlightForToken.Operator);
@@ -1770,7 +1770,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         isGlobal: isGlobal,
         scopeList: scopeList,
-        typeTemplates: typeTemplates ?? []
+        typeArguments: typeArguments ?? []
     };
     cache.store(scopeNode);
     return scopeNode;
@@ -2886,7 +2886,7 @@ function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
         return undefined;
     }
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeArguments = parseTemplateTypes(parser) ?? [];
 
     const argList = parseArgList(parser);
     if (argList === undefined) {
@@ -2900,7 +2900,7 @@ function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
         scope: scope,
         identifier: identifier,
         argList: argList,
-        typeTemplates: typeTemplates
+        typeArguments: typeArguments
     };
 }
 

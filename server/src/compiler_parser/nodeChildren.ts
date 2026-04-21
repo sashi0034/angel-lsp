@@ -21,7 +21,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
         case NodeName.Class:
             return [
-                ...children(...(node.typeTemplates ?? [])),
+                ...children(...(node.typeParameters ?? [])),
                 ...node.baseList.flatMap(base => children(base.scope)),
                 ...node.memberList
             ];
@@ -95,7 +95,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
         case NodeName.Type:
-            return children(node.scope, node.dataType, ...node.typeTemplates);
+            return children(node.scope, node.dataType, ...node.typeArguments);
 
         // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
         case NodeName.InitList:
@@ -103,7 +103,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
         case NodeName.Scope:
-            return node.typeTemplates;
+            return node.typeArguments;
 
         // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
         case NodeName.DataType:
@@ -222,7 +222,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
         case NodeName.FuncCall:
-            return children(node.scope, node.argList, ...(node.typeTemplates ?? []));
+            return children(node.scope, node.argList, ...(node.typeArguments ?? []));
 
         // **BNF** VARACCESS ::= SCOPE IDENTIFIER
         case NodeName.VarAccess:

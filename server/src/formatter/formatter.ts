@@ -243,7 +243,7 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
 
     formatTargetBy(format, funcNode.identifier.text, {});
 
-    formatTypeTemplates(format, funcNode.typeParameters);
+    formatTemplateTypes(format, funcNode.typeParameters);
 
     formatParamList(format, funcNode.paramList);
 
@@ -601,7 +601,7 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 
     formatDataType(format, typeNode.dataType);
 
-    formatTypeTemplates(format, typeNode.typeTemplates);
+    formatTemplateTypes(format, typeNode.typeArguments);
 
     if (typeNode.isArray) {
         formatTargetBy(format, '[', {condenseSides: true});
@@ -617,18 +617,18 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 }
 
 // ['<' TYPE {',' TYPE} '>']
-function formatTypeTemplates(format: FormatterState, templates: Node_Type[]) {
-    if (templates.length === 0) {
+function formatTemplateTypes(format: FormatterState, types: Node_Type[]) {
+    if (types.length === 0) {
         return;
     }
 
     formatChevronsBlock(format, () => {
-        for (let i = 0; i < templates.length; i++) {
+        for (let i = 0; i < types.length; i++) {
             if (i > 0) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            formatType(format, templates[i]);
+            formatType(format, types[i]);
         }
     });
 }
@@ -1150,8 +1150,8 @@ function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
 
     formatTargetBy(format, funcCall.identifier.text, {});
 
-    if (funcCall.typeTemplates !== undefined) {
-        formatTypeTemplates(format, funcCall.typeTemplates);
+    if (funcCall.typeArguments !== undefined) {
+        formatTemplateTypes(format, funcCall.typeArguments);
     }
 
     formatArgList(format, funcCall.argList);

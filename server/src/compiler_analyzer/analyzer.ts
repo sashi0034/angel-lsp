@@ -303,7 +303,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     const searchScope = findOptimalScope(scope, typeNode.scope, typeIdentifier) ?? scope;
 
-    let givenTemplateArguments = typeNode.typeTemplates;
+    let givenTemplateArguments = typeNode.typeArguments;
     let givenIdentifier = typeIdentifier.text;
 
     if (typeNode.isArray) {
@@ -1164,7 +1164,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateArguments = member.node.typeTemplates ?? [];
+        const callTemplateArguments = member.node.typeArguments ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
@@ -1369,7 +1369,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    const callTemplateArguments = funcCall.typeTemplates ?? [];
+    const callTemplateArguments = funcCall.typeArguments ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handle
