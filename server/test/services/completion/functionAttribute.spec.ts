@@ -87,4 +87,20 @@ describe('completion/functionAttribute', () => {
             /* $C0$ */ functionAttributeCompletionKeywords.filter(keyword => keyword !== 'const')
         );
     });
+
+    it('does not treat a predefined function declaration as a suffix position', () => {
+        testCompletion(
+            [
+                {
+                    uri: 'file:///path/to/as.predefined',
+                    content: `
+                    void f() const;
+
+                    $C0$
+                    `
+                }
+            ],
+            /* $C0$ */ ['f']
+        );
+    });
 });

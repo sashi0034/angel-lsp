@@ -77,9 +77,10 @@ function findNearestFunction(
         if (
             containingNode === undefined &&
             precedingNode?.nodeName === NodeName.Func &&
-            precedingNode?.statBlock === undefined
+            precedingNode?.statBlock === undefined &&
+            precedingNode.nodeRange.end.text !== ';'
         ) {
-            // e.g., `void f() ov$C$` (The parser fails to parse this statement block in this function.)
+            // e.g., `void f() ov$C$ {` (The parser fails to parse this statement block in this function.)
             return {
                 tag: 'preceding',
                 node: precedingNode
