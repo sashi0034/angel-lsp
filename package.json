@@ -167,6 +167,12 @@
                     "default": false,
                     "description": "Hoist enum members to their parents scope for auto-completion."
                 },
+                "angelScript.completion.builtinKeywords": {
+                    "scope": "window",
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Provide AngelScript built-in keyword completion items."
+                },
                 "angelScript.completion.snippets": {
                     "scope": "window",
                     "type": "boolean",

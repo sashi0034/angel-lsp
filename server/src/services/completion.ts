@@ -73,10 +73,51 @@ function provideCompletion_internal(
     // Hoist enum members to the global scope if the setting is enabled.
     items.push(...hoistEnumParentScope(globalScope, []));
 
+    // Return built-in keywords and primitive types.
+    items.push(...provideBuiltinKeywordCompletion(items));
+
     // Return snippet completions if the setting is enabled and the context is appropriate.
     items.push(...provideSnippetCompletion(ast, caret).map(item => ({item})));
 
     return items;
+}
+
+export const builtinCompletionKeywords = [
+    'auto',
+    'void',
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'float',
+    'double',
+    'bool',
+    'true',
+    'false',
+    'null',
+    'const'
+];
+
+function provideBuiltinKeywordCompletion(existingItems: CompletionItemWrapper[]): CompletionItemWrapper[] {
+    if (!getGlobalSettings().completion.builtinKeywords) {
+        return [];
+    }
+
+    const existingLabels = new Set(existingItems.map(item => item.item.label));
+    return builtinCompletionKeywords
+        .filter(keyword => !existingLabels.has(keyword))
+        .map(keyword => ({
+            item: {
+                label: keyword,
+                kind: CompletionItemKind.Keyword
+            }
+        }));
 }
 
 function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
@@ -253,7 +294,3 @@ function attackSortKey(item: CompletionItem) {
 
     item.sortText = String.fromCharCode(underscoreCount) + labelText;
 }
-
-// -----------------------------------------------
-
-// TODO: Autocomplete for built-in keywords? 'true', 'opAdd', etc.
