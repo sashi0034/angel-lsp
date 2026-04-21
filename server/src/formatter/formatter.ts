@@ -46,9 +46,8 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    ReferenceModifier,
     voidParameter
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
@@ -225,7 +224,7 @@ function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatMoveUntilNodeStart(format, funcNode);
     format.pushWrap(); // TODO: Move to the caller?
@@ -235,7 +234,7 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
 
     if (funcNode.head.tag === 'function') {
         formatType(format, funcNode.head.returnType);
-        if (funcNode.head.isRef) {
+        if (funcNode.head.refToken !== undefined) {
             formatTargetBy(format, '&', {condenseLeft: true});
         }
     } else if (funcNode.head.tag === 'destructor') {
@@ -244,11 +243,11 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
 
     formatTargetBy(format, funcNode.identifier.text, {});
 
-    formatTypeTemplates(format, funcNode.typeTemplates);
+    formatTemplateTypes(format, funcNode.typeParameters);
 
     formatParamList(format, funcNode.paramList);
 
-    if (funcNode.isConst) {
+    if (funcNode.postfixConstToken !== undefined) {
         formatTargetBy(format, 'const', {});
     }
 
@@ -368,7 +367,7 @@ function formatImport(format: FormatterState, importNode: Node_Import) {
 
     formatType(format, importNode.type);
 
-    if (importNode.isRef) {
+    if (importNode.refToken !== undefined) {
         formatTargetBy(format, '&', {condenseLeft: true});
     }
 
@@ -396,7 +395,7 @@ function formatFuncDef(format: FormatterState, funcDef: Node_FuncDef) {
 
     formatType(format, funcDef.returnType);
 
-    if (funcDef.isRef) {
+    if (funcDef.refToken !== undefined) {
         formatTargetBy(format, '&', {condenseLeft: true});
     }
 
@@ -416,7 +415,7 @@ function formatVirtualProp(format: FormatterState, virtualProp: Node_VirtualProp
 
     formatType(format, virtualProp.type);
 
-    if (virtualProp.isRef) {
+    if (virtualProp.refToken !== undefined) {
         formatTargetBy(format, '&', {condenseLeft: true});
     }
 
@@ -429,10 +428,10 @@ function formatVirtualProp(format: FormatterState, virtualProp: Node_VirtualProp
             const next = formatMoveToNonComment(format);
             if (next?.text === 'get' && getter !== undefined) {
                 formatTargetBy(format, 'get', {});
-                formatGetterSetterStatement(format, getter.isConst, getter.statBlock);
+                formatGetterSetterStatement(format, getter.constToken !== undefined, getter.statBlock);
             } else if (next?.text === 'set' && setter !== undefined) {
                 formatTargetBy(format, 'set', {});
-                formatGetterSetterStatement(format, setter.isConst, setter.statBlock);
+                formatGetterSetterStatement(format, setter.constToken !== undefined, setter.statBlock);
             } else {
                 break;
             }
@@ -472,7 +471,7 @@ function formatInterfaceMethod(format: FormatterState, intfMethod: Node_Interfac
 
     formatType(format, intfMethod.returnType);
 
-    if (intfMethod.isRef) {
+    if (intfMethod.refToken !== undefined) {
         formatTargetBy(format, '&', {condenseLeft: true});
     }
 
@@ -480,11 +479,11 @@ function formatInterfaceMethod(format: FormatterState, intfMethod: Node_Interfac
 
     formatParamList(format, intfMethod.paramList);
 
-    if (intfMethod.isConst) {
+    if (intfMethod.postfixConstToken !== undefined) {
         formatTargetBy(format, 'const', {});
     }
 
-    if (intfMethod.funcAttr) {
+    if (intfMethod.funcAttrTokens) {
         formatFuncAttr(format);
     }
 
@@ -592,7 +591,7 @@ function formatTypeModifier(format: FormatterState) {
 function formatType(format: FormatterState, typeNode: Node_Type) {
     formatMoveUntilNodeStart(format, typeNode);
 
-    if (typeNode.isConst) {
+    if (typeNode.constToken !== undefined) {
         formatTargetBy(format, 'const', {});
     }
 
@@ -602,34 +601,34 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 
     formatDataType(format, typeNode.dataType);
 
-    formatTypeTemplates(format, typeNode.typeTemplates);
+    formatTemplateTypes(format, typeNode.typeArguments);
 
     if (typeNode.isArray) {
         formatTargetBy(format, '[', {condenseSides: true});
         formatTargetBy(format, ']', {condenseLeft: true});
     }
 
-    if (typeNode.refModifier !== undefined) {
+    if (typeNode.handle !== undefined) {
         formatTargetBy(format, '@', {condenseLeft: true});
-        if (typeNode.refModifier === ReferenceModifier.RefConst) {
+        if (typeNode.handle.constToken !== undefined) {
             formatTargetBy(format, 'const', {});
         }
     }
 }
 
 // ['<' TYPE {',' TYPE} '>']
-function formatTypeTemplates(format: FormatterState, templates: Node_Type[]) {
-    if (templates.length === 0) {
+function formatTemplateTypes(format: FormatterState, types: Node_Type[]) {
+    if (types.length === 0) {
         return;
     }
 
     formatChevronsBlock(format, () => {
-        for (let i = 0; i < templates.length; i++) {
+        for (let i = 0; i < types.length; i++) {
             if (i > 0) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            formatType(format, templates[i]);
+            formatType(format, types[i]);
         }
     });
 }
@@ -1141,7 +1140,7 @@ function formatLambdaParam(format: FormatterState, param: Node_LambdaParam) {
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
     formatMoveUntilNodeStart(format, funcCall);
 
@@ -1151,8 +1150,8 @@ function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
 
     formatTargetBy(format, funcCall.identifier.text, {});
 
-    if (funcCall.typeTemplates !== undefined) {
-        formatTypeTemplates(format, funcCall.typeTemplates);
+    if (funcCall.typeArguments !== undefined) {
+        formatTemplateTypes(format, funcCall.typeArguments);
     }
 
     formatArgList(format, funcCall.argList);

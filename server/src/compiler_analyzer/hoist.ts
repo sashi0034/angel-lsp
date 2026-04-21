@@ -6,7 +6,6 @@ import {
     tryResolveActiveScope
 } from './symbolScope';
 import {
-    AccessModifier,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -24,7 +23,8 @@ import {
     Node_Var,
     Node_VirtualProp,
     IdentifierAndOptionalExpr
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
+import {AccessRestriction, getAccessRestriction, hasFunctionAttribute} from './nodeHelper';
 import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
@@ -152,7 +152,7 @@ function hoistClass(
 
     const baseIdentifier = classNode.identifier.text;
     const specializationSig =
-        isSpecialization && classNode.typeTemplates ? buildTemplateSignature(classNode.typeTemplates) : undefined;
+        isSpecialization && classNode.typeParameters ? buildTemplateSignature(classNode.typeParameters) : undefined;
     const symbolKey = specializationSig ? baseIdentifier + specializationSig : baseIdentifier;
 
     // Preserve the original location so the symbol can be copied into other scopes.
@@ -179,12 +179,12 @@ function hoistClass(
         scopePath: parentScope.scopePath,
         type: new ResolvedType(symbol),
         isInstanceMember: false,
-        accessRestriction: AccessModifier.Private
+        accessRestriction: AccessRestriction.Private
     });
     scope.insertSymbolAndCheck(thisVariable);
 
     if (!isSpecialization) {
-        const templateParameters = hoistTemplateParameters(scope, classNode.typeTemplates);
+        const templateParameters = hoistTemplateParameters(scope, classNode.typeParameters);
         if (templateParameters.length > 0) {
             symbol.assignTemplateParameters(templateParameters);
         }
@@ -213,7 +213,7 @@ function hoistClass(
                             'super',
                             new TokenRange(baseConstructor.identifierToken, baseConstructor.identifierToken)
                         ),
-                        accessRestriction: AccessModifier.Private
+                        accessRestriction: AccessRestriction.Private
                     });
 
                     scope.insertSymbol(superConstructor);
@@ -229,7 +229,7 @@ function hoistClass(
 // class Box<T> { ... } <-- isTemplateSpecialization() returns false
 // class Box<int> { ... } <-- isTemplateSpecialization() returns true
 function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): boolean {
-    if (!type.typeTemplates || type.typeTemplates.length === 0) {
+    if (!type.typeParameters || type.typeParameters.length === 0) {
         return false;
     }
 
@@ -325,7 +325,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
 
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.isFunction() || symbol.isVariable()) {
-                    if (!isMixin && symbol.accessRestriction === AccessModifier.Private) {
+                    if (!isMixin && symbol.accessRestriction === AccessRestriction.Private) {
                         continue;
                     }
                 }
@@ -384,7 +384,7 @@ function hoistTypeDef(parentScope: SymbolScope, typeDef: Node_TypeDef) {
     parentScope.insertSymbolAndCheck(symbol);
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function hoistFunc(
     parentScope: SymbolScope,
     funcNode: Node_Func,
@@ -414,10 +414,10 @@ function hoistFunc(
         linkedNode: funcNode,
         functionScopePath: functionScope.scopePath,
         isInstanceMember: isInstanceMember,
-        accessRestriction: funcNode.accessor
+        accessRestriction: getAccessRestriction(funcNode.accessor)
     });
 
-    const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeTemplates);
+    const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeParameters);
     if (templateParameters.length > 0) {
         symbol.assignTemplateParameters(templateParameters);
     }
@@ -455,7 +455,7 @@ function tryInsertVirtualSetterOrGetter(
     const isSetter = !isGetter && node.identifier.text.startsWith('set_');
 
     if (isGetter || isSetter) {
-        if (node.funcAttr?.isProperty || !getGlobalSettings().explicitPropertyAccessor) {
+        if (hasFunctionAttribute(node, 'property') || !getGlobalSettings().explicitPropertyAccessor) {
             // FIXME?
             const identifier: TokenObject = IdentifierToken.createVirtual(
                 node.identifier.text.substring(4),
@@ -477,14 +477,15 @@ function tryInsertVirtualSetterOrGetter(
                 scopePath: scope.scopePath,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
-                accessRestriction: node.nodeName === NodeName.InterfaceMethod ? undefined : node.accessor,
+                accessRestriction:
+                    node.nodeName === NodeName.InterfaceMethod ? undefined : getAccessRestriction(node.accessor),
                 isVirtualProperty: true,
                 isIndexedPropertyAccessor: isIndexedPropertyAccessor
             });
 
             scope.insertSymbol(symbol);
         }
-    } else if (node.funcAttr?.isProperty === true) {
+    } else if (hasFunctionAttribute(node, 'property')) {
         analyzerDiagnostic.error(node.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 }
@@ -647,7 +648,7 @@ function hoistVirtualProp(
         scopePath: parentScope.scopePath,
         type: type,
         isInstanceMember: isInstanceMember,
-        accessRestriction: virtualProp.accessor
+        accessRestriction: getAccessRestriction(virtualProp.accessor)
     });
     parentScope.insertSymbolAndCheck(symbol);
 
@@ -671,7 +672,7 @@ function hoistVirtualProp(
                 scopePath: parentScope.scopePath,
                 type: new ResolvedType(type.typeOrFunc),
                 isInstanceMember: false,
-                accessRestriction: virtualProp.accessor
+                accessRestriction: getAccessRestriction(virtualProp.accessor)
             });
             setterScope.insertSymbolAndCheck(valueVariable);
         }
@@ -787,7 +788,7 @@ function hoistParameter(scope: SymbolScope, parameter: Node_Parameter): Resolved
 // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
 // **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 // **BNF** VARACCESS ::= SCOPE IDENTIFIER
 // **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
 // **BNF** ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]

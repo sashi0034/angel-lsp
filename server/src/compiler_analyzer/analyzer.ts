@@ -29,7 +29,6 @@ import {
     NodeName,
     Node_Parameter,
     Node_ParamList,
-    ReferenceModifier,
     Node_Return,
     Node_Scope,
     Node_StatBlock,
@@ -42,8 +41,9 @@ import {
     Node_VarAccess,
     Node_While,
     voidParameter
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
+import {getAccessRestriction} from './nodeHelper';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -112,7 +112,7 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     if (func.head.tag === 'destructor') {
         analyzeStatBlock(scope, func.statBlock);
@@ -130,7 +130,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     analyzeTemplateArguments(
         scope,
         declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
-        func.typeTemplates
+        func.typeParameters
     ); // FIXME?
 
     // Add arguments to the scope
@@ -212,7 +212,7 @@ export function insertVariables(
             scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
-            accessRestriction: varNode.accessor
+            accessRestriction: getAccessRestriction(varNode.accessor)
         });
         scope.insertSymbolAndCheck(variable);
 
@@ -269,7 +269,7 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
         } else if (statement.nodeName === NodeName.Using) {
             analyzeUsingNamespace(scope, statement);
         } else {
-            analyzeStatement(scope, statement as Node_Statement);
+            analyzeStatement(scope, statement);
         }
     }
 }
@@ -303,7 +303,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     const searchScope = findOptimalScope(scope, typeNode.scope, typeIdentifier) ?? scope;
 
-    let givenTemplateArguments = typeNode.typeTemplates;
+    let givenTemplateArguments = typeNode.typeArguments;
     let givenIdentifier = typeIdentifier.text;
 
     if (typeNode.isArray) {
@@ -370,7 +370,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 }
 
 function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.refModifier === ReferenceModifier.Ref || typeNode.refModifier === ReferenceModifier.RefConst;
+    return typeNode.handle !== undefined;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -1164,7 +1164,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateArguments = member.node.typeTemplates ?? [];
+        const callTemplateArguments = member.node.typeArguments ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
@@ -1340,7 +1340,7 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     return undefined;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedType | undefined {
     let searchScope = findOptimalScope(scope, funcCall.scope, funcCall.identifier);
     if (funcCall.scope !== undefined && searchScope === undefined) {
@@ -1369,7 +1369,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    const callTemplateArguments = funcCall.typeTemplates ?? [];
+    const callTemplateArguments = funcCall.typeArguments ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handle
@@ -1582,7 +1582,7 @@ function analyzeEnumMemberAccess(
             nodeRange: new TokenRange(varIdentifier, varIdentifier),
             scopeRange: new TokenRange(varIdentifier, varIdentifier),
             metadata: [],
-            entity: undefined,
+            entityTokens: undefined,
             identifier: varIdentifier,
             memberList: [],
             enumType: undefined

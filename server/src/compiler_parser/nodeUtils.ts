@@ -1,19 +1,19 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {Node_Type, ReferenceModifier} from './nodes';
+import {Node_Type} from './nodeObject';
 
 export function stringifyTypeNode(type: Node_Type, separator: string = ', '): string {
-    let str = type.isConst ? 'const ' : '';
+    let str = type.constToken !== undefined ? 'const ' : '';
     str += type.dataType.identifier.text;
-    if (type.typeTemplates.length > 0) {
-        str += '<' + type.typeTemplates.map(t => stringifyTypeNode(t, separator)).join(separator) + '>';
+    if (type.typeArguments.length > 0) {
+        str += '<' + type.typeArguments.map(t => stringifyTypeNode(t, separator)).join(separator) + '>';
     }
 
     if (type.isArray) {
         str += '[]';
     }
 
-    if (type.refModifier !== undefined) {
-        str += type.refModifier === ReferenceModifier.RefConst ? '@const' : '@';
+    if (type.handle !== undefined) {
+        str += type.handle.constToken !== undefined ? '@const' : '@';
     }
 
     return str;
@@ -26,7 +26,7 @@ export function getIdentifierInTypeNode(type: Node_Type): TokenObject {
 export function buildTemplateSignature(types: Node_Type[]): string {
     const typeNames = types.map(type => {
         const identifier = type.dataType.identifier.text;
-        return type.typeTemplates.length > 0 ? identifier + buildTemplateSignature(type.typeTemplates) : identifier;
+        return type.typeArguments.length > 0 ? identifier + buildTemplateSignature(type.typeArguments) : identifier;
     });
     return '<' + typeNames.join(',') + '>';
 }

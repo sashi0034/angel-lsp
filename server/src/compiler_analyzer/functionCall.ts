@@ -5,7 +5,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {evaluateTypeConversion} from './typeConversion';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
 import {stringifyResolvedType, stringifyResolvedTypes} from './symbolStringifier';
 
@@ -508,9 +508,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
 
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {
-            const resolvedTypes = overload.parameterTypes.map(t =>
-                applyTemplateMapping(t, calleeTemplateMapping)
-            );
+            const resolvedTypes = overload.parameterTypes.map(t => applyTemplateMapping(t, calleeTemplateMapping));
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
 

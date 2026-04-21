@@ -23,7 +23,7 @@ import {
     Node_Using,
     Node_VirtualProp,
     Node_While
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {
     AutoTypeResolutionMarker,
     FunctionCallMarker,

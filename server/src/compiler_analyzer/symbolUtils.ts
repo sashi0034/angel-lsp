@@ -6,7 +6,8 @@ import {
     SymbolAndScope,
     SymbolScope
 } from './symbolScope';
-import {AccessModifier, NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
+import {AccessRestriction} from './nodeHelper';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');
 
@@ -121,18 +122,18 @@ export function canAccessInstanceMember(accessScope: SymbolScope, instanceMember
 
     const typeOfInstanceMember = scopeOfInstanceMember.parentScope?.lookupSymbol(scopeOfInstanceMember.key);
 
-    let accessRestriction: AccessModifier | undefined = instanceMemberSymbol.accessRestriction;
+    let accessRestriction = instanceMemberSymbol.accessRestriction;
     if (typeOfInstanceMember?.isType() && typeOfInstanceMember.isMixin) {
-        if (accessRestriction === AccessModifier.Private) {
+        if (accessRestriction === AccessRestriction.Private) {
             // A mixin's private member is treated as protected.
             // FIXME?
-            accessRestriction = AccessModifier.Protected;
+            accessRestriction = AccessRestriction.Protected;
         }
     }
 
-    if (accessRestriction === AccessModifier.Private) {
+    if (accessRestriction === AccessRestriction.Private) {
         return isScopeChildOrGrandchild(accessScope, scopeOfInstanceMember);
-    } else if (accessRestriction === AccessModifier.Protected) {
+    } else if (accessRestriction === AccessRestriction.Protected) {
         if (scopeOfInstanceMember.linkedNode === undefined) {
             return false;
         }

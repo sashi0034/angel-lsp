@@ -1,7 +1,7 @@
 import {Position} from 'vscode-languageserver';
 import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from '../compiler_analyzer/symbolObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
-import {Node_Script, NodeName} from '../compiler_parser/nodes';
+import {Node_Script, NodeName} from '../compiler_parser/nodeObject';
 import {
     collectScopeListWithParentAndUsingNamespace,
     SymbolGlobalScope,

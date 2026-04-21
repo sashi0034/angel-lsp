@@ -5,7 +5,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {assertTypeCast} from './typeCast';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
-import {Node_FuncCall, NodeName} from '../compiler_parser/nodes';
+import {Node_FuncCall, NodeName} from '../compiler_parser/nodeObject';
 import {stringifyResolvedType} from './symbolStringifier';
 import * as assert from 'node:assert';
 

@@ -1,4 +1,4 @@
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {FunctionSymbol, FunctionSymbolHolder, isScopePathEquals, SymbolObject} from './symbolObject';
 import {SymbolScope} from './symbolScope';
@@ -10,7 +10,7 @@ function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): b
     }
 
     if (lhs.linkedNode.nodeName !== NodeName.FuncDef && rhs.linkedNode.nodeName !== NodeName.FuncDef) {
-        if (lhs.linkedNode.isConst !== rhs.linkedNode.isConst) {
+        if ((lhs.linkedNode.postfixConstToken !== undefined) !== (rhs.linkedNode.postfixConstToken !== undefined)) {
             return false;
         }
     }
@@ -18,7 +18,7 @@ function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): b
     for (let i = 0; i < lhs.linkedNode.paramList.length; i++) {
         const lhsParam = lhs.linkedNode.paramList[i];
         const rhsParam = rhs.linkedNode.paramList[i];
-        if (lhsParam.modifier !== rhsParam.modifier) {
+        if (lhsParam.inOutToken?.text !== rhsParam.inOutToken?.text) {
             return false;
         }
 
@@ -26,7 +26,7 @@ function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): b
             return false;
         }
 
-        if (lhsParam.type.isConst !== rhsParam.type.isConst) {
+        if ((lhsParam.type.constToken !== undefined) !== (rhsParam.type.constToken !== undefined)) {
             return false;
         }
 

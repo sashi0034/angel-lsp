@@ -1,36 +1,41 @@
 import {TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 
-export enum AccessModifier {
-    Private = 'Private',
-    Protected = 'Protected'
-}
+export type AccessModifierToken = TokenObject & {
+    readonly text: 'private' | 'protected';
+};
 
-export enum InOutModifier {
-    In = 'In',
-    Out = 'Out',
-    InOut = 'InOut'
-}
+export type ConstModifierToken = TokenObject & {
+    readonly text: 'const';
+};
 
-export enum ReferenceModifier {
-    Ref = 'Ref',
-    RefConst = 'RefConst'
-}
+export type EntityAttributeToken = TokenObject & {
+    readonly text: 'shared' | 'external' | 'abstract' | 'final';
+};
 
-export interface EntityAttribute {
-    readonly isShared: boolean;
-    readonly isExternal: boolean;
-    readonly isAbstract: boolean;
-    readonly isFinal: boolean;
-}
+export type FunctionAttributeToken = TokenObject & {
+    readonly text: 'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard';
+};
 
-export interface FunctionAttribute {
-    readonly isOverride: boolean;
-    readonly isFinal: boolean;
-    readonly isExplicit: boolean;
-    readonly isProperty: boolean;
-    readonly isDeleted: boolean;
-    readonly isNoDiscard: boolean;
+export type InOutModifierToken = TokenObject & {
+    readonly text: 'in' | 'out' | 'inout';
+};
+
+export type RefModifierToken = TokenObject & {
+    readonly text: '&';
+};
+
+export type RepeatModifierToken = TokenObject & {
+    readonly text: 'repeat' | 'repeat_same';
+};
+
+export type HandleModifierToken = TokenObject & {
+    readonly text: '@';
+};
+
+export interface HandleAndConstTokenPair {
+    readonly handleToken: HandleModifierToken;
+    readonly constToken: ConstModifierToken | undefined;
 }
 
 export enum NodeName {
@@ -82,6 +87,54 @@ export enum NodeName {
     Condition = 'Condition'
 }
 
+export type NodeObject =
+    | Node_Namespace
+    | Node_Using
+    | Node_Enum
+    | Node_Class
+    | Node_TypeDef
+    | Node_Func
+    | Node_ListPattern
+    | Node_ListEntry
+    | Node_Interface
+    | Node_Var
+    | Node_Import
+    | Node_FuncDef
+    | Node_VirtualProp
+    | Node_Mixin
+    | Node_InterfaceMethod
+    | Node_StatBlock
+    | Node_Parameter
+    | Node_Type
+    | Node_InitList
+    | Node_Scope
+    | Node_DataType
+    | Node_Switch
+    | Node_Break
+    | Node_For
+    | Node_ForEach
+    | Node_While
+    | Node_DoWhile
+    | Node_If
+    | Node_Continue
+    | Node_ExprStat
+    | Node_Try
+    | Node_Return
+    | Node_Case
+    | Node_Expr
+    | Node_ExprTerm
+    | Node_ConstructorCall
+    | Node_ExprPostOp
+    | Node_Cast
+    | Node_Lambda
+    | Node_LambdaParam
+    | Node_Literal
+    | Node_FuncCall
+    | Node_VarAccess
+    | Node_ArgList
+    | Node_Assign
+    | Node_Condition;
+
 export interface NodeBase {
     readonly nodeName: NodeName;
     readonly nodeRange: TokenRange;
@@ -122,7 +175,7 @@ export interface Node_Enum extends NodeBase {
     readonly nodeName: NodeName.Enum;
     readonly scopeRange: TokenRange;
     readonly metadata: TokenObject[][];
-    readonly entity: EntityAttribute | undefined;
+    readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly memberList: IdentifierAndOptionalExpr[];
     readonly enumType: ReservedToken | undefined;
@@ -138,9 +191,9 @@ export interface Node_Class extends NodeBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: TokenRange;
     readonly metadata: TokenObject[][];
-    readonly entity: EntityAttribute | undefined;
+    readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
-    readonly typeTemplates: Node_Type[] | undefined;
+    readonly typeParameters: Node_Type[] | undefined;
     readonly baseList: ScopeAndIdentifier[];
     readonly memberList: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[];
 }
@@ -157,25 +210,25 @@ export interface Node_TypeDef extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export interface Node_Func extends NodeBase {
     readonly nodeName: NodeName.Func;
-    readonly entity: EntityAttribute | undefined;
-    readonly accessor: AccessModifier | undefined;
+    readonly entityTokens: EntityAttributeToken[] | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly head: FunctionReturnValue | {tag: 'constructor'} | {tag: 'destructor'};
     readonly identifier: TokenObject;
+    readonly typeParameters: Node_Type[];
     readonly paramList: Node_ParamList;
-    readonly isConst: boolean;
-    readonly funcAttr: FunctionAttribute | undefined;
+    readonly postfixConstToken: ConstModifierToken | undefined;
+    readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
     readonly statBlock: Node_StatBlock;
-    readonly typeTemplates: Node_Type[];
     readonly listPattern: Node_ListPattern | undefined;
 }
 
 interface FunctionReturnValue {
     readonly tag: 'function';
     readonly returnType: Node_Type;
-    readonly isRef: boolean;
+    readonly refToken: RefModifierToken | undefined;
 }
 
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
@@ -190,13 +243,8 @@ export type Node_ListEntry = Node_ListEntry1 | Node_ListEntry2;
 export interface Node_ListEntry1 extends NodeBase {
     readonly nodeName: NodeName.ListEntry;
     readonly entryPattern: 1;
-    readonly repeatModifier: RepeatModifier | undefined;
+    readonly repeatToken: RepeatModifierToken | undefined;
     readonly entry: Node_ListEntry | Node_Type | undefined;
-}
-
-export enum RepeatModifier {
-    Repeat = 'Repeat',
-    RepeatSame = 'RepeatSame'
 }
 
 export interface Node_ListEntry2 extends NodeBase {
@@ -208,7 +256,7 @@ export interface Node_ListEntry2 extends NodeBase {
 // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 export interface Node_Interface extends NodeBase {
     readonly nodeName: NodeName.Interface;
-    readonly entity: EntityAttribute | undefined;
+    readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly baseList: ScopeAndIdentifier[];
     readonly memberList: (Node_VirtualProp | Node_InterfaceMethod)[];
@@ -217,7 +265,7 @@ export interface Node_Interface extends NodeBase {
 // **BNF** VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export interface Node_Var extends NodeBase {
     readonly nodeName: NodeName.Var;
-    readonly accessor: AccessModifier | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly type: Node_Type;
     readonly variables: IdentifierAndInitializer[];
 }
@@ -232,19 +280,19 @@ export interface IdentifierAndInitializer {
 export interface Node_Import extends NodeBase {
     readonly nodeName: NodeName.Import;
     readonly type: Node_Type;
-    readonly isRef: boolean;
+    readonly refToken: RefModifierToken | undefined;
     readonly identifier: TokenObject;
     readonly paramList: Node_ParamList;
-    readonly funcAttr: FunctionAttribute | undefined;
+    readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
     readonly path: TokenObject;
 }
 
 // **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
 export interface Node_FuncDef extends NodeBase {
     readonly nodeName: NodeName.FuncDef;
-    readonly entity: EntityAttribute | undefined;
+    readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly returnType: Node_Type;
-    readonly isRef: boolean;
+    readonly refToken: RefModifierToken | undefined;
     readonly identifier: TokenObject;
     readonly paramList: Node_ParamList;
 }
@@ -252,17 +300,17 @@ export interface Node_FuncDef extends NodeBase {
 // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface Node_VirtualProp extends NodeBase {
     readonly nodeName: NodeName.VirtualProp;
-    readonly accessor: AccessModifier | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly type: Node_Type;
-    readonly isRef: boolean;
+    readonly refToken: RefModifierToken | undefined;
     readonly identifier: TokenObject;
     readonly getter: GetterOrSetter | undefined;
     readonly setter: GetterOrSetter | undefined;
 }
 
 export interface GetterOrSetter {
-    readonly isConst: boolean;
-    readonly funcAttr: FunctionAttribute | undefined;
+    readonly constToken: ConstModifierToken | undefined;
+    readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
     readonly statBlock: Node_StatBlock | undefined;
 }
 
@@ -276,11 +324,11 @@ export interface Node_Mixin extends NodeBase {
 export interface Node_InterfaceMethod extends NodeBase {
     readonly nodeName: NodeName.InterfaceMethod;
     readonly returnType: Node_Type;
-    readonly isRef: boolean;
+    readonly refToken: RefModifierToken | undefined;
     readonly identifier: TokenObject;
     readonly paramList: Node_ParamList;
-    readonly isConst: boolean;
-    readonly funcAttr: FunctionAttribute | undefined;
+    readonly postfixConstToken: ConstModifierToken | undefined;
+    readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
 }
 
 // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
@@ -296,7 +344,7 @@ export type Node_ParamList = Node_Parameter[];
 export interface Node_Parameter extends NodeBase {
     readonly nodeName: NodeName.Parameter;
     readonly type: Node_Type;
-    readonly modifier: InOutModifier | undefined;
+    readonly inOutToken: InOutModifierToken | undefined;
     readonly identifier: TokenObject | undefined;
     readonly defaultExpr: Node_Expr | VoidParameter | undefined;
     readonly isVariadic: boolean;
@@ -311,12 +359,12 @@ export type VoidParameter = typeof voidParameter;
 // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export interface Node_Type extends NodeBase {
     readonly nodeName: NodeName.Type;
-    readonly isConst: boolean;
+    readonly constToken: ConstModifierToken | undefined;
     readonly scope: Node_Scope | undefined;
     readonly dataType: Node_DataType;
-    readonly typeTemplates: Node_Type[];
+    readonly typeArguments: Node_Type[];
     readonly isArray: boolean;
-    readonly refModifier: ReferenceModifier | undefined;
+    readonly handle: HandleAndConstTokenPair | undefined;
 }
 
 // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -330,7 +378,7 @@ export interface Node_Scope extends NodeBase {
     readonly nodeName: NodeName.Scope;
     readonly isGlobal: boolean;
     readonly scopeList: TokenObject[];
-    readonly typeTemplates: Node_Type[];
+    readonly typeArguments: Node_Type[];
 }
 
 // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
@@ -554,7 +602,7 @@ export interface Node_Lambda extends NodeBase {
 export interface Node_LambdaParam extends NodeBase {
     readonly nodeName: NodeName.LambdaParam;
     readonly type: Node_Type | undefined;
-    readonly typeModifier: InOutModifier | undefined;
+    readonly typeToken: InOutModifierToken | undefined;
     readonly identifier: TokenObject | undefined;
 }
 
@@ -564,13 +612,13 @@ export interface Node_Literal extends NodeBase {
     readonly value: TokenObject;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 export interface Node_FuncCall extends NodeBase {
     readonly nodeName: NodeName.FuncCall;
     readonly scope: Node_Scope | undefined;
     readonly identifier: TokenObject;
     readonly argList: Node_ArgList;
-    readonly typeTemplates: Node_Type[] | undefined;
+    readonly typeArguments: Node_Type[] | undefined;
 }
 
 // **BNF** VARACCESS ::= SCOPE IDENTIFIER
