@@ -1,5 +1,4 @@
 import {
-    AccessModifier,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -9,6 +8,7 @@ import {
     NodeName,
     NodeBase
 } from '../compiler_parser/nodes';
+import {AccessRestriction} from './modifier';
 import {ResolvedType} from './resolvedType';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import assert = require('node:assert');
@@ -258,7 +258,7 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
         public readonly scopePath: ScopePath,
         private _type: ResolvedType | undefined,
         public readonly isInstanceMember: boolean,
-        public readonly accessRestriction: AccessModifier | undefined,
+        public readonly accessRestriction: AccessRestriction | undefined,
         public readonly isVirtualProperty?: boolean,
         public readonly isIndexedPropertyAccessor?: boolean
     ) {
@@ -270,7 +270,7 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
         scopePath: ScopePath;
         type: ResolvedType | undefined;
         isInstanceMember: boolean;
-        accessRestriction: AccessModifier | undefined;
+        accessRestriction: AccessRestriction | undefined;
         isVirtualProperty?: boolean;
         isIndexedPropertyAccessor?: boolean;
     }) {
@@ -324,7 +324,7 @@ export class FunctionSymbol extends SymbolBase {
         private _returnType: ResolvedType | undefined,
         private _parameterTypes: (ResolvedType | undefined)[],
         public readonly isInstanceMember: boolean,
-        public readonly accessRestriction: AccessModifier | undefined,
+        public readonly accessRestriction: AccessRestriction | undefined,
         // Template parameter qualifiedIdentifier.
         // For example, 'func<T, U>' has two template parameters for 'T' and 'U'.
         private _templateParameters?: TemplateParameter[]
@@ -340,7 +340,7 @@ export class FunctionSymbol extends SymbolBase {
         returnType: ResolvedType | undefined;
         parameterTypes: (ResolvedType | undefined)[];
         isInstanceMember: boolean;
-        accessRestriction: AccessModifier | undefined;
+        accessRestriction: AccessRestriction | undefined;
     }) {
         return new FunctionSymbol(
             args.identifierToken,
@@ -354,7 +354,7 @@ export class FunctionSymbol extends SymbolBase {
         );
     }
 
-    public clone(option?: {identifierToken?: TokenObject; accessRestriction?: AccessModifier}): this {
+    public clone(option?: {identifierToken?: TokenObject; accessRestriction?: AccessRestriction}): this {
         return new FunctionSymbol(
             option?.identifierToken ?? this.identifierToken,
             this.scopePath,

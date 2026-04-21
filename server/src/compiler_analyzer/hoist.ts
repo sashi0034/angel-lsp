@@ -6,7 +6,6 @@ import {
     tryResolveActiveScope
 } from './symbolScope';
 import {
-    AccessModifier,
     Node_Class,
     Node_Enum,
     Node_Func,
@@ -25,6 +24,7 @@ import {
     Node_VirtualProp,
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
+import {AccessRestriction, getAccessRestriction} from './modifier';
 import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
@@ -179,7 +179,7 @@ function hoistClass(
         scopePath: parentScope.scopePath,
         type: new ResolvedType(symbol),
         isInstanceMember: false,
-        accessRestriction: AccessModifier.Private
+        accessRestriction: AccessRestriction.Private
     });
     scope.insertSymbolAndCheck(thisVariable);
 
@@ -213,7 +213,7 @@ function hoistClass(
                             'super',
                             new TokenRange(baseConstructor.identifierToken, baseConstructor.identifierToken)
                         ),
-                        accessRestriction: AccessModifier.Private
+                        accessRestriction: AccessRestriction.Private
                     });
 
                     scope.insertSymbol(superConstructor);
@@ -325,7 +325,7 @@ function copyBaseMembers(scope: SymbolScope, baseList: (ResolvedType | undefined
 
             for (const symbol of symbolHolder.toList()) {
                 if (symbol.isFunction() || symbol.isVariable()) {
-                    if (!isMixin && symbol.accessRestriction === AccessModifier.Private) {
+                    if (!isMixin && symbol.accessRestriction === AccessRestriction.Private) {
                         continue;
                     }
                 }
@@ -414,7 +414,7 @@ function hoistFunc(
         linkedNode: funcNode,
         functionScopePath: functionScope.scopePath,
         isInstanceMember: isInstanceMember,
-        accessRestriction: funcNode.accessor
+        accessRestriction: getAccessRestriction(funcNode.accessor)
     });
 
     const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeTemplates);
@@ -477,7 +477,8 @@ function tryInsertVirtualSetterOrGetter(
                 scopePath: scope.scopePath,
                 type: returnType,
                 isInstanceMember: isInstanceMember,
-                accessRestriction: node.nodeName === NodeName.InterfaceMethod ? undefined : node.accessor,
+                accessRestriction:
+                    node.nodeName === NodeName.InterfaceMethod ? undefined : getAccessRestriction(node.accessor),
                 isVirtualProperty: true,
                 isIndexedPropertyAccessor: isIndexedPropertyAccessor
             });
@@ -647,7 +648,7 @@ function hoistVirtualProp(
         scopePath: parentScope.scopePath,
         type: type,
         isInstanceMember: isInstanceMember,
-        accessRestriction: virtualProp.accessor
+        accessRestriction: getAccessRestriction(virtualProp.accessor)
     });
     parentScope.insertSymbolAndCheck(symbol);
 
@@ -671,7 +672,7 @@ function hoistVirtualProp(
                 scopePath: parentScope.scopePath,
                 type: new ResolvedType(type.typeOrFunc),
                 isInstanceMember: false,
-                accessRestriction: virtualProp.accessor
+                accessRestriction: getAccessRestriction(virtualProp.accessor)
             });
             setterScope.insertSymbolAndCheck(valueVariable);
         }

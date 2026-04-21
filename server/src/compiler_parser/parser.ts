@@ -1,7 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 import {
-    AccessModifier,
+    AccessModifierToken,
     EntityAttribute,
     FunctionAttribute,
     Node_ArgList,
@@ -790,11 +790,11 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
 }
 
 // ['private' | 'protected']
-function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
-    const next = parser.next().text;
-    if (next === 'private' || next === 'protected') {
+function parseAccessModifier(parser: ParserState): AccessModifierToken | undefined {
+    const next = parser.next();
+    if (next.text === 'private' || next.text === 'protected') {
         parser.commit(HighlightForToken.Keyword);
-        return next === 'private' ? AccessModifier.Private : AccessModifier.Protected;
+        return next as AccessModifierToken;
     }
 
     return undefined;

@@ -1,10 +1,9 @@
 import {TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 
-export enum AccessModifier {
-    Private = 'Private',
-    Protected = 'Protected'
-}
+export type AccessModifierToken = TokenObject & {
+    readonly text: 'private' | 'protected';
+};
 
 export enum InOutModifier {
     In = 'In',
@@ -161,7 +160,7 @@ export interface Node_TypeDef extends NodeBase {
 export interface Node_Func extends NodeBase {
     readonly nodeName: NodeName.Func;
     readonly entity: EntityAttribute | undefined;
-    readonly accessor: AccessModifier | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly head: FunctionReturnValue | {tag: 'constructor'} | {tag: 'destructor'};
     readonly identifier: TokenObject;
     readonly paramList: Node_ParamList;
@@ -217,7 +216,7 @@ export interface Node_Interface extends NodeBase {
 // **BNF** VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
 export interface Node_Var extends NodeBase {
     readonly nodeName: NodeName.Var;
-    readonly accessor: AccessModifier | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly type: Node_Type;
     readonly variables: IdentifierAndInitializer[];
 }
@@ -252,7 +251,7 @@ export interface Node_FuncDef extends NodeBase {
 // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
 export interface Node_VirtualProp extends NodeBase {
     readonly nodeName: NodeName.VirtualProp;
-    readonly accessor: AccessModifier | undefined;
+    readonly accessor: AccessModifierToken | undefined;
     readonly type: Node_Type;
     readonly isRef: boolean;
     readonly identifier: TokenObject;

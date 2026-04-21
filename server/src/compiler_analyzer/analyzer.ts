@@ -44,6 +44,7 @@ import {
     voidParameter
 } from '../compiler_parser/nodes';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
+import {getAccessRestriction} from './modifier';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -212,7 +213,7 @@ export function insertVariables(
             scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
-            accessRestriction: varNode.accessor
+            accessRestriction: getAccessRestriction(varNode.accessor)
         });
         scope.insertSymbolAndCheck(variable);
 
