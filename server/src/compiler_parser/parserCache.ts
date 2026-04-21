@@ -1,4 +1,4 @@
-import {EntityAttribute, Node_Scope, Node_Type} from './nodes';
+import {EntityAttributeToken, Node_Scope, Node_Type} from './nodes';
 
 export enum ParserCacheKind {
     EntityAttribute = 'EntityAttribute',
@@ -9,7 +9,7 @@ export enum ParserCacheKind {
 export type ParserCacheTargets<T extends ParserCacheKind> = TargetEntityAttribute<T>;
 
 type TargetEntityAttribute<T extends ParserCacheKind> = T extends ParserCacheKind.EntityAttribute
-    ? EntityAttribute
+    ? EntityAttributeToken[]
     : TargetScope<T>;
 
 type TargetScope<T extends ParserCacheKind> = T extends ParserCacheKind.Scope ? Node_Scope : TargetTypeTemplates<T>;

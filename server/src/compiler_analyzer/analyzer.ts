@@ -29,7 +29,6 @@ import {
     NodeName,
     Node_Parameter,
     Node_ParamList,
-    ReferenceModifier,
     Node_Return,
     Node_Scope,
     Node_StatBlock,
@@ -44,7 +43,7 @@ import {
     voidParameter
 } from '../compiler_parser/nodes';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
-import {getAccessRestriction} from './modifier';
+import {getAccessRestriction} from './nodeHelper';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -131,7 +130,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     analyzeTemplateArguments(
         scope,
         declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
-        func.typeTemplates
+        func.typeParameters
     ); // FIXME?
 
     // Add arguments to the scope
@@ -371,7 +370,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 }
 
 function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.refModifier === ReferenceModifier.Ref || typeNode.refModifier === ReferenceModifier.RefConst;
+    return typeNode.handle !== undefined;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -1583,7 +1582,7 @@ function analyzeEnumMemberAccess(
             nodeRange: new TokenRange(varIdentifier, varIdentifier),
             scopeRange: new TokenRange(varIdentifier, varIdentifier),
             metadata: [],
-            entity: undefined,
+            entityTokens: undefined,
             identifier: varIdentifier,
             memberList: [],
             enumType: undefined

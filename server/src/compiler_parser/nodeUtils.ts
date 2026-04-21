@@ -1,8 +1,8 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {Node_Type, ReferenceModifier} from './nodes';
+import {Node_Type} from './nodes';
 
 export function stringifyTypeNode(type: Node_Type, separator: string = ', '): string {
-    let str = type.isConst ? 'const ' : '';
+    let str = type.constToken !== undefined ? 'const ' : '';
     str += type.dataType.identifier.text;
     if (type.typeTemplates.length > 0) {
         str += '<' + type.typeTemplates.map(t => stringifyTypeNode(t, separator)).join(separator) + '>';
@@ -12,8 +12,8 @@ export function stringifyTypeNode(type: Node_Type, separator: string = ', '): st
         str += '[]';
     }
 
-    if (type.refModifier !== undefined) {
-        str += type.refModifier === ReferenceModifier.RefConst ? '@const' : '@';
+    if (type.handle !== undefined) {
+        str += type.handle.constToken !== undefined ? '@const' : '@';
     }
 
     return str;

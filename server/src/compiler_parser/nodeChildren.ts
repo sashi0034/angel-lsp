@@ -88,9 +88,9 @@ const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
         const funcNode = node as Node_Func;
         return [
             ...children(funcNode.head.tag === 'function' ? funcNode.head.returnType : undefined),
+            ...funcNode.typeParameters,
             ...funcNode.paramList,
-            ...children(funcNode.statBlock, funcNode.listPattern),
-            ...funcNode.typeTemplates
+            ...children(funcNode.statBlock, funcNode.listPattern)
         ];
     },
 

@@ -1,14 +1,6 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {ResolvedType} from './resolvedType';
-import {
-    InOutModifier,
-    NodeName,
-    Node_Type,
-    ReferenceModifier,
-    Node_Func,
-    Node_ParamList,
-    Node_Scope
-} from '../compiler_parser/nodes';
+import {InOutModifierToken, NodeName, Node_Type, Node_Func, Node_ParamList, Node_Scope} from '../compiler_parser/nodes';
 import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
 import assert = require('node:assert');
 
@@ -66,27 +58,19 @@ function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Nod
     }
 
     let text = stringifyResolvedType(type);
-    if (node.refModifier === ReferenceModifier.RefConst && text.endsWith('@')) {
+    if (node.handle?.constToken !== undefined && text.endsWith('@')) {
         text = text.substring(0, text.length - 1) + '@const';
     }
 
-    if (node.isConst) {
+    if (node.constToken !== undefined) {
         text = 'const ' + text;
     }
 
     return text;
 }
 
-function stringifyInOutModifier(modifier: InOutModifier | undefined): string {
-    if (modifier === InOutModifier.In) {
-        return '&in';
-    } else if (modifier === InOutModifier.Out) {
-        return '&out';
-    } else if (modifier === InOutModifier.InOut) {
-        return '&inout';
-    }
-
-    return '';
+function stringifyInOutModifier(modifier: InOutModifierToken | undefined): string {
+    return modifier === undefined ? '' : `&${modifier.text}`;
 }
 
 function stringifyFunctionParameters(symbol: FunctionSymbol): string {
@@ -95,7 +79,7 @@ function stringifyFunctionParameters(symbol: FunctionSymbol): string {
         .map((type, index) => {
             const param = paramList[index];
             const typeText = stringifyResolvedTypeWithNode(type, param?.type);
-            const modifierText = stringifyInOutModifier(param?.modifier);
+            const modifierText = stringifyInOutModifier(param?.inOutToken);
             const identifierText = param?.identifier === undefined ? '' : ` ${param.identifier.text}`;
             const variadicText = param?.isVariadic ? ' ...' : '';
             return `${typeText}${modifierText}${identifierText}${variadicText}`;
@@ -106,13 +90,19 @@ function stringifyFunctionParameters(symbol: FunctionSymbol): string {
 function stringifyFunctionReturnType(symbol: FunctionSymbol): string {
     const linkedNode = symbol.linkedNode;
     if (linkedNode.nodeName === NodeName.FuncDef) {
-        return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
+        return (
+            stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) +
+            (linkedNode.refToken !== undefined ? '&' : '')
+        );
     } else if (linkedNode.nodeName === NodeName.InterfaceMethod) {
-        return stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) + (linkedNode.isRef ? '&' : '');
+        return (
+            stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.returnType) +
+            (linkedNode.refToken !== undefined ? '&' : '')
+        );
     } else if (linkedNode.head.tag === 'function') {
         return (
             stringifyResolvedTypeWithNode(symbol.returnType, linkedNode.head.returnType) +
-            (linkedNode.head.isRef ? '&' : '')
+            (linkedNode.head.refToken !== undefined ? '&' : '')
         );
     }
 
@@ -125,7 +115,7 @@ function stringifyFunctionConstSuffix(symbol: FunctionSymbol): string {
         return '';
     }
 
-    return linkedNode.isConst ? ' const' : '';
+    return linkedNode.postfixConstToken !== undefined ? ' const' : '';
 }
 
 function stringifyTemplateParameters(symbol: TypeSymbol | FunctionSymbol): string {

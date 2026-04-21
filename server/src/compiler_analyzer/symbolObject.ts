@@ -8,7 +8,7 @@ import {
     NodeName,
     NodeBase
 } from '../compiler_parser/nodes';
-import {AccessRestriction} from './modifier';
+import {AccessRestriction} from './nodeHelper';
 import {ResolvedType} from './resolvedType';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import assert = require('node:assert');

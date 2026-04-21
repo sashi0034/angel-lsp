@@ -24,7 +24,7 @@ import {
     Node_VirtualProp,
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodes';
-import {AccessRestriction, getAccessRestriction} from './modifier';
+import {AccessRestriction, getAccessRestriction, hasFunctionAttribute} from './nodeHelper';
 import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
@@ -417,7 +417,7 @@ function hoistFunc(
         accessRestriction: getAccessRestriction(funcNode.accessor)
     });
 
-    const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeTemplates);
+    const templateParameters = hoistTemplateParameters(functionScope, funcNode.typeParameters);
     if (templateParameters.length > 0) {
         symbol.assignTemplateParameters(templateParameters);
     }
@@ -455,7 +455,7 @@ function tryInsertVirtualSetterOrGetter(
     const isSetter = !isGetter && node.identifier.text.startsWith('set_');
 
     if (isGetter || isSetter) {
-        if (node.funcAttr?.isProperty || !getGlobalSettings().explicitPropertyAccessor) {
+        if (hasFunctionAttribute(node, 'property') || !getGlobalSettings().explicitPropertyAccessor) {
             // FIXME?
             const identifier: TokenObject = IdentifierToken.createVirtual(
                 node.identifier.text.substring(4),
@@ -485,7 +485,7 @@ function tryInsertVirtualSetterOrGetter(
 
             scope.insertSymbol(symbol);
         }
-    } else if (node.funcAttr?.isProperty === true) {
+    } else if (hasFunctionAttribute(node, 'property')) {
         analyzerDiagnostic.error(node.identifier.location, 'Property accessor must start with "get_" or "set_"');
     }
 }

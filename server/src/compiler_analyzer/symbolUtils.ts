@@ -7,7 +7,7 @@ import {
     SymbolScope
 } from './symbolScope';
 import {NodeName} from '../compiler_parser/nodes';
-import {AccessRestriction} from './modifier';
+import {AccessRestriction} from './nodeHelper';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');
 
