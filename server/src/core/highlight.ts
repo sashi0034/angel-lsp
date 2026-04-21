@@ -26,7 +26,7 @@ export enum HighlightForToken {
     Regexp, // For tokens that represent a regular expression literal.
     Operator, // For tokens that represent an operator.
     // Custom Token Types
-    KeywordControl // For keywords that affect control(for, while, etc.).
+    ControlKeyword // For keywords that affect control(for, while, etc.).
 }
 
 export const highlightForTokenList = [
@@ -54,7 +54,7 @@ export const highlightForTokenList = [
     'number',
     'regexp',
     'operator',
-    'keywordControl'
+    'controlKeyword'
 ];
 
 export enum HighlightForModifier {

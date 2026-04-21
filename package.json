@@ -85,7 +85,7 @@
         ],
         "semanticTokenTypes": [
             {
-                "id": "keywordControl",
+                "id": "controlKeyword",
                 "description": "For keywords that affect control flow.",
                 "superType": "keyword"
             }
@@ -97,20 +97,13 @@
                     "keyword": [
                         "keyword.angelscript"
                     ],
-                    "keywordControl": [
+                    "controlKeyword": [
                         "keyword.control.angelscript"
                     ]
                 }
             }
         ],
         "configurationDefaults": {
-            "editor.semanticTokenColorCustomizations": {
-                "rules": {
-                    "builtin": "#00b0e0",
-                    "directive": "#ffe020",
-                    "metadata": "#bb55ff"
-                }
-            },
             "[angelscript]": {
                 "editor.formatOnType": true
             }
