@@ -47,8 +47,8 @@ function getFunctionSignature(info: FunctionCallMarker, expectedCallee: Function
     let activeIndex = 0;
 
     let signatureLabel = expectedCallee.actualIdentifierToken.text + '(';
-    for (let i = 0; i < expectedCallee.linkedNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.linkedNode.paramList[i];
+    for (let i = 0; i < expectedCallee.linkedNode.paramList.params.length; i++) {
+        const paramIdentifier = expectedCallee.linkedNode.paramList.params[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(applyTemplateMapping(paramType, info.calleeTemplateMapping));

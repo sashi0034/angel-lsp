@@ -51,7 +51,7 @@ function inlayHintFunctionCall(globalScope: SymbolGlobalScope, location: TextLoc
                 }
             }
 
-            const paramIdentifier = calleeFunction.linkedNode.paramList[i]?.identifier?.text;
+            const paramIdentifier = calleeFunction.linkedNode.paramList.params[i]?.identifier?.text;
             if (paramIdentifier === undefined) {
                 continue;
             }

@@ -466,10 +466,10 @@ function tryInsertVirtualSetterOrGetter(
             let isIndexedPropertyAccessor;
             if (isGetter) {
                 // e.g., 'string get_texts(int idx) property'
-                isIndexedPropertyAccessor = node.paramList.length == 1; // TODO: Check the type of the parameter
+                isIndexedPropertyAccessor = node.paramList.params.length == 1; // TODO: Check the type of the parameter
             } else {
                 // e.g., 'void set_texts(int idx, const string &in value) property'
-                isIndexedPropertyAccessor = node.paramList.length == 2;
+                isIndexedPropertyAccessor = node.paramList.params.length == 2;
             }
 
             const symbol: VariableSymbol = VariableSymbol.create({
@@ -626,7 +626,7 @@ function hoistFuncDef(
     });
 
     hoistQueue.push(() => {
-        symbol.assignParameterTypes(funcDef.paramList.map(param => analyzeType(parentScope, param.type)));
+        symbol.assignParameterTypes(funcDef.paramList.params.map(param => analyzeType(parentScope, param.type)));
 
         checkDuplicateFunctionOverload(parentScope, symbol);
     });
@@ -729,12 +729,12 @@ function hoistParamList(
     assert(functionScope === undefined || functionScope.parentScope === functionHolderScope);
 
     const resolvedTypes: (ResolvedType | undefined)[] = [];
-    for (const param of paramList) {
+    for (const param of paramList.params) {
         resolvedTypes.push(hoistParameter(functionScope ?? functionHolderScope, param));
     }
 
-    for (let i = 0; i < paramList.length; i++) {
-        const param = paramList[i];
+    for (let i = 0; i < paramList.params.length; i++) {
+        const param = paramList.params[i];
         if (param.identifier === undefined) {
             continue;
         }

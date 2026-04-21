@@ -55,6 +55,7 @@ export enum NodeName {
     Mixin = 'Mixin',
     InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
+    ParamList = 'ParamList',
     Parameter = 'Parameter',
     Type = 'Type',
     InitList = 'InitList',
@@ -104,6 +105,7 @@ export type NodeObject =
     | Node_Mixin
     | Node_InterfaceMethod
     | Node_StatBlock
+    | Node_ParamList
     | Node_Parameter
     | Node_Type
     | Node_InitList
@@ -338,7 +340,10 @@ export interface Node_StatBlock extends NodeBase {
 }
 
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
-export type Node_ParamList = Node_Parameter[];
+export interface Node_ParamList extends NodeBase {
+    readonly nodeName: NodeName.ParamList;
+    readonly params: Node_Parameter[];
+}
 
 // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
 export interface Node_Parameter extends NodeBase {

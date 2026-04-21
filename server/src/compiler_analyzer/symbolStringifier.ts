@@ -81,10 +81,10 @@ function stringifyInOutModifier(modifier: InOutModifierToken | undefined): strin
 }
 
 function stringifyFunctionParameters(symbol: FunctionSymbol): string {
-    const paramList = symbol.linkedNode.paramList;
+    const params = symbol.linkedNode.paramList.params;
     return symbol.parameterTypes
         .map((type, index) => {
-            const param = paramList[index];
+            const param = params[index];
             const typeText = stringifyResolvedTypeWithNode(type, param?.type);
             const modifierText = stringifyInOutModifier(param?.inOutToken);
             const identifierText = param?.identifier === undefined ? '' : ` ${param.identifier.text}`;

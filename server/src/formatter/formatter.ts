@@ -516,16 +516,16 @@ function formatStatBlock(format: FormatterState, statBlock: Node_StatBlock) {
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function formatParamList(format: FormatterState, paramList: Node_ParamList) {
     formatParenthesesBlock(format, () => {
-        if (paramList.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
+        if (paramList.params.length === 0 && formatMoveToNonComment(format)?.text === 'void') {
             formatTargetBy(format, 'void', {});
         }
 
-        for (let i = 0; i < paramList.length; i++) {
+        for (let i = 0; i < paramList.params.length; i++) {
             if (i > 0) {
                 formatTargetBy(format, ',', {condenseLeft: true});
             }
 
-            formatParameter(format, paramList[i]);
+            formatParameter(format, paramList.params[i]);
         }
     });
 }

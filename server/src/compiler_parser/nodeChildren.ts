@@ -35,7 +35,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
             return [
                 ...children(node.head.tag === 'function' ? node.head.returnType : undefined),
                 ...node.typeParameters,
-                ...node.paramList,
+                node.paramList,
                 ...children(node.statBlock, node.listPattern)
             ];
 
@@ -61,11 +61,11 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
         case NodeName.Import:
-            return [node.type, ...node.paramList];
+            return [node.type, node.paramList];
 
         // **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
         case NodeName.FuncDef:
-            return [node.returnType, ...node.paramList];
+            return [node.returnType, node.paramList];
 
         // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
         case NodeName.VirtualProp:
@@ -77,14 +77,15 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
         case NodeName.InterfaceMethod:
-            return [node.returnType, ...node.paramList];
+            return [node.returnType, node.paramList];
 
         // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
         case NodeName.StatBlock:
             return node.statementList;
 
         // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
-        // n/a
+        case NodeName.ParamList:
+            return node.params;
 
         // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
         case NodeName.Parameter:

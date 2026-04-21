@@ -56,7 +56,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     // 'caller' --> '(' --> 'arg[0]' --> ',' ---> 'arg[1]' --> ',' --> ... --> ')'
     // 'caller' --> '(' --> 'name: arg[0]' --> ',' ---> 'name: arg[1]' --> ',' --> ... --> ')'
     const edits: lsp.TextEdit[] = [];
-    const calleeeParams = calleeFunction.linkedNode.paramList;
+    const calleeeParams = calleeFunction.linkedNode.paramList.params;
     for (let paramId = 0; paramId < calleeeParams.length; ++paramId) {
         if (calleeeParams[paramId].identifier === undefined) {
             continue;

@@ -5,7 +5,7 @@ import {SymbolScope} from './symbolScope';
 import {normalizeType} from './typeConversion';
 
 function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): boolean {
-    if (lhs.linkedNode.paramList.length !== rhs.linkedNode.paramList.length) {
+    if (lhs.linkedNode.paramList.params.length !== rhs.linkedNode.paramList.params.length) {
         return false;
     }
 
@@ -15,9 +15,9 @@ function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): b
         }
     }
 
-    for (let i = 0; i < lhs.linkedNode.paramList.length; i++) {
-        const lhsParam = lhs.linkedNode.paramList[i];
-        const rhsParam = rhs.linkedNode.paramList[i];
+    for (let i = 0; i < lhs.linkedNode.paramList.params.length; i++) {
+        const lhsParam = lhs.linkedNode.paramList.params[i];
+        const rhsParam = rhs.linkedNode.paramList.params[i];
         if (lhsParam.inOutToken?.text !== rhsParam.inOutToken?.text) {
             return false;
         }

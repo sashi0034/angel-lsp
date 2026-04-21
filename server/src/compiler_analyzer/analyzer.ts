@@ -276,7 +276,7 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
 
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
-    for (const param of paramList) {
+    for (const param of paramList.params) {
         analyzeParameter(scope, param);
     }
 }

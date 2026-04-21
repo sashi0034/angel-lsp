@@ -1380,7 +1380,8 @@ function expectStatBlock(parser: ParserState): Node_StatBlock | undefined {
 
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function parseParamList(parser: ParserState): Node_ParamList | undefined {
-    if (parser.next().text !== '(') {
+    const rangeStart = parser.next();
+    if (rangeStart.text !== '(') {
         return undefined;
     }
 
@@ -1389,14 +1390,18 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
     if (parser.next().text === 'void') {
         parser.commit(HighlightForToken.Keyword);
         parser.expect(')', HighlightForToken.Operator);
-        return [];
+        return {
+            nodeName: NodeName.ParamList,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            params: []
+        };
     }
 
     let isVariadic = false;
-    const paramList: Node_ParamList = [];
+    const parameters: Node_Parameter[] = [];
 
     while (parser.isEnd() === false) {
-        if (expectCommaOrParensClose(parser, paramList.length > 0) === BreakOrThrough.Break) {
+        if (expectCommaOrParensClose(parser, parameters.length > 0) === BreakOrThrough.Break) {
             break;
         }
 
@@ -1417,10 +1422,14 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
         }
 
         isVariadic = isVariadic || param.isVariadic;
-        paramList.push(param);
+        parameters.push(param);
     }
 
-    return paramList;
+    return {
+        nodeName: NodeName.ParamList,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        params: parameters
+    };
 }
 
 function expectParamList(parser: ParserState): Node_ParamList | undefined {
