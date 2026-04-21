@@ -141,8 +141,9 @@ export const snippetDefinitions: SnippetDefinition[] = [
         contexts: [SnippetContext.Class]
     },
     {
-        label: '#include',
-        insertText: '#include "${1:HEADER}"',
+        // TODO: Only show when '#' is before the label
+        label: 'include',
+        insertText: 'include "${1:HEADER}"',
         detail: 'Include other file',
         contexts: [SnippetContext.Script]
     }
