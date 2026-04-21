@@ -18,6 +18,7 @@ import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
 import {getGlobalSettings} from '../core/settings';
 import {isCaretInDeclarationPart} from './completion/declarationPart';
+import {provideFunctionSectionCompletion} from './completion/functionSection';
 import {provideSnippetCompletion} from './completion/snippet';
 
 export interface CompletionItemWrapper {
@@ -36,6 +37,11 @@ export function provideCompletion(
 ): CompletionItemWrapper[] {
     if (isCaretInDeclarationPart(preprocessedTokens, ast, caret)) {
         return [];
+    }
+
+    const functionSectionCompletion = provideFunctionSectionCompletion(ast, caret);
+    if (functionSectionCompletion !== undefined) {
+        return functionSectionCompletion;
     }
 
     const items = provideCompletion_internal(ast, globalScope, caret);
