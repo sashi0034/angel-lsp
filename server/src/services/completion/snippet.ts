@@ -1,6 +1,6 @@
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {InsertTextFormat} from 'vscode-languageserver';
-import {Node_Script, NodeBase, NodeName} from '../../compiler_parser/nodes';
+import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodes';
 import {getGlobalSettings} from '../../core/settings';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {findNearestNode} from '../../compiler_parser/nearestNode';
@@ -169,9 +169,9 @@ function getSnippetContext(ast: Node_Script, caret: TextPosition): SnippetContex
     caret = caret.movedBy(0, -1); // Move caret left by one character to get the correct context when caret is at the end of a token.
     const containingNodeList = findNearestNode(ast, caret)
         .map(nearestNode => nearestNode.containingNode)
-        .filter((node): node is NodeBase => node !== undefined);
+        .filter((node): node is NodeObject => node !== undefined);
 
-    let containingNode: NodeBase | undefined = containingNodeList.at(-1);
+    let containingNode: NodeObject | undefined = containingNodeList.at(-1);
     for (let i = 0; i < containingNodeList.length; i++) {
         if (containingNodeList[i].nodeRange.start.location.positionInRange(caret)) {
             // If the caret is at the beginning of a node like ExprStat,

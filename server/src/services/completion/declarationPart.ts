@@ -1,4 +1,4 @@
-import {Node_Script, NodeBase, NodeName} from '../../compiler_parser/nodes';
+import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodes';
 import {findNearestNode} from '../../compiler_parser/nearestNode';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {TokenObject} from '../../compiler_tokenizer/tokenObject';
@@ -34,7 +34,7 @@ function detectDeclarationPartByBuiltinTypeToken(preprocessedTokens: TokenObject
     );
 }
 
-function detectDeclarationPartByNode(node: NodeBase, caret: TextPosition): boolean {
+function detectDeclarationPartByNode(node: NodeObject, caret: TextPosition): boolean {
     switch (node.nodeName) {
         // case NodeName.Class: {
         //     const classToken = searchKeyword((node as Node_Class).nodeRange, 'class');

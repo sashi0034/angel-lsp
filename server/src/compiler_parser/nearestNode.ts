@@ -1,16 +1,16 @@
-import {Node_Script, NodeBase} from './nodes';
+import {Node_Script, NodeObject} from './nodes';
 import {getNodeChildren} from './nodeChildren';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 
 type NearestNode = {
-    precedingNode: NodeBase | undefined;
-    containingNode: NodeBase | undefined;
-    followingNode: NodeBase | undefined;
+    precedingNode: NodeObject | undefined;
+    containingNode: NodeObject | undefined;
+    followingNode: NodeObject | undefined;
 };
 
-export function findNearestNode(node: NodeBase | Node_Script, caret: TextPosition): NearestNode[] {
+export function findNearestNode(node: NodeObject | Node_Script, caret: TextPosition): NearestNode[] {
     const children = [...getChildren(node)].sort(compareNodePosition);
-    let precedingNode: NodeBase | undefined;
+    let precedingNode: NodeObject | undefined;
 
     for (let i = 0; i < children.length; i++) {
         const child = children[i];
@@ -49,11 +49,11 @@ export function findNearestNode(node: NodeBase | Node_Script, caret: TextPositio
     ];
 }
 
-function getChildren(node: NodeBase | Node_Script): NodeBase[] {
+function getChildren(node: NodeObject | Node_Script): NodeObject[] {
     return Array.isArray(node) ? node : getNodeChildren(node);
 }
 
-function compareNodePosition(lhs: NodeBase, rhs: NodeBase): number {
+function compareNodePosition(lhs: NodeObject, rhs: NodeObject): number {
     const lhsStart = lhs.nodeRange.start.location.start;
     const rhsStart = rhs.nodeRange.start.location.start;
     if (lhsStart.isLessThan(rhsStart)) {

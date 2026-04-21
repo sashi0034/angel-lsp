@@ -1,377 +1,243 @@
-import {
-    Node_ArgList,
-    Node_Assign,
-    NodeBase,
-    Node_Case,
-    Node_Cast,
-    Node_Class,
-    Node_Condition,
-    Node_ConstructorCall,
-    Node_DoWhile,
-    Node_Enum,
-    Node_Expr,
-    Node_ExprPostOp,
-    Node_ExprStat,
-    Node_ExprTerm,
-    Node_For,
-    Node_ForEach,
-    Node_Func,
-    Node_FuncCall,
-    Node_FuncDef,
-    Node_If,
-    Node_Import,
-    Node_InitList,
-    Node_Interface,
-    Node_InterfaceMethod,
-    Node_Lambda,
-    Node_LambdaParam,
-    Node_ListEntry,
-    Node_ListPattern,
-    Node_Mixin,
-    NodeName,
-    Node_Namespace,
-    Node_Parameter,
-    Node_Return,
-    Node_Scope,
-    Node_StatBlock,
-    Node_Switch,
-    Node_Try,
-    Node_Type,
-    Node_Var,
-    Node_VarAccess,
-    Node_VirtualProp,
-    Node_While,
-    voidParameter
-} from './nodes';
+import {NodeName, NodeObject, voidParameter} from './nodes';
 
-type NodeChildrenMap = (node: NodeBase) => NodeBase[];
-
-function children(...nodes: (NodeBase | undefined)[]): NodeBase[] {
-    return nodes.filter((node): node is NodeBase => node !== undefined);
+function children(...nodes: (NodeObject | undefined)[]): NodeObject[] {
+    return nodes.filter((node): node is NodeObject => node !== undefined);
 }
 
-const nodeChildrenMap: Record<NodeName, NodeChildrenMap> = {
-    // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
-    [NodeName.Namespace]: function (node) {
-        const namespaceNode = node as Node_Namespace;
-        return namespaceNode.script;
-    },
+export function getNodeChildren(node: NodeObject): NodeObject[] {
+    switch (node.nodeName) {
+        // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
+        case NodeName.Namespace:
+            return node.script;
 
-    // **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
-    [NodeName.Using]: function () {
-        return [];
-    },
+        // **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+        case NodeName.Using:
+            return [];
 
-    // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-    [NodeName.Enum]: function (node) {
-        const enumNode = node as Node_Enum;
-        return enumNode.memberList.flatMap(member => children(member.expr));
-    },
+        // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
+        case NodeName.Enum:
+            return node.memberList.flatMap(member => children(member.expr));
 
-    // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
-    [NodeName.Class]: function (node) {
-        const classNode = node as Node_Class;
-        return [
-            ...children(...(classNode.typeTemplates ?? [])),
-            ...classNode.baseList.flatMap(base => children(base.scope)),
-            ...classNode.memberList
-        ];
-    },
+        // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+        case NodeName.Class:
+            return [
+                ...children(...(node.typeTemplates ?? [])),
+                ...node.baseList.flatMap(base => children(base.scope)),
+                ...node.memberList
+            ];
 
-    // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
-    [NodeName.TypeDef]: function () {
-        return [];
-    },
+        // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
+        case NodeName.TypeDef:
+            return [];
 
-    // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
-    [NodeName.Func]: function (node) {
-        const funcNode = node as Node_Func;
-        return [
-            ...children(funcNode.head.tag === 'function' ? funcNode.head.returnType : undefined),
-            ...funcNode.typeParameters,
-            ...funcNode.paramList,
-            ...children(funcNode.statBlock, funcNode.listPattern)
-        ];
-    },
+        // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+        case NodeName.Func:
+            return [
+                ...children(node.head.tag === 'function' ? node.head.returnType : undefined),
+                ...node.typeParameters,
+                ...node.paramList,
+                ...children(node.statBlock, node.listPattern)
+            ];
 
-    // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
-    [NodeName.ListPattern]: function (node) {
-        const listPattern = node as Node_ListPattern;
-        return listPattern.entries;
-    },
+        // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
+        case NodeName.ListPattern:
+            return node.entries;
 
-    // **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
-    [NodeName.ListEntry]: function (node) {
-        const listEntry = node as Node_ListEntry;
-        if (listEntry.entryPattern === 1) {
-            return children(listEntry.entry);
-        }
+        // **BNF** LISTENTRY ::= (('repeat' | 'repeat_same') (('{' LISTENTRY '}') | TYPE)) | (TYPE {',' TYPE})
+        case NodeName.ListEntry:
+            if (node.entryPattern === 1) {
+                return children(node.entry);
+            }
 
-        return listEntry.typeList;
-    },
+            return node.typeList;
 
-    // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
-    [NodeName.Interface]: function (node) {
-        const interfaceNode = node as Node_Interface;
-        return [...interfaceNode.baseList.flatMap(base => children(base.scope)), ...interfaceNode.memberList];
-    },
+        // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
+        case NodeName.Interface:
+            return [...node.baseList.flatMap(base => children(base.scope)), ...node.memberList];
 
-    // **BNF** VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
-    [NodeName.Var]: function (node) {
-        const varNode = node as Node_Var;
-        return [varNode.type, ...varNode.variables.flatMap(variable => children(variable.initializer))];
-    },
+        // **BNF** VAR ::= ['private' | 'protected'] TYPE IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST] {',' IDENTIFIER [( '=' (INITLIST | ASSIGN)) | ARGLIST]} ';'
+        case NodeName.Var:
+            return [node.type, ...node.variables.flatMap(variable => children(variable.initializer))];
 
-    // **BNF** IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
-    [NodeName.Import]: function (node) {
-        const importNode = node as Node_Import;
-        return [importNode.type, ...importNode.paramList];
-    },
+        // **BNF** IMPORT ::= 'import' TYPE ['&'] IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
+        case NodeName.Import:
+            return [node.type, ...node.paramList];
 
-    // **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
-    [NodeName.FuncDef]: function (node) {
-        const funcDef = node as Node_FuncDef;
-        return [funcDef.returnType, ...funcDef.paramList];
-    },
+        // **BNF** FUNCDEF ::= {'external' | 'shared'} 'funcdef' TYPE ['&'] IDENTIFIER PARAMLIST ';'
+        case NodeName.FuncDef:
+            return [node.returnType, ...node.paramList];
 
-    // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
-    [NodeName.VirtualProp]: function (node) {
-        const virtualProp = node as Node_VirtualProp;
-        return children(virtualProp.type, virtualProp.getter?.statBlock, virtualProp.setter?.statBlock);
-    },
+        // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
+        case NodeName.VirtualProp:
+            return children(node.type, node.getter?.statBlock, node.setter?.statBlock);
 
-    // **BNF** MIXIN ::= 'mixin' CLASS
-    [NodeName.Mixin]: function (node) {
-        const mixin = node as Node_Mixin;
-        return [mixin.mixinClass];
-    },
+        // **BNF** MIXIN ::= 'mixin' CLASS
+        case NodeName.Mixin:
+            return [node.mixinClass];
 
-    // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
-    [NodeName.InterfaceMethod]: function (node) {
-        const intfMethod = node as Node_InterfaceMethod;
-        return [intfMethod.returnType, ...intfMethod.paramList];
-    },
+        // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
+        case NodeName.InterfaceMethod:
+            return [node.returnType, ...node.paramList];
 
-    // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
-    [NodeName.StatBlock]: function (node) {
-        const statBlock = node as Node_StatBlock;
-        return statBlock.statementList;
-    },
+        // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
+        case NodeName.StatBlock:
+            return node.statementList;
 
-    // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
-    // n/a
+        // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
+        // n/a
 
-    // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
-    [NodeName.Parameter]: function (node) {
-        const param = node as Node_Parameter;
-        return children(param.type, param.defaultExpr === voidParameter ? undefined : param.defaultExpr);
-    },
+        // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
+        case NodeName.Parameter:
+            return children(node.type, node.defaultExpr === voidParameter ? undefined : node.defaultExpr);
 
-    // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-    // n/a
+        // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
+        // n/a
 
-    // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
-    [NodeName.Type]: function (node) {
-        const typeNode = node as Node_Type;
-        return children(typeNode.scope, typeNode.dataType, ...typeNode.typeTemplates);
-    },
+        // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
+        case NodeName.Type:
+            return children(node.scope, node.dataType, ...node.typeTemplates);
 
-    // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
-    [NodeName.InitList]: function (node) {
-        const initList = node as Node_InitList;
-        return initList.initList;
-    },
+        // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
+        case NodeName.InitList:
+            return node.initList;
 
-    // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-    [NodeName.Scope]: function (node) {
-        const scope = node as Node_Scope;
-        return scope.typeTemplates;
-    },
+        // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
+        case NodeName.Scope:
+            return node.typeTemplates;
 
-    // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
-    [NodeName.DataType]: function () {
-        return [];
-    },
+        // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
+        case NodeName.DataType:
+            return [];
 
-    // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-    // n/a
+        // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
+        // n/a
 
-    // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
-    // n/a
+        // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+        // n/a
 
-    // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
-    // n/a
+        // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
+        // n/a
 
-    // **BNF** SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
-    [NodeName.Switch]: function (node) {
-        const switchNode = node as Node_Switch;
-        return [switchNode.assign, ...switchNode.caseList];
-    },
+        // **BNF** SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
+        case NodeName.Switch:
+            return [node.assign, ...node.caseList];
 
-    // **BNF** BREAK ::= 'break' ';'
-    [NodeName.Break]: function () {
-        return [];
-    },
+        // **BNF** BREAK ::= 'break' ';'
+        case NodeName.Break:
+            return [];
 
-    // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-    [NodeName.For]: function (node) {
-        const forNode = node as Node_For;
-        return children(forNode.initial, forNode.condition, ...forNode.incrementList, forNode.statement);
-    },
+        // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
+        case NodeName.For:
+            return children(node.initial, node.condition, ...node.incrementList, node.statement);
 
-    // **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
-    [NodeName.ForEach]: function (node) {
-        const forEach = node as Node_ForEach;
-        return children(...forEach.variables.map(variable => variable.type), forEach.assign, forEach.statement);
-    },
+        // **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+        case NodeName.ForEach:
+            return children(...node.variables.map(variable => variable.type), node.assign, node.statement);
 
-    // **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
-    [NodeName.While]: function (node) {
-        const whileNode = node as Node_While;
-        return children(whileNode.assign, whileNode.statement);
-    },
+        // **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
+        case NodeName.While:
+            return children(node.assign, node.statement);
 
-    // **BNF** DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
-    [NodeName.DoWhile]: function (node) {
-        const doWhile = node as Node_DoWhile;
-        return children(doWhile.statement, doWhile.assign);
-    },
+        // **BNF** DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
+        case NodeName.DoWhile:
+            return children(node.statement, node.assign);
 
-    // **BNF** IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
-    [NodeName.If]: function (node) {
-        const ifNode = node as Node_If;
-        return children(ifNode.condition, ifNode.thenStat, ifNode.elseStat);
-    },
+        // **BNF** IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]
+        case NodeName.If:
+            return children(node.condition, node.thenStat, node.elseStat);
 
-    // **BNF** CONTINUE ::= 'continue' ';'
-    [NodeName.Continue]: function () {
-        return [];
-    },
+        // **BNF** CONTINUE ::= 'continue' ';'
+        case NodeName.Continue:
+            return [];
 
-    // **BNF** EXPRSTAT ::= [ASSIGN] ';'
-    [NodeName.ExprStat]: function (node) {
-        const exprStat = node as Node_ExprStat;
-        return children(exprStat.assign);
-    },
+        // **BNF** EXPRSTAT ::= [ASSIGN] ';'
+        case NodeName.ExprStat:
+            return children(node.assign);
 
-    // **BNF** TRY ::= 'try' STATBLOCK 'catch' STATBLOCK
-    [NodeName.Try]: function (node) {
-        const tryNode = node as Node_Try;
-        return children(tryNode.tryBlock, tryNode.catchBlock);
-    },
+        // **BNF** TRY ::= 'try' STATBLOCK 'catch' STATBLOCK
+        case NodeName.Try:
+            return children(node.tryBlock, node.catchBlock);
 
-    // **BNF** RETURN ::= 'return' [ASSIGN] ';'
-    [NodeName.Return]: function (node) {
-        const returnNode = node as Node_Return;
-        return children(returnNode.assign);
-    },
+        // **BNF** RETURN ::= 'return' [ASSIGN] ';'
+        case NodeName.Return:
+            return children(node.assign);
 
-    // **BNF** CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
-    [NodeName.Case]: function (node) {
-        const caseNode = node as Node_Case;
-        return children(caseNode.expr, ...caseNode.statementList);
-    },
+        // **BNF** CASE ::= (('case' EXPR) | 'default') ':' {STATEMENT}
+        case NodeName.Case:
+            return children(node.expr, ...node.statementList);
 
-    // **BNF** EXPR ::= EXPRTERM {EXPROP EXPRTERM}
-    [NodeName.Expr]: function (node) {
-        const expr = node as Node_Expr;
-        return children(expr.head, expr.tail?.expr);
-    },
+        // **BNF** EXPR ::= EXPRTERM {EXPROP EXPRTERM}
+        case NodeName.Expr:
+            return children(node.head, node.tail?.expr);
 
-    // **BNF** EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-    [NodeName.ExprTerm]: function (node) {
-        const exprTerm = node as Node_ExprTerm;
-        if (exprTerm.exprTerm === 1) {
-            return children(exprTerm.type, exprTerm.initList);
-        }
+        // **BNF** EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
+        case NodeName.ExprTerm:
+            if (node.exprTerm === 1) {
+                return children(node.type, node.initList);
+            }
 
-        return children(exprTerm.value, ...exprTerm.postOps);
-    },
+            return children(node.value, ...node.postOps);
 
-    // **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
-    // n/a
+        // **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+        // n/a
 
-    // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
-    [NodeName.ConstructorCall]: function (node) {
-        const constructorCall = node as Node_ConstructorCall;
-        return [constructorCall.type, constructorCall.argList];
-    },
+        // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
+        case NodeName.ConstructorCall:
+            return [node.type, node.argList];
 
-    // **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-    // n/a
+        // **BNF** EXPRPREOP ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
+        // n/a
 
-    // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
-    [NodeName.ExprPostOp]: function (node) {
-        const exprPostOp = node as Node_ExprPostOp;
-        if (exprPostOp.postOpPattern === 1) {
-            return exprPostOp.member?.access === 'method' ? [exprPostOp.member.node] : [];
-        }
+        // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
+        case NodeName.ExprPostOp:
+            if (node.postOpPattern === 1) {
+                return node.member?.access === 'method' ? [node.member.node] : [];
+            }
 
-        if (exprPostOp.postOpPattern === 2) {
-            return exprPostOp.indexingList.map(indexing => indexing.assign);
-        }
+            if (node.postOpPattern === 2) {
+                return node.indexingList.map(indexing => indexing.assign);
+            }
 
-        if (exprPostOp.postOpPattern === 3) {
-            return [exprPostOp.args];
-        }
+            if (node.postOpPattern === 3) {
+                return [node.args];
+            }
 
-        return [];
-    },
+            return [];
 
-    // **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
-    [NodeName.Cast]: function (node) {
-        const cast = node as Node_Cast;
-        return [cast.type, cast.assign];
-    },
+        // **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
+        case NodeName.Cast:
+            return [node.type, node.assign];
 
-    // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
-    [NodeName.Lambda]: function (node) {
-        const lambda = node as Node_Lambda;
-        return children(...lambda.paramList, lambda.statBlock);
-    },
+        // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
+        case NodeName.Lambda:
+            return children(...node.paramList, node.statBlock);
 
-    // **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
-    [NodeName.LambdaParam]: function (node) {
-        const param = node as Node_LambdaParam;
-        return children(param.type);
-    },
+        // **BNF** LAMBDAPARAM ::= [TYPE TYPEMODIFIER] [IDENTIFIER]
+        case NodeName.LambdaParam:
+            return children(node.type);
 
-    // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-    [NodeName.Literal]: function () {
-        return [];
-    },
+        // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+        case NodeName.Literal:
+            return [];
 
-    // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
-    [NodeName.FuncCall]: function (node) {
-        const funcCall = node as Node_FuncCall;
-        return children(funcCall.scope, funcCall.argList, ...(funcCall.typeTemplates ?? []));
-    },
+        // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+        case NodeName.FuncCall:
+            return children(node.scope, node.argList, ...(node.typeTemplates ?? []));
 
-    // **BNF** VARACCESS ::= SCOPE IDENTIFIER
-    [NodeName.VarAccess]: function (node) {
-        const varAccess = node as Node_VarAccess;
-        return children(varAccess.scope);
-    },
+        // **BNF** VARACCESS ::= SCOPE IDENTIFIER
+        case NodeName.VarAccess:
+            return children(node.scope);
 
-    // **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
-    [NodeName.ArgList]: function (node) {
-        const argList = node as Node_ArgList;
-        return argList.argList.map(arg => arg.assign);
-    },
+        // **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
+        case NodeName.ArgList:
+            return node.argList.map(arg => arg.assign);
 
-    // **BNF** ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
-    [NodeName.Assign]: function (node) {
-        const assign = node as Node_Assign;
-        return children(assign.condition, assign.tail?.assign);
-    },
+        // **BNF** ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
+        case NodeName.Assign:
+            return children(node.condition, node.tail?.assign);
 
-    // **BNF** CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
-    [NodeName.Condition]: function (node) {
-        const condition = node as Node_Condition;
-        return children(condition.expr, condition.ternary?.trueAssign, condition.ternary?.falseAssign);
+        // **BNF** CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
+        case NodeName.Condition:
+            return children(node.expr, node.ternary?.trueAssign, node.ternary?.falseAssign);
     }
-};
-
-export function getNodeChildren(node: NodeBase): NodeBase[] {
-    return nodeChildrenMap[node.nodeName](node);
 }

@@ -269,7 +269,7 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
         } else if (statement.nodeName === NodeName.Using) {
             analyzeUsingNamespace(scope, statement);
         } else {
-            analyzeStatement(scope, statement as Node_Statement);
+            analyzeStatement(scope, statement);
         }
     }
 }

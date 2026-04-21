@@ -87,6 +87,54 @@ export enum NodeName {
     Condition = 'Condition'
 }
 
+export type NodeObject =
+    | Node_Namespace
+    | Node_Using
+    | Node_Enum
+    | Node_Class
+    | Node_TypeDef
+    | Node_Func
+    | Node_ListPattern
+    | Node_ListEntry
+    | Node_Interface
+    | Node_Var
+    | Node_Import
+    | Node_FuncDef
+    | Node_VirtualProp
+    | Node_Mixin
+    | Node_InterfaceMethod
+    | Node_StatBlock
+    | Node_Parameter
+    | Node_Type
+    | Node_InitList
+    | Node_Scope
+    | Node_DataType
+    | Node_Switch
+    | Node_Break
+    | Node_For
+    | Node_ForEach
+    | Node_While
+    | Node_DoWhile
+    | Node_If
+    | Node_Continue
+    | Node_ExprStat
+    | Node_Try
+    | Node_Return
+    | Node_Case
+    | Node_Expr
+    | Node_ExprTerm
+    | Node_ConstructorCall
+    | Node_ExprPostOp
+    | Node_Cast
+    | Node_Lambda
+    | Node_LambdaParam
+    | Node_Literal
+    | Node_FuncCall
+    | Node_VarAccess
+    | Node_ArgList
+    | Node_Assign
+    | Node_Condition;
+
 export interface NodeBase {
     readonly nodeName: NodeName;
     readonly nodeRange: TokenRange;
