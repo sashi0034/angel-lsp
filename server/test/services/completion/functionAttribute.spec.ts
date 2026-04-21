@@ -63,4 +63,16 @@ describe('completion/functionAttribute', () => {
             /* $C1$ */ ['MyClass', 'f', 'this', 'unrelatedSymbol']
         );
     });
+
+    it('does not provide function suffix keywords before an existing suffix keyword', () => {
+        testCompletion(
+            `
+            class MyClass {
+                void f() $C0$ const {
+                }
+            }
+            `,
+            /* $C0$ */ []
+        );
+    });
 });

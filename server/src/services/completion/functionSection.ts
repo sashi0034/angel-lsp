@@ -34,6 +34,15 @@ export function provideFunctionSectionCompletion(
         return undefined;
     }
 
+    // -----------------------------------------------
+    // Now, caret is between the parameter list and the function body, which is where function suffix keywords can be placed.
+    // e.g., `void function() $C$ {`
+
+    if (func.postfixConstToken !== undefined && caret.isLessThan(func.postfixConstToken.location.end)) {
+        // e.g., `void function() $C$ const {`
+        return [];
+    }
+
     const usedKeywords = collectUsedFunctionSuffixKeywords(func, caret);
     return functionAttributeCompletionKeywords
         .filter(keyword => !usedKeywords.has(keyword))
