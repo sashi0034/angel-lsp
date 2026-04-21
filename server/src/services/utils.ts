@@ -7,42 +7,91 @@ import {SymbolObject} from '../compiler_analyzer/symbolObject';
  * This function utilizes a binary search approach for efficient lookup.
  */
 export function findTokenContainingPosition(tokenList: TokenObject[], caret: TextPosition) {
-    return findTokenContainingPositionInternal(tokenList, caret, 0, tokenList.length);
-}
+    let start = 0;
+    let end = tokenList.length - 1;
 
-function findTokenContainingPositionInternal(
-    tokenList: TokenObject[],
-    caret: TextPosition,
-    start: number,
-    end: number
-): {token: TokenObject; index: number} | undefined {
-    const length = end - start;
-    if (length <= 8) {
-        // FIXME: Measure the benchmark of the magic number
-        // Linear search for small lists
-        for (let index = start; index < end; index++) {
-            const token = tokenList[index];
-            if (token.location.positionInRange(caret)) {
-                return {token, index};
-            }
+    while (start <= end) {
+        const middleIndex = start + Math.floor((end - start) / 2);
+        const middle = tokenList[middleIndex];
+
+        if (middle.location.positionInRange(caret)) {
+            return {token: middle, index: middleIndex};
         }
 
-        return undefined;
+        if (middle.location.end.isLessThan(caret)) {
+            start = middleIndex + 1;
+        } else {
+            end = middleIndex - 1;
+        }
     }
 
-    const middleIndex = start + Math.floor(length / 2);
-    const middle = tokenList[middleIndex];
-    if (middle.location.positionInRange(caret)) {
-        return {token: middle, index: middleIndex};
-    } else if (middle.location.start.isLessThan(caret)) {
-        // tokenList[0] --> ... -> middle --> ... -> caret --> ... --> tokenList[^1]
-        // If the caret is positioned after the middle token, search in the right half
-        return findTokenContainingPositionInternal(tokenList, caret, middleIndex + 1, end);
-    } else {
-        // tokenList[0] --> ... -> caret --> ... -> middle --> ... --> tokenList[^1]
-        // If the caret is positioned before the middle token, search in the left half
-        return findTokenContainingPositionInternal(tokenList, caret, start, middleIndex);
+    return undefined;
+}
+
+/**
+ * Finds the token nearest to the specified caret position.
+ * Returns the token containing the caret if it exists, along with the nearest
+ * tokens before and after the caret.
+ */
+export function findNearestToken(
+    tokenList: TokenObject[],
+    caret: TextPosition
+): {
+    precedingToken: TokenObject | undefined;
+    containingToken: TokenObject | undefined;
+    followingToken: TokenObject | undefined;
+} {
+    if (tokenList.length === 0) {
+        return {
+            precedingToken: undefined,
+            containingToken: undefined,
+            followingToken: undefined
+        };
     }
+
+    let start = 0;
+    let end = tokenList.length - 1;
+
+    while (start <= end) {
+        const middleIndex = start + Math.floor((end - start) / 2);
+        const middle = tokenList[middleIndex];
+
+        if (middle.location.positionInRange(caret)) {
+            return {
+                precedingToken: tokenList[middleIndex - 1],
+                containingToken: middle,
+                followingToken: tokenList[middleIndex + 1]
+            };
+        }
+
+        if (middle.location.end.isLessThan(caret)) {
+            start = middleIndex + 1;
+        } else {
+            end = middleIndex - 1;
+        }
+    }
+
+    if (end < 0) {
+        return {
+            precedingToken: undefined,
+            containingToken: undefined,
+            followingToken: tokenList[0]
+        };
+    }
+
+    if (start >= tokenList.length) {
+        return {
+            precedingToken: tokenList[tokenList.length - 1],
+            containingToken: undefined,
+            followingToken: undefined
+        };
+    }
+
+    return {
+        precedingToken: tokenList[end],
+        containingToken: undefined,
+        followingToken: tokenList[start]
+    };
 }
 
 // -----------------------------------------------

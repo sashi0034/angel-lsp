@@ -2,6 +2,7 @@ import {provideDefinitionAsToken} from './definition';
 import {isAnonymousIdentifier, SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {getScopeAccessMarkerToken} from '../compiler_analyzer/marker';
 
 export function provideReferences(
     globalScope: SymbolGlobalScope,
@@ -28,7 +29,7 @@ export function provideReferences(
 function collectSymbolReferencesInScope(globalScope: SymbolGlobalScope, toToken: TokenObject): TokenObject[] {
     const references = [];
 
-    for (const reference of globalScope.info.reference) {
+    for (const reference of globalScope.markers.reference) {
         // Add references that point to the target definition.
         if (reference.toSymbol.identifierToken.equals(toToken)) {
             references.push(reference.fromToken);
@@ -44,11 +45,11 @@ function collectNamespaceReferenceInScope(scope: SymbolScope, toToken: TokenObje
     // FIXME: This is not considered a nested namespace, i.e., we treat 'B' and 'A::B' as the same namespace.
 
     if (scope.isGlobalScope()) {
-        // Add namespace access references from the autocomplete info.
-        for (const info of scope.info.autocompleteNamespaceAccess) {
-            // This is a little rough, but we can reuse the autocomplete info here.
-            if (info.namespaceToken.text === toToken.text) {
-                references.push(info.namespaceToken);
+        // Add namespace access references from scope access markers.
+        for (const info of scope.markers.scopeAccess) {
+            const namespaceToken = getScopeAccessMarkerToken(info);
+            if (namespaceToken.text === toToken.text) {
+                references.push(namespaceToken);
             }
         }
     }

@@ -1,6 +1,8 @@
-import {testCompletion} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinKeywords} from './utils';
 
 describe('completion/function', () => {
+    useCompletionWithoutBuiltinKeywords();
+
     it('completes functions and locals in a statement block', () => {
         testCompletion(
             `// Basic function completion

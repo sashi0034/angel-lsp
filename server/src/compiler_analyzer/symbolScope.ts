@@ -23,15 +23,15 @@ import {
     Node_Using,
     Node_VirtualProp,
     Node_While
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {
-    AutoTypeResolutionInfo,
-    FunctionCallInfo,
-    AutocompleteInstanceMemberInfo,
-    AutocompleteNamespaceAccessInfo,
-    ScopeRegionInfo,
-    ReferenceInfo
-} from './info';
+    AutoTypeResolutionMarker,
+    FunctionCallMarker,
+    InstanceAccessMarker,
+    ScopeAccessMarker,
+    ScopeRegionMarker,
+    ReferenceMarker
+} from './marker';
 import {getGlobalSettings} from '../core/settings';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
@@ -45,20 +45,20 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface DetailScopeInformation {
-    reference: ReferenceInfo[];
-    scopeRegion: ScopeRegionInfo[];
-    autocompleteInstanceMember: AutocompleteInstanceMemberInfo[];
-    autocompleteNamespaceAccess: AutocompleteNamespaceAccessInfo[];
-    functionCall: FunctionCallInfo[];
-    autoTypeResolution: AutoTypeResolutionInfo[];
+interface AnalyzerMarkers {
+    reference: ReferenceMarker[];
+    scopeRegion: ScopeRegionMarker[];
+    instanceAccess: InstanceAccessMarker[];
+    scopeAccess: ScopeAccessMarker[];
+    functionCall: FunctionCallMarker[];
+    autoTypeResolution: AutoTypeResolutionMarker[];
 }
 
 interface GlobalScopeContext {
     filepath: string;
     builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
-    info: DetailScopeInformation;
+    markers: AnalyzerMarkers;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -66,11 +66,11 @@ function createGlobalScopeContext(): GlobalScopeContext {
         filepath: '',
         builtinStringType: undefined,
         enumScopeList: [],
-        info: {
+        markers: {
             reference: [],
             scopeRegion: [],
-            autocompleteInstanceMember: [],
-            autocompleteNamespaceAccess: [],
+            instanceAccess: [],
+            scopeAccess: [],
             functionCall: [],
             autoTypeResolution: []
         }
@@ -467,12 +467,12 @@ export class SymbolGlobalScope extends SymbolScope {
         this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
-    public get info(): Readonly<DetailScopeInformation> {
-        return this._context.info;
+    public get markers(): Readonly<AnalyzerMarkers> {
+        return this._context.markers;
     }
 
-    public pushReference(info: ReferenceInfo) {
-        this._context.info.reference.push(info);
+    public pushReference(info: ReferenceMarker) {
+        this._context.markers.reference.push(info);
     }
 
     public resolveScope(path: ScopePath): SymbolScope | undefined {

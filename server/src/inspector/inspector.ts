@@ -1,6 +1,6 @@
 import * as lsp from 'vscode-languageserver/node';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {Node_Script} from '../compiler_parser/nodes';
+import {Node_Script} from '../compiler_parser/nodeObject';
 import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {logger} from '../core/logger';
 import {Profiler} from '../core/profiler';

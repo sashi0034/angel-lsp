@@ -1,17 +1,25 @@
 import {Position} from 'vscode-languageserver';
 import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from '../compiler_analyzer/symbolObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
-import {NodeName} from '../compiler_parser/nodes';
+import {Node_Script, NodeName} from '../compiler_parser/nodeObject';
 import {
     collectScopeListWithParentAndUsingNamespace,
     SymbolGlobalScope,
     SymbolScope
 } from '../compiler_analyzer/symbolScope';
-import {AutocompleteInstanceMemberInfo} from '../compiler_analyzer/info';
+import {
+    getInstanceAccessMarkerLocation,
+    getScopeAccessMarkerLocation,
+    InstanceAccessMarker
+} from '../compiler_analyzer/marker';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {canAccessInstanceMember} from '../compiler_analyzer/symbolUtils';
 import {findScopeContainingPosition} from '../service/utils';
 import {getGlobalSettings} from '../core/settings';
+import {isCaretInDeclarationPart} from './completion/declarationPart';
+import {provideFunctionSectionCompletion} from './completion/functionSection';
+import {provideSnippetCompletion} from './completion/snippet';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -21,8 +29,22 @@ export interface CompletionItemWrapper {
 /**
  * Returns the completion candidates for the specified position.
  */
-export function provideCompletion(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
-    const items = provideCompletion_internal(globalScope, caret);
+export function provideCompletion(
+    preprocessedTokens: TokenObject[],
+    ast: Node_Script,
+    globalScope: SymbolGlobalScope,
+    caret: TextPosition
+): CompletionItemWrapper[] {
+    if (isCaretInDeclarationPart(preprocessedTokens, ast, caret)) {
+        return [];
+    }
+
+    const functionSectionCompletion = provideFunctionSectionCompletion(ast, caret);
+    if (functionSectionCompletion !== undefined) {
+        return functionSectionCompletion;
+    }
+
+    const items = provideCompletion_internal(ast, globalScope, caret);
 
     // Assign sort keys to the completion items.
     for (const item of items) {
@@ -32,7 +54,11 @@ export function provideCompletion(globalScope: SymbolGlobalScope, caret: TextPos
     return items;
 }
 
-function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextPosition): CompletionItemWrapper[] {
+function provideCompletion_internal(
+    ast: Node_Script,
+    globalScope: SymbolGlobalScope,
+    caret: TextPosition
+): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     const caretScope = findScopeContainingPosition(globalScope, caret).scope;
@@ -50,9 +76,54 @@ function provideCompletion_internal(globalScope: SymbolGlobalScope, caret: TextP
         items.push(...getCompletionSymbolsInScope(scope, true));
     }
 
+    // Hoist enum members to the global scope if the setting is enabled.
     items.push(...hoistEnumParentScope(globalScope, []));
 
+    // Return built-in keywords and primitive types.
+    items.push(...provideBuiltinKeywordCompletion(items));
+
+    // Return snippet completions if the setting is enabled and the context is appropriate.
+    items.push(...provideSnippetCompletion(ast, caret).map(item => ({item})));
+
     return items;
+}
+
+export const builtinCompletionKeywords = [
+    'auto',
+    'void',
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64',
+    'float',
+    'double',
+    'bool',
+    'true',
+    'false',
+    'null',
+    'const'
+];
+
+function provideBuiltinKeywordCompletion(existingItems: CompletionItemWrapper[]): CompletionItemWrapper[] {
+    if (!getGlobalSettings().completion.builtinKeywords) {
+        return [];
+    }
+
+    const existingLabels = new Set(existingItems.map(item => item.item.label));
+    return builtinCompletionKeywords
+        .filter(keyword => !existingLabels.has(keyword))
+        .map(keyword => ({
+            item: {
+                label: keyword,
+                kind: CompletionItemKind.Keyword
+            }
+        }));
 }
 
 function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
@@ -136,9 +207,9 @@ function getCompletionMembersInScope(
 }
 
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
-    for (const info of globalScope.info.autocompleteInstanceMember) {
+    for (const info of globalScope.markers.instanceAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
-        const location = info.autocompleteLocation;
+        const location = getInstanceAccessMarkerLocation(info);
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
             const result = autocompleteInstanceMember(globalScope, caretScope, info);
@@ -148,15 +219,15 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         }
     }
 
-    for (const info of globalScope.info.autocompleteNamespaceAccess) {
+    for (const info of globalScope.markers.scopeAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
-        const location = info.autocompleteLocation;
+        const location = getScopeAccessMarkerLocation(info);
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
-            const result = getCompletionSymbolsInScope(info.accessScope, false);
+            const result = getCompletionSymbolsInScope(info.targetScope, false);
             if (result !== undefined && result.length > 0) {
-                if (info.accessScope.linkedNode?.nodeName !== NodeName.Enum) {
-                    result.push(...hoistEnumParentScope(globalScope, info.accessScope.scopePath));
+                if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
+                    result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
                 }
 
                 return result;
@@ -170,7 +241,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
 function autocompleteInstanceMember(
     globalScope: SymbolScope,
     caretScope: SymbolScope,
-    completion: AutocompleteInstanceMemberInfo
+    completion: InstanceAccessMarker
 ) {
     // Find the scope that owns the type being completed.
     if (completion.targetType.membersScopePath === undefined) {
@@ -216,6 +287,10 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
 
 // Sort symbols with leading underscores toward the end.
 function attackSortKey(item: CompletionItem) {
+    if (item.sortText !== undefined) {
+        return;
+    }
+
     const labelText: string = item.label;
 
     let underscoreCount = 0;
@@ -225,7 +300,3 @@ function attackSortKey(item: CompletionItem) {
 
     item.sortText = String.fromCharCode(underscoreCount) + labelText;
 }
-
-// -----------------------------------------------
-
-// TODO: Autocomplete for built-in keywords? 'true', 'opAdd', etc.

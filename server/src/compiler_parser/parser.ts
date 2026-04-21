@@ -1,9 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_script_bnf.html
 
 import {
-    AccessModifier,
-    EntityAttribute,
-    FunctionAttribute,
+    AccessModifierToken,
     Node_ArgList,
     Node_Assign,
     NodeBase,
@@ -64,13 +62,18 @@ import {
     IdentifierAndOptionalExpr,
     GetterOrSetter,
     IdentifierAndInitializer,
-    ReferenceModifier,
-    InOutModifier,
-    RepeatModifier,
+    HandleAndConstTokenPair,
+    ConstModifierToken,
+    EntityAttributeToken,
+    FunctionAttributeToken,
+    InOutModifierToken,
+    RefModifierToken,
+    RepeatModifierToken,
+    HandleModifierToken,
     VoidParameter,
     voidParameter,
     ScopeAndIdentifier
-} from './nodes';
+} from './nodeObject';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';
@@ -322,7 +325,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
 
     const metadata = parseMetadata(parser);
 
-    const entity = parseEntityAttribute(parser);
+    const entityTokens = parseEntityAttributes(parser);
 
     if (parser.next().text !== 'enum') {
         parser.backtrack(rangeStart);
@@ -363,7 +366,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         scopeRange: new TokenRange(scopeStart, parser.prev()),
         metadata,
-        entity: entity,
+        entityTokens: entityTokens,
         identifier: identifier,
         memberList: memberList,
         enumType: enumType
@@ -402,13 +405,13 @@ function expectEnumMembers(parser: ParserState): IdentifierAndOptionalExpr[] {
 }
 
 // {'shared' | 'abstract' | 'final' | 'external'}
-function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined {
+function parseEntityAttributes(parser: ParserState): EntityAttributeToken[] | undefined {
     const cache = parser.cache(ParserCacheKind.EntityAttribute);
     if (cache.restore !== undefined) {
         return cache.restore();
     }
 
-    let attribute: EntityAttribute | undefined = undefined;
+    let attributes: EntityAttributeToken[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
@@ -417,31 +420,13 @@ function parseEntityAttribute(parser: ParserState): EntityAttribute | undefined 
             break;
         }
 
-        attribute = attribute ?? {
-            isShared: false,
-            isExternal: false,
-            isAbstract: false,
-            isFinal: false
-        };
-
-        setEntityAttribute(attribute, next);
+        attributes = attributes ?? [];
+        attributes.push(parser.next() as EntityAttributeToken);
         parser.commit(HighlightForToken.Keyword);
     }
 
-    cache.store(attribute);
-    return attribute;
-}
-
-function setEntityAttribute(attribute: Mutable<EntityAttribute>, token: 'shared' | 'external' | 'abstract' | 'final') {
-    if (token === 'shared') {
-        attribute.isShared = true;
-    } else if (token === 'external') {
-        attribute.isExternal = true;
-    } else if (token === 'abstract') {
-        attribute.isAbstract = true;
-    } else if (token === 'final') {
-        attribute.isFinal = true;
-    }
+    cache.store(attributes);
+    return attributes;
 }
 
 // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
@@ -450,7 +435,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
 
     const metadata = parseMetadata(parser);
 
-    const entity = parseEntityAttribute(parser);
+    const entityTokens = parseEntityAttributes(parser);
 
     if (parser.next().text !== 'class') {
         parser.backtrack(rangeStart);
@@ -464,7 +449,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         return ParseFailure.Pending;
     }
 
-    const typeTemplates = parseTypeTemplates(parser);
+    const typeParameters = parseTemplateTypes(parser);
 
     const baseList: ScopeAndIdentifier[] = [];
     if (parser.next().text === ':') {
@@ -499,9 +484,9 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         scopeRange: new TokenRange(scopeStart, scopeEnd),
         metadata: metadata,
-        entity: entity,
+        entityTokens: entityTokens,
         identifier: identifier,
-        typeTemplates: typeTemplates,
+        typeParameters: typeParameters,
         baseList: baseList,
         memberList: members
     };
@@ -599,13 +584,13 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     };
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): Node_Func | undefined {
     const rangeStart = parser.next();
 
     parseMetadata(parser);
 
-    const entityAttribute = parseEntityAttribute(parser);
+    const entityTokens = parseEntityAttributes(parser);
 
     const accessor = parseAccessModifier(parser);
 
@@ -622,15 +607,15 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
             return undefined;
         }
 
-        const isRef = parseRef(parser);
+        const refToken = parseRef(parser);
 
-        head = {tag: 'function', returnType: returnType, isRef: isRef};
+        head = {tag: 'function', returnType: returnType, refToken: refToken};
     }
 
     const identifier = parser.next();
     parser.commit(head.tag === 'function' ? HighlightForToken.Function : HighlightForToken.Type);
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeParameters = parseTemplateTypes(parser) ?? [];
 
     if (parser.isPredefinedFile === false) {
         // Function declarations are not allowed outside `as.predefined`.
@@ -650,13 +635,13 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
     const listPattern: Node_ListPattern | undefined = parseListPattern(parser);
 
     let statBlock: Node_StatBlock | undefined = undefined;
-    let funcAttr: FunctionAttribute | undefined = undefined;
-    let isConst = false;
+    let funcAttrTokens: FunctionAttributeToken[] | undefined = undefined;
+    let postfixConstToken: ConstModifierToken | undefined = undefined;
 
     if (listPattern === undefined) {
-        isConst = parseConst(parser);
+        postfixConstToken = parseConst(parser);
 
-        funcAttr = parseFuncAttr(parser);
+        funcAttrTokens = parseFuncAttr(parser);
 
         if (parser.next().text === ';') {
             parser.commit(HighlightForToken.Operator);
@@ -672,44 +657,40 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
         parser.commit(HighlightForToken.Operator);
     }
 
-    statBlock = statBlock ?? {
-        nodeName: NodeName.StatBlock,
-        nodeRange: new TokenRange(parser.next(), parser.next()),
-        statementList: []
-    };
-
     return {
         nodeName: NodeName.Func,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        entity: entityAttribute,
+        entityTokens: entityTokens,
         accessor: accessor,
         head: head,
         identifier: identifier,
         paramList: paramList,
-        isConst: isConst,
-        funcAttr: funcAttr,
+        postfixConstToken: postfixConstToken,
+        funcAttrTokens: funcAttrTokens,
         statBlock: statBlock,
-        typeTemplates: typeTemplates,
+        typeParameters: typeParameters,
         listPattern: listPattern
     };
 }
 
-function parseConst(parser: ParserState): boolean {
-    if (parser.next().text !== 'const') {
-        return false;
+function parseConst(parser: ParserState): ConstModifierToken | undefined {
+    const next = parser.next();
+    if (next.text !== 'const') {
+        return undefined;
     }
 
     parser.commit(HighlightForToken.Keyword);
-    return true;
+    return next as ConstModifierToken;
 }
 
-function parseRef(parser: ParserState) {
-    const isRef = parser.next().text === '&';
-    if (isRef) {
-        parser.commit(HighlightForToken.Keyword);
+function parseRef(parser: ParserState): RefModifierToken | undefined {
+    const next = parser.next();
+    if (next.text !== '&') {
+        return undefined;
     }
 
-    return isRef;
+    parser.commit(HighlightForToken.Keyword);
+    return next as RefModifierToken;
 }
 
 function lookaheadTokenAfterParentheses(parser: ParserState) {
@@ -790,11 +771,11 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
 }
 
 // ['private' | 'protected']
-function parseAccessModifier(parser: ParserState): AccessModifier | undefined {
-    const next = parser.next().text;
-    if (next === 'private' || next === 'protected') {
+function parseAccessModifier(parser: ParserState): AccessModifierToken | undefined {
+    const next = parser.next();
+    if (next.text === 'private' || next.text === 'protected') {
         parser.commit(HighlightForToken.Keyword);
-        return next === 'private' ? AccessModifier.Private : AccessModifier.Protected;
+        return next as AccessModifierToken;
     }
 
     return undefined;
@@ -857,8 +838,8 @@ function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
 function parseListEntry(parser: ParserState): Node_ListEntry | undefined {
     const rangeStart = parser.next();
 
-    const repeatModifier = parseRepeatModifier(parser);
-    if (repeatModifier !== undefined) {
+    const repeatToken = parseRepeatModifier(parser);
+    if (repeatToken !== undefined) {
         let entry: Node_ListEntry | undefined;
         let type: Node_Type | undefined;
         if (parser.next().text === '{') {
@@ -882,7 +863,7 @@ function parseListEntry(parser: ParserState): Node_ListEntry | undefined {
             nodeName: NodeName.ListEntry,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
             entryPattern: 1,
-            repeatModifier: repeatModifier,
+            repeatToken: repeatToken,
             entry: entry ?? type
         };
     }
@@ -933,21 +914,21 @@ function parseListEntryType(parser: ParserState): Node_Type | undefined {
     return parseType(parser);
 }
 
-function parseRepeatModifier(parser: ParserState): RepeatModifier | undefined {
-    const next = parser.next().text;
-    if (next !== 'repeat' && next !== 'repeat_same') {
+function parseRepeatModifier(parser: ParserState): RepeatModifierToken | undefined {
+    const next = parser.next();
+    if (next.text !== 'repeat' && next.text !== 'repeat_same') {
         return undefined;
     }
 
     parser.commit(HighlightForToken.Keyword);
-    return next === 'repeat' ? RepeatModifier.Repeat : RepeatModifier.RepeatSame;
+    return next as RepeatModifierToken;
 }
 
 // **BNF** INTERFACE ::= {'external' | 'shared'} 'interface' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | INTERFACEMETHOD} '}'))
 function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     const rangeStart = parser.next();
 
-    const entity = parseEntityAttribute(parser);
+    const entityTokens = parseEntityAttributes(parser);
 
     if (parser.next().text !== 'interface') {
         parser.backtrack(rangeStart);
@@ -964,7 +945,7 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     const result: Mutable<Node_Interface> = {
         nodeName: NodeName.Interface,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        entity: entity,
+        entityTokens: entityTokens,
         identifier: identifier,
         baseList: [],
         memberList: []
@@ -1111,7 +1092,7 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
         return ParseFailure.Pending;
     }
 
-    const isRef = parseRef(parser);
+    const refToken = parseRef(parser);
 
     const identifier = expectIdentifier(parser, HighlightForToken.Variable);
     if (identifier === undefined) {
@@ -1123,7 +1104,7 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
         return ParseFailure.Pending;
     }
 
-    const funcAttr = parseFuncAttr(parser);
+    const funcAttrTokens = parseFuncAttr(parser);
 
     if (expectContextualKeyword(parser, 'from') === false) {
         return ParseFailure.Pending;
@@ -1143,10 +1124,10 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
         nodeName: NodeName.Import,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
-        isRef: isRef,
+        refToken: refToken,
         identifier: identifier,
         paramList: paramList,
-        funcAttr: funcAttr,
+        funcAttrTokens: funcAttrTokens,
         path: path
     };
 }
@@ -1155,7 +1136,7 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
 function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
     const rangeStart = parser.next();
 
-    const entity = parseEntityAttribute(parser);
+    const entityTokens = parseEntityAttributes(parser);
 
     if (parser.next().text !== 'funcdef') {
         parser.backtrack(rangeStart);
@@ -1169,7 +1150,7 @@ function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
         return ParseFailure.Pending;
     }
 
-    const isRef = parseRef(parser);
+    const refToken = parseRef(parser);
 
     const identifier = parser.next();
     parser.commit(HighlightForToken.Function);
@@ -1184,9 +1165,9 @@ function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
     return {
         nodeName: NodeName.FuncDef,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        entity: entity,
+        entityTokens: entityTokens,
         returnType: returnType,
-        isRef: isRef,
+        refToken: refToken,
         identifier: identifier,
         paramList: paramList
     };
@@ -1206,7 +1187,7 @@ function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
         return undefined;
     }
 
-    const isRef = parseRef(parser);
+    const refToken = parseRef(parser);
 
     const identifier = parseIdentifier(parser, HighlightForToken.Variable);
     if (identifier === undefined) {
@@ -1243,7 +1224,7 @@ function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         accessor: accessor,
         type: type,
-        isRef: isRef,
+        refToken: refToken,
         identifier: identifier,
         getter: getter,
         setter: setter
@@ -1254,13 +1235,13 @@ function parseVirtualProp(parser: ParserState): Node_VirtualProp | undefined {
 function expectGetterSetter(parser: ParserState): GetterOrSetter {
     parser.commit(HighlightForToken.Keyword);
 
-    const isConst = parseConst(parser);
-    const funcAttr = parseFuncAttr(parser);
+    const constToken = parseConst(parser);
+    const funcAttrTokens = parseFuncAttr(parser);
     const statBlock = expectStatBlock(parser);
 
     return {
-        isConst: isConst,
-        funcAttr: funcAttr,
+        constToken: constToken,
+        funcAttrTokens: funcAttrTokens,
         statBlock: statBlock
     };
 }
@@ -1300,7 +1281,7 @@ function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undef
         return undefined;
     }
 
-    const isRef = parseRef(parser);
+    const refToken = parseRef(parser);
 
     const identifier = parseIdentifier(parser, HighlightForToken.Function);
     if (identifier === undefined) {
@@ -1312,7 +1293,7 @@ function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undef
         return undefined;
     }
 
-    const isConst = parseConst(parser);
+    const constToken = parseConst(parser);
 
     const funcAttr = parseFuncAttr(parser);
 
@@ -1322,11 +1303,11 @@ function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undef
         nodeName: NodeName.InterfaceMethod,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         returnType: returnType,
-        isRef: isRef,
+        refToken: refToken,
         identifier: identifier,
         paramList: paramList,
-        funcAttr: funcAttr,
-        isConst: isConst
+        funcAttrTokens: funcAttr,
+        postfixConstToken: constToken
     };
 }
 
@@ -1393,7 +1374,8 @@ function expectStatBlock(parser: ParserState): Node_StatBlock | undefined {
 
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 function parseParamList(parser: ParserState): Node_ParamList | undefined {
-    if (parser.next().text !== '(') {
+    const rangeStart = parser.next();
+    if (rangeStart.text !== '(') {
         return undefined;
     }
 
@@ -1402,14 +1384,18 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
     if (parser.next().text === 'void') {
         parser.commit(HighlightForToken.Keyword);
         parser.expect(')', HighlightForToken.Operator);
-        return [];
+        return {
+            nodeName: NodeName.ParamList,
+            nodeRange: new TokenRange(rangeStart, parser.prev()),
+            params: []
+        };
     }
 
     let isVariadic = false;
-    const paramList: Node_ParamList = [];
+    const parameters: Node_Parameter[] = [];
 
     while (parser.isEnd() === false) {
-        if (expectCommaOrParensClose(parser, paramList.length > 0) === BreakOrThrough.Break) {
+        if (expectCommaOrParensClose(parser, parameters.length > 0) === BreakOrThrough.Break) {
             break;
         }
 
@@ -1430,10 +1416,14 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
         }
 
         isVariadic = isVariadic || param.isVariadic;
-        paramList.push(param);
+        parameters.push(param);
     }
 
-    return paramList;
+    return {
+        nodeName: NodeName.ParamList,
+        nodeRange: new TokenRange(rangeStart, parser.prev()),
+        params: parameters
+    };
 }
 
 function expectParamList(parser: ParserState): Node_ParamList | undefined {
@@ -1517,7 +1507,7 @@ function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolea
         return undefined;
     }
 
-    const typeModifier = parseTypeModifier(parser);
+    const inOutToken = parseTypeModifier(parser);
 
     let identifier: TokenObject | undefined = undefined;
     if (parser.next().kind === TokenKind.Identifier) {
@@ -1545,7 +1535,7 @@ function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolea
         nodeName: NodeName.Parameter,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
-        modifier: typeModifier,
+        inOutToken: inOutToken,
         identifier: identifier,
         defaultExpr: defaultExpr,
         isVariadic: isVariadic
@@ -1553,22 +1543,16 @@ function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolea
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]
-function parseTypeModifier(parser: ParserState): InOutModifier | undefined {
-    let mod: InOutModifier | undefined = undefined;
+function parseTypeModifier(parser: ParserState): InOutModifierToken | undefined {
+    let modifier: InOutModifierToken | undefined = undefined;
 
     if (parser.next().text === '&') {
         parser.commit(HighlightForToken.Keyword);
 
-        const next = parser.next().text;
-        if (next === 'in' || next === 'out' || next === 'inout') {
+        const next = parser.next();
+        if (next.text === 'in' || next.text === 'out' || next.text === 'inout') {
             parser.commit(HighlightForToken.Keyword);
-            if (next === 'in') {
-                mod = InOutModifier.In;
-            } else if (next === 'out') {
-                mod = InOutModifier.Out;
-            } else {
-                mod = InOutModifier.InOut;
-            }
+            modifier = next as InOutModifierToken;
         }
     }
 
@@ -1583,14 +1567,14 @@ function parseTypeModifier(parser: ParserState): InOutModifier | undefined {
         parser.commit(HighlightForToken.Keyword);
     }
 
-    return mod;
+    return modifier;
 }
 
 // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 function parseType(parser: ParserState): Node_Type | undefined {
     const rangeStart = parser.next();
 
-    const isConst = parseConst(parser);
+    const constToken = parseConst(parser);
 
     const scope = parseScope(parser);
 
@@ -1600,25 +1584,25 @@ function parseType(parser: ParserState): Node_Type | undefined {
         return undefined;
     }
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeArguments = parseTemplateTypes(parser) ?? [];
 
-    const {isArray, refModifier} = parseTypeTail(parser);
+    const {isArray, handle} = parseTypeTail(parser);
 
     return {
         nodeName: NodeName.Type,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
-        isConst: isConst,
+        constToken: constToken,
         scope: scope,
         dataType: datatype,
-        typeTemplates: typeTemplates,
+        typeArguments: typeArguments,
         isArray: isArray,
-        refModifier: refModifier
+        handle: handle
     };
 }
 
 function parseTypeTail(parser: ParserState) {
     let isArray = false;
-    let refModifier: ReferenceModifier | undefined = undefined;
+    let handleTokens: HandleAndConstTokenPair | undefined = undefined;
     while (parser.isEnd() === false) {
         if (parser.next(0).text === '[' && parser.next(1).text === ']') {
             parser.commit(HighlightForToken.Operator);
@@ -1626,6 +1610,7 @@ function parseTypeTail(parser: ParserState) {
             isArray = true;
             continue;
         } else if (parser.next().text === '@') {
+            const handleToken = parser.next() as HandleModifierToken;
             parser.commit(HighlightForToken.Keyword);
 
             // auto-handle
@@ -1633,11 +1618,11 @@ function parseTypeTail(parser: ParserState) {
                 parser.commit(HighlightForToken.Keyword);
             }
 
-            if (parser.next().text === 'const') {
-                parser.commit(HighlightForToken.Keyword);
-                refModifier = ReferenceModifier.RefConst;
+            const constToken = parseConst(parser);
+            if (constToken !== undefined) {
+                handleTokens = {handleToken: handleToken, constToken: constToken};
             } else {
-                refModifier = ReferenceModifier.Ref;
+                handleTokens = {handleToken: handleToken, constToken: undefined};
             }
 
             continue;
@@ -1646,7 +1631,7 @@ function parseTypeTail(parser: ParserState) {
         break;
     }
 
-    return {isArray, refModifier};
+    return {isArray, handle: handleTokens};
 }
 
 function expectType(parser: ParserState): Node_Type | undefined {
@@ -1659,8 +1644,8 @@ function expectType(parser: ParserState): Node_Type | undefined {
 }
 
 // '<' TYPE {',' TYPE} '>'
-function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
-    const cache = parser.cache(ParserCacheKind.TypeTemplates);
+function parseTemplateTypes(parser: ParserState): Node_Type[] | undefined {
+    const cache = parser.cache(ParserCacheKind.TypeList);
     if (cache.restore !== undefined) {
         return cache.restore();
     }
@@ -1672,7 +1657,7 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
 
     parser.commit(HighlightForToken.Operator);
 
-    const typeTemplates: Node_Type[] = [];
+    const typeList: Node_Type[] = [];
     while (parser.isEnd() === false) {
         const type = parseType(parser);
         if (type === undefined) {
@@ -1680,9 +1665,9 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
             return undefined;
         }
 
-        typeTemplates.push(type);
+        typeList.push(type);
 
-        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeTemplates.length > 0);
+        const breakOrThrough = parseSeparatorOrClose(parser, ',', '>', typeList.length > 0);
         if (breakOrThrough === BreakOrThrough.Break) {
             break;
         } else if (breakOrThrough === undefined) {
@@ -1692,8 +1677,8 @@ function parseTypeTemplates(parser: ParserState): Node_Type[] | undefined {
         }
     }
 
-    cache.store(typeTemplates);
-    return typeTemplates;
+    cache.store(typeList);
+    return typeList;
 }
 
 // **BNF** INITLIST ::= '{' [ASSIGN | INITLIST] {',' [ASSIGN | INITLIST]} '}'
@@ -1750,7 +1735,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
     }
 
     const scopeList: TokenObject[] = [];
-    let typeTemplates: Node_Type[] | undefined = undefined;
+    let typeArguments: Node_Type[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const identifier = parser.next(0);
         if (identifier.kind !== TokenKind.Identifier) {
@@ -1766,8 +1751,8 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
             const typesStart = parser.next();
             parser.commit(HighlightForToken.Class);
 
-            typeTemplates = parseTypeTemplates(parser);
-            if (typeTemplates === undefined || parser.next().text !== '::') {
+            typeArguments = parseTemplateTypes(parser);
+            if (typeArguments === undefined || parser.next().text !== '::') {
                 parser.backtrack(typesStart);
             } else {
                 parser.commit(HighlightForToken.Operator);
@@ -1788,7 +1773,7 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         isGlobal: isGlobal,
         scopeList: scopeList,
-        typeTemplates: typeTemplates ?? []
+        typeArguments: typeArguments ?? []
     };
     cache.store(scopeNode);
     return scopeNode;
@@ -1839,8 +1824,8 @@ function parsePrimitiveType(parser: ParserState) {
 }
 
 // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
-function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
-    let attribute: FunctionAttribute | undefined = undefined;
+function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefined {
+    let attribute: FunctionAttributeToken[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
 
@@ -1855,43 +1840,12 @@ function parseFuncAttr(parser: ParserState): FunctionAttribute | undefined {
             break;
         }
 
-        attribute = attribute ?? {
-            isOverride: false,
-            isFinal: false,
-            isExplicit: false,
-            isProperty: false,
-            isDeleted: false,
-            isNoDiscard: false
-        };
-
-        setFunctionAttribute(attribute, next);
+        attribute = attribute ?? [];
+        attribute.push(parser.next() as FunctionAttributeToken);
         parser.commit(HighlightForToken.Keyword);
     }
 
     return attribute;
-}
-
-function setFunctionAttribute(
-    attribute: Mutable<FunctionAttribute>,
-    token: 'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'
-) {
-    if (token === 'override') {
-        attribute.isOverride = true;
-    } else if (token === 'final') {
-        attribute.isFinal = true;
-    } else if (token === 'explicit') {
-        attribute.isExplicit = true;
-    } else if (token === 'property') {
-        attribute.isProperty = true;
-    }
-    // TODO: implement in analyzer
-    else if (token === 'delete') {
-        attribute.isDeleted = true;
-    }
-    // TODO: implement in analyzer
-    else if (token === 'nodiscard') {
-        attribute.isNoDiscard = true;
-    }
 }
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
@@ -2885,20 +2839,20 @@ function parseLambdaParam(parser: ParserState): Node_LambdaParam {
             nodeName: NodeName.LambdaParam,
             nodeRange: new TokenRange(rangeStart, parser.prev()),
             type: undefined,
-            typeModifier: undefined,
+            typeToken: undefined,
             identifier: identifier
         };
     }
 
     const type = parseType(parser);
-    const typeModifier = type !== undefined ? parseTypeModifier(parser) : undefined;
+    const typeToken = type !== undefined ? parseTypeModifier(parser) : undefined;
     const identifier = parseIdentifier(parser, HighlightForToken.Parameter);
 
     return {
         nodeName: NodeName.LambdaParam,
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         type: type,
-        typeModifier: typeModifier,
+        typeToken: typeToken,
         identifier: identifier
     };
 }
@@ -2924,7 +2878,7 @@ function parseLiteral(parser: ParserState): Node_Literal | undefined {
     return undefined;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
     const rangeStart = parser.next();
     const scope = parseScope(parser);
@@ -2935,7 +2889,7 @@ function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
         return undefined;
     }
 
-    const typeTemplates = parseTypeTemplates(parser) ?? [];
+    const typeArguments = parseTemplateTypes(parser) ?? [];
 
     const argList = parseArgList(parser);
     if (argList === undefined) {
@@ -2949,7 +2903,7 @@ function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
         scope: scope,
         identifier: identifier,
         argList: argList,
-        typeTemplates: typeTemplates
+        typeArguments: typeArguments
     };
 }
 

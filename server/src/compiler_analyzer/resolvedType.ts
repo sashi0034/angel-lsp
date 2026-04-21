@@ -1,6 +1,6 @@
 import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol, QualifiedIdentifier} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {Node_Lambda} from '../compiler_parser/nodes';
+import {Node_Lambda} from '../compiler_parser/nodeObject';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**

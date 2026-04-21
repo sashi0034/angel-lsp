@@ -1,7 +1,7 @@
 import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import {Position, SignatureHelp, URI} from 'vscode-languageserver';
 import {ParameterInformation, SignatureInformation} from 'vscode-languageserver-types';
-import {FunctionCallInfo} from '../compiler_analyzer/info';
+import {FunctionCallMarker} from '../compiler_analyzer/marker';
 import {SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {applyTemplateMapping} from '../compiler_analyzer/resolvedType';
@@ -12,8 +12,8 @@ export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Posi
     const signatures: SignatureInformation[] = [];
 
     // Since the nesting is deeper toward the end, iterate from the back.
-    for (let i = globalScope.info.functionCall.length - 1; i >= 0; i--) {
-        const info = globalScope.info.functionCall[i];
+    for (let i = globalScope.markers.functionCall.length - 1; i >= 0; i--) {
+        const info = globalScope.markers.functionCall[i];
 
         // Check if the caller location is at the cursor position in the scope.
         const shouldExtend = info.callerArgumentsNode.nodeRange.end.text == ','; // ',' indicates that user is still typing.
@@ -41,14 +41,14 @@ export function provideSignatureHelp(globalScope: SymbolGlobalScope, caret: Posi
     };
 }
 
-function getFunctionSignature(info: FunctionCallInfo, expectedCallee: FunctionSymbol, caret: TextPosition) {
+function getFunctionSignature(info: FunctionCallMarker, expectedCallee: FunctionSymbol, caret: TextPosition) {
     const parameters: ParameterInformation[] = [];
 
     let activeIndex = 0;
 
     let signatureLabel = expectedCallee.actualIdentifierToken.text + '(';
-    for (let i = 0; i < expectedCallee.linkedNode.paramList.length; i++) {
-        const paramIdentifier = expectedCallee.linkedNode.paramList[i];
+    for (let i = 0; i < expectedCallee.linkedNode.paramList.params.length; i++) {
+        const paramIdentifier = expectedCallee.linkedNode.paramList.params[i];
         const paramType = expectedCallee.parameterTypes[i];
 
         let label = stringifyResolvedType(applyTemplateMapping(paramType, info.calleeTemplateMapping));

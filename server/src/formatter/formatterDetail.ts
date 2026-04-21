@@ -1,7 +1,7 @@
 import {Position} from 'vscode-languageserver';
 import {FormatterState, stepCursorAlongLines} from './formatterState';
 import {TokenObject, TokenKind} from '../compiler_tokenizer/tokenObject';
-import {NodeBase} from '../compiler_parser/nodes';
+import {NodeBase} from '../compiler_parser/nodeObject';
 import {logger} from '../core/logger';
 import {getGlobalSettings} from '../core/settings';
 

@@ -14,10 +14,8 @@ import {formatFile} from './formatter/formatter';
 import {provideSignatureHelp} from './services/signatureHelp';
 import {TextLocation, TextPosition, TextRange} from './compiler_tokenizer/textLocation';
 import {provideInlayHint} from './services/inlayHint';
-import {DiagnosticSeverity} from 'vscode-languageserver-types';
-import {CodeAction} from 'vscode-languageserver-protocol';
 import {provideCodeAction} from './services/codeAction';
-import {provideCompletionOfToken} from './services/completionExtension';
+import {provideCompletionOnToken} from './services/completionOnToken';
 import {provideCompletionResolve} from './services/completionResolve';
 import {logger} from './core/logger';
 import {provideHover} from './services/hover';
@@ -402,20 +400,26 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
 
     // Determine completion candidates based on the token.
     // If the token is a comment, suppress completion candidates here.
-    const completionsOfToken = provideCompletionOfToken(s_inspector.getRecord(uri).rawTokens, caret);
-    if (completionsOfToken !== undefined) {
-        return completionsOfToken;
+    const completionsOnToken = provideCompletionOnToken(s_inspector.getRecord(uri).rawTokens, caret);
+    if (completionsOnToken !== undefined) {
+        return completionsOnToken;
     }
 
     s_inspector.flushRecord(uri);
 
-    const globalScope = s_inspector.getRecord(uri).analyzerScope;
+    const record = s_inspector.getRecord(uri);
+    const globalScope = record.analyzerScope;
     if (globalScope === undefined) {
         return [];
     }
 
     // Collect completion candidates for symbols.
-    const items = provideCompletion(globalScope.globalScope, TextPosition.create(params.position));
+    const items = provideCompletion(
+        record.preprocessedOutput.preprocessedTokens,
+        record.ast,
+        globalScope.globalScope,
+        TextPosition.create(params.position)
+    );
 
     items.forEach((item, index) => {
         // Attach the index to the data field so that we can resolve the item later.

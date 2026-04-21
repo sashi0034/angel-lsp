@@ -1,6 +1,8 @@
-import {testCompletion} from './utils';
+import {testCompletion, useCompletionWithoutBuiltinKeywords} from './utils';
 
 describe('completion/class', () => {
+    useCompletionWithoutBuiltinKeywords();
+
     it('completes instance members after a period', () => {
         testCompletion(
             `//  Instance member completion occurs after period.

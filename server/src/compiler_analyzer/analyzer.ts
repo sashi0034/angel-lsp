@@ -29,7 +29,6 @@ import {
     NodeName,
     Node_Parameter,
     Node_ParamList,
-    ReferenceModifier,
     Node_Return,
     Node_Scope,
     Node_StatBlock,
@@ -42,8 +41,9 @@ import {
     Node_VarAccess,
     Node_While,
     voidParameter
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
+import {getAccessRestriction} from './nodeHelper';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -80,7 +80,6 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
 import {canComparisonOperatorCall, checkOverloadedOperatorCall, evaluateNumberOperatorCall} from './operatorCall';
-import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {checkForEachIterator} from './foreachStatement';
@@ -91,8 +90,8 @@ export type HoistQueue = (() => void)[];
 export type AnalyzeQueue = (() => void)[];
 
 /** @internal */
-export function pushScopeRegionInfo(targetScope: SymbolScope, tokenRange: TokenRange) {
-    getActiveGlobalScope().info.scopeRegion.push({
+export function pushScopeRegionMarker(targetScope: SymbolScope, tokenRange: TokenRange) {
+    getActiveGlobalScope().markers.scopeRegion.push({
         boundingLocation: tokenRange.getBoundingLocation(),
         targetScope: targetScope
     });
@@ -113,10 +112,13 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 
 // **BNF** TYPEDEF ::= 'typedef' PRIMITIVETYPE IDENTIFIER ';'
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     if (func.head.tag === 'destructor') {
-        analyzeStatBlock(scope, func.statBlock);
+        if (func.statBlock !== undefined) {
+            analyzeStatBlock(scope, func.statBlock);
+        }
+
         return;
     }
 
@@ -131,14 +133,16 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     analyzeTemplateArguments(
         scope,
         declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
-        func.typeTemplates
+        func.typeParameters
     ); // FIXME?
 
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
 
     // Analyze the scope
-    analyzeStatBlock(scope, func.statBlock);
+    if (func.statBlock !== undefined) {
+        analyzeStatBlock(scope, func.statBlock);
+    }
 }
 
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
@@ -191,7 +195,7 @@ export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, 
     }
 
     if (resolvedType !== undefined) {
-        getActiveGlobalScope().info.autoTypeResolution.push({
+        getActiveGlobalScope().markers.autoTypeResolution.push({
             autoToken: identifier,
             resolvedType
         });
@@ -213,7 +217,7 @@ export function insertVariables(
             scopePath: scope.scopePath,
             type: varType,
             isInstanceMember: isInstanceMember,
-            accessRestriction: varNode.accessor
+            accessRestriction: getAccessRestriction(varNode.accessor)
         });
         scope.insertSymbolAndCheck(variable);
 
@@ -261,8 +265,8 @@ export function analyzeVarInitializer(
 
 // **BNF** STATBLOCK ::= '{' {VAR | STATEMENT | USING} '}'
 export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) {
-    // Append completion information to the scope
-    pushScopeRegionInfo(scope, statBlock.nodeRange);
+    // Append completion markers to the scope
+    pushScopeRegionMarker(scope, statBlock.nodeRange);
 
     for (const statement of statBlock.statementList) {
         if (statement.nodeName === NodeName.Var) {
@@ -270,14 +274,14 @@ export function analyzeStatBlock(scope: SymbolScope, statBlock: Node_StatBlock) 
         } else if (statement.nodeName === NodeName.Using) {
             analyzeUsingNamespace(scope, statement);
         } else {
-            analyzeStatement(scope, statement as Node_Statement);
+            analyzeStatement(scope, statement);
         }
     }
 }
 
 // **BNF** PARAMLIST ::= '(' ['void' | (PARAMETER {',' PARAMETER})] ')'
 export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) {
-    for (const param of paramList) {
+    for (const param of paramList.params) {
         analyzeParameter(scope, param);
     }
 }
@@ -304,7 +308,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     const searchScope = findOptimalScope(scope, typeNode.scope, typeIdentifier) ?? scope;
 
-    let givenTemplateArguments = typeNode.typeTemplates;
+    let givenTemplateArguments = typeNode.typeArguments;
     let givenIdentifier = typeIdentifier.text;
 
     if (typeNode.isArray) {
@@ -371,7 +375,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 }
 
 function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.refModifier === ReferenceModifier.Ref || typeNode.refModifier === ReferenceModifier.RefConst;
+    return typeNode.handle !== undefined;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -415,7 +419,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     }
 
     if (typeNode.scope !== undefined) {
-        // This may seem like redundant processing, but it is invoked to add infos, which are used for autocompletion.
+        // This may seem like redundant processing, but it is invoked to add markers, which are used for autocompletion.
         findOptimalScope(scope, typeNode.scope, typeIdentifier);
 
         analyzerDiagnostic.error(typeIdentifier.location, `A primitive type cannot have namespace qualifiers.`);
@@ -479,12 +483,12 @@ function analyzeInitList(scope: SymbolScope, initList: Node_InitList) {
 export function findOptimalScope(
     parentScope: SymbolScope,
     scopeNode: Node_Scope | undefined,
-    tokenAfterNamespaces: TokenObject | undefined
+    tokenAfterScopeAccess: TokenObject | undefined
 ): SymbolScope | undefined {
     let bestMatch = undefined; // If no valid scope exists, fall back to the most appropriate invalid one.
 
     if (scopeNode?.isGlobal) {
-        bestMatch = evaluateScope(parentScope.getGlobalScope(), scopeNode, tokenAfterNamespaces);
+        bestMatch = evaluateScope(parentScope.getGlobalScope(), scopeNode, tokenAfterScopeAccess);
     } else {
         // Iterate through all using namespaces
         const scopeList = [[], ...parentScope.getUsingNamespacesWithParent().map(ns => ns.scopePath)];
@@ -503,7 +507,7 @@ export function findOptimalScope(
 
                 const relativeScope = scopeIterator.resolveRelativeScope(usingScope);
                 if (relativeScope !== undefined) {
-                    const candidate = evaluateScope(relativeScope, scopeNode, tokenAfterNamespaces);
+                    const candidate = evaluateScope(relativeScope, scopeNode, tokenAfterScopeAccess);
                     if (bestMatch === undefined || candidate.ok || candidate.accessIndex > bestMatch.accessIndex) {
                         // If the candidate is valid or has a higher access index, update the best match.
                         bestMatch = candidate;
@@ -531,10 +535,10 @@ export function findOptimalScope(
 function evaluateScope(
     parentScope: SymbolScope,
     scopeNode: Node_Scope | undefined,
-    tokenAfterNamespaces: TokenObject | undefined
+    tokenAfterScopeAccess: TokenObject | undefined
 ) {
     if (scopeNode === undefined) {
-        const ok = parentScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
+        const ok = parentScope.lookupSymbol(tokenAfterScopeAccess?.text ?? '') !== undefined;
 
         return {
             ok,
@@ -544,7 +548,7 @@ function evaluateScope(
         };
     }
 
-    // assert(scopeNode.nodeRange.end.next === identifierAfterNamespaces);
+    // assert(scopeNode.nodeRange.end.next === tokenAfterScopeAccess);
 
     const sideEffect: (() => void)[] = [];
 
@@ -555,24 +559,22 @@ function evaluateScope(
         const found = accessScope.lookupScope(scopeToken.text);
         if (found === undefined || found.isFunctionHolderScope()) {
             sideEffect.push(() => {
-                analyzerDiagnostic.error(
-                    scopeNode.scopeList[accessIndex].location,
-                    `Undefined scope: ${scopeNode.scopeList[accessIndex].text}`
-                );
+                analyzerDiagnostic.error(scopeToken.location, `Undefined scope: ${scopeToken.text}`);
             });
 
             break;
         }
 
         accessScope = found;
+        const currentAccessIndex = accessIndex;
 
-        // Append an information for completion of the namespace to the scope.
+        // Record this qualifier so services can resolve, reference, or complete the scope access.
         sideEffect.push(() => {
-            getActiveGlobalScope().info.autocompleteNamespaceAccess.push({
-                autocompleteLocation: extendTokenLocation(scopeToken, 0, 3), // scopeToken --> '::' --> <token> --> ...
-                accessScope: found,
-                namespaceToken: scopeToken,
-                tokenAfterNamespaces: tokenAfterNamespaces
+            getActiveGlobalScope().markers.scopeAccess.push({
+                scopeAccessNode: scopeNode,
+                listIndex: currentAccessIndex,
+                targetScope: found,
+                tokenAfterScopeAccess: tokenAfterScopeAccess
             });
         });
     }
@@ -580,7 +582,7 @@ function evaluateScope(
     const ok: boolean =
         accessIndex === scopeNode.scopeList.length &&
         // Can the identifier after the qualifiers be accessed?
-        accessScope.lookupSymbol(tokenAfterNamespaces?.text ?? '') !== undefined;
+        accessScope.lookupSymbol(tokenAfterScopeAccess?.text ?? '') !== undefined;
 
     return {ok, accessScope, accessIndex, sideEffects: sideEffect};
 }
@@ -1135,13 +1137,9 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         return undefined;
     }
 
-    // Append an information for autocomplete of class members.
-    const autocompleteLocation = getBoundingLocationBetween(
-        exprPostOp.nodeRange.start,
-        exprPostOp.nodeRange.start.getNextOrSelf()
-    );
-    getActiveGlobalScope().info.autocompleteInstanceMember.push({
-        autocompleteLocation: autocompleteLocation,
+    // Record this member access so services can complete instance members.
+    getActiveGlobalScope().markers.instanceAccess.push({
+        instanceAccessNode: exprPostOp,
         targetType: exprValue.typeOrFunc
     });
 
@@ -1171,7 +1169,7 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
             return undefined;
         }
 
-        const callTemplateArguments = member.node.typeTemplates ?? [];
+        const callTemplateArguments = member.node.typeArguments ?? [];
 
         if (instanceMember.isFunctionHolder()) {
             // This instance member is a method.
@@ -1347,7 +1345,7 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     return undefined;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedType | undefined {
     let searchScope = findOptimalScope(scope, funcCall.scope, funcCall.identifier);
     if (funcCall.scope !== undefined && searchScope === undefined) {
@@ -1376,7 +1374,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
     }
 
-    const callTemplateArguments = funcCall.typeTemplates ?? [];
+    const callTemplateArguments = funcCall.typeArguments ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
         // Invoke function handle
@@ -1443,7 +1441,7 @@ function analyzeFunctionCall(
     calleeTemplateMapping: TemplateMapping | undefined,
     calleeDelegateVariable?: VariableSymbol
 ) {
-    getActiveGlobalScope().info.functionCall.push({
+    getActiveGlobalScope().markers.functionCall.push({
         callerIdentifier: callerIdentifier,
         callerArgumentsNode: callerArgList,
         calleeFuncHolder: calleeFuncHolder,
@@ -1589,7 +1587,7 @@ function analyzeEnumMemberAccess(
             nodeRange: new TokenRange(varIdentifier, varIdentifier),
             scopeRange: new TokenRange(varIdentifier, varIdentifier),
             metadata: [],
-            entity: undefined,
+            entityTokens: undefined,
             identifier: varIdentifier,
             memberList: [],
             enumType: undefined

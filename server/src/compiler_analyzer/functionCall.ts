@@ -5,7 +5,7 @@ import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {evaluateTypeConversion} from './typeConversion';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
 import {stringifyResolvedType, stringifyResolvedTypes} from './symbolStringifier';
 
@@ -212,7 +212,7 @@ function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: Fun
         }
 
         const name = args.name.text;
-        const paramId = callee.linkedNode.paramList.findIndex(p => p.identifier?.text === name);
+        const paramId = callee.linkedNode.paramList.params.findIndex(p => p.identifier?.text === name);
         if (paramId === -1) {
             continue;
         }
@@ -283,7 +283,7 @@ function evaluateFunctionMatch(
 
     // Caller arguments must be at least as many as the callee parameters.
     if (callee.parameterTypes.length < callerArgs.length) {
-        if (!callee.linkedNode.paramList.at(-1)?.isVariadic) {
+        if (!callee.linkedNode.paramList.params.at(-1)?.isVariadic) {
             // The number of arguments is too many.
             return {reason: MismatchKind.TooManyArguments};
         }
@@ -345,7 +345,7 @@ function evaluatePassingNamedArgument(
 
         // Find the matching parameter name in the callee.
         for (let paramId = 0; paramId < callee.parameterTypes.length; paramId++) {
-            const calleeArgName = callee.linkedNode.paramList[paramId].identifier?.text;
+            const calleeArgName = callee.linkedNode.paramList.params[paramId].identifier?.text;
             if (callerArgName === calleeArgName) {
                 // Found a matching parameter name in the callee.
 
@@ -383,8 +383,8 @@ function evaluatePassingPositionalArgument(
             // If the parameter has a default expression or is variadic (can accept zero args),
             // treat it as satisfied and stop checking further positional parameters.
             if (
-                callee.linkedNode.paramList[paramId].defaultExpr !== undefined ||
-                callee.linkedNode.paramList[paramId].isVariadic
+                callee.linkedNode.paramList.params[paramId].defaultExpr !== undefined ||
+                callee.linkedNode.paramList.params[paramId].isVariadic
             ) {
                 break;
             } else {
@@ -406,7 +406,7 @@ function evaluatePassingPositionalArgument(
         totalCost += cost;
     }
 
-    if (callee.linkedNode.paramList.at(-1)?.isVariadic) {
+    if (callee.linkedNode.paramList.params.at(-1)?.isVariadic) {
         // Check the rest of the caller's variadic arguments.
         // e.g. 'arg1', 'arg2' in 'format(fmt, arg0, arg1, arg2)' (arg0 has already been checked above);
         for (let paramId = callee.parameterTypes.length; paramId < callerArgs.length; paramId++) {
@@ -489,7 +489,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         ) {
             analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
-                `Function has ${calleeFunction.linkedNode.paramList.length} parameters, but ${callerArgs.length} were provided.`
+                `Function has ${calleeFunction.linkedNode.paramList.params.length} parameters, but ${callerArgs.length} were provided.`
             );
         } else {
             // lastMismatchReason.reason === MismatchKind.ParameterMismatch
@@ -508,9 +508,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
 
         // TODO: suffix `...` for variadic functions
         for (const overload of calleeFuncHolder.overloadList) {
-            const resolvedTypes = overload.parameterTypes.map(t =>
-                applyTemplateMapping(t, calleeTemplateMapping)
-            );
+            const resolvedTypes = overload.parameterTypes.map(t => applyTemplateMapping(t, calleeTemplateMapping));
             message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
         }
 

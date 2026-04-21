@@ -1,5 +1,5 @@
 import {isAnonymousIdentifier, ScopeLinkedNode, SymbolGlobalScope, SymbolScope} from '../compiler_analyzer/symbolScope';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import * as lsp from 'vscode-languageserver';
 
 export function provideDocumentSymbol(globalScope: SymbolGlobalScope) {

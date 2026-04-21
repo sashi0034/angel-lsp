@@ -3,10 +3,10 @@ import {SymbolGlobalScope} from '../compiler_analyzer/symbolScope';
 import {TextRange} from '../compiler_tokenizer/textLocation';
 import {FunctionSymbol} from '../compiler_analyzer/symbolObject';
 import * as lsp from 'vscode-languageserver';
-import {FunctionCallInfo} from '../compiler_analyzer/info';
+import {FunctionCallMarker} from '../compiler_analyzer/marker';
 
 export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: TextRange): CodeActionWrapper[] {
-    for (const info of globalScope.info.functionCall) {
+    for (const info of globalScope.markers.functionCall) {
         if (info.callerIdentifier.location.intersects(range)) {
             return [
                 {
@@ -29,7 +29,7 @@ export function codeActionNamedArguments(globalScope: SymbolGlobalScope, range: 
     return [];
 }
 
-function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: FunctionCallInfo) {
+function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: FunctionCallMarker) {
     const callerNode = info.callerArgumentsNode;
     if (callerNode === undefined) {
         return [];
@@ -37,7 +37,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     // -----------------------------------------------
 
     let calleeFunction: FunctionSymbol | undefined = undefined;
-    for (const reference of globalScope.info.reference) {
+    for (const reference of globalScope.markers.reference) {
         if (reference.toSymbol.isFunction() === false) {
             continue;
         }
@@ -56,7 +56,7 @@ function executeNamedArgumentsAction(globalScope: SymbolGlobalScope, info: Funct
     // 'caller' --> '(' --> 'arg[0]' --> ',' ---> 'arg[1]' --> ',' --> ... --> ')'
     // 'caller' --> '(' --> 'name: arg[0]' --> ',' ---> 'name: arg[1]' --> ',' --> ... --> ')'
     const edits: lsp.TextEdit[] = [];
-    const calleeeParams = calleeFunction.linkedNode.paramList;
+    const calleeeParams = calleeFunction.linkedNode.paramList.params;
     for (let paramId = 0; paramId < calleeeParams.length; ++paramId) {
         if (calleeeParams[paramId].identifier === undefined) {
             continue;

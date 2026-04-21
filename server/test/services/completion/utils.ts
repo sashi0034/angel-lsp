@@ -1,9 +1,25 @@
+import {CompletionItem} from 'vscode-languageserver/node';
 import {provideCompletion} from '../../../src/services/completion';
+import {copyGlobalSettings, resetGlobalSettings} from '../../../src/core/settings';
 import {FileContents, makeFileContentList, inspectFileContents} from '../../inspectorUtils';
 import {CaretMap} from '../caretMap';
+import {afterEach, beforeEach} from 'mocha';
 
 function concatIndexAndItem(item: string, index: number) {
     return `${index}:${item}`;
+}
+
+export function useCompletionWithoutBuiltinKeywords() {
+    beforeEach(() => {
+        const settings = copyGlobalSettings();
+        settings.completion.builtinKeywords = false;
+        settings.completion.snippets = false;
+        resetGlobalSettings(settings);
+    });
+
+    afterEach(() => {
+        resetGlobalSettings(undefined);
+    });
 }
 
 export function testCompletion(fileContents: FileContents, ...expectedList: string[][]) {
@@ -21,18 +37,26 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
     // Iterate through each caret position and check if the completions are as expected.
     for (let i = 0; i < caretMap.length; i++) {
         const target = caretMap.get(i);
-        const globalScope = inspector.getRecord(target.uri).analyzerScope.globalScope;
+        const record = inspector.getRecord(target.uri);
+        const globalScope = record.analyzerScope.globalScope;
 
         const expected = expectedList[i].sort().map(concatIndexAndItem).join(', ');
 
-        const completions = provideCompletion(globalScope, target.position)
+        const completions = provideCompletion(
+            record.preprocessedOutput.preprocessedTokens,
+            record.ast,
+            globalScope,
+            target.position
+        )
             .map(c => c.item.label)
             .sort()
             .map(concatIndexAndItem)
             .join(', ');
 
         if (completions !== expected) {
-            throw new Error(`Incorrect completion.\nexpected: [${expected}]\nactual  : [${completions}]`);
+            throw new Error(
+                `Incorrect completion on caret: ${i}.\nexpected: [${expected}]\nactual  : [${completions}]`
+            );
         }
     }
 }
