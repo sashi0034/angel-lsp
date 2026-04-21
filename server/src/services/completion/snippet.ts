@@ -141,6 +141,18 @@ export const snippetDefinitions: SnippetDefinition[] = [
         contexts: [SnippetContext.Class]
     },
     {
+        label: 'private',
+        insertText: 'private $0',
+        detail: 'Private access modifier',
+        contexts: [SnippetContext.Class]
+    },
+    {
+        label: 'protected',
+        insertText: 'protected $0',
+        detail: 'Protected access modifier',
+        contexts: [SnippetContext.Class]
+    },
+    {
         // TODO: Only show when '#' is before the label
         label: 'include',
         insertText: 'include "${1:HEADER}"',
