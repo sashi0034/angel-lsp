@@ -1947,7 +1947,7 @@ function parseSwitch(parser: ParserState): ParseResult<Node_Switch> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     parser.expect('(', HighlightForToken.Operator);
 
@@ -1994,7 +1994,7 @@ function parseBreak(parser: ParserState): Node_Break | undefined {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     parser.expect(';', HighlightForToken.Operator);
     return {nodeName: NodeName.Break, nodeRange: new TokenRange(rangeStart, parser.prev())};
@@ -2007,7 +2007,7 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) {
         return ParseFailure.Pending;
@@ -2057,7 +2057,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) {
         return ParseFailure.Pending;
@@ -2104,7 +2104,7 @@ function parseWhile(parser: ParserState): ParseResult<Node_While> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) {
         return ParseFailure.Pending;
@@ -2137,7 +2137,7 @@ function parseDoWhile(parser: ParserState): ParseResult<Node_DoWhile> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     const statement = expectStatement(parser);
     if (statement === undefined) {
@@ -2151,7 +2151,7 @@ function parseDoWhile(parser: ParserState): ParseResult<Node_DoWhile> {
         assign: undefined
     };
 
-    if (parser.expect('while', HighlightForToken.KeywordControl) === false) {
+    if (parser.expect('while', HighlightForToken.ControlKeyword) === false) {
         return appliedNodeEnd(parser, result);
     }
 
@@ -2179,7 +2179,7 @@ function parseIf(parser: ParserState): ParseResult<Node_If> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     if (parser.expect('(', HighlightForToken.Operator) === false) {
         return ParseFailure.Pending;
@@ -2208,7 +2208,7 @@ function parseIf(parser: ParserState): ParseResult<Node_If> {
     }
 
     if (parser.next().text === 'else') {
-        parser.commit(HighlightForToken.KeywordControl);
+        parser.commit(HighlightForToken.ControlKeyword);
 
         result.elseStat = expectStatement(parser);
     }
@@ -2228,7 +2228,7 @@ function parseContinue(parser: ParserState): Node_Continue | undefined {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
     parser.expect(';', HighlightForToken.Operator);
     return {nodeName: NodeName.Continue, nodeRange: new TokenRange(rangeStart, parser.prev())};
 }
@@ -2275,7 +2275,7 @@ function parseTry(parser: ParserState): ParseResult<Node_Try> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     const tryBlock = expectStatBlock(parser);
     if (tryBlock === undefined) {
@@ -2289,7 +2289,7 @@ function parseTry(parser: ParserState): ParseResult<Node_Try> {
         catchBlock: undefined
     };
 
-    if (parser.expect('catch', HighlightForToken.KeywordControl) === false) {
+    if (parser.expect('catch', HighlightForToken.ControlKeyword) === false) {
         return appliedNodeEnd(parser, result);
     }
 
@@ -2304,7 +2304,7 @@ function parseReturn(parser: ParserState): ParseResult<Node_Return> {
     }
 
     const rangeStart = parser.next();
-    parser.commit(HighlightForToken.KeywordControl);
+    parser.commit(HighlightForToken.ControlKeyword);
 
     const result: Mutable<Node_Return> = {
         nodeName: NodeName.Return,
@@ -2332,14 +2332,14 @@ function parseCase(parser: ParserState): ParseResult<Node_Case> {
 
     let expr = undefined;
     if (parser.next().text === 'case') {
-        parser.commit(HighlightForToken.KeywordControl);
+        parser.commit(HighlightForToken.ControlKeyword);
 
         expr = expectExpr(parser);
         if (expr === undefined) {
             return ParseFailure.Pending;
         }
     } else if (parser.next().text === 'default') {
-        parser.commit(HighlightForToken.KeywordControl);
+        parser.commit(HighlightForToken.ControlKeyword);
     } else {
         return ParseFailure.Mismatch;
     }
