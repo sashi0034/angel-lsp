@@ -48,6 +48,19 @@ describe('Parser', () => {
         expectSuccess('void foo() {}');
     });
 
+    it('parses function declarations without bodies in as.predefined', () => {
+        expectSuccess({
+            uri: 'file:///path/to/as.predefined',
+            content: `
+            void foo();
+
+            class Foo {
+                void bar() const;
+            }
+            `
+        });
+    });
+
     it('parses variable declarations with numeric initializers', () => {
         expectSuccess('int MyValue = 0; float MyFloat = 15.f;');
     });

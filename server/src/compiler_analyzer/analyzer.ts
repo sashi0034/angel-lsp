@@ -115,7 +115,10 @@ export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_
 // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     if (func.head.tag === 'destructor') {
-        analyzeStatBlock(scope, func.statBlock);
+        if (func.statBlock !== undefined) {
+            analyzeStatBlock(scope, func.statBlock);
+        }
+
         return;
     }
 
@@ -137,7 +140,9 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     analyzeParamList(scope, func.paramList);
 
     // Analyze the scope
-    analyzeStatBlock(scope, func.statBlock);
+    if (func.statBlock !== undefined) {
+        analyzeStatBlock(scope, func.statBlock);
+    }
 }
 
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'

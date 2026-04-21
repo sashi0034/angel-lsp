@@ -255,7 +255,7 @@ function formatFunc(format: FormatterState, funcNode: Node_Func) {
 
     if (formatMoveToNonComment(format)?.text === ';') {
         formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
-    } else {
+    } else if (funcNode.statBlock !== undefined) {
         formatStatBlock(format, funcNode.statBlock);
     }
 }

@@ -24,7 +24,7 @@ export function provideFunctionSectionCompletion(
     }
 
     const paramListEnd = func.paramList.nodeRange.end;
-    const suffixEnd = func.statBlock.nodeRange.start;
+    const suffixEnd = func.statBlock?.nodeRange.start ?? func.nodeRange.end;
     if (caret.isLessThan(paramListEnd.location.end) || suffixEnd.location.start.isLessThan(caret)) {
         return undefined;
     }

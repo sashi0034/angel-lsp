@@ -657,12 +657,6 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
         parser.commit(HighlightForToken.Operator);
     }
 
-    statBlock = statBlock ?? {
-        nodeName: NodeName.StatBlock,
-        nodeRange: new TokenRange(parser.next(), parser.next()),
-        statementList: []
-    };
-
     return {
         nodeName: NodeName.Func,
         nodeRange: new TokenRange(rangeStart, parser.prev()),

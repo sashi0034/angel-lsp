@@ -1,6 +1,21 @@
 import {expectSuccess} from './utils';
 
 describe('analyzer/hoist', () => {
+    it('accepts: Function declarations without bodies in as.predefined.', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                void declaredFunction(int value);
+
+                class DeclaredClass {
+                    void declaredMethod() const;
+                }
+            `
+            }
+        ]);
+    });
+
     it('accepts: Function can use a type declared after it.', () => {
         expectSuccess(`// Function can use a type declared after it.
             Value get_value() { return Value(); }

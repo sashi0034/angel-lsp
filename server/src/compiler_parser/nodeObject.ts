@@ -223,7 +223,7 @@ export interface Node_Func extends NodeBase {
     readonly paramList: Node_ParamList;
     readonly postfixConstToken: ConstModifierToken | undefined;
     readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
-    readonly statBlock: Node_StatBlock;
+    readonly statBlock: Node_StatBlock | undefined;
     readonly listPattern: Node_ListPattern | undefined;
 }
 
