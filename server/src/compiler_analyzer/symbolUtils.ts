@@ -6,7 +6,7 @@ import {
     SymbolAndScope,
     SymbolScope
 } from './symbolScope';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {AccessRestriction} from './nodeHelper';
 import {canDownCast} from './typeConversion';
 import assert = require('node:assert');

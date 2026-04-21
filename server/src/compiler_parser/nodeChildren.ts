@@ -1,4 +1,4 @@
-import {NodeName, NodeObject, voidParameter} from './nodes';
+import {NodeName, NodeObject, voidParameter} from './nodeObject';
 
 function children(...nodes: (NodeObject | undefined)[]): NodeObject[] {
     return nodes.filter((node): node is NodeObject => node !== undefined);

@@ -47,7 +47,7 @@ import {
     Node_VirtualProp,
     Node_While,
     voidParameter
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';

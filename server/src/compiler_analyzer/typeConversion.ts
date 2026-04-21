@@ -1,7 +1,7 @@
 import {ResolvedType} from './resolvedType';
 import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
 import {isNodeClassOrInterface, FunctionSymbol, TypeSymbol} from './symbolObject';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from './builtinType';
 import assert = require('node:assert');
 

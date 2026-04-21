@@ -1,5 +1,5 @@
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {Node_Type} from './nodes';
+import {Node_Type} from './nodeObject';
 
 export function stringifyTypeNode(type: Node_Type, separator: string = ', '): string {
     let str = type.constToken !== undefined ? 'const ' : '';

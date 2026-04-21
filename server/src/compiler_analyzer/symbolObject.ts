@@ -7,7 +7,7 @@ import {
     Node_InterfaceMethod,
     NodeName,
     NodeBase
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {AccessRestriction} from './nodeHelper';
 import {ResolvedType} from './resolvedType';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';

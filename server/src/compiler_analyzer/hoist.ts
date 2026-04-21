@@ -23,7 +23,7 @@ import {
     Node_Var,
     Node_VirtualProp,
     IdentifierAndOptionalExpr
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {AccessRestriction, getAccessRestriction, hasFunctionAttribute} from './nodeHelper';
 import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
 import {findSymbolWithParent} from './symbolUtils';

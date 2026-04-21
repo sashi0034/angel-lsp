@@ -1,4 +1,4 @@
-import {Node_Script, NodeObject} from './nodes';
+import {Node_Script, NodeObject} from './nodeObject';
 import {getNodeChildren} from './nodeChildren';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 

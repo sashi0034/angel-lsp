@@ -3,7 +3,7 @@ import {FunctionSymbolHolder, SymbolObject, TypeSymbol} from './symbolObject';
 import {SymbolScope} from './symbolScope';
 import {TextLocation} from '../compiler_tokenizer/textLocation';
 import {ResolvedType, TemplateMapping} from './resolvedType';
-import {Node_ArgList, Node_ExprPostOp1, Node_Scope} from '../compiler_parser/nodes';
+import {Node_ArgList, Node_ExprPostOp1, Node_Scope} from '../compiler_parser/nodeObject';
 import {getBoundingLocationBetween} from '../compiler_tokenizer/tokenRange';
 import {extendTokenLocation} from '../compiler_tokenizer/tokenUtils';
 

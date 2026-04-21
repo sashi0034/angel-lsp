@@ -73,7 +73,7 @@ import {
     VoidParameter,
     voidParameter,
     ScopeAndIdentifier
-} from './nodes';
+} from './nodeObject';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';

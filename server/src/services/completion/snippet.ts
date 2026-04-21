@@ -1,6 +1,6 @@
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {InsertTextFormat} from 'vscode-languageserver';
-import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodes';
+import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodeObject';
 import {getGlobalSettings} from '../../core/settings';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {findNearestNode} from '../../compiler_parser/nearestNode';

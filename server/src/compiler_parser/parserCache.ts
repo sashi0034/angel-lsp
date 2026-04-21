@@ -1,4 +1,4 @@
-import {EntityAttributeToken, Node_Scope, Node_Type} from './nodes';
+import {EntityAttributeToken, Node_Scope, Node_Type} from './nodeObject';
 
 export enum ParserCacheKind {
     EntityAttribute = 'EntityAttribute',

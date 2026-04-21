@@ -3,7 +3,7 @@ import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {InsertTextFormat} from 'vscode-languageserver';
 import {FunctionSymbolHolder, TypeSymbol, VariableSymbol} from '../compiler_analyzer/symbolObject';
 import {CompletionItemWrapper} from './completion';
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import * as path from 'path';
 import {stringifyResolvedType, stringifySymbolObject} from '../compiler_analyzer/symbolStringifier';
 

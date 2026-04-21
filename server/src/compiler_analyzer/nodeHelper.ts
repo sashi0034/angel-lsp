@@ -1,4 +1,4 @@
-import {AccessModifierToken, Node_Func, Node_InterfaceMethod} from '../compiler_parser/nodes';
+import {AccessModifierToken, Node_Func, Node_InterfaceMethod} from '../compiler_parser/nodeObject';
 
 export enum AccessRestriction {
     Private = 'private',

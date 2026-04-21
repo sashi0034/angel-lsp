@@ -1,4 +1,4 @@
-import {NodeName} from '../compiler_parser/nodes';
+import {NodeName} from '../compiler_parser/nodeObject';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {FunctionSymbol, FunctionSymbolHolder, isScopePathEquals, SymbolObject} from './symbolObject';
 import {SymbolScope} from './symbolScope';

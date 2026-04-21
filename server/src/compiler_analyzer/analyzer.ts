@@ -41,7 +41,7 @@ import {
     Node_VarAccess,
     Node_While,
     voidParameter
-} from '../compiler_parser/nodes';
+} from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {getAccessRestriction} from './nodeHelper';
 import {

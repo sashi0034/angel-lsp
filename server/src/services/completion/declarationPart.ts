@@ -1,4 +1,4 @@
-import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodes';
+import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodeObject';
 import {findNearestNode} from '../../compiler_parser/nearestNode';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {TokenObject} from '../../compiler_tokenizer/tokenObject';

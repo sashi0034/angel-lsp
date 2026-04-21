@@ -1,6 +1,13 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {ResolvedType} from './resolvedType';
-import {InOutModifierToken, NodeName, Node_Type, Node_Func, Node_ParamList, Node_Scope} from '../compiler_parser/nodes';
+import {
+    InOutModifierToken,
+    NodeName,
+    Node_Type,
+    Node_Func,
+    Node_ParamList,
+    Node_Scope
+} from '../compiler_parser/nodeObject';
 import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
 import assert = require('node:assert');
 
