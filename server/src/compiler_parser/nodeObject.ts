@@ -210,7 +210,7 @@ export interface Node_TypeDef extends NodeBase {
     readonly identifier: TokenObject;
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 export interface Node_Func extends NodeBase {
     readonly nodeName: NodeName.Func;
     readonly entityTokens: EntityAttributeToken[] | undefined;
@@ -612,7 +612,7 @@ export interface Node_Literal extends NodeBase {
     readonly value: TokenObject;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 export interface Node_FuncCall extends NodeBase {
     readonly nodeName: NodeName.FuncCall;
     readonly scope: Node_Scope | undefined;

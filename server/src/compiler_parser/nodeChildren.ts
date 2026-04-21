@@ -30,7 +30,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.TypeDef:
             return [];
 
-        // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+        // **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
         case NodeName.Func:
             return [
                 ...children(node.head.tag === 'function' ? node.head.returnType : undefined),
@@ -220,7 +220,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.Literal:
             return [];
 
-        // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+        // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
         case NodeName.FuncCall:
             return children(node.scope, node.argList, ...(node.typeArguments ?? []));
 

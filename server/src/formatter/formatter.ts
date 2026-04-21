@@ -224,7 +224,7 @@ function formatTypeDef(format: FormatterState, typeDef: Node_TypeDef) {
     formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function formatFunc(format: FormatterState, funcNode: Node_Func) {
     formatMoveUntilNodeStart(format, funcNode);
     format.pushWrap(); // TODO: Move to the caller?
@@ -1140,7 +1140,7 @@ function formatLambdaParam(format: FormatterState, param: Node_LambdaParam) {
 
 // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {
     formatMoveUntilNodeStart(format, funcCall);
 

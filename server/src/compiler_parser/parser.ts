@@ -584,7 +584,7 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     };
 }
 
-// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
+// **BNF** FUNC ::= {'shared' | 'external'} ['private' | 'protected'] [((TYPE ['&']) | '~')] IDENTIFIER ['<' TYPE {',' TYPE} '>'] PARAMLIST [LISTPATTERN] ['const'] FUNCATTR (';' | STATBLOCK)
 function parseFunc(parser: ParserState): Node_Func | undefined {
     const rangeStart = parser.next();
 
@@ -2875,7 +2875,7 @@ function parseLiteral(parser: ParserState): Node_Literal | undefined {
     return undefined;
 }
 
-// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ARGLIST
+// **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function parseFuncCall(parser: ParserState): Node_FuncCall | undefined {
     const rangeStart = parser.next();
     const scope = parseScope(parser);
