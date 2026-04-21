@@ -1,7 +1,6 @@
 import {HighlightForToken} from '../core/highlight';
 import {diagnostic} from '../core/diagnostic';
 import {CommentToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
-import {ParserCachedData, ParserCacheKind, ParserCacheServices, ParserCacheTargets} from './parserCache';
 import {MutableTextPosition, TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
 
 export enum ParseFailure {
@@ -37,8 +36,6 @@ export enum BreakOrThrough {
 export type ParseResult<T> = T | ParseFailure;
 
 export class ParserState {
-    private readonly _caches: (ParserCachedData<ParserCacheKind> | undefined)[] = [];
-
     private _lastTokenAtError: TokenObject | undefined;
 
     private readonly _sofToken; // start of file
@@ -53,8 +50,6 @@ export class ParserState {
         private readonly _tokens: TokenObject[],
         private _cursorIndex: number = 0
     ) {
-        this._caches = new Array(_tokens.length);
-
         this._sofToken = makeSofToken(_tokens.at(0));
         this._eofToken = makeEofToken(_tokens.at(-1));
 
@@ -131,40 +126,6 @@ export class ParserState {
 
         diagnostic.error(this.next().location, message);
         this._lastTokenAtError = this.next();
-    }
-
-    /**
-     * Some parse results are cached at the current index using a DP-like strategy.
-     * This improves performance by avoiding repeated parsing of the same token sequence.
-     *
-     * @param key The cache key that identifies the type of parsing result to cache.
-     * @returns Helpers for restoring a cached result or storing a new one.
-     */
-    // TODO: Remove? We should do incremental builds rather than this cache
-    public cache<T extends ParserCacheKind>(key: T): Readonly<ParserCacheServices<T>> {
-        const rangeStart = this._cursorIndex;
-        const data = this._caches[rangeStart];
-
-        let restore: (() => ParserCacheTargets<T> | undefined) | undefined = undefined;
-        if (data !== undefined && data.kind === key) {
-            restore = () => {
-                this._cursorIndex = data.rangeEnd;
-                return data.data as ParserCacheTargets<T> | undefined;
-            };
-        }
-
-        const store = (cache: ParserCacheTargets<T> | undefined) => {
-            this._caches[rangeStart] = {
-                kind: key,
-                rangeEnd: this._cursorIndex,
-                data: cache
-            };
-        };
-
-        return {
-            restore: restore,
-            store: store
-        };
     }
 }
 

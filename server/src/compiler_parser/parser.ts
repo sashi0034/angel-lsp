@@ -77,7 +77,6 @@ import {
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';
-import {ParserCacheKind} from './parserCache';
 import {areTokensJoinedBy} from '../compiler_tokenizer/tokenUtils';
 import {Mutable} from '../utils/utilities';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
@@ -406,11 +405,6 @@ function expectEnumMembers(parser: ParserState): IdentifierAndOptionalExpr[] {
 
 // {'shared' | 'abstract' | 'final' | 'external'}
 function parseEntityAttributes(parser: ParserState): EntityAttributeToken[] | undefined {
-    const cache = parser.cache(ParserCacheKind.EntityAttribute);
-    if (cache.restore !== undefined) {
-        return cache.restore();
-    }
-
     let attributes: EntityAttributeToken[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.next().text;
@@ -425,7 +419,6 @@ function parseEntityAttributes(parser: ParserState): EntityAttributeToken[] | un
         parser.commit(HighlightForToken.Keyword);
     }
 
-    cache.store(attributes);
     return attributes;
 }
 
@@ -1645,11 +1638,6 @@ function expectType(parser: ParserState): Node_Type | undefined {
 
 // '<' TYPE {',' TYPE} '>'
 function parseTemplateTypes(parser: ParserState): Node_Type[] | undefined {
-    const cache = parser.cache(ParserCacheKind.TypeList);
-    if (cache.restore !== undefined) {
-        return cache.restore();
-    }
-
     const rangeStart = parser.next();
     if (parser.next().text !== '<') {
         return undefined;
@@ -1672,12 +1660,10 @@ function parseTemplateTypes(parser: ParserState): Node_Type[] | undefined {
             break;
         } else if (breakOrThrough === undefined) {
             parser.backtrack(rangeStart);
-            cache.store(undefined);
             return undefined;
         }
     }
 
-    cache.store(typeList);
     return typeList;
 }
 
@@ -1721,11 +1707,6 @@ function parseInitList(parser: ParserState): Node_InitList | undefined {
 
 // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 function parseScope(parser: ParserState): Node_Scope | undefined {
-    const cache = parser.cache(ParserCacheKind.Scope);
-    if (cache.restore !== undefined) {
-        return cache.restore();
-    }
-
     const rangeStart = parser.next();
 
     let isGlobal = false;
@@ -1764,7 +1745,6 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
     }
 
     if (isGlobal === false && scopeList.length === 0) {
-        cache.store(undefined);
         return undefined;
     }
 
@@ -1775,7 +1755,6 @@ function parseScope(parser: ParserState): Node_Scope | undefined {
         scopeList: scopeList,
         typeArguments: typeArguments ?? []
     };
-    cache.store(scopeNode);
     return scopeNode;
 }
 
