@@ -74,7 +74,8 @@ describe('services/hover', () => {
                 string opAdd(const string &in other) { return string(); }
             }
 
-            const string CONST_VALUE = "hello" + (' ' + "world");
+            const auto HELLO = "hello";
+            const string CONST_VALUE = HELLO + (' ' + "world");
             string value = $C0$CONST_VALUE;
             `,
             'string CONST_VALUE = "hello world";'
