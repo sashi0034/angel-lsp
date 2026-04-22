@@ -19,6 +19,8 @@ export interface LambdaInfo {
     resolve: (expectedType: ResolvedType, nodeRange?: TokenRange) => void;
 }
 
+export type EvaluatedValue = number | boolean | string;
+
 /**
  * Apply the template mapping to the target type.
  */
@@ -111,7 +113,8 @@ export class ResolvedType {
         // For functions, only the token information of the access source is retained.
         private _attachedAccessSource?: VariableSymbol | TokenObject,
         public readonly isExplicitHandleAccess?: boolean,
-        public readonly lambdaInfo?: LambdaInfo
+        public readonly lambdaInfo?: LambdaInfo,
+        private readonly _evaluatedRvalue?: EvaluatedValue
     ) {}
 
     public static create(args: {
@@ -121,6 +124,7 @@ export class ResolvedType {
         attachedAccessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
         lambdaInfo?: LambdaInfo;
+        evaluatedRvalue?: EvaluatedValue;
     }) {
         return new ResolvedType(
             args.typeOrFunc,
@@ -128,7 +132,8 @@ export class ResolvedType {
             args.templateMapping,
             args.attachedAccessSource,
             args.isExplicitHandleReference,
-            args.lambdaInfo
+            args.lambdaInfo,
+            args.evaluatedRvalue
         );
     }
 
@@ -139,7 +144,8 @@ export class ResolvedType {
             this.templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
-            this.lambdaInfo
+            this.lambdaInfo,
+            this._evaluatedRvalue
         );
     }
 
@@ -150,7 +156,8 @@ export class ResolvedType {
             templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
-            this.lambdaInfo
+            this.lambdaInfo,
+            this._evaluatedRvalue
         );
     }
 
@@ -161,7 +168,8 @@ export class ResolvedType {
             this.templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
-            this.lambdaInfo
+            this.lambdaInfo,
+            this._evaluatedRvalue
         );
     }
 
@@ -172,7 +180,8 @@ export class ResolvedType {
             this.templateMapping,
             this._attachedAccessSource,
             isExplicitHandleReference,
-            this.lambdaInfo
+            this.lambdaInfo,
+            this._evaluatedRvalue
         );
     }
 
@@ -183,8 +192,25 @@ export class ResolvedType {
             this.templateMapping,
             attachedAccessSource,
             this.isExplicitHandleAccess,
-            this.lambdaInfo
+            this.lambdaInfo,
+            this._evaluatedRvalue
         );
+    }
+
+    public cloneWithEvaluatedRvalue(evaluatedRvalue: EvaluatedValue | undefined): ResolvedType {
+        return new ResolvedType(
+            this.typeOrFunc,
+            this.isHandle,
+            this.templateMapping,
+            this._attachedAccessSource,
+            this.isExplicitHandleAccess,
+            this.lambdaInfo,
+            evaluatedRvalue
+        );
+    }
+
+    public get evaluatedRvalue(): EvaluatedValue | undefined {
+        return this._evaluatedRvalue;
     }
 
     public get scopePath(): ScopePath | undefined {
@@ -269,5 +295,9 @@ export class ResolvedType {
 
     public isNullType(): boolean {
         return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === 'null';
+    }
+
+    public isFloatingPoint(): boolean {
+        return this.typeOrFunc.isType() && this.typeOrFunc.isFloatingPoint();
     }
 }

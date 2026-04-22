@@ -1,13 +1,6 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
-import {ResolvedType} from './resolvedType';
-import {
-    InOutModifierToken,
-    NodeName,
-    Node_Type,
-    Node_Func,
-    Node_ParamList,
-    Node_Scope
-} from '../compiler_parser/nodeObject';
+import {EvaluatedValue, ResolvedType} from './resolvedType';
+import {InOutModifierToken, NodeName, Node_Type} from '../compiler_parser/nodeObject';
 import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
 import assert = require('node:assert');
 
@@ -53,6 +46,22 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
     return types.map(t => stringifyResolvedType(t)).join(', ');
+}
+
+function stringifyEvaluatedValue(value: EvaluatedValue, type: ResolvedType | undefined): string {
+    if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+    }
+
+    if (typeof value === 'string') {
+        return JSON.stringify(value);
+    }
+
+    if (type?.isFloatingPoint()) {
+        return Number.isInteger(value) ? `${value}.0` : value.toString();
+    }
+
+    return value.toString();
 }
 
 function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Node_Type | undefined): string {
@@ -146,7 +155,11 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
             symbol
         )}`;
     } else if (symbol.isVariable()) {
-        return `${stringifyResolvedType(symbol.type)} ${fullName}`;
+        const valueText =
+            symbol.evaluatedValue === undefined
+                ? ''
+                : ` = ${stringifyEvaluatedValue(symbol.evaluatedValue, symbol.type)}`;
+        return `${stringifyResolvedType(symbol.type)} ${fullName}${valueText}`;
     }
 
     assert(false);

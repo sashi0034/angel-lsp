@@ -54,6 +54,26 @@ describe('analyzer/symbolStringifier', () => {
         );
     });
 
+    it('stringifies evaluated bool const variables', () => {
+        expectStringifiedSymbol(
+            `
+            const bool enabled = true;
+            `,
+            globalScope => globalScope.lookupSymbol('enabled'),
+            'bool enabled = true'
+        );
+    });
+
+    it('stringifies bool const variables evaluated from expressions', () => {
+        expectStringifiedSymbol(
+            `
+            const bool enabled = !(false || (1 > 2));
+            `,
+            globalScope => globalScope.lookupSymbol('enabled'),
+            'bool enabled = true'
+        );
+    });
+
     it('stringifies variables with template arguments', () => {
         expectStringifiedSymbol(
             `

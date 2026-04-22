@@ -45,7 +45,7 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface AnalyzerMarkers {
+interface AnalyzeMarkers {
     reference: ReferenceMarker[];
     scopeRegion: ScopeRegionMarker[];
     instanceAccess: InstanceAccessMarker[];
@@ -58,7 +58,7 @@ interface GlobalScopeContext {
     filepath: string;
     builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
-    markers: AnalyzerMarkers;
+    markers: AnalyzeMarkers;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -337,6 +337,7 @@ export class SymbolScope {
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
             this._symbolTable.set(identifier, symbol.toHolder());
+            registerBuiltinTypeIfNeeded(symbol);
             return undefined;
         }
 
@@ -451,10 +452,9 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     /**
-     * Cache information in the context of the file
+     * Cache enum scopes in the context of the file.
      */
-    public commitContext() {
-        this._context.builtinStringType = findBuiltinStringType(this);
+    public cacheEnumScopeList() {
         this._context.enumScopeList = collectEnumScopeList(this);
     }
 
@@ -467,7 +467,7 @@ export class SymbolGlobalScope extends SymbolScope {
         this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
-    public get markers(): Readonly<AnalyzerMarkers> {
+    public get markers(): Readonly<AnalyzeMarkers> {
         return this._context.markers;
     }
 
@@ -478,31 +478,15 @@ export class SymbolGlobalScope extends SymbolScope {
     public resolveScope(path: ScopePath): SymbolScope | undefined {
         return super.resolveRelativeScope(path);
     }
+
+    public registerBuiltinStringType(type: TypeSymbol) {
+        assert(this._context.builtinStringType === undefined);
+        this._context.builtinStringType = type;
+    }
 }
 
 function errorAlreadyDeclared(token: TokenObject) {
     analyzerDiagnostic.error(token.location, `Symbol '${token.text}' is already declared in the scope.`);
-}
-
-function findBuiltinStringType(scope: SymbolScope): TypeSymbol | undefined {
-    for (const [key, symbol] of scope.symbolTable) {
-        if (symbol.isType() && isSourceBuiltinString(symbol.linkedNode)) {
-            return symbol;
-        }
-    }
-
-    for (const [key, child] of scope.childScopeTable) {
-        if (child.isAnonymousScope()) {
-            continue;
-        }
-
-        const found = findBuiltinStringType(child);
-        if (found !== undefined) {
-            return found;
-        }
-    }
-
-    return undefined;
 }
 
 function collectEnumScopeList(scope: SymbolScope): SymbolScope[] {
@@ -523,8 +507,18 @@ function collectEnumScopeList(scope: SymbolScope): SymbolScope[] {
     return result;
 }
 
-// Judge if the class has a metadata that indicates it is a built-in string type.
-function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean {
+function registerBuiltinTypeIfNeeded(symbol: SymbolObject) {
+    if (
+        symbol.isType() &&
+        getActiveGlobalScope().getContext().builtinStringType === undefined &&
+        isBuiltinStringType(symbol.linkedNode)
+    ) {
+        getActiveGlobalScope().registerBuiltinStringType(symbol);
+    }
+}
+
+// Checks whether the class is a built-in string type.
+function isBuiltinStringType(source: TypeDefinitionNode | undefined): boolean {
     if (source === undefined) {
         return false;
     }
@@ -532,7 +526,6 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     if (source.nodeName != NodeName.Class) {
         return false;
     }
-    // if (source.nodeRange.path.endsWith('as.predefined') === false) return false;
 
     // Check if the class has a metadata that indicates it is a built-in string type.
     const builtinStringMetadata = 'BuiltinString';
@@ -543,27 +536,6 @@ function isSourceBuiltinString(source: TypeDefinitionNode | undefined): boolean 
     // Check whether the class name is a built-in string type with global settings.
     return getGlobalSettings().builtinStringType === source.identifier.text;
 }
-
-// function excludeSymbolTableByFilepath(table: SymbolTable, filepath: string) {
-//     for (const [key, symbolHolder] of table) {
-//         if (symbolHolder.isFunctionHolder()) {
-//             const filteredList = symbolHolder.overloadList.filter(
-//                 overload => overload.identifierToken.location.path !== filepath
-//             );
-//
-//             if (filteredList.length === 0) {
-//                 table.delete(key);
-//             } else if (filteredList.length < symbolHolder.count) {
-//                 table.set(key, new SymbolFunctionHolder(filteredList));
-//             } // else filteredList.length == symbolHolder.count
-//             // fallthrough
-//         } else {
-//             if (symbolHolder.identifierToken.location.path === filepath) {
-//                 table.delete(key);
-//             }
-//         }
-//     }
-// }
 
 export interface SymbolAndScope {
     readonly symbol: SymbolObjectHolder;

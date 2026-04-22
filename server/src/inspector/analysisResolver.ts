@@ -16,7 +16,7 @@ import {
 import {analyzerDiagnostic} from '../compiler_analyzer/analyzerDiagnostic';
 import {Profiler} from '../core/profiler';
 import {hoistAfterParse} from '../compiler_analyzer/hoist';
-import {analyzeAfterHoiste} from '../compiler_analyzer/analyzer';
+import {analyzeAfterHoist} from '../compiler_analyzer/analyzer';
 import {logger} from '../core/logger';
 import {fileURLToPath} from 'node:url';
 import * as fs from 'fs';
@@ -168,7 +168,7 @@ export class AnalysisResolver {
         profiler.mark('Hoist'.padEnd(profilerDescriptionLength));
 
         // Execute the analyzer
-        record.analyzerScope = analyzeAfterHoiste(record.uri, hoistResult);
+        record.analyzerScope = analyzeAfterHoist(record.uri, hoistResult);
         profiler.mark('Analyzer'.padEnd(profilerDescriptionLength));
 
         record.diagnosticsInAnalyzer = analyzerDiagnostic.endSession();

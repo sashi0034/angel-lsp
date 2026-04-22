@@ -222,13 +222,24 @@ const primitiveTypeSet = new Set<string>([
     'bool'
 ]);
 
+const integerTypeSet = new Set<string>([
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64'
+]);
+
 const signedIntegerTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64']);
 
 const unsignedIntegerTypeSet = new Set<string>(['uint', 'uint8', 'uint16', 'uint32', 'uint64']);
 
-const floatTypeSet = new Set<string>(['float']);
-
-const doubleTypeSet = new Set<string>(['double']);
+const floatingPointSet = new Set<string>(['float', 'double']);
 
 export interface ReservedWordProperty {
     readonly isMark: boolean;
@@ -241,10 +252,10 @@ export interface ReservedWordProperty {
     readonly isAssignOp: boolean;
     readonly isNumber: boolean;
     readonly isPrimitiveType: boolean;
+    readonly isIntegerType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
-    readonly isFloat: boolean;
-    readonly isDouble: boolean;
+    readonly isFloatingPoint: boolean;
 }
 
 function makeEmptyProperty(): ReservedWordProperty {
@@ -259,10 +270,10 @@ function makeEmptyProperty(): ReservedWordProperty {
         isAssignOp: false,
         isNumber: false,
         isPrimitiveType: false,
+        isIntegerType: false,
         isSignedInteger: false,
         isUnsignedInteger: false,
-        isFloat: false,
-        isDouble: false
+        isFloatingPoint: false
     };
 }
 
@@ -314,6 +325,10 @@ function createProperties() {
         properties.get(symbol)!.isPrimitiveType = true;
     }
 
+    for (const symbol of integerTypeSet) {
+        properties.get(symbol)!.isIntegerType = true;
+    }
+
     for (const symbol of signedIntegerTypeSet) {
         properties.get(symbol)!.isSignedInteger = true;
     }
@@ -322,12 +337,8 @@ function createProperties() {
         properties.get(symbol)!.isUnsignedInteger = true;
     }
 
-    for (const symbol of floatTypeSet) {
-        properties.get(symbol)!.isFloat = true;
-    }
-
-    for (const symbol of doubleTypeSet) {
-        properties.get(symbol)!.isDouble = true;
+    for (const symbol of floatingPointSet) {
+        properties.get(symbol)!.isFloatingPoint = true;
     }
 
     return properties;

@@ -40,7 +40,8 @@ import {
     Node_Var,
     Node_VarAccess,
     Node_While,
-    voidParameter
+    voidParameter,
+    IdentifierAndOptionalExpr
 } from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {getAccessRestriction} from './nodeHelper';
@@ -75,7 +76,13 @@ import {
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
-import {applyTemplateMapping, mergeTemplateMappings, ResolvedType, TemplateMapping} from './resolvedType';
+import {
+    applyTemplateMapping,
+    EvaluatedValue,
+    mergeTemplateMappings,
+    ResolvedType,
+    TemplateMapping
+} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
@@ -1067,25 +1074,25 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
     const op = exprPreOp.text;
 
     if (exprPreOp.text === '@') {
-        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true);
+        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true).cloneWithEvaluatedRvalue(undefined);
     }
 
     if (exprValue.typeOrFunc.isType()) {
         if (exprValue.typeOrFunc.isEnumType()) {
             if (op === '-' || op === '+' || op === '~') {
-                return resolvedBuiltinInt;
+                return resolvedBuiltinInt.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         } else if (exprValue.typeOrFunc.isNumberType()) {
             if (op === '-' || op === '+' || op === '++' || op === '--') {
-                return exprValue;
+                return exprValue.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
 
             if (op === '~' && exprValue.typeOrFunc.isIntegerType()) {
-                return exprValue;
+                return exprValue.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         } else if (exprValue.typeOrFunc === builtinBoolType) {
             if (op === '!' || op === 'not') {
-                return resolvedBuiltinBool;
+                return resolvedBuiltinBool.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         }
     }
@@ -1115,6 +1122,30 @@ const preOpAliases = new Map<string, string>([
     ['++', 'opPreInc'],
     ['--', 'opPreDec']
 ]);
+
+function evaluatePreOp(op: string, value: EvaluatedValue | undefined): EvaluatedValue | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    switch (op) {
+        case '+':
+            return typeof value === 'number' ? value : undefined;
+        case '-':
+            return typeof value === 'number' ? -value : undefined;
+        case '~':
+            return typeof value === 'number' ? ~value : undefined;
+        case '++':
+            return typeof value === 'number' ? value + 1 : undefined;
+        case '--':
+            return typeof value === 'number' ? value - 1 : undefined;
+        case '!':
+        case 'not':
+            return typeof value === 'boolean' ? !value : undefined;
+        default:
+            return undefined;
+    }
+}
 
 // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(
@@ -1314,28 +1345,31 @@ function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): Resolv
 function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
+        const value = parseNumberLiteralValue(literalValue.text);
         switch (literalValue.numberLiteral) {
             case NumberLiteral.Integer:
-                return resolvedBuiltinInt;
+                return resolvedBuiltinInt.cloneWithEvaluatedRvalue(value);
             case NumberLiteral.Float:
-                return resolvedBuiltinFloat;
+                return resolvedBuiltinFloat.cloneWithEvaluatedRvalue(value);
             case NumberLiteral.Double:
-                return resolvedBuiltinDouble;
+                return resolvedBuiltinDouble.cloneWithEvaluatedRvalue(value);
         }
     }
 
-    if (literalValue.kind === TokenKind.String) {
+    if (literalValue.isStringToken()) {
         if (literalValue.text[0] === "'" && getGlobalSettings().characterLiterals) {
             // TODO: verify utf8 validity
             return resolvedBuiltinInt;
         }
 
         const stringType = getActiveGlobalScope().getContext().builtinStringType;
-        return stringType === undefined ? undefined : new ResolvedType(stringType);
+        return stringType === undefined
+            ? undefined
+            : new ResolvedType(stringType).cloneWithEvaluatedRvalue(literalValue.getStringContent());
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
-        return resolvedBuiltinBool;
+        return resolvedBuiltinBool.cloneWithEvaluatedRvalue(literalValue.text === 'true');
     }
 
     if (literalValue.text === 'null') {
@@ -1343,6 +1377,12 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     }
 
     return undefined;
+}
+
+function parseNumberLiteralValue(text: string): number | undefined {
+    const normalized = text.replace(/[fFdDuUlL]+$/, '');
+    const value = Number(normalized);
+    return Number.isNaN(value) ? undefined : value;
 }
 
 // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
@@ -1526,7 +1566,9 @@ function analyzeVariableAccess(
             });
         }
 
-        return found.symbol.type?.cloneWithAttachedAccessSource(accessedVariable); // <-- Variable
+        return found.symbol.type
+            ?.cloneWithAttachedAccessSource(accessedVariable)
+            .cloneWithEvaluatedRvalue(accessedVariable.evaluatedValue); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
@@ -1597,6 +1639,25 @@ function analyzeEnumMemberAccess(
     });
 
     return new ResolvedType(virtualType);
+}
+
+export function analyzeEnumMemberValues(scope: SymbolScope, memberList: IdentifierAndOptionalExpr[]) {
+    let nextValue = 0;
+    for (const member of memberList) {
+        if (member.expr !== undefined) {
+            const evaluated = analyzeExpr(scope, member.expr)?.evaluatedRvalue;
+            if (typeof evaluated === 'number') {
+                nextValue = evaluated;
+            }
+        }
+
+        const symbol = scope.lookupSymbol(member.identifier.text);
+        if (symbol?.isVariable()) {
+            symbol.assignEvaluatedValue(nextValue);
+        }
+
+        nextValue++;
+    }
 }
 
 // **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
@@ -1717,7 +1778,9 @@ function analyzeBitOp(
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
-        return numberOperatorCall;
+        return numberOperatorCall.cloneWithEvaluatedRvalue(
+            evaluateNumberBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const aliases = bitOpAliases.get(callerOperator.text);
@@ -1755,14 +1818,16 @@ function analyzeMathOp(
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
-        return numberOperatorCall;
+        return numberOperatorCall.cloneWithEvaluatedRvalue(
+            evaluateNumberBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const aliases = mathOpAliases.get(callerOperator.text);
     assert(aliases !== undefined);
 
     const [alias, alias_r] = aliases;
-    return checkOverloadedOperatorCall({
+    const result = checkOverloadedOperatorCall({
         callerOperator,
         alias,
         alias_r,
@@ -1771,6 +1836,13 @@ function analyzeMathOp(
         rhs,
         rhsRange
     });
+
+    if (callerOperator.text === '+' && isBuiltinStringType(lhs) && isBuiltinStringType(rhs)) {
+        // Constant string concatenation for better editor experience.
+        return result?.cloneWithEvaluatedRvalue(evaluateStringBinaryOp(lhs.evaluatedRvalue, rhs.evaluatedRvalue));
+    }
+
+    return result;
 }
 
 const mathOpAliases = new Map<string, [string, string]>([
@@ -1781,6 +1853,62 @@ const mathOpAliases = new Map<string, [string, string]>([
     ['%', ['opMod', 'opMod_r']],
     ['**', ['opPow', 'opPow_r']]
 ]);
+
+function evaluateNumberBinaryOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): number | undefined {
+    if (typeof lhs !== 'number' || typeof rhs !== 'number') {
+        return undefined;
+    }
+
+    return evaluateBinaryOp(op, lhs, rhs);
+}
+
+function evaluateStringBinaryOp(lhs: EvaluatedValue | undefined, rhs: EvaluatedValue | undefined): string | undefined {
+    if (typeof lhs !== 'string' || typeof rhs !== 'string') {
+        return undefined;
+    }
+
+    return lhs + rhs;
+}
+
+function isBuiltinStringType(type: ResolvedType): boolean {
+    const stringType = getActiveGlobalScope().getContext().builtinStringType;
+    return stringType !== undefined && type.typeOrFunc === stringType;
+}
+
+function evaluateBinaryOp(op: string, lhs: number, rhs: number): number | undefined {
+    switch (op) {
+        case '+':
+            return lhs + rhs;
+        case '-':
+            return lhs - rhs;
+        case '*':
+            return lhs * rhs;
+        case '/':
+            return lhs / rhs;
+        case '%':
+            return lhs % rhs;
+        case '**':
+            return lhs ** rhs;
+        case '&':
+            return lhs & rhs;
+        case '|':
+            return lhs | rhs;
+        case '^':
+            return lhs ^ rhs;
+        case '<<':
+            return lhs << rhs;
+        case '>>':
+            return lhs >> rhs;
+        case '>>>':
+            return lhs >>> rhs;
+        default:
+            return undefined;
+    }
+}
 
 // **BNF** COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(
@@ -1804,7 +1932,9 @@ function analyzeCompOp(
     }
 
     if (canComparisonOperatorCall(lhs, rhs)) {
-        return resolvedBuiltinBool;
+        return resolvedBuiltinBool.cloneWithEvaluatedRvalue(
+            evaluateComparisonOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const alias = compOpAliases.get(callerOperator.text);
@@ -1830,6 +1960,33 @@ function canReferenceComparison(lhs: ResolvedType, rhs: ResolvedType): boolean {
     return checkTypeCast(lhs, rhs) || checkTypeCast(rhs, lhs);
 }
 
+function evaluateComparisonOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): boolean | undefined {
+    if (lhs === undefined || rhs === undefined) {
+        return undefined;
+    }
+
+    switch (op) {
+        case '==':
+            return lhs === rhs;
+        case '!=':
+            return lhs !== rhs;
+        case '<':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs < rhs : undefined;
+        case '<=':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs <= rhs : undefined;
+        case '>':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs > rhs : undefined;
+        case '>=':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs >= rhs : undefined;
+        default:
+            return undefined;
+    }
+}
+
 const compOpAliases = new Map<string, string>([
     ['==', 'opEquals'],
     ['!=', 'opEquals'],
@@ -1853,7 +2010,33 @@ function analyzeLogicOp(
     assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
     assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
 
-    return new ResolvedType(builtinBoolType);
+    return resolvedBuiltinBool.cloneWithEvaluatedRvalue(
+        evaluateLogicOp(operator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+    );
+}
+
+function evaluateLogicOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): boolean | undefined {
+    if (typeof lhs !== 'boolean' || typeof rhs !== 'boolean') {
+        return undefined;
+    }
+
+    switch (op) {
+        case '&&':
+        case 'and':
+            return lhs && rhs;
+        case '||':
+        case 'or':
+            return lhs || rhs;
+        case '^^':
+        case 'xor':
+            return lhs !== rhs;
+        default:
+            return undefined;
+    }
 }
 
 // **BNF** ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
@@ -1923,13 +2106,13 @@ export interface HoistResult {
 }
 
 /**
- * Entry point of the analyser.
+ * Entry point of the analyzer.
  * Type checks and function checks are performed here.
  */
-export function analyzeAfterHoiste(path: string, hoistResult: HoistResult): AnalyzerScope {
+export function analyzeAfterHoist(path: string, hoistResult: HoistResult): AnalyzerScope {
     const {globalScope, analyzeQueue} = hoistResult;
 
-    globalScope.commitContext();
+    globalScope.cacheEnumScopeList();
 
     // Analyze the contents of the scope to be processed.
     while (analyzeQueue.length > 0) {
