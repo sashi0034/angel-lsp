@@ -222,6 +222,19 @@ const primitiveTypeSet = new Set<string>([
     'bool'
 ]);
 
+const integerTypeSet = new Set<string>([
+    'int',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'uint',
+    'uint8',
+    'uint16',
+    'uint32',
+    'uint64'
+]);
+
 const signedIntegerTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', 'int64']);
 
 const unsignedIntegerTypeSet = new Set<string>(['uint', 'uint8', 'uint16', 'uint32', 'uint64']);
@@ -239,6 +252,7 @@ export interface ReservedWordProperty {
     readonly isAssignOp: boolean;
     readonly isNumber: boolean;
     readonly isPrimitiveType: boolean;
+    readonly isIntegerType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
     readonly isFloatingType: boolean;
@@ -256,6 +270,7 @@ function makeEmptyProperty(): ReservedWordProperty {
         isAssignOp: false,
         isNumber: false,
         isPrimitiveType: false,
+        isIntegerType: false,
         isSignedInteger: false,
         isUnsignedInteger: false,
         isFloatingType: false
@@ -308,6 +323,10 @@ function createProperties() {
 
     for (const symbol of primitiveTypeSet) {
         properties.get(symbol)!.isPrimitiveType = true;
+    }
+
+    for (const symbol of integerTypeSet) {
+        properties.get(symbol)!.isIntegerType = true;
     }
 
     for (const symbol of signedIntegerTypeSet) {

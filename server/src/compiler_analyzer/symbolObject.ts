@@ -225,10 +225,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
     }
 
     public isIntegerType(): boolean {
-        return (
-            this.identifierToken.isReservedToken() &&
-            (this.identifierToken.property.isSignedInteger || this.identifierToken.property.isUnsignedInteger)
-        );
+        return this.identifierToken.isReservedToken() && this.identifierToken.property.isIntegerType;
     }
 
     public isFloatingType(): boolean {
