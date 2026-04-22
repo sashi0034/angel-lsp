@@ -40,7 +40,8 @@ import {
     Node_Var,
     Node_VarAccess,
     Node_While,
-    voidParameter
+    voidParameter,
+    IdentifierAndOptionalExpr
 } from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
 import {getAccessRestriction} from './nodeHelper';
@@ -1067,21 +1068,21 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
     const op = exprPreOp.text;
 
     if (exprPreOp.text === '@') {
-        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true);
+        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true).cloneWithEvaluatedRvalue(undefined);
     }
 
     if (exprValue.typeOrFunc.isType()) {
         if (exprValue.typeOrFunc.isEnumType()) {
             if (op === '-' || op === '+' || op === '~') {
-                return resolvedBuiltinInt;
+                return resolvedBuiltinInt.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         } else if (exprValue.typeOrFunc.isNumberType()) {
             if (op === '-' || op === '+' || op === '++' || op === '--') {
-                return exprValue;
+                return exprValue.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
 
             if (op === '~' && exprValue.typeOrFunc.isIntegerType()) {
-                return exprValue;
+                return exprValue.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         } else if (exprValue.typeOrFunc === builtinBoolType) {
             if (op === '!' || op === 'not') {
@@ -1115,6 +1116,27 @@ const preOpAliases = new Map<string, string>([
     ['++', 'opPreInc'],
     ['--', 'opPreDec']
 ]);
+
+function evaluatePreOp(op: string, value: number | undefined): number | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    switch (op) {
+        case '+':
+            return value;
+        case '-':
+            return -value;
+        case '~':
+            return ~value;
+        case '++':
+            return value + 1;
+        case '--':
+            return value - 1;
+        default:
+            return undefined;
+    }
+}
 
 // **BNF** EXPRPOSTOP ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ']') | ARGLIST | '++' | '--'
 function analyzeExprPostOp(
@@ -1314,13 +1336,14 @@ function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): Resolv
 function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
+        const value = parseNumberLiteralValue(literalValue.text);
         switch (literalValue.numberLiteral) {
             case NumberLiteral.Integer:
-                return resolvedBuiltinInt;
+                return resolvedBuiltinInt.cloneWithEvaluatedRvalue(value);
             case NumberLiteral.Float:
-                return resolvedBuiltinFloat;
+                return resolvedBuiltinFloat.cloneWithEvaluatedRvalue(value);
             case NumberLiteral.Double:
-                return resolvedBuiltinDouble;
+                return resolvedBuiltinDouble.cloneWithEvaluatedRvalue(value);
         }
     }
 
@@ -1343,6 +1366,12 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     }
 
     return undefined;
+}
+
+function parseNumberLiteralValue(text: string): number | undefined {
+    const normalized = text.replace(/[fFdDuUlL]+$/, '');
+    const value = Number(normalized);
+    return Number.isNaN(value) ? undefined : value;
 }
 
 // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
@@ -1526,7 +1555,9 @@ function analyzeVariableAccess(
             });
         }
 
-        return found.symbol.type?.cloneWithAttachedAccessSource(accessedVariable); // <-- Variable
+        return found.symbol.type
+            ?.cloneWithAttachedAccessSource(accessedVariable)
+            .cloneWithEvaluatedRvalue(accessedVariable.evaluatedValue); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
@@ -1597,6 +1628,25 @@ function analyzeEnumMemberAccess(
     });
 
     return new ResolvedType(virtualType);
+}
+
+export function analyzeEnumMemberValues(scope: SymbolScope, memberList: IdentifierAndOptionalExpr[]) {
+    let nextValue = 0;
+    for (const member of memberList) {
+        if (member.expr !== undefined) {
+            const evaluated = analyzeExpr(scope, member.expr)?.evaluatedRvalue;
+            if (evaluated !== undefined) {
+                nextValue = evaluated;
+            }
+        }
+
+        const symbol = scope.lookupSymbol(member.identifier.text);
+        if (symbol?.isVariable()) {
+            symbol.assignEvaluatedValue(nextValue);
+        }
+
+        nextValue++;
+    }
 }
 
 // **BNF** ARGLIST ::= '(' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':'] ASSIGN} ')'
@@ -1717,7 +1767,9 @@ function analyzeBitOp(
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
-        return numberOperatorCall;
+        return numberOperatorCall.cloneWithEvaluatedRvalue(
+            evaluateBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const aliases = bitOpAliases.get(callerOperator.text);
@@ -1755,7 +1807,9 @@ function analyzeMathOp(
 ): ResolvedType | undefined {
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
-        return numberOperatorCall;
+        return numberOperatorCall.cloneWithEvaluatedRvalue(
+            evaluateBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const aliases = mathOpAliases.get(callerOperator.text);
@@ -1781,6 +1835,41 @@ const mathOpAliases = new Map<string, [string, string]>([
     ['%', ['opMod', 'opMod_r']],
     ['**', ['opPow', 'opPow_r']]
 ]);
+
+function evaluateBinaryOp(op: string, lhs: number | undefined, rhs: number | undefined): number | undefined {
+    if (lhs === undefined || rhs === undefined) {
+        return undefined;
+    }
+
+    switch (op) {
+        case '+':
+            return lhs + rhs;
+        case '-':
+            return lhs - rhs;
+        case '*':
+            return lhs * rhs;
+        case '/':
+            return lhs / rhs;
+        case '%':
+            return lhs % rhs;
+        case '**':
+            return lhs ** rhs;
+        case '&':
+            return lhs & rhs;
+        case '|':
+            return lhs | rhs;
+        case '^':
+            return lhs ^ rhs;
+        case '<<':
+            return lhs << rhs;
+        case '>>':
+            return lhs >> rhs;
+        case '>>>':
+            return lhs >>> rhs;
+        default:
+            return undefined;
+    }
+}
 
 // **BNF** COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 function analyzeCompOp(

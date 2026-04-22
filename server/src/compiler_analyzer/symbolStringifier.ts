@@ -55,6 +55,17 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
     return types.map(t => stringifyResolvedType(t)).join(', ');
 }
 
+function stringifyEvaluatedValue(value: number, type: ResolvedType | undefined): string {
+    if (
+        type?.typeOrFunc.isType() &&
+        (type.typeOrFunc.identifierText === 'float' || type.typeOrFunc.identifierText === 'double')
+    ) {
+        return Number.isInteger(value) ? `${value}.0` : value.toString();
+    }
+
+    return value.toString();
+}
+
 function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Node_Type | undefined): string {
     if (node === undefined) {
         return stringifyResolvedType(type);
@@ -146,7 +157,11 @@ export function stringifySymbolObject(symbol: SymbolObject): string {
             symbol
         )}`;
     } else if (symbol.isVariable()) {
-        return `${stringifyResolvedType(symbol.type)} ${fullName}`;
+        const valueText =
+            symbol.evaluatedValue === undefined
+                ? ''
+                : ` = ${stringifyEvaluatedValue(symbol.evaluatedValue, symbol.type)}`;
+        return `${stringifyResolvedType(symbol.type)} ${fullName}${valueText}`;
     }
 
     assert(false);

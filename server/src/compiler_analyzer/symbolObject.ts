@@ -9,7 +9,7 @@ import {
     NodeBase
 } from '../compiler_parser/nodeObject';
 import {AccessRestriction} from './nodeHelper';
-import {ResolvedType} from './resolvedType';
+import {EvaluatedValue, ResolvedType} from './resolvedType';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import assert = require('node:assert');
 
@@ -260,7 +260,8 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
         public readonly isInstanceMember: boolean,
         public readonly accessRestriction: AccessRestriction | undefined,
         public readonly isVirtualProperty?: boolean,
-        public readonly isIndexedPropertyAccessor?: boolean
+        public readonly isIndexedPropertyAccessor?: boolean,
+        private _evaluatedValue?: EvaluatedValue
     ) {
         super();
     }
@@ -273,6 +274,7 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
         accessRestriction: AccessRestriction | undefined;
         isVirtualProperty?: boolean;
         isIndexedPropertyAccessor?: boolean;
+        evaluatedValue?: EvaluatedValue;
     }) {
         return new VariableSymbol(
             args.identifierToken,
@@ -281,7 +283,8 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
             args.isInstanceMember,
             args.accessRestriction,
             args.isVirtualProperty,
-            args.isIndexedPropertyAccessor
+            args.isIndexedPropertyAccessor,
+            args.evaluatedValue
         );
     }
 
@@ -308,6 +311,14 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
     public assignType(type: ResolvedType | undefined) {
         assert(this._type === undefined);
         this._type = type;
+    }
+
+    public get evaluatedValue(): EvaluatedValue | undefined {
+        return this._evaluatedValue;
+    }
+
+    public assignEvaluatedValue(evaluatedValue: EvaluatedValue | undefined) {
+        this._evaluatedValue = evaluatedValue;
     }
 }
 

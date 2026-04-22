@@ -33,6 +33,7 @@ import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './bu
 import {IdentifierToken, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {buildTemplateSignature, getIdentifierInTypeNode} from '../compiler_parser/nodeUtils';
 import {
+    analyzeEnumMemberValues,
     analyzeFunc,
     AnalyzeQueue,
     analyzeStatBlock,
@@ -57,7 +58,7 @@ function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: A
     for (const statement of ast) {
         const nodeName = statement.nodeName;
         if (nodeName === NodeName.Enum) {
-            hoistEnum(parentScope, statement);
+            hoistEnum(parentScope, statement, analyzeQueue);
         } else if (nodeName === NodeName.TypeDef) {
             hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
@@ -108,7 +109,7 @@ function hoistNamespace(
 // **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 
 // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
-function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum) {
+function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum, analyzeQueue: AnalyzeQueue) {
     const symbol: TypeSymbol = TypeSymbol.create({
         identifierToken: enumNode.identifier,
         scopePath: parentScope.scopePath,
@@ -124,6 +125,8 @@ function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum) {
     symbol.assignMembersScopePath(scope.scopePath);
 
     hoistEnumMembers(scope, enumNode.memberList, new ResolvedType(symbol));
+
+    analyzeQueue.push(() => analyzeEnumMemberValues(scope, enumNode.memberList));
 }
 
 function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOptionalExpr[], type: ResolvedType) {
@@ -564,7 +567,8 @@ function hoistVar(
         }
 
         const analyzeInitializers = () => {
-            for (const declaredVar of varNode.variables) {
+            for (let i = 0; i < varNode.variables.length; i++) {
+                const declaredVar = varNode.variables[i];
                 const initializer = declaredVar.initializer;
                 if (initializer === undefined) {
                     if (varType?.isAutoType()) {
@@ -578,6 +582,10 @@ function hoistVar(
                 }
 
                 const initType = analyzeVarInitializer(scope, varType, declaredVar.identifier, initializer);
+                if (varNode.type.constToken !== undefined) {
+                    variables[i].assignEvaluatedValue(initType?.evaluatedRvalue);
+                }
+
                 if (initType !== undefined && varType?.isAutoType()) {
                     varType = resolveAutoType(varType, initType, declaredVar.identifier);
 
