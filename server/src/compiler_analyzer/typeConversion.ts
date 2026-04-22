@@ -243,9 +243,9 @@ function evaluateConvPrimitiveToPrimitive(src: ResolvedType, dest: ResolvedType)
     const destBytes = numberSizeInBytes.get(destText) ?? sizeof_int32;
 
     let cost = ConversionCost.NoConv;
-    if (srcProperty?.isFloatingType && destProperty?.isIntegerType) {
+    if (srcProperty?.isFloatingPoint && destProperty?.isIntegerType) {
         cost = ConversionCost.FloatToIntConv;
-    } else if (srcProperty?.isIntegerType && destProperty?.isFloatingType) {
+    } else if (srcProperty?.isIntegerType && destProperty?.isFloatingPoint) {
         cost = ConversionCost.IntToFloatConv;
     } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes === destBytes) {
         cost = ConversionCost.EnumSameSizeConv;

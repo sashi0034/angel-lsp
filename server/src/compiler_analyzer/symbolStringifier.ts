@@ -53,7 +53,7 @@ function stringifyEvaluatedValue(value: EvaluatedValue, type: ResolvedType | und
         return value ? 'true' : 'false';
     }
 
-    if (type?.isFloatingType()) {
+    if (type?.isFloatingPoint()) {
         return Number.isInteger(value) ? `${value}.0` : value.toString();
     }
 

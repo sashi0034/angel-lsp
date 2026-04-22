@@ -239,7 +239,7 @@ const signedIntegerTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', '
 
 const unsignedIntegerTypeSet = new Set<string>(['uint', 'uint8', 'uint16', 'uint32', 'uint64']);
 
-const floatingTypeSet = new Set<string>(['float', 'double']);
+const floatingPointSet = new Set<string>(['float', 'double']);
 
 export interface ReservedWordProperty {
     readonly isMark: boolean;
@@ -255,7 +255,7 @@ export interface ReservedWordProperty {
     readonly isIntegerType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
-    readonly isFloatingType: boolean;
+    readonly isFloatingPoint: boolean;
 }
 
 function makeEmptyProperty(): ReservedWordProperty {
@@ -273,7 +273,7 @@ function makeEmptyProperty(): ReservedWordProperty {
         isIntegerType: false,
         isSignedInteger: false,
         isUnsignedInteger: false,
-        isFloatingType: false
+        isFloatingPoint: false
     };
 }
 
@@ -337,8 +337,8 @@ function createProperties() {
         properties.get(symbol)!.isUnsignedInteger = true;
     }
 
-    for (const symbol of floatingTypeSet) {
-        properties.get(symbol)!.isFloatingType = true;
+    for (const symbol of floatingPointSet) {
+        properties.get(symbol)!.isFloatingPoint = true;
     }
 
     return properties;

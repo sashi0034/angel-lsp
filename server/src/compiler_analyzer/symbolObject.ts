@@ -228,8 +228,8 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         return this.identifierToken.isReservedToken() && this.identifierToken.property.isIntegerType;
     }
 
-    public isFloatingType(): boolean {
-        return this.identifierToken.isReservedToken() && this.identifierToken.property.isFloatingType;
+    public isFloatingPoint(): boolean {
+        return this.identifierToken.isReservedToken() && this.identifierToken.property.isFloatingPoint;
     }
 
     public isEnumType(): boolean {

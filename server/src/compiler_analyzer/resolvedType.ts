@@ -297,7 +297,7 @@ export class ResolvedType {
         return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === 'null';
     }
 
-    public isFloatingType(): boolean {
-        return this.typeOrFunc.isType() && this.typeOrFunc.isFloatingType();
+    public isFloatingPoint(): boolean {
+        return this.typeOrFunc.isType() && this.typeOrFunc.isFloatingPoint();
     }
 }
