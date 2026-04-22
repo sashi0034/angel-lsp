@@ -226,9 +226,7 @@ const signedIntegerTypeSet = new Set<string>(['int', 'int8', 'int16', 'int32', '
 
 const unsignedIntegerTypeSet = new Set<string>(['uint', 'uint8', 'uint16', 'uint32', 'uint64']);
 
-const floatTypeSet = new Set<string>(['float']);
-
-const doubleTypeSet = new Set<string>(['double']);
+const floatingTypeSet = new Set<string>(['float', 'double']);
 
 export interface ReservedWordProperty {
     readonly isMark: boolean;
@@ -243,8 +241,7 @@ export interface ReservedWordProperty {
     readonly isPrimitiveType: boolean;
     readonly isSignedInteger: boolean;
     readonly isUnsignedInteger: boolean;
-    readonly isFloat: boolean;
-    readonly isDouble: boolean;
+    readonly isFloatingType: boolean;
 }
 
 function makeEmptyProperty(): ReservedWordProperty {
@@ -261,8 +258,7 @@ function makeEmptyProperty(): ReservedWordProperty {
         isPrimitiveType: false,
         isSignedInteger: false,
         isUnsignedInteger: false,
-        isFloat: false,
-        isDouble: false
+        isFloatingType: false
     };
 }
 
@@ -322,12 +318,8 @@ function createProperties() {
         properties.get(symbol)!.isUnsignedInteger = true;
     }
 
-    for (const symbol of floatTypeSet) {
-        properties.get(symbol)!.isFloat = true;
-    }
-
-    for (const symbol of doubleTypeSet) {
-        properties.get(symbol)!.isDouble = true;
+    for (const symbol of floatingTypeSet) {
+        properties.get(symbol)!.isFloatingType = true;
     }
 
     return properties;

@@ -298,10 +298,6 @@ export class ResolvedType {
     }
 
     public isFloatingType(): boolean {
-        return (
-            this.typeOrFunc.isType() &&
-            this.typeOrFunc.identifierToken.isReservedToken() &&
-            (this.typeOrFunc.identifierToken.property.isFloat || this.typeOrFunc.identifierToken.property.isDouble)
-        );
+        return this.typeOrFunc.isType() && this.typeOrFunc.isFloatingType();
     }
 }

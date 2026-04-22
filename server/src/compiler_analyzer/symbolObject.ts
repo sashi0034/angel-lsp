@@ -231,6 +231,10 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
         );
     }
 
+    public isFloatingType(): boolean {
+        return this.identifierToken.isReservedToken() && this.identifierToken.property.isFloatingType;
+    }
+
     public isEnumType(): boolean {
         return this.linkedNode?.nodeName === NodeName.Enum;
     }
