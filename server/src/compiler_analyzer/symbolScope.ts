@@ -45,7 +45,7 @@ export type SymbolTable = Map<string, SymbolObjectHolder>;
 
 export type ReadonlySymbolTable = ReadonlyMap<string, SymbolObjectHolder>;
 
-interface AnalyzerMarkers {
+interface AnalyzeMarkers {
     reference: ReferenceMarker[];
     scopeRegion: ScopeRegionMarker[];
     instanceAccess: InstanceAccessMarker[];
@@ -58,7 +58,7 @@ interface GlobalScopeContext {
     filepath: string;
     builtinStringType: TypeSymbol | undefined;
     enumScopeList: SymbolScope[];
-    markers: AnalyzerMarkers;
+    markers: AnalyzeMarkers;
 }
 
 function createGlobalScopeContext(): GlobalScopeContext {
@@ -467,7 +467,7 @@ export class SymbolGlobalScope extends SymbolScope {
         this.includeExternalScope_internal(externalScope, externalFilepath);
     }
 
-    public get markers(): Readonly<AnalyzerMarkers> {
+    public get markers(): Readonly<AnalyzeMarkers> {
         return this._context.markers;
     }
 
