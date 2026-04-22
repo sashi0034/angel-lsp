@@ -82,6 +82,21 @@ describe('services/hover', () => {
         );
     });
 
+    it('trims AngelScript heredoc boundary lines', () => {
+        expectHoverContains(
+            `
+            class string {}
+
+            const string CONST_VALUE = """   
+hello
+world
+            """;
+            string value = $C0$CONST_VALUE;
+            `,
+            'string CONST_VALUE = "hello\\nworld";'
+        );
+    });
+
     it('shows enum member values', () => {
         expectHoverContains(
             `

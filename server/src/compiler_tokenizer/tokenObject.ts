@@ -3,6 +3,7 @@ import {findAllReservedWordProperty, ReservedWordProperty} from './reservedWord'
 import {TextLocation} from './textLocation';
 import {TokenRange} from './tokenRange';
 import assert = require('node:assert');
+import {normalizeHeredocStringContent} from './stringUtils';
 
 /**
  * The tokenizer classifies tokens into the following kinds.
@@ -250,7 +251,11 @@ export class StringToken extends TokenBase {
     }
 
     public getStringContent(): string {
-        return this.text.startsWith('"""') ? this.text.slice(3, -3) : this.text.slice(1, -1);
+        if (this.text.startsWith('"""')) {
+            return normalizeHeredocStringContent(this.text.slice(3, -3));
+        }
+
+        return this.text.slice(1, -1);
     }
 }
 
