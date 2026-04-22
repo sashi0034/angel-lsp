@@ -1356,14 +1356,16 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
         }
     }
 
-    if (literalValue.kind === TokenKind.String) {
+    if (literalValue.isStringToken()) {
         if (literalValue.text[0] === "'" && getGlobalSettings().characterLiterals) {
             // TODO: verify utf8 validity
             return resolvedBuiltinInt;
         }
 
         const stringType = getActiveGlobalScope().getContext().builtinStringType;
-        return stringType === undefined ? undefined : new ResolvedType(stringType);
+        return stringType === undefined
+            ? undefined
+            : new ResolvedType(stringType).cloneWithEvaluatedRvalue(literalValue.getStringContent());
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
@@ -1825,7 +1827,7 @@ function analyzeMathOp(
     assert(aliases !== undefined);
 
     const [alias, alias_r] = aliases;
-    return checkOverloadedOperatorCall({
+    const result = checkOverloadedOperatorCall({
         callerOperator,
         alias,
         alias_r,
@@ -1834,6 +1836,13 @@ function analyzeMathOp(
         rhs,
         rhsRange
     });
+
+    if (callerOperator.text === '+' && isBuiltinStringType(lhs) && isBuiltinStringType(rhs)) {
+        // Constant string concatenation for better editor experience.
+        return result?.cloneWithEvaluatedRvalue(evaluateStringBinaryOp(lhs.evaluatedRvalue, rhs.evaluatedRvalue));
+    }
+
+    return result;
 }
 
 const mathOpAliases = new Map<string, [string, string]>([
@@ -1855,6 +1864,19 @@ function evaluateNumberBinaryOp(
     }
 
     return evaluateBinaryOp(op, lhs, rhs);
+}
+
+function evaluateStringBinaryOp(lhs: EvaluatedValue | undefined, rhs: EvaluatedValue | undefined): string | undefined {
+    if (typeof lhs !== 'string' || typeof rhs !== 'string') {
+        return undefined;
+    }
+
+    return lhs + rhs;
+}
+
+function isBuiltinStringType(type: ResolvedType): boolean {
+    const stringType = getActiveGlobalScope().getContext().builtinStringType;
+    return stringType !== undefined && type.typeOrFunc === stringType;
 }
 
 function evaluateBinaryOp(op: string, lhs: number, rhs: number): number | undefined {

@@ -19,7 +19,7 @@ export interface LambdaInfo {
     resolve: (expectedType: ResolvedType, nodeRange?: TokenRange) => void;
 }
 
-export type EvaluatedValue = number | boolean;
+export type EvaluatedValue = number | boolean | string;
 
 /**
  * Apply the template mapping to the target type.

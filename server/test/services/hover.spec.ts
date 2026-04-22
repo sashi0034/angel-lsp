@@ -67,6 +67,20 @@ describe('services/hover', () => {
         );
     });
 
+    it('shows evaluated const string concatenation expressions', () => {
+        expectHoverContains(
+            `
+            class string {
+                string opAdd(const string &in other) { return string(); }
+            }
+
+            const string CONST_VALUE = "hello" + (' ' + "world");
+            string value = $C0$CONST_VALUE;
+            `,
+            'string CONST_VALUE = "hello world";'
+        );
+    });
+
     it('shows enum member values', () => {
         expectHoverContains(
             `
