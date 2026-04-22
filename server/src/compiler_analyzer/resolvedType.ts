@@ -19,7 +19,7 @@ export interface LambdaInfo {
     resolve: (expectedType: ResolvedType, nodeRange?: TokenRange) => void;
 }
 
-export type EvaluatedValue = number;
+export type EvaluatedValue = number | boolean;
 
 /**
  * Apply the template mapping to the target type.
@@ -295,5 +295,13 @@ export class ResolvedType {
 
     public isNullType(): boolean {
         return this.typeOrFunc.isType() && this.typeOrFunc.identifierText === 'null';
+    }
+
+    public isFloatingType(): boolean {
+        return (
+            this.typeOrFunc.isType() &&
+            this.typeOrFunc.identifierToken.isReservedToken() &&
+            (this.typeOrFunc.identifierToken.property.isFloat || this.typeOrFunc.identifierToken.property.isDouble)
+        );
     }
 }

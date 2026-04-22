@@ -1,13 +1,6 @@
 import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
-import {ResolvedType} from './resolvedType';
-import {
-    InOutModifierToken,
-    NodeName,
-    Node_Type,
-    Node_Func,
-    Node_ParamList,
-    Node_Scope
-} from '../compiler_parser/nodeObject';
+import {EvaluatedValue, ResolvedType} from './resolvedType';
+import {InOutModifierToken, NodeName, Node_Type} from '../compiler_parser/nodeObject';
 import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
 import assert = require('node:assert');
 
@@ -55,11 +48,12 @@ export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): str
     return types.map(t => stringifyResolvedType(t)).join(', ');
 }
 
-function stringifyEvaluatedValue(value: number, type: ResolvedType | undefined): string {
-    if (
-        type?.typeOrFunc.isType() &&
-        (type.typeOrFunc.identifierText === 'float' || type.typeOrFunc.identifierText === 'double')
-    ) {
+function stringifyEvaluatedValue(value: EvaluatedValue, type: ResolvedType | undefined): string {
+    if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+    }
+
+    if (type?.isFloatingType()) {
         return Number.isInteger(value) ? `${value}.0` : value.toString();
     }
 

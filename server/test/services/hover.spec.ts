@@ -57,6 +57,16 @@ describe('services/hover', () => {
         );
     });
 
+    it('shows evaluated const bool expressions', () => {
+        expectHoverContains(
+            `
+            const bool CONST_VALUE = !(false || (1 > 2));
+            bool value = $C0$CONST_VALUE;
+            `,
+            'bool CONST_VALUE = true;'
+        );
+    });
+
     it('shows enum member values', () => {
         expectHoverContains(
             `

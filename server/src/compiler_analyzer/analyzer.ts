@@ -76,7 +76,13 @@ import {
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
 import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
-import {applyTemplateMapping, mergeTemplateMappings, ResolvedType, TemplateMapping} from './resolvedType';
+import {
+    applyTemplateMapping,
+    EvaluatedValue,
+    mergeTemplateMappings,
+    ResolvedType,
+    TemplateMapping
+} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {getBoundingLocationBetween, TokenRange} from '../compiler_tokenizer/tokenRange';
 import {AnalyzerScope} from './analyzerScope';
@@ -1086,7 +1092,7 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
             }
         } else if (exprValue.typeOrFunc === builtinBoolType) {
             if (op === '!' || op === 'not') {
-                return resolvedBuiltinBool;
+                return resolvedBuiltinBool.cloneWithEvaluatedRvalue(evaluatePreOp(op, exprValue.evaluatedRvalue));
             }
         }
     }
@@ -1117,22 +1123,25 @@ const preOpAliases = new Map<string, string>([
     ['--', 'opPreDec']
 ]);
 
-function evaluatePreOp(op: string, value: number | undefined): number | undefined {
+function evaluatePreOp(op: string, value: EvaluatedValue | undefined): EvaluatedValue | undefined {
     if (value === undefined) {
         return undefined;
     }
 
     switch (op) {
         case '+':
-            return value;
+            return typeof value === 'number' ? value : undefined;
         case '-':
-            return -value;
+            return typeof value === 'number' ? -value : undefined;
         case '~':
-            return ~value;
+            return typeof value === 'number' ? ~value : undefined;
         case '++':
-            return value + 1;
+            return typeof value === 'number' ? value + 1 : undefined;
         case '--':
-            return value - 1;
+            return typeof value === 'number' ? value - 1 : undefined;
+        case '!':
+        case 'not':
+            return typeof value === 'boolean' ? !value : undefined;
         default:
             return undefined;
     }
@@ -1358,7 +1367,7 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     }
 
     if (literalValue.text === 'true' || literalValue.text === 'false') {
-        return resolvedBuiltinBool;
+        return resolvedBuiltinBool.cloneWithEvaluatedRvalue(literalValue.text === 'true');
     }
 
     if (literalValue.text === 'null') {
@@ -1635,7 +1644,7 @@ export function analyzeEnumMemberValues(scope: SymbolScope, memberList: Identifi
     for (const member of memberList) {
         if (member.expr !== undefined) {
             const evaluated = analyzeExpr(scope, member.expr)?.evaluatedRvalue;
-            if (evaluated !== undefined) {
+            if (typeof evaluated === 'number') {
                 nextValue = evaluated;
             }
         }
@@ -1768,7 +1777,7 @@ function analyzeBitOp(
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
         return numberOperatorCall.cloneWithEvaluatedRvalue(
-            evaluateBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+            evaluateNumberBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
         );
     }
 
@@ -1808,7 +1817,7 @@ function analyzeMathOp(
     const numberOperatorCall = evaluateNumberOperatorCall(lhs, rhs);
     if (numberOperatorCall) {
         return numberOperatorCall.cloneWithEvaluatedRvalue(
-            evaluateBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+            evaluateNumberBinaryOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
         );
     }
 
@@ -1836,11 +1845,19 @@ const mathOpAliases = new Map<string, [string, string]>([
     ['**', ['opPow', 'opPow_r']]
 ]);
 
-function evaluateBinaryOp(op: string, lhs: number | undefined, rhs: number | undefined): number | undefined {
-    if (lhs === undefined || rhs === undefined) {
+function evaluateNumberBinaryOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): number | undefined {
+    if (typeof lhs !== 'number' || typeof rhs !== 'number') {
         return undefined;
     }
 
+    return evaluateBinaryOp(op, lhs, rhs);
+}
+
+function evaluateBinaryOp(op: string, lhs: number, rhs: number): number | undefined {
     switch (op) {
         case '+':
             return lhs + rhs;
@@ -1893,7 +1910,9 @@ function analyzeCompOp(
     }
 
     if (canComparisonOperatorCall(lhs, rhs)) {
-        return resolvedBuiltinBool;
+        return resolvedBuiltinBool.cloneWithEvaluatedRvalue(
+            evaluateComparisonOp(callerOperator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+        );
     }
 
     const alias = compOpAliases.get(callerOperator.text);
@@ -1919,6 +1938,33 @@ function canReferenceComparison(lhs: ResolvedType, rhs: ResolvedType): boolean {
     return checkTypeCast(lhs, rhs) || checkTypeCast(rhs, lhs);
 }
 
+function evaluateComparisonOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): boolean | undefined {
+    if (lhs === undefined || rhs === undefined) {
+        return undefined;
+    }
+
+    switch (op) {
+        case '==':
+            return lhs === rhs;
+        case '!=':
+            return lhs !== rhs;
+        case '<':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs < rhs : undefined;
+        case '<=':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs <= rhs : undefined;
+        case '>':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs > rhs : undefined;
+        case '>=':
+            return typeof lhs === 'number' && typeof rhs === 'number' ? lhs >= rhs : undefined;
+        default:
+            return undefined;
+    }
+}
+
 const compOpAliases = new Map<string, string>([
     ['==', 'opEquals'],
     ['!=', 'opEquals'],
@@ -1942,7 +1988,33 @@ function analyzeLogicOp(
     assertTypeCast(lhs, resolvedBuiltinBool, leftRange);
     assertTypeCast(rhs, resolvedBuiltinBool, rightRange);
 
-    return new ResolvedType(builtinBoolType);
+    return resolvedBuiltinBool.cloneWithEvaluatedRvalue(
+        evaluateLogicOp(operator.text, lhs.evaluatedRvalue, rhs.evaluatedRvalue)
+    );
+}
+
+function evaluateLogicOp(
+    op: string,
+    lhs: EvaluatedValue | undefined,
+    rhs: EvaluatedValue | undefined
+): boolean | undefined {
+    if (typeof lhs !== 'boolean' || typeof rhs !== 'boolean') {
+        return undefined;
+    }
+
+    switch (op) {
+        case '&&':
+        case 'and':
+            return lhs && rhs;
+        case '||':
+        case 'or':
+            return lhs || rhs;
+        case '^^':
+        case 'xor':
+            return lhs !== rhs;
+        default:
+            return undefined;
+    }
 }
 
 // **BNF** ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
