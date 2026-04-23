@@ -60,7 +60,7 @@
             "name": "punctuation.separator.namespace.access.angelscript"
         },
         {
-            "name": "meta.preprocessor.angelsript",
+            "name": "meta.preprocessor.angelscript",
             "begin": "^\\s*#",
             "end": "(?=\\n)"
         },
