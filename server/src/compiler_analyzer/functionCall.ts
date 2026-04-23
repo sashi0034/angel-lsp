@@ -1,5 +1,5 @@
-import {FunctionSymbol, FunctionSymbolHolder, SymbolObject, VariableSymbol} from './symbolObject';
-import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
+import {FunctionSymbol, FunctionSymbolHolder, VariableSymbol} from './symbolObject';
+import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
 import {applyTemplateMapping, ResolvedType, TemplateMapping} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
