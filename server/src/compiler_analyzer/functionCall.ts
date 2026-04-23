@@ -88,7 +88,7 @@ const mismatchPriority: Map<MismatchKind, number> = new Map([
     [MismatchKind.DuplicateNamedArgument, 10],
     [MismatchKind.NotFoundNamedArgument, 10],
     [MismatchKind.ParameterMismatch, 5],
-    [MismatchKind.MissingConstOverload, 5],
+    [MismatchKind.MissingConstOverload, 15],
     [MismatchKind.AmbiguousOverload, 100] // FIXME?
 ]);
 
@@ -510,7 +510,7 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         } else if (mismatchReason.reason === MismatchKind.MissingConstOverload) {
             analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
-                `No matching signatures to '${callerInstanceType?.identifierText}::${mismatchReason.callee.identifierText}() const'.`
+                `Cannot call non-const method '${callerInstanceType?.identifierText}::${mismatchReason.callee.identifierText}()' on a const '${callerInstanceType?.identifierText}' instance.`
             );
         } else {
             // lastMismatchReason.reason === MismatchKind.ParameterMismatch

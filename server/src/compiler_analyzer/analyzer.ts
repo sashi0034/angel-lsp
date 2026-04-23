@@ -2105,7 +2105,7 @@ function analyzeAssignOp(
     }
 
     if (isReadOnlyAssignmentTarget(lhs)) {
-        analyzerDiagnostic.error(lhsRange.getBoundingLocation(), `Expression is not an l-value.`);
+        analyzerDiagnostic.error(lhsRange.getBoundingLocation(), `Cannot assign to a read-only expression.`);
         return undefined;
     }
 
