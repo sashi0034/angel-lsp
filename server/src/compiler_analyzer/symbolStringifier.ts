@@ -2,6 +2,7 @@ import {FunctionSymbol, SymbolObject, TypeSymbol} from './symbolObject';
 import {EvaluatedValue, ResolvedType} from './resolvedType';
 import {InOutModifierToken, NodeName, Node_Type} from '../compiler_parser/nodeObject';
 import {stringifyTypeNode} from '../compiler_parser/nodeUtils';
+import {HandleModifier} from './nodeHelper';
 import assert = require('node:assert');
 
 export function stringifyResolvedType(type: ResolvedType | undefined): string {
@@ -13,23 +14,19 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
         return '(lambda)';
     }
 
-    let suffix = '';
-    if (type.isHandle === true) {
-        suffix = `${suffix}@`;
-    }
-
     if (type.typeOrFunc.isFunction()) {
         const func: FunctionSymbol = type.typeOrFunc;
         if (func.linkedNode.nodeName === NodeName.FuncDef) {
-            return func.identifierText + suffix;
+            return applyResolvedTypeModifiers(func.identifierText, type);
         }
 
         const returnType = func.returnType;
         const paramsText = func.parameterTypes.map(t => stringifyResolvedType(t)).join(', ');
-        return `${stringifyResolvedType(returnType)}(${paramsText})` + suffix;
+        return applyResolvedTypeModifiers(`${stringifyResolvedType(returnType)}(${paramsText})`, type);
     }
 
     const templateParameters = type.typeOrFunc.templateParameters;
+    let suffix = '';
     if (templateParameters !== undefined) {
         const templateArgumentsText = type
             .getTemplateArguments()
@@ -41,7 +38,19 @@ export function stringifyResolvedType(type: ResolvedType | undefined): string {
         suffix = `<${templateArgumentsText}>${suffix}`;
     }
 
-    return type.typeOrFunc.identifierText + suffix;
+    return applyResolvedTypeModifiers(type.typeOrFunc.identifierText + suffix, type);
+}
+
+function applyResolvedTypeModifiers(baseText: string, type: ResolvedType): string {
+    let text = type.isConst ? `const ${baseText}` : baseText;
+
+    if (type.handle === HandleModifier.ConstHandle) {
+        text += '@const';
+    } else if (type.handle === HandleModifier.Handle) {
+        text += '@';
+    }
+
+    return text;
 }
 
 export function stringifyResolvedTypes(types: (ResolvedType | undefined)[]): string {
@@ -65,24 +74,7 @@ function stringifyEvaluatedValue(value: EvaluatedValue, type: ResolvedType | und
 }
 
 function stringifyResolvedTypeWithNode(type: ResolvedType | undefined, node: Node_Type | undefined): string {
-    if (node === undefined) {
-        return stringifyResolvedType(type);
-    }
-
-    if (type === undefined) {
-        return stringifyTypeNode(node);
-    }
-
-    let text = stringifyResolvedType(type);
-    if (node.handle?.constToken !== undefined && text.endsWith('@')) {
-        text = text.substring(0, text.length - 1) + '@const';
-    }
-
-    if (node.constToken !== undefined) {
-        text = 'const ' + text;
-    }
-
-    return text;
+    return type === undefined && node !== undefined ? stringifyTypeNode(node) : stringifyResolvedType(type);
 }
 
 function stringifyInOutModifier(modifier: InOutModifierToken | undefined): string {

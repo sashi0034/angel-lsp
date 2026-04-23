@@ -401,7 +401,7 @@ function evaluateNullConversion(src: ResolvedType, dest: ResolvedType): Conversi
     }
 
     const nonNullType = src.isNullType() ? dest : src;
-    if (nonNullType.isHandle === true) {
+    if (nonNullType.handle !== undefined) {
         return {cost: ConversionCost.RefConv};
     }
 
@@ -419,11 +419,11 @@ export function normalizeType(type: ResolvedType | undefined) {
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') {
-        return resolvedBuiltinInt.cloneWithHandle(type.isHandle);
+        return resolvedBuiltinInt.cloneWithHandle(type.handle).cloneWithConst(type.isConst);
     }
 
     if (type.identifierText === 'uint32') {
-        return resolvedBuiltinUInt.cloneWithHandle(type.isHandle);
+        return resolvedBuiltinUInt.cloneWithHandle(type.handle).cloneWithConst(type.isConst);
     }
 
     return type;
@@ -611,7 +611,7 @@ function areTemplateArgumentsEqual(src: ResolvedType, dest: ResolvedType): boole
             return false;
         }
 
-        if (srcArg.isHandle !== destArg.isHandle) {
+        if (srcArg.handle !== destArg.handle) {
             return false;
         }
 

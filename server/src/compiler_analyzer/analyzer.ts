@@ -44,7 +44,7 @@ import {
     IdentifierAndOptionalExpr
 } from '../compiler_parser/nodeObject';
 import {buildTemplateSignature} from '../compiler_parser/nodeUtils';
-import {getAccessRestriction} from './nodeHelper';
+import {getAccessRestriction, getHandleModifier, HandleModifier} from './nodeHelper';
 import {
     isNodeClassOrInterface,
     FunctionSymbol,
@@ -192,14 +192,16 @@ export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, 
     let resolvedType: ResolvedType;
 
     if (initType.typeOrFunc.isType() && !initType.typeOrFunc.isPrimitiveOrEnum()) {
-        resolvedType = initType.cloneWithHandle(true);
+        resolvedType = initType.cloneWithHandle(initType.handle ?? HandleModifier.Handle);
     } else {
-        if (autoType.isHandle && !initType.isHandle) {
+        if (autoType.handle !== undefined && initType.handle === undefined) {
             analyzerDiagnostic.error(identifier.location, `Object handle is not supported for this type.`);
         }
 
         resolvedType = initType;
     }
+
+    resolvedType = resolvedType.cloneWithConst(autoType.isConst);
 
     if (resolvedType !== undefined) {
         getActiveGlobalScope().markers.autoTypeResolution.push({
@@ -330,12 +332,11 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
         const specializationKey = givenIdentifier + buildTemplateSignature(givenTemplateArguments);
         const specializationSymbol = findSymbolWithParent(searchScope, specializationKey);
         if (specializationSymbol !== undefined && specializationSymbol.symbol.isType()) {
-            return completeAnalyzingType(
-                scope,
+            return pushReferenceAndResolveType(
                 typeIdentifier,
                 specializationSymbol.symbol,
-                specializationSymbol.scope,
-                isTypeNodeHandle(typeNode)
+                typeNode.constToken !== undefined,
+                getHandleModifier(typeNode.handle)
             );
         }
     }
@@ -361,28 +362,28 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     const {symbol: foundSymbol, scope: foundScope} = symbolAndScope;
     if (foundSymbol.isFunctionHolder() && foundSymbol.first.linkedNode.nodeName === NodeName.FuncDef) {
-        return completeAnalyzingType(scope, typeIdentifier, foundSymbol.first, foundScope, true);
-    } else if (foundSymbol instanceof TypeSymbol === false) {
+        return pushReferenceAndResolveType(
+            typeIdentifier,
+            foundSymbol.first,
+            typeNode.constToken !== undefined,
+            getHandleModifier(typeNode.handle) ?? HandleModifier.Handle
+        );
+    } else if (!foundSymbol.isType()) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
-    } else if (isTypeNodeHandle(typeNode) && foundSymbol.isPrimitiveOrEnum()) {
+    } else if (getHandleModifier(typeNode.handle) !== undefined && foundSymbol.isPrimitiveOrEnum()) {
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
         const templateArguments = analyzeTemplateArguments(scope, foundSymbol, givenTemplateArguments);
-        return completeAnalyzingType(
-            scope,
+        return pushReferenceAndResolveType(
             typeIdentifier,
             foundSymbol,
-            foundScope,
-            isTypeNodeHandle(typeNode),
+            typeNode.constToken !== undefined,
+            getHandleModifier(typeNode.handle),
             templateArguments
         );
     }
-}
-
-function isTypeNodeHandle(typeNode: Node_Type): boolean {
-    return typeNode.handle !== undefined;
 }
 
 function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
@@ -398,12 +399,11 @@ function isSymbolConstructorOrDestructor(symbol: SymbolHolder): boolean {
     return linkedNode.head.tag !== 'function';
 }
 
-function completeAnalyzingType(
-    scope: SymbolScope, // FIXME: Cleanup
+function pushReferenceAndResolveType(
     identifier: TokenObject,
     foundSymbol: TypeSymbol | FunctionSymbol,
-    foundScope: SymbolScope,
-    isHandle?: boolean,
+    isConst?: boolean,
+    handle?: HandleModifier,
     templateArguments?: TemplateMapping | undefined
 ): ResolvedType | undefined {
     getActiveGlobalScope().pushReference({
@@ -413,7 +413,8 @@ function completeAnalyzingType(
 
     return ResolvedType.create({
         typeOrFunc: foundSymbol,
-        isHandle: isHandle,
+        isConst: isConst,
+        handle: handle,
         templateMapping: templateArguments
     });
 }
@@ -434,12 +435,20 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
 
     const builtinType = tryGetBuiltinType(typeIdentifier);
     if (builtinType !== undefined) {
-        if (isTypeNodeHandle(typeNode) && builtinType.isPrimitiveOrEnum() && typeIdentifier.text !== 'auto') {
+        if (
+            getHandleModifier(typeNode.handle) !== undefined &&
+            builtinType.isPrimitiveOrEnum() &&
+            typeIdentifier.text !== 'auto'
+        ) {
             analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
             return undefined;
         }
 
-        return new ResolvedType(builtinType, isTypeNodeHandle(typeNode));
+        return ResolvedType.create({
+            typeOrFunc: builtinType,
+            isConst: typeNode.constToken !== undefined,
+            handle: getHandleModifier(typeNode.handle)
+        });
     }
 
     return undefined;
@@ -782,7 +791,7 @@ function analyzeExprStat(scope: SymbolScope, exprStat: Node_ExprStat) {
     }
 
     const assign = analyzeAssign(scope, exprStat.assign);
-    if (!assign?.isHandle && assign?.typeOrFunc.isFunction()) {
+    if (assign?.handle === undefined && assign?.typeOrFunc.isFunction()) {
         analyzerDiagnostic.error(exprStat.assign.nodeRange.getBoundingLocation(), `Function value is not callable.`);
     }
 }
@@ -1074,7 +1083,10 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
     const op = exprPreOp.text;
 
     if (exprPreOp.text === '@') {
-        return exprValue.cloneWithHandle(true).cloneWithExplicitHandleAccess(true).cloneWithEvaluatedRvalue(undefined);
+        return exprValue
+            .cloneWithHandle(exprValue.handle ?? HandleModifier.Handle)
+            .cloneWithExplicitHandleAccess(true)
+            .cloneWithEvaluatedRvalue(undefined);
     }
 
     if (exprValue.typeOrFunc.isType()) {
@@ -1268,8 +1280,8 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
     const castedType = analyzeType(scope, cast.type);
     const sourceType = analyzeAssign(scope, cast.assign);
 
-    if (sourceType?.isHandle === true && castedType?.typeOrFunc.isType() === true) {
-        return castedType.cloneWithHandle(true);
+    if (sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true) {
+        return castedType.cloneWithHandle(sourceType?.handle);
     }
 
     return castedType;
@@ -1951,8 +1963,8 @@ function analyzeCompOp(
 }
 
 function canReferenceComparison(lhs: ResolvedType, rhs: ResolvedType): boolean {
-    const lhsIsReference = lhs.isHandle || lhs.isNullType();
-    const rhsIsReference = rhs.isHandle || rhs.isNullType();
+    const lhsIsReference = lhs.handle !== undefined || lhs.isNullType();
+    const rhsIsReference = rhs.handle !== undefined || rhs.isNullType();
     if (lhsIsReference === false || rhsIsReference === false) {
         return false;
     }
@@ -2053,7 +2065,7 @@ function analyzeAssignOp(
     }
 
     if (callerOperator.text === '=') {
-        if (lhs.isHandle && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
+        if (lhs.handle !== undefined && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
             analyzerDiagnostic.error(
                 rhsRange.getBoundingLocation(),
                 `Use '@' to assign null to the object handle itself.`
