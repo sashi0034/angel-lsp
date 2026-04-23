@@ -12,22 +12,17 @@ export let documentEol: string;
 export let platformEol: string;
 
 /**
- * Activates the vscode.lsp-sample extension
+ * Activates the AngelScript extension.
  */
 export async function activate(docUri: vscode.Uri) {
-    // The extensionId is `publisher.name` from package.json
-    const ext = vscode.extensions.getExtension('vscode-samples.lsp-sample')!;
+    const ext = vscode.extensions.getExtension('sashi0034.angel-lsp')!;
     await ext.activate();
-    try {
-        doc = await vscode.workspace.openTextDocument(docUri);
-        editor = await vscode.window.showTextDocument(doc);
-        await sleep(2000); // Wait for server activation
-    } catch (e) {
-        console.error(e);
-    }
+    doc = await vscode.workspace.openTextDocument(docUri);
+    editor = await vscode.window.showTextDocument(doc);
+    await waitForLanguageServer(docUri);
 }
 
-async function sleep(ms: number) {
+export async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -41,4 +36,44 @@ export const getDocUri = (p: string) => {
 export async function setTestContent(content: string): Promise<boolean> {
     const all = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
     return editor.edit(eb => eb.replace(all, content));
+}
+
+export function positionOf(text: string, needle: string, offset = 0): vscode.Position {
+    const index = text.indexOf(needle, offset);
+    if (index < 0) {
+        throw new Error(`Could not find "${needle}" in test document.`);
+    }
+
+    return doc.positionAt(index);
+}
+
+export function positionAfter(text: string, needle: string, offset = 0): vscode.Position {
+    const index = text.indexOf(needle, offset);
+    if (index < 0) {
+        throw new Error(`Could not find "${needle}" in test document.`);
+    }
+
+    return doc.positionAt(index + needle.length);
+}
+
+export async function waitForDiagnostics(
+    docUri: vscode.Uri,
+    predicate: (diagnostics: vscode.Diagnostic[]) => boolean,
+    timeoutMs = 5000
+): Promise<vscode.Diagnostic[]> {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+        const diagnostics = vscode.languages.getDiagnostics(docUri);
+        if (predicate(diagnostics)) {
+            return diagnostics;
+        }
+
+        await sleep(100);
+    }
+
+    return vscode.languages.getDiagnostics(docUri);
+}
+
+async function waitForLanguageServer(docUri: vscode.Uri): Promise<void> {
+    await waitForDiagnostics(docUri, () => true, 1000);
 }

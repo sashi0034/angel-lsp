@@ -1,0 +1,46 @@
+name: E2E
+
+on:
+    schedule:
+        # Daily at 03:00 JST.
+        - cron: '0 18 * * *'
+    workflow_dispatch:
+
+concurrency:
+    group: e2e-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    e2e:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20.x'
+                  cache: 'npm'
+                  cache-dependency-path: |
+                      package-lock.json
+                      client/package-lock.json
+                      server/package-lock.json
+
+            - name: Cache VS Code test build
+              uses: actions/cache@v4
+              with:
+                  path: .vscode-test
+                  key: vscode-test-${{ runner.os }}-1.117.0
+
+            - name: Install xvfb
+              run: sudo apt-get update && sudo apt-get install -y xvfb
+
+            - name: Install deps
+              run: npm ci
+
+            - name: Build
+              run: npm run compile
+
+            - name: Test (e2e)
+              run: xvfb-run -a npm test
