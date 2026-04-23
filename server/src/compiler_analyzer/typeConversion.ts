@@ -91,6 +91,11 @@ function evaluateTypeConversionInternal(
         return evaluateLambdaConversion(src, dest);
     }
 
+    // No conversion from a const type to a non-const type if either the source or destination is a handle type. (e.g., `const MyObj@` to `MyObj@` or `const MyObj` to `MyObj`)
+    if (src.isConst && !dest.isConst && (src.handle !== undefined || dest.handle !== undefined)) {
+        return undefined;
+    }
+
     if (destTypeOrFunc.isType()) {
         // Any type can be converted to a var/auto type
         if (dest.isAnyType() || dest.isAutoType()) {

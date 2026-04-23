@@ -1089,6 +1089,11 @@ function analyzeExprPreOp(scope: SymbolScope, exprPreOp: TokenObject, exprValue:
             .cloneWithEvaluatedRvalue(undefined);
     }
 
+    if ((op === '++' || op === '--') && isReadOnlyAssignmentTarget(exprValue)) {
+        analyzerDiagnostic.error(exprPreOp.location, `Reference is read-only.`);
+        return undefined;
+    }
+
     if (exprValue.typeOrFunc.isType()) {
         if (exprValue.typeOrFunc.isEnumType()) {
             if (op === '-' || op === '+' || op === '~') {
@@ -1170,23 +1175,30 @@ function analyzeExprPostOp(
         return analyzeExprPostOp1(scope, exprPostOp, exprValue);
     } else if (exprPostOp.postOpPattern === 2) {
         return analyzeExprPostOp2(scope, exprPostOp, exprValue, exprRange);
+    } else if (exprPostOp.postOpPattern === 4) {
+        if (isReadOnlyAssignmentTarget(exprValue)) {
+            analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Reference is read-only.`);
+            return undefined;
+        }
+
+        return exprValue;
     }
 }
 
 // ('.' (FUNCCALL | IDENTIFIER))
-function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, exprValue: ResolvedType) {
-    if (exprValue.typeOrFunc instanceof TypeSymbol === false) {
-        analyzerDiagnostic.error(exprPostOp.nodeRange.getBoundingLocation(), `Invalid member access on a type.`);
+function analyzeExprPostOp1(scope: SymbolScope, receiverPostOp: Node_ExprPostOp1, receiverType: ResolvedType) {
+    if (receiverType.typeOrFunc instanceof TypeSymbol === false) {
+        analyzerDiagnostic.error(receiverPostOp.nodeRange.getBoundingLocation(), `Invalid member access on a type.`);
         return undefined;
     }
 
     // Record this member access so services can complete instance members.
     getActiveGlobalScope().markers.instanceAccess.push({
-        instanceAccessNode: exprPostOp,
-        targetType: exprValue.typeOrFunc
+        instanceAccessNode: receiverPostOp,
+        targetType: receiverType.typeOrFunc
     });
 
-    const member = exprPostOp.member;
+    const member = receiverPostOp.member;
     const isMemberMethod = member?.access === 'method';
 
     const identifier = isMemberMethod ? member.node.identifier : member?.token;
@@ -1194,19 +1206,19 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         return undefined;
     }
 
-    if (isNodeClassOrInterface(exprValue.typeOrFunc.linkedNode) === false) {
+    if (isNodeClassOrInterface(receiverType.typeOrFunc.linkedNode) === false) {
         analyzerDiagnostic.error(identifier.location, `'${identifier.text}' is not a member.`);
         return undefined;
     }
 
-    const classScope = exprValue.typeOrFunc.membersScopePath;
-    if (classScope === undefined) {
+    const receiverScope = receiverType.typeOrFunc.membersScopePath;
+    if (receiverScope === undefined) {
         return undefined;
     }
 
     if (isMemberMethod) {
         // Analyze method call.
-        const instanceMember = resolveActiveScope(classScope).lookupSymbol(identifier.text);
+        const instanceMember = resolveActiveScope(receiverScope).lookupSymbol(identifier.text);
         if (instanceMember === undefined) {
             analyzerDiagnostic.error(identifier.location, `Member '${identifier.text}' is not defined.`);
             return undefined;
@@ -1225,7 +1237,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
                 identifier,
                 member.node.argList,
                 instanceMember,
-                mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping)
+                mergeTemplateMappings(receiverType.templateMapping, callTemplateMapping),
+                {callerInstanceType: receiverType}
             );
         }
 
@@ -1241,8 +1254,8 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
                 identifier,
                 member.node.argList,
                 delegate,
-                mergeTemplateMappings(exprValue.templateMapping, callTemplateMapping),
-                instanceMember
+                mergeTemplateMappings(receiverType.templateMapping, callTemplateMapping),
+                {calleeDelegateVariable: instanceMember}
             );
         }
 
@@ -1250,9 +1263,32 @@ function analyzeExprPostOp1(scope: SymbolScope, exprPostOp: Node_ExprPostOp1, ex
         return undefined;
     } else {
         // Analyze field access.
-        const fieldType = analyzeVariableAccess(scope, resolveActiveScope(classScope), identifier);
-        return applyTemplateMapping(fieldType, exprValue.templateMapping);
+        const fieldType = applyTemplateMapping(
+            analyzeVariableAccess(scope, resolveActiveScope(receiverScope), identifier),
+            receiverType.templateMapping
+        );
+        return applyReceiverConstToFieldType(fieldType, receiverType);
     }
+}
+
+function applyReceiverConstToFieldType(
+    fieldType: ResolvedType | undefined,
+    receiver: ResolvedType
+): ResolvedType | undefined {
+    if (fieldType === undefined || !receiver.isConst) {
+        return fieldType;
+    }
+
+    // -----------------------------------------------
+    // At this point, the receiver is const, so apply that constness to the field type if necessary.
+    // e.g., `const MyObj myObj;`
+    // `myObj.field` is treated as const, even if `field` is not declared const.
+
+    if (fieldType.handle !== undefined) {
+        return fieldType.cloneWithHandle(HandleModifier.ConstHandle);
+    }
+
+    return fieldType.cloneWithConst(true);
 }
 
 // ('[' [IDENTIFIER ':'] ASSIGN {',' [IDENTIFIER ':' ASSIGN} ']')
@@ -1281,7 +1317,7 @@ function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefi
     const sourceType = analyzeAssign(scope, cast.assign);
 
     if (sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true) {
-        return castedType.cloneWithHandle(sourceType?.handle);
+        return castedType.cloneWithHandle(sourceType.handle).cloneWithConst(castedType.isConst || sourceType.isConst);
     }
 
     return castedType;
@@ -1440,7 +1476,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
             funcCall.argList,
             new FunctionSymbolHolder(calleeSymbol.type.typeOrFunc),
             callTemplateMapping,
-            calleeSymbol
+            {calleeDelegateVariable: calleeSymbol}
         );
     }
 
@@ -1491,7 +1527,10 @@ function analyzeFunctionCall(
     callerArgList: Node_ArgList,
     calleeFuncHolder: FunctionSymbolHolder,
     calleeTemplateMapping: TemplateMapping | undefined,
-    calleeDelegateVariable?: VariableSymbol
+    options?: {
+        callerInstanceType?: ResolvedType;
+        calleeDelegateVariable?: VariableSymbol;
+    }
 ) {
     getActiveGlobalScope().markers.functionCall.push({
         callerIdentifier: callerIdentifier,
@@ -1511,9 +1550,10 @@ function analyzeFunctionCall(
         callerIdentifier: callerIdentifier,
         callerRange: callerArgList.nodeRange,
         callerArgs: callerArgs,
+        callerInstanceType: options?.callerInstanceType,
         calleeFuncHolder: calleeFuncHolder,
         calleeTemplateMapping: calleeTemplateMapping,
-        calleeDelegateVariable: calleeDelegateVariable
+        calleeDelegateVariable: options?.calleeDelegateVariable
     });
 }
 
@@ -2064,6 +2104,11 @@ function analyzeAssignOp(
         return undefined;
     }
 
+    if (isReadOnlyAssignmentTarget(lhs)) {
+        analyzerDiagnostic.error(lhsRange.getBoundingLocation(), `Expression is not an l-value.`);
+        return undefined;
+    }
+
     if (callerOperator.text === '=') {
         if (lhs.handle !== undefined && !lhs.isExplicitHandleAccess && rhs.isNullType()) {
             analyzerDiagnostic.error(
@@ -2111,6 +2156,18 @@ const assignOpAliases = new Map<string, string>([
     ['>>=', 'opShrAssign'],
     ['>>>=', 'opUShrAssign']
 ]);
+
+function isReadOnlyAssignmentTarget(type: ResolvedType): boolean {
+    if (type.handle === HandleModifier.ConstHandle) {
+        return true;
+    }
+
+    if (type.isExplicitHandleAccess) {
+        return false;
+    }
+
+    return type.isConst === true;
+}
 
 export interface HoistResult {
     readonly globalScope: SymbolGlobalScope;
