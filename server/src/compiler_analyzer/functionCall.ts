@@ -1,5 +1,5 @@
-import {FunctionSymbol, FunctionSymbolHolder, SymbolObject, VariableSymbol} from './symbolObject';
-import {getActiveGlobalScope, resolveActiveScope, SymbolScope} from './symbolScope';
+import {FunctionSymbol, FunctionSymbolHolder, VariableSymbol} from './symbolObject';
+import {getActiveGlobalScope, resolveActiveScope} from './symbolScope';
 import {applyTemplateMapping, ResolvedType, TemplateMapping} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
@@ -20,6 +20,7 @@ interface FunctionCallArgs {
     callerIdentifier: TokenObject;
     callerRange: TokenRange;
     callerArgs: CallerArgument[];
+    callerInstanceType?: ResolvedType;
 
     // Callee-side arguments
     calleeFuncHolder: FunctionSymbolHolder;
@@ -76,6 +77,7 @@ enum MismatchKind {
     DuplicateNamedArgument = 'DuplicateNamedArgument',
     NotFoundNamedArgument = 'NotFoundNamedArgument',
     ParameterMismatch = 'ParameterMismatch',
+    MissingConstOverload = 'MissingConstOverload',
     AmbiguousOverload = 'AmbiguousOverload'
 }
 
@@ -86,6 +88,7 @@ const mismatchPriority: Map<MismatchKind, number> = new Map([
     [MismatchKind.DuplicateNamedArgument, 10],
     [MismatchKind.NotFoundNamedArgument, 10],
     [MismatchKind.ParameterMismatch, 5],
+    [MismatchKind.MissingConstOverload, 15],
     [MismatchKind.AmbiguousOverload, 100] // FIXME?
 ]);
 
@@ -116,6 +119,10 @@ type MismatchReason =
           mismatchIndex: number;
           expectedType: ResolvedType | undefined;
           actualType: ResolvedType | undefined;
+      }
+    | {
+          reason: MismatchKind.MissingConstOverload;
+          callee: FunctionSymbol;
       };
 
 function hasMismatchReason(reason: number | MismatchReason): reason is MismatchReason {
@@ -280,6 +287,15 @@ function evaluateFunctionMatch(
     const {callerArgs} = args;
 
     let totalCost = 0;
+
+    // A non-const object cannot call a postfix-const function such as `void getValue() const`.
+    if (
+        args.callerInstanceType?.isConst &&
+        callee.linkedNode.nodeName !== NodeName.FuncDef &&
+        callee.linkedNode.postfixConstToken === undefined
+    ) {
+        return {reason: MismatchKind.MissingConstOverload, callee};
+    }
 
     // Caller arguments must be at least as many as the callee parameters.
     if (callee.parameterTypes.length < callerArgs.length) {
@@ -453,7 +469,7 @@ function evaluatePassingArgument(
 // -----------------------------------------------
 
 function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchReason) {
-    const {callerRange, callerArgs, calleeFuncHolder, calleeTemplateMapping} = args;
+    const {callerRange, callerArgs, callerInstanceType, calleeFuncHolder, calleeTemplateMapping} = args;
 
     if (mismatchReason.reason === MismatchKind.InvalidNamedArgumentOrder) {
         const argRange = callerArgs[mismatchReason.invalidArgumentIndex].range;
@@ -490,6 +506,11 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
             analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
                 `Function has ${calleeFunction.linkedNode.paramList.params.length} parameters, but ${callerArgs.length} were provided.`
+            );
+        } else if (mismatchReason.reason === MismatchKind.MissingConstOverload) {
+            analyzerDiagnostic.error(
+                callerRange.getBoundingLocation(),
+                `Cannot call non-const method '${callerInstanceType?.identifierText}::${mismatchReason.callee.identifierText}()' on a const '${callerInstanceType?.identifierText}' instance.`
             );
         } else {
             // lastMismatchReason.reason === MismatchKind.ParameterMismatch

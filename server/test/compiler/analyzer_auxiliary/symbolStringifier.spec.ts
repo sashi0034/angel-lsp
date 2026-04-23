@@ -54,13 +54,44 @@ describe('analyzer/symbolStringifier', () => {
         );
     });
 
+    it('stringifies const variables', () => {
+        expectStringifiedSymbol(
+            `
+            const int value;
+            `,
+            globalScope => globalScope.lookupSymbol('value'),
+            'const int value'
+        );
+    });
+
+    it('stringifies const handle variables', () => {
+        expectStringifiedSymbol(
+            `
+            class Obj {}
+            const Obj@const value;
+            `,
+            globalScope => globalScope.lookupSymbol('value'),
+            'const Obj@const value'
+        );
+    });
+
+    it('stringifies const auto variables after type resolution', () => {
+        expectStringifiedSymbol(
+            `
+            const auto value = 42;
+            `,
+            globalScope => globalScope.lookupSymbol('value'),
+            'const int value = 42'
+        );
+    });
+
     it('stringifies evaluated bool const variables', () => {
         expectStringifiedSymbol(
             `
             const bool enabled = true;
             `,
             globalScope => globalScope.lookupSymbol('enabled'),
-            'bool enabled = true'
+            'const bool enabled = true'
         );
     });
 
@@ -70,7 +101,7 @@ describe('analyzer/symbolStringifier', () => {
             const bool enabled = !(false || (1 > 2));
             `,
             globalScope => globalScope.lookupSymbol('enabled'),
-            'bool enabled = true'
+            'const bool enabled = true'
         );
     });
 

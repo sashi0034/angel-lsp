@@ -1,6 +1,7 @@
 import {ScopePath, FunctionSymbol, TypeSymbol, VariableSymbol, QualifiedIdentifier} from './symbolObject';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {Node_Lambda} from '../compiler_parser/nodeObject';
+import {HandleModifier} from './nodeHelper';
 import type {TokenRange} from '../compiler_tokenizer/tokenRange';
 
 /**
@@ -107,7 +108,8 @@ export class ResolvedType {
     constructor(
         // A type or function that has been resolved.
         public readonly typeOrFunc: TypeSymbol | FunctionSymbol,
-        public readonly isHandle?: boolean,
+        public readonly isConst?: boolean,
+        public readonly handle?: HandleModifier,
         public readonly templateMapping?: TemplateMapping,
         // This is attached when accessed through a variable, including a delegate variable.
         // For functions, only the token information of the access source is retained.
@@ -119,7 +121,8 @@ export class ResolvedType {
 
     public static create(args: {
         typeOrFunc: TypeSymbol | FunctionSymbol;
-        isHandle?: boolean;
+        isConst?: boolean;
+        handle?: HandleModifier;
         templateMapping?: TemplateMapping;
         attachedAccessSource?: VariableSymbol | TokenObject;
         isExplicitHandleReference?: boolean;
@@ -128,7 +131,8 @@ export class ResolvedType {
     }) {
         return new ResolvedType(
             args.typeOrFunc,
-            args.isHandle,
+            args.isConst,
+            args.handle,
             args.templateMapping,
             args.attachedAccessSource,
             args.isExplicitHandleReference,
@@ -140,7 +144,34 @@ export class ResolvedType {
     public cloneWithType(type: TypeSymbol): ResolvedType {
         return new ResolvedType(
             type,
-            this.isHandle,
+            this.isConst,
+            this.handle,
+            this.templateMapping,
+            this._attachedAccessSource,
+            this.isExplicitHandleAccess,
+            this.lambdaInfo,
+            this._evaluatedRvalue
+        );
+    }
+
+    public cloneWithConst(isConst: boolean | undefined): ResolvedType {
+        return new ResolvedType(
+            this.typeOrFunc,
+            isConst,
+            this.handle,
+            this.templateMapping,
+            this._attachedAccessSource,
+            this.isExplicitHandleAccess,
+            this.lambdaInfo,
+            this._evaluatedRvalue
+        );
+    }
+
+    public cloneWithHandle(handle: HandleModifier | undefined): ResolvedType {
+        return new ResolvedType(
+            this.typeOrFunc,
+            this.isConst,
+            handle,
             this.templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
@@ -152,20 +183,9 @@ export class ResolvedType {
     public cloneWithTemplateMapping(templateMapping: TemplateMapping | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandle,
+            this.isConst,
+            this.handle,
             templateMapping,
-            this._attachedAccessSource,
-            this.isExplicitHandleAccess,
-            this.lambdaInfo,
-            this._evaluatedRvalue
-        );
-    }
-
-    public cloneWithHandle(isHandle: boolean | undefined): ResolvedType {
-        return new ResolvedType(
-            this.typeOrFunc,
-            isHandle,
-            this.templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
             this.lambdaInfo,
@@ -176,7 +196,8 @@ export class ResolvedType {
     public cloneWithExplicitHandleAccess(isExplicitHandleReference: boolean | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandle,
+            this.isConst,
+            this.handle,
             this.templateMapping,
             this._attachedAccessSource,
             isExplicitHandleReference,
@@ -188,7 +209,8 @@ export class ResolvedType {
     public cloneWithAttachedAccessSource(attachedAccessSource: VariableSymbol | TokenObject | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandle,
+            this.isConst,
+            this.handle,
             this.templateMapping,
             attachedAccessSource,
             this.isExplicitHandleAccess,
@@ -200,7 +222,8 @@ export class ResolvedType {
     public cloneWithEvaluatedRvalue(evaluatedRvalue: EvaluatedValue | undefined): ResolvedType {
         return new ResolvedType(
             this.typeOrFunc,
-            this.isHandle,
+            this.isConst,
+            this.handle,
             this.templateMapping,
             this._attachedAccessSource,
             this.isExplicitHandleAccess,
@@ -262,7 +285,7 @@ export class ResolvedType {
             return false;
         }
 
-        if (this.isHandle !== other.isHandle) {
+        if (this.handle !== other.handle) {
             return false;
         }
 

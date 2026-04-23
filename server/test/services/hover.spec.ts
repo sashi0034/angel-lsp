@@ -32,7 +32,7 @@ describe('services/hover', () => {
             const int CONST_VALUE = 3;
             int value = $C0$CONST_VALUE;
             `,
-            'int CONST_VALUE = 3;'
+            'const int CONST_VALUE = 3;'
         );
     });
 
@@ -42,7 +42,7 @@ describe('services/hover', () => {
             const double CONST_VALUE = 12.0 + 3;
             double value = $C0$CONST_VALUE;
             `,
-            'double CONST_VALUE = 15.0;'
+            'const double CONST_VALUE = 15.0;'
         );
     });
 
@@ -53,7 +53,7 @@ describe('services/hover', () => {
             const int v2 = v1 + 4;
             int value = $C0$v2;
             `,
-            'int v2 = 27;'
+            'const int v2 = 27;'
         );
     });
 

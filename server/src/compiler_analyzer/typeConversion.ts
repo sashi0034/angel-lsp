@@ -40,11 +40,11 @@ export interface ConversionEvaluation {
 }
 
 export function canTypeConvert(
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined
+    from: ResolvedType | undefined,
+    to: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): boolean {
-    const evaluation = evaluateTypeConversion(src, dest);
+    const evaluation = evaluateTypeConversion(from, to);
     return evaluation !== undefined;
 }
 
@@ -52,15 +52,15 @@ export function canTypeConvert(
  * Evaluate the cost of converting the source type to the destination type.
  */
 export function evaluateTypeConversion(
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined
+    from: ResolvedType | undefined,
+    to: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionEvaluation | undefined {
     const initialState: EvaluationState = {
         allowObjectConstruct: true
     };
 
-    return evaluateTypeConversionInternal(initialState, src, dest);
+    return evaluateTypeConversionInternal(initialState, from, to);
 }
 
 interface EvaluationState {
@@ -69,107 +69,112 @@ interface EvaluationState {
 
 function evaluateTypeConversionInternal(
     state: EvaluationState,
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined
+    from: ResolvedType | undefined,
+    to: ResolvedType | undefined
     // type: ConversionType = ConversionType.Implicit // TODO?
 ): ConversionEvaluation | undefined {
-    src = normalizeType(src);
-    dest = normalizeType(dest);
+    from = normalizeType(from);
+    to = normalizeType(to);
 
-    if (src === undefined || dest === undefined) {
+    if (from === undefined || to === undefined) {
         return {cost: ConversionCost.Unknown};
     }
 
-    if (src.isNullType() || dest.isNullType()) {
-        return evaluateNullConversion(src, dest);
+    if (from.isNullType() || to.isNullType()) {
+        return evaluateNullConversion(from, to);
     }
 
-    const srcTypeOrFunc = src.typeOrFunc;
-    const destTypeOrFunc = dest.typeOrFunc;
+    const fromTypeOrFunc = from.typeOrFunc;
+    const toTypeOrFunc = to.typeOrFunc;
 
-    if (src.lambdaInfo !== undefined) {
-        return evaluateLambdaConversion(src, dest);
+    if (from.lambdaInfo !== undefined) {
+        return evaluateLambdaConversion(from, to);
     }
 
-    if (destTypeOrFunc.isType()) {
+    // No conversion from a const type to a non-const type if either the source or destination is a handle type. (e.g., `const MyObj@` to `MyObj@` or `const MyObj` to `MyObj`)
+    if (from.isConst && !to.isConst && (from.handle !== undefined || to.handle !== undefined)) {
+        return undefined;
+    }
+
+    if (toTypeOrFunc.isType()) {
         // Any type can be converted to a var/auto type
-        if (dest.isAnyType() || dest.isAutoType()) {
+        if (to.isAnyType() || to.isAutoType()) {
             return {cost: ConversionCost.VariableConv};
         }
     }
 
     // Template arguments must be the same.
-    if (areTemplateArgumentsEqual(src, dest) === false) {
+    if (areTemplateArgumentsEqual(from, to) === false) {
         return undefined;
     }
 
     // Source or destination is a function type
-    if (destTypeOrFunc.isFunction()) {
-        if (!srcTypeOrFunc.isFunction()) {
+    if (toTypeOrFunc.isFunction()) {
+        if (!fromTypeOrFunc.isFunction()) {
             return undefined;
         }
 
-        const srcOverloadList = collectFunctionOverloads(srcTypeOrFunc);
-        for (const srcOverload of srcOverloadList) {
-            if (areFunctionsEqual(srcOverload, destTypeOrFunc)) {
-                return {cost: ConversionCost.RefConv, resolvedOverload: srcOverload};
+        const fromOverloadList = collectFunctionOverloads(fromTypeOrFunc);
+        for (const fromOverload of fromOverloadList) {
+            if (areFunctionsEqual(fromOverload, toTypeOrFunc)) {
+                return {cost: ConversionCost.RefConv, resolvedOverload: fromOverload};
             }
         }
 
         return undefined;
     }
 
-    const destType: TypeSymbol = destTypeOrFunc; // <-- destTypeOrFunc is guaranteed to be a type here
+    const toType: TypeSymbol = toTypeOrFunc; // <-- toTypeOrFunc is guaranteed to be a type here
 
-    if (srcTypeOrFunc.isFunction()) {
+    if (fromTypeOrFunc.isFunction()) {
         return undefined;
     }
 
-    const srcType: TypeSymbol = srcTypeOrFunc; // <-- srcTypeOrFunc is guaranteed to be a type here
+    const fromType: TypeSymbol = fromTypeOrFunc; // <-- fromTypeOrFunc is guaranteed to be a type here
 
     // FIXME: Handle init list?
 
     // No conversion from void to any other type
-    if (srcType.identifierText === 'void') {
+    if (fromType.identifierText === 'void') {
         return {cost: ConversionCost.NoConv};
     }
 
-    if (destType.isPrimitiveOrEnum()) {
+    if (toType.isPrimitiveOrEnum()) {
         // Destination is a primitive type
-        if (srcType.isPrimitiveOrEnum()) {
+        if (fromType.isPrimitiveOrEnum()) {
             // Source is a primitive type
-            return evaluateConvPrimitiveToPrimitive(src, dest);
+            return evaluateConvPrimitiveToPrimitive(from, to);
         } else {
             // Source is an object type
-            return evaluateConvObjectToPrimitive(src, dest);
+            return evaluateConvObjectToPrimitive(from, to);
         }
     } else {
         // Destination is an object type defined by a user
-        if (srcType.isPrimitiveOrEnum()) {
+        if (fromType.isPrimitiveOrEnum()) {
             // Source is a primitive type
-            return evaluateConvPrimitiveToObject(state, src, dest);
+            return evaluateConvPrimitiveToObject(state, from, to);
         } else {
             // Source is an object type
-            return evaluateConvObjectToObject(state, src, dest);
+            return evaluateConvObjectToObject(state, from, to);
         }
     }
 }
 
-function evaluateLambdaConversion(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
-    assert(src.lambdaInfo !== undefined);
+function evaluateLambdaConversion(from: ResolvedType, to: ResolvedType): ConversionEvaluation | undefined {
+    assert(from.lambdaInfo !== undefined);
 
-    const destTypeOrFunc = dest.typeOrFunc;
-    if (!destTypeOrFunc.isFunction() || destTypeOrFunc.linkedNode.nodeName !== NodeName.FuncDef) {
+    const toTypeOrFunc = to.typeOrFunc;
+    if (!toTypeOrFunc.isFunction() || toTypeOrFunc.linkedNode.nodeName !== NodeName.FuncDef) {
         return undefined;
     }
 
-    if (src.lambdaInfo.node.paramList.length !== destTypeOrFunc.parameterTypes.length) {
+    if (from.lambdaInfo.node.paramList.length !== toTypeOrFunc.parameterTypes.length) {
         return undefined;
     }
 
-    for (let i = 0; i < src.lambdaInfo.parameterTypes.length; i++) {
-        const explicitLambdaParam = normalizeType(src.lambdaInfo.parameterTypes[i]);
-        const expectedParam = normalizeType(destTypeOrFunc.parameterTypes[i]);
+    for (let i = 0; i < from.lambdaInfo.parameterTypes.length; i++) {
+        const explicitLambdaParam = normalizeType(from.lambdaInfo.parameterTypes[i]);
+        const expectedParam = normalizeType(toTypeOrFunc.parameterTypes[i]);
         if (explicitLambdaParam === undefined || expectedParam === undefined) {
             continue;
         }
@@ -179,7 +184,7 @@ function evaluateLambdaConversion(src: ResolvedType, dest: ResolvedType): Conver
         }
     }
 
-    return {cost: ConversionCost.RefConv, lambdaTarget: dest};
+    return {cost: ConversionCost.RefConv, lambdaTarget: to};
 }
 
 // -----------------------------------------------
@@ -203,20 +208,20 @@ const numberSizeInBytes = new Map<string, number>([
 
 const sizeof_int32 = 4;
 
-function evaluateConvPrimitiveToPrimitive(src: ResolvedType, dest: ResolvedType) {
+function evaluateConvPrimitiveToPrimitive(from: ResolvedType, to: ResolvedType) {
     // FIXME: Check a primitive is const or not?
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    assert(srcType.isType() && destType.isType());
-    assert(srcType.isPrimitiveOrEnum() || destType.isPrimitiveOrEnum());
+    assert(fromType.isType() && toType.isType());
+    assert(fromType.isPrimitiveOrEnum() || toType.isPrimitiveOrEnum());
 
-    if (srcType.equals(destType)) {
+    if (fromType.equals(toType)) {
         return {cost: ConversionCost.NoConv};
-    } else if (srcType.isEnumType() && destType.isEnumType()) {
+    } else if (fromType.isEnumType() && toType.isEnumType()) {
         // Resolve ambiguous enum members
-        for (const candidate of srcType.multipleEnumCandidates ?? []) {
-            if (candidate.type?.typeOrFunc.equals(destType)) {
+        for (const candidate of fromType.multipleEnumCandidates ?? []) {
+            if (candidate.type?.typeOrFunc.equals(toType)) {
                 return {cost: ConversionCost.NoConv};
             }
         }
@@ -224,40 +229,40 @@ function evaluateConvPrimitiveToPrimitive(src: ResolvedType, dest: ResolvedType)
         return undefined;
     }
 
-    if (src.identifierText === 'bool' || dest.identifierText === 'bool') {
+    if (from.identifierText === 'bool' || to.identifierText === 'bool') {
         // Cannot convert bool to any other type (If both are bool, it is already handled by the above condition)
         return undefined;
     }
 
-    const srcText: string = src.identifierText;
-    const destText: string = dest.identifierText;
+    const fromText: string = from.identifierText;
+    const toText: string = to.identifierText;
 
-    const srcToken = srcType.identifierToken;
-    const destToken = destType.identifierToken;
+    const fromToken = fromType.identifierToken;
+    const toToken = toType.identifierToken;
 
-    const srcProperty = srcToken.isReservedToken() ? srcToken.property : undefined;
-    const destProperty = destToken.isReservedToken() ? destToken.property : undefined;
+    const fromProperty = fromToken.isReservedToken() ? fromToken.property : undefined;
+    const toProperty = toToken.isReservedToken() ? toToken.property : undefined;
 
     // Get the size of the source and destination types. Enum values are treated as int32 for now.
-    const srcBytes = numberSizeInBytes.get(srcText) ?? sizeof_int32;
-    const destBytes = numberSizeInBytes.get(destText) ?? sizeof_int32;
+    const fromBytes = numberSizeInBytes.get(fromText) ?? sizeof_int32;
+    const toBytes = numberSizeInBytes.get(toText) ?? sizeof_int32;
 
     let cost = ConversionCost.NoConv;
-    if (srcProperty?.isFloatingPoint && destProperty?.isIntegerType) {
+    if (fromProperty?.isFloatingPoint && toProperty?.isIntegerType) {
         cost = ConversionCost.FloatToIntConv;
-    } else if (srcProperty?.isIntegerType && destProperty?.isFloatingPoint) {
+    } else if (fromProperty?.isIntegerType && toProperty?.isFloatingPoint) {
         cost = ConversionCost.IntToFloatConv;
-    } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes === destBytes) {
+    } else if (fromType.isEnumType() && toProperty?.isSignedInteger && fromBytes === toBytes) {
         cost = ConversionCost.EnumSameSizeConv;
-    } else if (srcType.isEnumType() && destProperty?.isSignedInteger && srcBytes !== destBytes) {
+    } else if (fromType.isEnumType() && toProperty?.isSignedInteger && fromBytes !== toBytes) {
         cost = ConversionCost.EnumDiffSizeConv;
-    } else if (srcProperty?.isSignedInteger && destProperty?.isUnsignedInteger) {
+    } else if (fromProperty?.isSignedInteger && toProperty?.isUnsignedInteger) {
         cost = ConversionCost.SignedToUnsignedConv;
-    } else if (srcProperty?.isUnsignedInteger && destProperty?.isSignedInteger) {
+    } else if (fromProperty?.isUnsignedInteger && toProperty?.isSignedInteger) {
         cost = ConversionCost.UnsignedToSignedConv;
-    } else if (srcBytes < destBytes) {
+    } else if (fromBytes < toBytes) {
         cost = ConversionCost.PrimitiveSizeUpConv;
-    } else if (srcBytes > destBytes) {
+    } else if (fromBytes > toBytes) {
         cost = ConversionCost.PrimitiveSizeDownConv;
     }
 
@@ -281,20 +286,20 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']]
 ]);
 
-function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+function evaluateConvObjectToPrimitive(from: ResolvedType, to: ResolvedType): ConversionEvaluation | undefined {
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    assert(srcType.isType() && destType.isType());
-    assert(srcType.isPrimitiveOrEnum() === false || destType.isPrimitiveOrEnum());
+    assert(fromType.isType() && toType.isType());
+    assert(fromType.isPrimitiveOrEnum() === false || toType.isPrimitiveOrEnum());
 
     // FIXME: Consider ConversionType
-    const convFuncList = collectOpConvFunctions(srcType);
+    const convFuncList = collectOpConvFunctions(fromType);
 
     let selectedConvFunc: FunctionSymbol | undefined = undefined;
-    if (destType.isNumberType()) {
+    if (toType.isNumberType()) {
         // Find the best matching cast operator
-        const tableRow = numberConversionCostTable.get(dest.identifierText);
+        const tableRow = numberConversionCostTable.get(to.identifierText);
         assert(tableRow !== undefined);
 
         for (const nextType of tableRow) {
@@ -313,7 +318,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
         // Only accept the exact conversion for non-math types
         for (const convFunc of convFuncList) {
             const returnType = normalizeType(convFunc.returnType);
-            if (returnType?.typeOrFunc.equals(destType)) {
+            if (returnType?.typeOrFunc.equals(toType)) {
                 selectedConvFunc = convFunc;
                 break;
             }
@@ -327,7 +332,7 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
     const returnType = selectedConvFunc.returnType;
     assert(returnType !== undefined);
 
-    return {cost: ConversionCost.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, dest)?.cost ?? 0)};
+    return {cost: ConversionCost.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, to)?.cost ?? 0)};
 
     // FIXME: Add more process?
 }
@@ -338,16 +343,16 @@ function evaluateConvObjectToPrimitive(src: ResolvedType, dest: ResolvedType): C
 
 function evaluateConvPrimitiveToObject(
     state: EvaluationState,
-    src: ResolvedType,
-    dest: ResolvedType
+    from: ResolvedType,
+    to: ResolvedType
 ): ConversionEvaluation | undefined {
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    assert(srcType.isType() && destType.isType());
-    assert(srcType.isPrimitiveOrEnum() && destType.isPrimitiveOrEnum() === false);
+    assert(fromType.isType() && toType.isType());
+    assert(fromType.isPrimitiveOrEnum() && toType.isPrimitiveOrEnum() === false);
 
-    return evaluateConversionByConstructor(state, src, dest);
+    return evaluateConversionByConstructor(state, from, to);
 }
 
 // -----------------------------------------------
@@ -356,35 +361,35 @@ function evaluateConvPrimitiveToObject(
 
 function evaluateConvObjectToObject(
     state: EvaluationState,
-    src: ResolvedType,
-    dest: ResolvedType
+    from: ResolvedType,
+    to: ResolvedType
 ): ConversionEvaluation | undefined {
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    assert(srcType.isType() && destType.isType());
-    assert(srcType.isPrimitiveOrEnum() === false && destType.isPrimitiveOrEnum() === false);
+    assert(fromType.isType() && toType.isType());
+    assert(fromType.isPrimitiveOrEnum() === false && toType.isPrimitiveOrEnum() === false);
 
     // Check if these are identical
-    if (srcType.equals(destType)) {
+    if (fromType.equals(toType)) {
         return {cost: ConversionCost.NoConv};
     }
 
     // FIXME?
-    if (canDownCast(srcType, destType)) {
+    if (canDownCast(fromType, toType)) {
         return {cost: ConversionCost.ToObjectConv};
     }
 
     // Check the conversion using a construct with a single parameter.
-    const constByConstructor = evaluateConversionByConstructor(state, src, dest);
+    const constByConstructor = evaluateConversionByConstructor(state, from, to);
     if (constByConstructor !== undefined) {
         return constByConstructor;
     }
 
     // Check the conversion using the opConv and opImpl function.
-    const convFuncList = collectOpConvFunctions(srcType);
+    const convFuncList = collectOpConvFunctions(fromType);
     for (const convFunc of convFuncList) {
-        if (convFunc.returnType?.equals(dest)) {
+        if (convFunc.returnType?.equals(to)) {
             return {cost: ConversionCost.ToObjectConv};
         }
     }
@@ -395,13 +400,13 @@ function evaluateConvObjectToObject(
 // -----------------------------------------------
 // Helper functions
 
-function evaluateNullConversion(src: ResolvedType, dest: ResolvedType): ConversionEvaluation | undefined {
-    if (src.isNullType() && dest.isNullType()) {
+function evaluateNullConversion(from: ResolvedType, to: ResolvedType): ConversionEvaluation | undefined {
+    if (from.isNullType() && to.isNullType()) {
         return {cost: ConversionCost.NoConv};
     }
 
-    const nonNullType = src.isNullType() ? dest : src;
-    if (nonNullType.isHandle === true) {
+    const nonNullType = from.isNullType() ? to : from;
+    if (nonNullType.handle !== undefined) {
         return {cost: ConversionCost.RefConv};
     }
 
@@ -419,11 +424,11 @@ export function normalizeType(type: ResolvedType | undefined) {
 
     // We use int and uint instead of int32 and uint32 respectively here.
     if (type.identifierText === 'int32') {
-        return resolvedBuiltinInt.cloneWithHandle(type.isHandle);
+        return resolvedBuiltinInt.cloneWithHandle(type.handle).cloneWithConst(type.isConst);
     }
 
     if (type.identifierText === 'uint32') {
-        return resolvedBuiltinUInt.cloneWithHandle(type.isHandle);
+        return resolvedBuiltinUInt.cloneWithHandle(type.handle).cloneWithConst(type.isConst);
     }
 
     return type;
@@ -431,28 +436,28 @@ export function normalizeType(type: ResolvedType | undefined) {
 
 function evaluateConversionByConstructor(
     state: EvaluationState,
-    src: ResolvedType,
-    dest: ResolvedType
+    from: ResolvedType,
+    to: ResolvedType
 ): ConversionEvaluation | undefined {
     if (!state.allowObjectConstruct) {
         return undefined;
     }
 
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    assert(srcType.isType() && destType.isType());
+    assert(fromType.isType() && toType.isType());
 
-    const destScope = resolveActiveScope(destType.scopePath);
+    const toScope = resolveActiveScope(toType.scopePath);
 
     // Search for the constructor of the given type from the scope to which the given type belongs.
-    const constructorScope = destScope.lookupScope(destType.identifierText);
+    const constructorScope = toScope.lookupScope(toType.identifierText);
     if (constructorScope?.linkedNode?.nodeName !== NodeName.Class) {
         return undefined;
     }
 
     // Search for the constructor of the given type from the scope of the type itself.
-    const constructorHolder = constructorScope.lookupSymbol(destType.identifierText);
+    const constructorHolder = constructorScope.lookupSymbol(toType.identifierText);
     if (constructorHolder === undefined || constructorHolder?.isFunctionHolder() === false) {
         return undefined;
     }
@@ -470,7 +475,7 @@ function evaluateConversionByConstructor(
         }
 
         // Prevent infinite recursion.
-        if (paramType === dest) {
+        if (paramType === to) {
             continue;
         }
 
@@ -478,7 +483,7 @@ function evaluateConversionByConstructor(
         state.allowObjectConstruct = false; // To prevent infinite recursion
 
         // Source type must be convertible to the parameter type of the constructor.
-        const cost = evaluateTypeConversionInternal(state, src, paramType);
+        const cost = evaluateTypeConversionInternal(state, from, paramType);
 
         state.allowObjectConstruct = true;
 
@@ -492,32 +497,32 @@ function evaluateConversionByConstructor(
     return undefined;
 }
 
-export function canDownCast(srcType: TypeSymbol, destType: TypeSymbol): boolean {
-    const srcNode = srcType.linkedNode;
-    if (srcType.isPrimitiveType()) {
+export function canDownCast(fromType: TypeSymbol, toType: TypeSymbol): boolean {
+    const fromNode = fromType.linkedNode;
+    if (fromType.isPrimitiveType()) {
         return false;
     }
 
     // Check if these are identical
-    if (srcType.equals(destType)) {
+    if (fromType.equals(toType)) {
         return true;
     }
 
-    if (isNodeClassOrInterface(srcNode)) {
-        if (srcType.baseList === undefined) {
+    if (isNodeClassOrInterface(fromNode)) {
+        if (fromType.baseList === undefined) {
             return false;
         }
 
-        for (const srcBase of srcType.baseList) {
-            if (srcBase?.typeOrFunc === undefined) {
+        for (const fromBase of fromType.baseList) {
+            if (fromBase?.typeOrFunc === undefined) {
                 continue;
             }
 
-            if (srcBase.typeOrFunc.isType() === false) {
+            if (fromBase.typeOrFunc.isType() === false) {
                 continue;
             }
 
-            if (canDownCast(srcBase.typeOrFunc, destType)) {
+            if (canDownCast(fromBase.typeOrFunc, toType)) {
                 return true;
             }
         }
@@ -542,26 +547,26 @@ function collectFunctionOverloads(func: FunctionSymbol) {
     return overloadList;
 }
 
-function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
-    if (src.parameterTypes.length !== dest.parameterTypes.length) {
+function areFunctionsEqual(from: FunctionSymbol, to: FunctionSymbol): boolean {
+    if (from.parameterTypes.length !== to.parameterTypes.length) {
         return false;
     }
 
-    const srcReturnType = normalizeType(src.returnType);
-    const destReturnType = normalizeType(dest.returnType);
-    if (srcReturnType?.equals(destReturnType) === false) {
+    const fromReturnType = normalizeType(from.returnType);
+    const toReturnType = normalizeType(to.returnType);
+    if (fromReturnType?.equals(toReturnType) === false) {
         return false;
     }
 
-    for (let i = 0; i < src.parameterTypes.length; i++) {
-        const srcParam = normalizeType(src.parameterTypes[i]);
-        const destParam = normalizeType(dest.parameterTypes[i]);
+    for (let i = 0; i < from.parameterTypes.length; i++) {
+        const fromParam = normalizeType(from.parameterTypes[i]);
+        const toParam = normalizeType(to.parameterTypes[i]);
 
-        if (srcParam === undefined || destParam === undefined) {
+        if (fromParam === undefined || toParam === undefined) {
             continue;
         }
 
-        if (srcParam.equals(destParam) === false) {
+        if (fromParam.equals(toParam) === false) {
             return false;
         }
     }
@@ -569,53 +574,53 @@ function areFunctionsEqual(src: FunctionSymbol, dest: FunctionSymbol): boolean {
     return true;
 }
 
-function areTemplateArgumentsEqual(src: ResolvedType, dest: ResolvedType): boolean {
-    if (src.typeOrFunc.isFunction() || dest.typeOrFunc.isFunction()) {
+function areTemplateArgumentsEqual(from: ResolvedType, to: ResolvedType): boolean {
+    if (from.typeOrFunc.isFunction() || to.typeOrFunc.isFunction()) {
         // TODO: Function template arguments.
         return true;
     }
 
-    const srcType = src.typeOrFunc;
-    const destType = dest.typeOrFunc;
+    const fromType = from.typeOrFunc;
+    const toType = to.typeOrFunc;
 
-    if (srcType.templateParameters?.length !== destType.templateParameters?.length) {
+    if (fromType.templateParameters?.length !== toType.templateParameters?.length) {
         // The number of template arguments is different.
         return false;
     } else if (
-        srcType.templateParameters === undefined ||
-        destType.templateParameters === undefined ||
-        srcType.templateParameters.length == 0
+        fromType.templateParameters === undefined ||
+        toType.templateParameters === undefined ||
+        fromType.templateParameters.length == 0
     ) {
         // Both types do not have template parameters.
         return true;
     }
 
-    const srcTemplateArguments = src.getTemplateArguments();
-    const destTemplateArguments = dest.getTemplateArguments();
+    const fromTemplateArguments = from.getTemplateArguments();
+    const toTemplateArguments = to.getTemplateArguments();
 
     // Check if the template arguments are the same respectively.
-    for (let i = 0; i < srcTemplateArguments.length; i++) {
-        const srcArg = normalizeType(srcTemplateArguments[i]);
-        const destArg = normalizeType(destTemplateArguments[i]);
+    for (let i = 0; i < fromTemplateArguments.length; i++) {
+        const fromArg = normalizeType(fromTemplateArguments[i]);
+        const toArg = normalizeType(toTemplateArguments[i]);
 
         if (
-            srcArg === undefined ||
-            destArg === undefined ||
-            srcArg.identifierText === '?' ||
-            destArg.identifierText === '?'
+            fromArg === undefined ||
+            toArg === undefined ||
+            fromArg.identifierText === '?' ||
+            toArg.identifierText === '?'
         ) {
             continue; // FIXME?
         }
 
-        if (srcArg.typeOrFunc.equals(destArg.typeOrFunc) === false) {
+        if (fromArg.typeOrFunc.equals(toArg.typeOrFunc) === false) {
             return false;
         }
 
-        if (srcArg.isHandle !== destArg.isHandle) {
+        if (fromArg.handle !== toArg.handle) {
             return false;
         }
 
-        if (areTemplateArgumentsEqual(srcArg, destArg) === false) {
+        if (areTemplateArgumentsEqual(fromArg, toArg) === false) {
             return false;
         }
     }
@@ -623,13 +628,13 @@ function areTemplateArgumentsEqual(src: ResolvedType, dest: ResolvedType): boole
     return true;
 }
 
-function collectOpConvFunctions(srcType: TypeSymbol | FunctionSymbol) {
+function collectOpConvFunctions(fromType: TypeSymbol | FunctionSymbol) {
     // TODO: Consider implicit or explicit
 
     const convFuncList: FunctionSymbol[] = [];
-    const srcMembers =
-        resolveActiveScope(srcType.scopePath).lookupScope(srcType.identifierText)?.symbolTable.values() ?? [];
-    for (const methodHolder of srcMembers) {
+    const fromMembers =
+        resolveActiveScope(fromType.scopePath).lookupScope(fromType.identifierText)?.symbolTable.values() ?? [];
+    for (const methodHolder of fromMembers) {
         if (
             methodHolder.isFunctionHolder() &&
             [

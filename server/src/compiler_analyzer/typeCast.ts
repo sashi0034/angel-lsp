@@ -10,17 +10,17 @@ import {stringifyResolvedType} from './symbolStringifier';
  * If invalid, an error is reported to the diagnostic.
  */
 export function assertTypeCast(
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    from: ResolvedType | undefined,
+    to: ResolvedType | undefined,
     nodeRange: TokenRange
 ): boolean {
-    if (checkTypeCast(src, dest, nodeRange)) {
+    if (checkTypeCast(from, to, nodeRange)) {
         return true;
     }
 
     analyzerDiagnostic.error(
         nodeRange.getBoundingLocation(),
-        `'${stringifyResolvedType(src)}' cannot be converted to '${stringifyResolvedType(dest)}'.`
+        `'${stringifyResolvedType(from)}' cannot be converted to '${stringifyResolvedType(to)}'.`
     );
 
     return false;
@@ -31,20 +31,20 @@ export function assertTypeCast(
  * If valid, any required side effect is executed immediately.
  */
 export function checkTypeCast(
-    src: ResolvedType | undefined,
-    dest: ResolvedType | undefined,
+    from: ResolvedType | undefined,
+    to: ResolvedType | undefined,
     nodeRange?: TokenRange
 ): boolean {
-    if (src === undefined || dest === undefined) {
+    if (from === undefined || to === undefined) {
         return true;
     }
 
-    const evaluation = evaluateTypeConversion(src, dest);
+    const evaluation = evaluateTypeConversion(from, to);
     if (evaluation === undefined) {
         return false;
     }
 
-    causeTypeConversionSideEffect(evaluation, src, dest, nodeRange);
+    causeTypeConversionSideEffect(evaluation, from, to, nodeRange);
 
     return true;
 }

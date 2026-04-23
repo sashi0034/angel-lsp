@@ -216,6 +216,60 @@ describe('analyzer/templateSpecialization', () => {
         ]);
     });
 
+    it('accepts template arguments that are object handles', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Box<T> {
+                    T item;
+                }
+
+                class Value {
+                    void mutate();
+                }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Value@> box;
+                    Value@ value = Value();
+                    box.item = value;
+                    box.item.mutate();
+                }
+                `
+            }
+        ]);
+    });
+
+    it('rejects template handle arguments that lose the handle modifier', () => {
+        expectError([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class Box<T> {
+                    T item;
+                }
+
+                class Value {}
+
+                void receive(Box<Value@> box);
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `
+                void main() {
+                    Box<Value> box;
+                    receive(box);
+                }
+                `
+            }
+        ]);
+    });
+
     it('accepts template class methods that call function templates with class-typed template arguments', () => {
         expectSuccess([
             {
