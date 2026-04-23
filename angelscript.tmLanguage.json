@@ -436,6 +436,26 @@
         "strings": {
             "patterns": [
                 {
+                    "begin": "\"\"\"",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.string.begin.angelscript"
+                        }
+                    },
+                    "end": "\"\"\"",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.string.end.angelscript"
+                        }
+                    },
+                    "name": "string.quoted.triple.angelscript",
+                    "patterns": [
+                        {
+                            "include": "#string_escaped_char"
+                        }
+                    ]
+                },
+                {
                     "begin": "\"",
                     "beginCaptures": {
                         "0": {
