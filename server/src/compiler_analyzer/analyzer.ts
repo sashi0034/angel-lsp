@@ -192,7 +192,7 @@ export function resolveAutoType(autoType: ResolvedType, initType: ResolvedType, 
     let resolvedType: ResolvedType;
 
     if (initType.typeOrFunc.isType() && !initType.typeOrFunc.isPrimitiveOrEnum()) {
-        resolvedType = initType.cloneWithHandle(initType.handle ?? HandleModifier.Handle);
+        resolvedType = initType.cloneWithHandle(autoType.handle ?? HandleModifier.Handle);
     } else {
         if (autoType.handle !== undefined && initType.handle === undefined) {
             analyzerDiagnostic.error(identifier.location, `Object handle is not supported for this type.`);

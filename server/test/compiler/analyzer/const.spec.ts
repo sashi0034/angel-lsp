@@ -37,6 +37,62 @@ describe('analyzer/const', () => {
         `);
     });
 
+    it('rejects: Const auto object handles cannot call non-const methods.', () => {
+        expectError(`
+            class Obj {
+                void mutate() {}
+                void read() const {}
+            }
+
+            void main() {
+                const auto@ handle = Obj();
+                handle.read();
+                handle.mutate();
+            }
+        `);
+    });
+
+    it('accepts: Const auto object handles can be reseated explicitly.', () => {
+        expectSuccess(`
+            class Obj {
+                void read() const {}
+            }
+
+            void main() {
+                const auto@ handle = Obj();
+                @handle = Obj();
+                handle.read();
+            }
+        `);
+    });
+
+    it('rejects: Auto const handles cannot be reseated.', () => {
+        expectError(`
+            class Obj {
+                void mutate() {}
+            }
+
+            void main() {
+                auto@ const handle = Obj();
+                handle.mutate();
+                @handle = Obj();
+            }
+        `);
+    });
+
+    it('accepts: Auto const handles can mutate the referenced object.', () => {
+        expectSuccess(`
+            class Obj {
+                void mutate() {}
+            }
+
+            void main() {
+                auto@ const handle = Obj();
+                handle.mutate();
+            }
+        `);
+    });
+
     it('accepts: Non-const objects can call const methods.', () => {
         expectSuccess(`
             class Obj {
