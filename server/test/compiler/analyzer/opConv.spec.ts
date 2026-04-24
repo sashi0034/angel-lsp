@@ -148,7 +148,9 @@ describe('analyzer/opConv', () => {
                     void opConv(?&out value);
                 }
                 
-                class string { }
+                class string {
+                    string();
+                }
                 `
             },
             {

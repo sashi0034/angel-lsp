@@ -259,7 +259,7 @@ export function analyzeVarInitializer(
         // FIXME: Think of a better way.
         const callerIdentifier = IdentifierToken.createVirtual(varType.identifierText);
 
-        return analyzeConstructorCall(scope, callerIdentifier, initializer, varType);
+        return analyzeConstructorCall(scope, varType, callerIdentifier, initializer);
     }
 }
 
@@ -1041,7 +1041,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): Resolv
                 return undefined;
             }
 
-            return analyzeConstructorCall(scope, exprValue.type.dataType.identifier, exprValue.argList, type);
+            return analyzeConstructorCall(scope, type, exprValue.type.dataType.identifier, exprValue.argList);
         }
         case NodeName.FuncCall:
             return analyzeFuncCall(scope, exprValue);
@@ -1065,9 +1065,9 @@ function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): Resolv
 // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
 export function analyzeConstructorCall(
     scope: SymbolScope,
+    constructorType: ResolvedType,
     callerIdentifier: TokenObject,
-    callerArgList: Node_ArgList,
-    constructorType: ResolvedType
+    callerArgList: Node_ArgList
 ): ResolvedType | undefined {
     const constructor = findConstructorOfType(constructorType);
     if (constructor === undefined || constructor.isFunctionHolder() === false) {
@@ -1075,7 +1075,9 @@ export function analyzeConstructorCall(
         return checkDefaultConstructorCall(callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType);
     }
 
-    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateMapping);
+    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateMapping, {
+        constructorType: constructorType
+    });
     return constructorType;
 }
 
@@ -1473,7 +1475,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
 
     if (calleeSymbol.isType()) {
         const constructorType: ResolvedType = new ResolvedType(calleeSymbol);
-        return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
+        return analyzeConstructorCall(scope, constructorType, funcCall.identifier, funcCall.argList);
     }
 
     const callTemplateArguments = funcCall.typeArguments ?? [];
@@ -1542,6 +1544,7 @@ function analyzeFunctionCall(
     calleeFuncHolder: FunctionSymbolHolder,
     calleeTemplateMapping: TemplateMapping | undefined,
     options?: {
+        constructorType?: ResolvedType;
         callerInstanceType?: ResolvedType;
         calleeDelegateVariable?: VariableSymbol;
     }
@@ -1559,6 +1562,21 @@ function analyzeFunctionCall(
         range: arg.assign.nodeRange,
         type: callerArgTypes[i]
     }));
+
+    if (options?.constructorType !== undefined && callerArgList.argList.length === 1) {
+        // A one-argument type call can be an `Type(arg)` cast even when the type has constructors.
+        const callerArgType = analyzeAssign(scope, callerArgList.argList[0].assign);
+        if (
+            checkTypeCast(
+                callerArgType,
+                options?.constructorType,
+                callerArgList.nodeRange,
+                ConversionMode.FunctionalCast
+            )
+        ) {
+            return options?.constructorType;
+        }
+    }
 
     return checkFunctionCall({
         callerIdentifier: callerIdentifier,
