@@ -1314,24 +1314,27 @@ function analyzeExprPostOp2(
 
 // **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefined {
-    const castedType = analyzeType(scope, cast.type);
-    const sourceType = analyzeAssign(scope, cast.assign);
-    const targetType =
-        sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true
-            ? castedType.cloneWithHandle(sourceType.handle).cloneWithConst(castedType.isConst || sourceType.isConst)
-            : castedType;
+    const targetType = analyzeType(scope, cast.type);
+    const fromType = analyzeAssign(scope, cast.assign);
+    const toType =
+        fromType?.handle !== undefined && targetType?.typeOrFunc.isType() === true
+            ? targetType.cloneWithHandle(fromType.handle).cloneWithConst(targetType.isConst || fromType.isConst)
+            : targetType;
 
-    const canFallbackToValueCast =
-        targetType?.typeOrFunc.isType() === true && !targetType.typeOrFunc.isPrimitiveOrEnum();
-    if (!checkTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitRefCast)) {
-        if (canFallbackToValueCast) {
-            assertTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitValueCast);
+    const canFallbackToFunctionalCast = toType?.typeOrFunc.isType() === true && !toType.typeOrFunc.isPrimitiveOrEnum();
+    const messageRange = new TokenRange(cast.nodeRange.start, cast.type.nodeRange.end.next ?? cast.nodeRange.end);
+    if (!checkTypeCast(fromType, toType, messageRange, ConversionMode.ExplicitCast)) {
+        if (canFallbackToFunctionalCast) {
+            assertTypeCast(fromType, toType, messageRange, ConversionMode.FunctionalCast);
         } else {
-            assertTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitRefCast);
+            analyzerDiagnostic.error(
+                messageRange.getBoundingLocation(),
+                `'${stringifyResolvedType(fromType)}' cannot be converted to '${stringifyResolvedType(toType)}'.`
+            );
         }
     }
 
-    return targetType;
+    return toType;
 }
 
 // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK

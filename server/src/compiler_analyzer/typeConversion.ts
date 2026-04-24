@@ -6,9 +6,9 @@ import {resolvedBuiltinInt, resolvedBuiltinUInt} from './builtinType';
 import assert = require('node:assert');
 
 export enum ConversionMode {
-    Implicit = 'Implicit', // asIC_IMPLICIT_CONV
-    ExplicitRefCast = 'ExplicitRefCast', // asIC_EXPLICIT_REF_CAST (for cast<Type>)
-    ExplicitValueCast = 'ExplicitValueCast' // asIC_EXPLICIT_VAL_CAST (for Type(source))
+    Implicit = 'Implicit', // (asIC_IMPLICIT_CONV)
+    ExplicitCast = 'ExplicitCast', // for cast<Type> (asIC_EXPLICIT_REF_CAST)
+    FunctionalCast = 'FunctionalCast' // for Type(source) (asIC_EXPLICIT_VAL_CAST)
 }
 
 enum ConversionCost {
@@ -328,7 +328,7 @@ function evaluateConvObjectToPrimitive(
         }
     }
 
-    if (selectedConvFunc === undefined && mode === ConversionMode.ExplicitValueCast) {
+    if (selectedConvFunc === undefined && mode === ConversionMode.FunctionalCast) {
         selectedConvFunc = convFuncList.find(convFunc => isAnyConvFunction(convFunc));
     }
 
@@ -385,7 +385,7 @@ function evaluateConvObjectToObject(
         return {cost: ConversionCost.NoConv};
     }
 
-    if (mode === ConversionMode.ExplicitRefCast && from.handle !== undefined && to.handle !== undefined) {
+    if (mode === ConversionMode.ExplicitCast && from.handle !== undefined && to.handle !== undefined) {
         return {cost: ConversionCost.RefConv};
     }
 
@@ -408,7 +408,7 @@ function evaluateConvObjectToObject(
         }
     }
 
-    if (mode === ConversionMode.ExplicitRefCast && to.handle !== undefined) {
+    if (mode === ConversionMode.ExplicitCast && to.handle !== undefined) {
         const outRefConvFunc = convFuncList.find(convFunc => isAnyCastFunction(convFunc));
         if (outRefConvFunc !== undefined) {
             return {cost: ConversionCost.RefConv};
@@ -664,15 +664,15 @@ function collectConversionFunctions(
         if (methodHolder.identifierText === 'opImplConv') {
             convFuncList.push(...methodHolder.toList());
         } else if (methodHolder.identifierText === 'opConv') {
-            if (mode === ConversionMode.ExplicitValueCast) {
+            if (mode === ConversionMode.FunctionalCast) {
                 convFuncList.push(...methodHolder.toList());
             }
         } else if (methodHolder.identifierText === 'opImplCast') {
-            if (mode === ConversionMode.ExplicitRefCast) {
+            if (mode === ConversionMode.ExplicitCast) {
                 convFuncList.push(...methodHolder.toList());
             }
         } else if (methodHolder.identifierText === 'opCast') {
-            if (mode === ConversionMode.ExplicitRefCast) {
+            if (mode === ConversionMode.ExplicitCast) {
                 convFuncList.push(...methodHolder.toList());
             }
         }

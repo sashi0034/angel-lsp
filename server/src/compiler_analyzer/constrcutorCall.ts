@@ -55,14 +55,14 @@ export function checkDefaultConstructorCall(
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         } else {
-            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.ExplicitValueCast);
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.FunctionalCast);
         }
 
         return calleeConstructorType;
     } else {
         // An object type call with one argument can be an explicit value cast, e.g., `Target(source)`.
         if (callerArgTypes.length === 1) {
-            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.ExplicitValueCast);
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.FunctionalCast);
         } else if (callerArgTypes.length !== 0) {
             analyzerDiagnostic.error(
                 callerRange.getBoundingLocation(),
