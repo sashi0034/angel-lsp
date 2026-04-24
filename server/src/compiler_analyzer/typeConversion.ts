@@ -403,7 +403,14 @@ function evaluateConvObjectToObject(
     // Check the conversion using the opConv and opImpl function.
     const convFuncList = collectConversionFunctions(fromType, mode);
     for (const convFunc of convFuncList) {
-        if (convFunc.returnType?.equals(to)) {
+        if (doesReturnTypeMatchObjectConversion(convFunc.returnType, to)) {
+            return {cost: ConversionCost.ToObjectConv};
+        }
+    }
+
+    if (mode === ConversionMode.FunctionalCast) {
+        const outValConvFunc = convFuncList.find(convFunc => isAnyConvFunction(convFunc));
+        if (outValConvFunc !== undefined) {
             return {cost: ConversionCost.ToObjectConv};
         }
     }
@@ -416,6 +423,27 @@ function evaluateConvObjectToObject(
     }
 
     return undefined;
+}
+
+function doesReturnTypeMatchObjectConversion(returnType: ResolvedType | undefined, to: ResolvedType): boolean {
+    const normalizedReturnType = normalizeType(returnType);
+    if (normalizedReturnType === undefined) {
+        return false;
+    }
+
+    if (
+        normalizedReturnType.isConst &&
+        !to.isConst &&
+        (normalizedReturnType.handle !== undefined || to.handle !== undefined)
+    ) {
+        return false;
+    }
+
+    if (!normalizedReturnType.typeOrFunc.equals(to.typeOrFunc)) {
+        return false;
+    }
+
+    return areTemplateArgumentsEqual(normalizedReturnType, to);
 }
 
 // -----------------------------------------------

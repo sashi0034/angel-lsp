@@ -32,6 +32,50 @@ describe('analyzer/opConv', () => {
         `);
     });
 
+    it('accepts: opConv handle return conversions can be used by explicit value casts.', () => {
+        expectSuccess(`// opConv handle return conversions can be used by explicit value casts.
+            class target {}
+            class source { target@ opConv() const { return target(); } }
+            void main() {
+                source s;
+                target@ t = target(s);
+            }
+        `);
+    });
+
+    it('accepts: opConv handle return conversions can be used by reference casts.', () => {
+        expectSuccess(`// opConv handle return conversions can be used by reference casts.
+            class target {}
+            class source { target@ opConv() const { return target(); } }
+            void main() {
+                source s;
+                target@ t = cast<target>(s);
+            }
+        `);
+    });
+
+    it('accepts: const source values can use non-const opConv methods.', () => {
+        expectSuccess(`// const source values can use non-const opConv methods.
+            class target {}
+            class source { target opConv() { return target(); } }
+            void main() {
+                const source s;
+                target t = target(s);
+            }
+        `);
+    });
+
+    it('accepts: const source handles can use non-const opConv handle return conversions.', () => {
+        expectSuccess(`// const source handles can use non-const opConv handle return conversions.
+            class target {}
+            class source { target@ opConv() { return target(); } }
+            void main() {
+                const source@ s = source();
+                const target@ t = cast<target>(s);
+            }
+        `);
+    });
+
     it('rejects: cast expressions do not use opConv for primitive value casts.', () => {
         expectError(`// cast expressions do not use opConv for primitive value casts.
             class flag { bool opConv() const { return true; } }
@@ -89,6 +133,30 @@ describe('analyzer/opConv', () => {
                 void main() {
                     dictionaryValue dv;
                     bool flag = bool(dv);
+                }
+                `
+            }
+        ]);
+    });
+
+    it('accepts: void opConv(?&out) can be used by explicit object casts.', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class dictionaryValue {
+                    void opConv(?&out value);
+                }
+                
+                class string { }
+                `
+            },
+            {
+                uri: 'file:///path/to/file.as',
+                content: `// void opConv(?&out) can be used by explicit casts.
+                void main() {
+                    dictionaryValue dv;
+                    string str = string(dv);
                 }
                 `
             }
