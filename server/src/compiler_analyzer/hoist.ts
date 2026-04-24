@@ -894,6 +894,10 @@ export function hoistAfterParse(ast: Node_Script, globalScope: SymbolGlobalScope
 
     // Hoist the declared symbols.
     hoistScript(globalScope, ast, analyzeQueue, hoistQueue);
+
+    // After hoisting, cache the enum scope list for quick lookup during enum member value analysis.
+    globalScope.cacheEnumScopeList();
+
     while (hoistQueue.length > 0) {
         const next = hoistQueue.shift();
         if (next !== undefined) {

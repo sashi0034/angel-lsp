@@ -2181,8 +2181,6 @@ export interface HoistResult {
 export function analyzeAfterHoist(path: string, hoistResult: HoistResult): AnalyzerScope {
     const {globalScope, analyzeQueue} = hoistResult;
 
-    globalScope.cacheEnumScopeList();
-
     // Analyze the contents of the scope to be processed.
     while (analyzeQueue.length > 0) {
         const next = analyzeQueue.shift();
