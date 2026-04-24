@@ -696,7 +696,7 @@ function collectConversionFunctions(
                 convFuncList.push(...methodHolder.toList());
             }
         } else if (methodHolder.identifierText === 'opImplCast') {
-            if (mode === ConversionMode.ExplicitCast) {
+            if (mode !== ConversionMode.FunctionalCast) {
                 convFuncList.push(...methodHolder.toList());
             }
         } else if (methodHolder.identifierText === 'opCast') {
