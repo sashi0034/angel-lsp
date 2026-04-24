@@ -1,6 +1,19 @@
 import {expectError, expectSuccess} from './utils';
 
 describe('analyzer/templateSpecialization', () => {
+    it('accepts object handles for template parameters in predefined files', () => {
+        expectSuccess([
+            {
+                uri: 'file:///path/to/as.predefined',
+                content: `
+                class obj<T> {
+                    const T@ get() const;
+                }
+                `
+            }
+        ]);
+    });
+
     it('accepts analyzer case 1', () => {
         expectSuccess([
             {

@@ -372,7 +372,11 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     } else if (!foundSymbol.isType()) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
-    } else if (getHandleModifier(typeNode.handle) !== undefined && foundSymbol.isPrimitiveOrEnum()) {
+    } else if (
+        getHandleModifier(typeNode.handle) !== undefined &&
+        foundSymbol.isPrimitiveOrEnum() &&
+        foundSymbol.isTemplateParameterType !== true
+    ) {
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
