@@ -3,6 +3,7 @@ import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {ResolvedType} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {assertTypeCast} from './typeCast';
+import {ConversionMode} from './typeConversion';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
 import {Node_FuncCall, NodeName} from '../compiler_parser/nodeObject';
@@ -54,20 +55,19 @@ export function checkDefaultConstructorCall(
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         } else {
-            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.FunctionalCast);
         }
 
         return calleeConstructorType;
     } else {
-        // An object default constructor only accepts zero arguments.
-        if (callerArgTypes.length !== 0) {
-            const firstArgument = () => stringifyResolvedType(callerArgTypes[0]);
-            const message =
-                callerArgTypes.length === 1
-                    ? `Type '${constructorIdentifier.text}' does not have a constructor that accepts '${firstArgument()}'.`
-                    : `Too many arguments for type '${constructorIdentifier.text}'`;
-
-            analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
+        // An object type call with one argument can be an explicit value cast, e.g., `Target(source)`.
+        if (callerArgTypes.length === 1) {
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.FunctionalCast);
+        } else if (callerArgTypes.length !== 0) {
+            analyzerDiagnostic.error(
+                callerRange.getBoundingLocation(),
+                `Too many arguments for type '${constructorIdentifier.text}'`
+            );
         }
 
         return calleeConstructorType;

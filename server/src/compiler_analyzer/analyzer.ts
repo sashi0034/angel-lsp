@@ -91,6 +91,7 @@ import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findCons
 import assert = require('node:assert');
 import {checkForEachIterator} from './foreachStatement';
 import {stringifyResolvedType} from './symbolStringifier';
+import {ConversionMode} from './typeConversion';
 
 export type HoistQueue = (() => void)[];
 
@@ -258,7 +259,7 @@ export function analyzeVarInitializer(
         // FIXME: Think of a better way.
         const callerIdentifier = IdentifierToken.createVirtual(varType.identifierText);
 
-        return analyzeConstructorCall(scope, callerIdentifier, initializer, varType);
+        return analyzeConstructorCall(scope, varType, callerIdentifier, initializer);
     }
 }
 
@@ -371,7 +372,11 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     } else if (!foundSymbol.isType()) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
-    } else if (getHandleModifier(typeNode.handle) !== undefined && foundSymbol.isPrimitiveOrEnum()) {
+    } else if (
+        getHandleModifier(typeNode.handle) !== undefined &&
+        foundSymbol.isPrimitiveOrEnum() &&
+        foundSymbol.isTemplateParameterType !== true
+    ) {
         analyzerDiagnostic.error(typeIdentifier.location, `Object handle is not supported for this type.`);
         return undefined;
     } else {
@@ -1040,7 +1045,7 @@ function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): Resolv
                 return undefined;
             }
 
-            return analyzeConstructorCall(scope, exprValue.type.dataType.identifier, exprValue.argList, type);
+            return analyzeConstructorCall(scope, type, exprValue.type.dataType.identifier, exprValue.argList);
         }
         case NodeName.FuncCall:
             return analyzeFuncCall(scope, exprValue);
@@ -1064,9 +1069,9 @@ function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): Resolv
 // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
 export function analyzeConstructorCall(
     scope: SymbolScope,
+    constructorType: ResolvedType,
     callerIdentifier: TokenObject,
-    callerArgList: Node_ArgList,
-    constructorType: ResolvedType
+    callerArgList: Node_ArgList
 ): ResolvedType | undefined {
     const constructor = findConstructorOfType(constructorType);
     if (constructor === undefined || constructor.isFunctionHolder() === false) {
@@ -1074,7 +1079,9 @@ export function analyzeConstructorCall(
         return checkDefaultConstructorCall(callerIdentifier, callerArgList.nodeRange, callerArgTypes, constructorType);
     }
 
-    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateMapping);
+    analyzeFunctionCall(scope, callerIdentifier, callerArgList, constructor, constructorType.templateMapping, {
+        constructorType: constructorType
+    });
     return constructorType;
 }
 
@@ -1313,14 +1320,27 @@ function analyzeExprPostOp2(
 
 // **BNF** CAST ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefined {
-    const castedType = analyzeType(scope, cast.type);
-    const sourceType = analyzeAssign(scope, cast.assign);
+    const targetType = analyzeType(scope, cast.type);
+    const fromType = analyzeAssign(scope, cast.assign);
+    const toType =
+        fromType?.handle !== undefined && targetType?.typeOrFunc.isType() === true
+            ? targetType.cloneWithHandle(fromType.handle).cloneWithConst(targetType.isConst || fromType.isConst)
+            : targetType;
 
-    if (sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true) {
-        return castedType.cloneWithHandle(sourceType.handle).cloneWithConst(castedType.isConst || sourceType.isConst);
+    const canFallbackToFunctionalCast = toType?.typeOrFunc.isType() === true && !toType.typeOrFunc.isPrimitiveOrEnum();
+    const messageRange = new TokenRange(cast.nodeRange.start, cast.type.nodeRange.end.next ?? cast.nodeRange.end);
+    if (!checkTypeCast(fromType, toType, messageRange, ConversionMode.ExplicitCast)) {
+        if (canFallbackToFunctionalCast) {
+            assertTypeCast(fromType, toType, messageRange, ConversionMode.FunctionalCast);
+        } else {
+            analyzerDiagnostic.error(
+                messageRange.getBoundingLocation(),
+                `'${stringifyResolvedType(fromType)}' cannot be converted to '${stringifyResolvedType(toType)}'.`
+            );
+        }
     }
 
-    return castedType;
+    return toType;
 }
 
 // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
@@ -1459,7 +1479,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
 
     if (calleeSymbol.isType()) {
         const constructorType: ResolvedType = new ResolvedType(calleeSymbol);
-        return analyzeConstructorCall(scope, funcCall.identifier, funcCall.argList, constructorType);
+        return analyzeConstructorCall(scope, constructorType, funcCall.identifier, funcCall.argList);
     }
 
     const callTemplateArguments = funcCall.typeArguments ?? [];
@@ -1528,6 +1548,7 @@ function analyzeFunctionCall(
     calleeFuncHolder: FunctionSymbolHolder,
     calleeTemplateMapping: TemplateMapping | undefined,
     options?: {
+        constructorType?: ResolvedType;
         callerInstanceType?: ResolvedType;
         calleeDelegateVariable?: VariableSymbol;
     }
@@ -1545,6 +1566,21 @@ function analyzeFunctionCall(
         range: arg.assign.nodeRange,
         type: callerArgTypes[i]
     }));
+
+    if (options?.constructorType !== undefined && callerArgList.argList.length === 1) {
+        // A one-argument type call can be an `Type(arg)` cast even when the type has constructors.
+        const callerArgType = analyzeAssign(scope, callerArgList.argList[0].assign);
+        if (
+            checkTypeCast(
+                callerArgType,
+                options?.constructorType,
+                callerArgList.nodeRange,
+                ConversionMode.FunctionalCast
+            )
+        ) {
+            return options?.constructorType;
+        }
+    }
 
     return checkFunctionCall({
         callerIdentifier: callerIdentifier,
@@ -2180,8 +2216,6 @@ export interface HoistResult {
  */
 export function analyzeAfterHoist(path: string, hoistResult: HoistResult): AnalyzerScope {
     const {globalScope, analyzeQueue} = hoistResult;
-
-    globalScope.cacheEnumScopeList();
 
     // Analyze the contents of the scope to be processed.
     while (analyzeQueue.length > 0) {

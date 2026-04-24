@@ -4,6 +4,15 @@ import {FunctionSymbol, FunctionSymbolHolder, isScopePathEquals, SymbolObject} f
 import {SymbolScope} from './symbolScope';
 import {normalizeType} from './typeConversion';
 
+function isConversionFunction(symbol: FunctionSymbol): boolean {
+    return (
+        symbol.identifierText === 'opConv' ||
+        symbol.identifierText === 'opImplConv' ||
+        symbol.identifierText === 'opCast' ||
+        symbol.identifierText === 'opImplCast'
+    );
+}
+
 function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): boolean {
     if (lhs.linkedNode.paramList.params.length !== rhs.linkedNode.paramList.params.length) {
         return false;
@@ -37,6 +46,18 @@ function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): b
         }
 
         if (lhsType.equals(rhsType) === false) {
+            return false;
+        }
+    }
+
+    if (isConversionFunction(lhs) && isConversionFunction(rhs)) {
+        const lhsReturnType = normalizeType(lhs.returnType);
+        const rhsReturnType = normalizeType(rhs.returnType);
+        if (lhsReturnType === undefined || rhsReturnType === undefined) {
+            return false;
+        }
+
+        if (lhsReturnType.equals(rhsReturnType) === false) {
             return false;
         }
     }
