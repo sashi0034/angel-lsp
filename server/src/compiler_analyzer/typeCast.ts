@@ -1,7 +1,7 @@
 import {ResolvedType} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
-import {evaluateTypeConversion} from './typeConversion';
+import {ConversionMode, evaluateTypeConversion} from './typeConversion';
 import {causeTypeConversionSideEffect} from './typeConversionSideEffect';
 import {stringifyResolvedType} from './symbolStringifier';
 
@@ -12,9 +12,10 @@ import {stringifyResolvedType} from './symbolStringifier';
 export function assertTypeCast(
     from: ResolvedType | undefined,
     to: ResolvedType | undefined,
-    nodeRange: TokenRange
+    nodeRange: TokenRange,
+    mode: ConversionMode = ConversionMode.Implicit
 ): boolean {
-    if (checkTypeCast(from, to, nodeRange)) {
+    if (checkTypeCast(from, to, nodeRange, mode)) {
         return true;
     }
 
@@ -33,13 +34,14 @@ export function assertTypeCast(
 export function checkTypeCast(
     from: ResolvedType | undefined,
     to: ResolvedType | undefined,
-    nodeRange?: TokenRange
+    nodeRange?: TokenRange,
+    mode: ConversionMode = ConversionMode.Implicit
 ): boolean {
     if (from === undefined || to === undefined) {
         return true;
     }
 
-    const evaluation = evaluateTypeConversion(from, to);
+    const evaluation = evaluateTypeConversion(from, to, mode);
     if (evaluation === undefined) {
         return false;
     }

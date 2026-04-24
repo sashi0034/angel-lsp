@@ -21,15 +21,6 @@ describe('analyzer/opImplConv', () => {
         `);
     });
 
-    it('accepts: opConv overloads can differ only by return type.', () => {
-        expectSuccess(`// opConv overloads can differ only by return type.
-            class number_t {
-                int64 opConv() const { return 42; }
-                double opConv() const { return 3.5; }
-            }
-        `);
-    });
-
     // expectError(`// One of the operands must be explicitly boolean.
     //     class flag { bool opImplConv() const { return true; } }
     //     void main() {

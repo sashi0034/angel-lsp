@@ -3,6 +3,7 @@ import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {ResolvedType} from './resolvedType';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {assertTypeCast} from './typeCast';
+import {ConversionMode} from './typeConversion';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {SymbolObjectHolder} from './symbolObject';
 import {Node_FuncCall, NodeName} from '../compiler_parser/nodeObject';
@@ -54,7 +55,7 @@ export function checkDefaultConstructorCall(
 
             analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         } else {
-            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange);
+            assertTypeCast(callerArgTypes[0], calleeConstructorType, callerRange, ConversionMode.ExplicitValueCast);
         }
 
         return calleeConstructorType;

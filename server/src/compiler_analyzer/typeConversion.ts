@@ -5,10 +5,10 @@ import {NodeName} from '../compiler_parser/nodeObject';
 import {resolvedBuiltinInt, resolvedBuiltinUInt} from './builtinType';
 import assert = require('node:assert');
 
-export enum ConversionType {
+export enum ConversionMode {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
     ExplicitRefCast = 'ExplicitRefCast', // asIC_EXPLICIT_REF_CAST
-    ExplicitValueCast = 'ExplicitValue' // asIC_EXPLICIT_VAL_CAST
+    ExplicitValueCast = 'ExplicitValueCast' // asIC_EXPLICIT_VAL_CAST
 }
 
 enum ConversionCost {
@@ -41,10 +41,10 @@ export interface ConversionEvaluation {
 
 export function canTypeConvert(
     from: ResolvedType | undefined,
-    to: ResolvedType | undefined
-    // type: ConversionType = ConversionType.Implicit // TODO?
+    to: ResolvedType | undefined,
+    mode: ConversionMode = ConversionMode.Implicit
 ): boolean {
-    const evaluation = evaluateTypeConversion(from, to);
+    const evaluation = evaluateTypeConversion(from, to, mode);
     return evaluation !== undefined;
 }
 
@@ -53,14 +53,14 @@ export function canTypeConvert(
  */
 export function evaluateTypeConversion(
     from: ResolvedType | undefined,
-    to: ResolvedType | undefined
-    // type: ConversionType = ConversionType.Implicit // TODO?
+    to: ResolvedType | undefined,
+    mode: ConversionMode = ConversionMode.Implicit
 ): ConversionEvaluation | undefined {
     const initialState: EvaluationState = {
         allowObjectConstruct: true
     };
 
-    return evaluateTypeConversionInternal(initialState, from, to);
+    return evaluateTypeConversionInternal(initialState, from, to, mode);
 }
 
 interface EvaluationState {
@@ -70,8 +70,8 @@ interface EvaluationState {
 function evaluateTypeConversionInternal(
     state: EvaluationState,
     from: ResolvedType | undefined,
-    to: ResolvedType | undefined
-    // type: ConversionType = ConversionType.Implicit // TODO?
+    to: ResolvedType | undefined,
+    mode: ConversionMode = ConversionMode.Implicit
 ): ConversionEvaluation | undefined {
     from = normalizeType(from);
     to = normalizeType(to);
@@ -146,7 +146,7 @@ function evaluateTypeConversionInternal(
             return evaluateConvPrimitiveToPrimitive(from, to);
         } else {
             // Source is an object type
-            return evaluateConvObjectToPrimitive(from, to);
+            return evaluateConvObjectToPrimitive(from, to, mode);
         }
     } else {
         // Destination is an object type defined by a user
@@ -286,15 +286,18 @@ const numberConversionCostTable = new Map<string, string[]>([
     ['uint8', ['uint8', 'int8', 'uint16', 'int16', 'uint', 'int', 'uint64', 'int64', 'double', 'float']]
 ]);
 
-function evaluateConvObjectToPrimitive(from: ResolvedType, to: ResolvedType): ConversionEvaluation | undefined {
+function evaluateConvObjectToPrimitive(
+    from: ResolvedType,
+    to: ResolvedType,
+    mode: ConversionMode = ConversionMode.Implicit
+): ConversionEvaluation | undefined {
     const fromType = from.typeOrFunc;
     const toType = to.typeOrFunc;
 
     assert(fromType.isType() && toType.isType());
     assert(fromType.isPrimitiveOrEnum() === false || toType.isPrimitiveOrEnum());
 
-    // FIXME: Consider ConversionType
-    const convFuncList = collectOpConvFunctions(fromType);
+    const convFuncList = collectConversionFunctions(fromType);
 
     let selectedConvFunc: FunctionSymbol | undefined = undefined;
     if (toType.isNumberType()) {
@@ -325,6 +328,10 @@ function evaluateConvObjectToPrimitive(from: ResolvedType, to: ResolvedType): Co
         }
     }
 
+    if (selectedConvFunc === undefined && mode === ConversionMode.ExplicitValueCast) {
+        selectedConvFunc = convFuncList.find(convFunc => isOutConversionFunction(convFunc));
+    }
+
     if (selectedConvFunc === undefined) {
         return undefined;
     }
@@ -332,9 +339,11 @@ function evaluateConvObjectToPrimitive(from: ResolvedType, to: ResolvedType): Co
     const returnType = selectedConvFunc.returnType;
     assert(returnType !== undefined);
 
-    return {cost: ConversionCost.ObjToPrimitiveConv + (evaluateConvObjectToPrimitive(returnType, to)?.cost ?? 0)};
-
-    // FIXME: Add more process?
+    return {
+        cost:
+            ConversionCost.ObjToPrimitiveConv +
+            (returnType.identifierText === 'void' ? 0 : (evaluateTypeConversion(returnType, to, mode)?.cost ?? 0))
+    };
 }
 
 // -----------------------------------------------
@@ -387,7 +396,7 @@ function evaluateConvObjectToObject(
     }
 
     // Check the conversion using the opConv and opImpl function.
-    const convFuncList = collectOpConvFunctions(fromType);
+    const convFuncList = collectConversionFunctions(fromType);
     for (const convFunc of convFuncList) {
         if (convFunc.returnType?.equals(to)) {
             return {cost: ConversionCost.ToObjectConv};
@@ -628,7 +637,7 @@ function areTemplateArgumentsEqual(from: ResolvedType, to: ResolvedType): boolea
     return true;
 }
 
-function collectOpConvFunctions(fromType: TypeSymbol | FunctionSymbol) {
+function collectConversionFunctions(fromType: TypeSymbol | FunctionSymbol) {
     // TODO: Consider implicit or explicit
 
     const convFuncList: FunctionSymbol[] = [];
@@ -648,4 +657,26 @@ function collectOpConvFunctions(fromType: TypeSymbol | FunctionSymbol) {
     }
 
     return convFuncList;
+}
+
+// Check if the function is `void opCast(?&out)`
+function isOutConversionFunction(convFunc: FunctionSymbol): boolean {
+    if (convFunc.identifierText !== 'opConv') {
+        return false;
+    }
+
+    if (convFunc.returnType?.identifierText !== 'void') {
+        return false;
+    }
+
+    if (convFunc.parameterTypes.length !== 1 || convFunc.linkedNode.paramList.params.length !== 1) {
+        return false;
+    }
+
+    if (convFunc.linkedNode.paramList.params[0].inOutToken?.text !== 'out') {
+        return false;
+    }
+
+    const paramType = normalizeType(convFunc.parameterTypes[0]);
+    return paramType?.isAnyType() === true;
 }
