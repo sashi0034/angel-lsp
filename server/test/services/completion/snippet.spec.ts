@@ -5,7 +5,11 @@ import {ok} from 'node:assert';
 
 function snippetsInContext(context: string): string[] {
     return snippetDefinitions
-        .filter(snippet => (snippet.contexts as readonly string[]).includes(context))
+        .filter(
+            snippet =>
+                (snippet.contexts as readonly string[]).includes(SnippetContext.Everywhere) ||
+                (snippet.contexts as readonly string[]).includes(context)
+        )
         .map(snippet => snippet.label);
 }
 
@@ -19,6 +23,10 @@ function snippetInClass(): string[] {
 
 function snippetInStatement(): string[] {
     return snippetsInContext(SnippetContext.Statement);
+}
+
+function snippetEverywhere(): string[] {
+    return snippetsInContext(SnippetContext.Everywhere);
 }
 
 describe('completion/snippet', () => {
@@ -41,6 +49,10 @@ describe('completion/snippet', () => {
         ok(!snippetInStatement().includes('funcdef'));
         ok(snippetInScript().includes('funcdef'));
         ok(snippetInClass().includes('funcdef'));
+
+        ok(snippetInStatement().includes('cast'));
+        ok(snippetInScript().includes('cast'));
+        ok(snippetInClass().includes('cast'));
     });
 
     it('provides statement snippets in statement blocks only', () => {
@@ -97,7 +109,7 @@ describe('completion/snippet', () => {
         );
     });
 
-    it('does not provide snippets inside declarations', () => {
+    it('provides only context-free snippets inside declarations', () => {
         testCompletion(
             `
             void f($C0$) {
@@ -109,9 +121,23 @@ describe('completion/snippet', () => {
                 }
             }
         `,
-            /* $C0$ */ ['MyObj', 'f'],
-            /* $C1$ */ ['MyObj', 'f', 'method', 'this'],
+            /* $C0$ */ ['MyObj', 'f', ...snippetEverywhere()],
+            /* $C1$ */ ['MyObj', 'f', 'method', 'this', ...snippetEverywhere()],
             /* $C2$ */ ['MyObj', 'f', 'method', 'this', ...snippetInStatement()]
+        );
+    });
+
+    it('provides cast snippets inside expressions', () => {
+        testCompletion(
+            `
+            void f(int source) {
+                int value = ca$C0$;
+                if (ca$C1$) {
+                }
+            }
+        `,
+            /* $C0$ */ ['f', 'source', 'value', ...snippetEverywhere()],
+            /* $C1$ */ ['f', 'source', 'value', ...snippetEverywhere()]
         );
     });
 

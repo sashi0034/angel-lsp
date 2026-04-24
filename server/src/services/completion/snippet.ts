@@ -13,6 +13,7 @@ interface SnippetDefinition {
 }
 
 export enum SnippetContext {
+    Everywhere = 'everywhere',
     Script = 'script',
     Class = 'class',
     Statement = 'statement'
@@ -83,7 +84,7 @@ export const snippetDefinitions: SnippetDefinition[] = [
         label: 'cast',
         insertText: 'cast<${1:TYPE}>($0)',
         detail: 'Cast to a type',
-        contexts: [SnippetContext.Statement]
+        contexts: [SnippetContext.Everywhere]
     },
     {
         label: 'namespace',
@@ -168,14 +169,16 @@ export function provideSnippetCompletion(ast: Node_Script, caret: TextPosition):
 
     const context = getSnippetContext(ast, caret);
     if (context === undefined) {
-        return [];
+        return snippetDefinitions
+            .filter(snippet => isAvailable(snippet, SnippetContext.Everywhere))
+            .map(makeSnippetCompletionItem);
     }
 
     return snippetDefinitions.filter(snippet => isAvailable(snippet, context)).map(makeSnippetCompletionItem);
 }
 
 function isAvailable(snippet: SnippetDefinition, context: SnippetContext): boolean {
-    return snippet.contexts.includes(context);
+    return snippet.contexts.includes(SnippetContext.Everywhere) || snippet.contexts.includes(context);
 }
 
 function getSnippetContext(ast: Node_Script, caret: TextPosition): SnippetContext | undefined {
