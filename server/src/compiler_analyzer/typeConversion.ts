@@ -644,8 +644,11 @@ function collectConversionFunctions(fromType: TypeSymbol | FunctionSymbol) {
     const fromMembers =
         resolveActiveScope(fromType.scopePath).lookupScope(fromType.identifierText)?.symbolTable.values() ?? [];
     for (const methodHolder of fromMembers) {
+        if (methodHolder.isFunctionHolder() === false) {
+            continue;
+        }
+
         if (
-            methodHolder.isFunctionHolder() &&
             [
                 'opConv',
                 'opImplConv',
@@ -653,15 +656,18 @@ function collectConversionFunctions(fromType: TypeSymbol | FunctionSymbol) {
             ].includes(methodHolder.identifierText)
         ) {
             convFuncList.push(...methodHolder.toList());
+        } else if (methodHolder.identifierText === 'opCast') {
+            convFuncList.push(...methodHolder.toList().filter(isOutConversionFunction));
         }
     }
 
     return convFuncList;
 }
 
-// Check if the function is `void opCast(?&out)`
+// TODO: Distinguish opConv(?&out) for explicit value casts from opCast(?&out) for explicit ref casts.
+// Check if the function is `void opConv(?&out)` or `void opCast(?&out)`.
 function isOutConversionFunction(convFunc: FunctionSymbol): boolean {
-    if (convFunc.identifierText !== 'opConv') {
+    if (convFunc.identifierText !== 'opConv' && convFunc.identifierText !== 'opCast') {
         return false;
     }
 
