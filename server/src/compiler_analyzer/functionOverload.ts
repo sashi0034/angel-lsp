@@ -5,7 +5,12 @@ import {SymbolScope} from './symbolScope';
 import {normalizeType} from './typeConversion';
 
 function isConversionFunction(symbol: FunctionSymbol): boolean {
-    return symbol.identifierText === 'opConv' || symbol.identifierText === 'opImplConv';
+    return (
+        symbol.identifierText === 'opConv' ||
+        symbol.identifierText === 'opImplConv' ||
+        symbol.identifierText === 'opCast' ||
+        symbol.identifierText === 'opImplCast'
+    );
 }
 
 function areFunctionsOverloadEquals(lhs: FunctionSymbol, rhs: FunctionSymbol): boolean {

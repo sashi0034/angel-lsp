@@ -103,6 +103,28 @@ describe('analyzer/opCast', () => {
         `);
     });
 
+    it('accepts: opCast overloads can differ only by handle return type.', () => {
+        expectSuccess(`// opCast overloads can differ only by handle return type.
+            class targetA {}
+            class targetB {}
+            class source {
+                targetA@ opCast() { return targetA(); }
+                targetB@ opCast() { return targetB(); }
+            }
+        `);
+    });
+
+    it('accepts: opImplCast overloads can differ only by handle return type.', () => {
+        expectSuccess(`// opImplCast overloads can differ only by handle return type.
+            class targetA {}
+            class targetB {}
+            class source {
+                targetA@ opImplCast() { return targetA(); }
+                targetB@ opImplCast() { return targetB(); }
+            }
+        `);
+    });
+
     it('accepts: opCast handle return conversions can be used by reference casts from values.', () => {
         expectSuccess(`// opCast handle return conversions can be used by reference casts from values.
             class target {}
