@@ -11,8 +11,8 @@ describe('analyzer/defaultConstructor', () => {
         `);
     });
 
-    it('rejects analyzer case 2', () => {
-        expectError(`
+    it('accepts analyzer case 2', () => {
+        expectSuccess(`
             class A { int m; }
             void main() {
                 A a = A(A());

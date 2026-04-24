@@ -7,8 +7,8 @@ import assert = require('node:assert');
 
 export enum ConversionMode {
     Implicit = 'Implicit', // asIC_IMPLICIT_CONV
-    ExplicitRefCast = 'ExplicitRefCast', // asIC_EXPLICIT_REF_CAST
-    ExplicitValueCast = 'ExplicitValueCast' // asIC_EXPLICIT_VAL_CAST
+    ExplicitRefCast = 'ExplicitRefCast', // asIC_EXPLICIT_REF_CAST (for cast<Type>)
+    ExplicitValueCast = 'ExplicitValueCast' // asIC_EXPLICIT_VAL_CAST (for Type(source))
 }
 
 enum ConversionCost {
@@ -155,7 +155,7 @@ function evaluateTypeConversionInternal(
             return evaluateConvPrimitiveToObject(state, from, to);
         } else {
             // Source is an object type
-            return evaluateConvObjectToObject(state, from, to);
+            return evaluateConvObjectToObject(state, from, to, mode);
         }
     }
 }
@@ -297,7 +297,7 @@ function evaluateConvObjectToPrimitive(
     assert(fromType.isType() && toType.isType());
     assert(fromType.isPrimitiveOrEnum() === false || toType.isPrimitiveOrEnum());
 
-    const convFuncList = collectConversionFunctions(fromType);
+    const convFuncList = collectConversionFunctions(fromType, mode);
 
     let selectedConvFunc: FunctionSymbol | undefined = undefined;
     if (toType.isNumberType()) {
@@ -329,7 +329,7 @@ function evaluateConvObjectToPrimitive(
     }
 
     if (selectedConvFunc === undefined && mode === ConversionMode.ExplicitValueCast) {
-        selectedConvFunc = convFuncList.find(convFunc => isOutConversionFunction(convFunc));
+        selectedConvFunc = convFuncList.find(convFunc => isAnyConvFunction(convFunc));
     }
 
     if (selectedConvFunc === undefined) {
@@ -371,7 +371,8 @@ function evaluateConvPrimitiveToObject(
 function evaluateConvObjectToObject(
     state: EvaluationState,
     from: ResolvedType,
-    to: ResolvedType
+    to: ResolvedType,
+    mode: ConversionMode = ConversionMode.Implicit
 ): ConversionEvaluation | undefined {
     const fromType = from.typeOrFunc;
     const toType = to.typeOrFunc;
@@ -382,6 +383,10 @@ function evaluateConvObjectToObject(
     // Check if these are identical
     if (fromType.equals(toType)) {
         return {cost: ConversionCost.NoConv};
+    }
+
+    if (mode === ConversionMode.ExplicitRefCast && from.handle !== undefined && to.handle !== undefined) {
+        return {cost: ConversionCost.RefConv};
     }
 
     // FIXME?
@@ -396,10 +401,17 @@ function evaluateConvObjectToObject(
     }
 
     // Check the conversion using the opConv and opImpl function.
-    const convFuncList = collectConversionFunctions(fromType);
+    const convFuncList = collectConversionFunctions(fromType, mode);
     for (const convFunc of convFuncList) {
         if (convFunc.returnType?.equals(to)) {
             return {cost: ConversionCost.ToObjectConv};
+        }
+    }
+
+    if (mode === ConversionMode.ExplicitRefCast && to.handle !== undefined) {
+        const outRefConvFunc = convFuncList.find(convFunc => isAnyCastFunction(convFunc));
+        if (outRefConvFunc !== undefined) {
+            return {cost: ConversionCost.RefConv};
         }
     }
 
@@ -637,9 +649,10 @@ function areTemplateArgumentsEqual(from: ResolvedType, to: ResolvedType): boolea
     return true;
 }
 
-function collectConversionFunctions(fromType: TypeSymbol | FunctionSymbol) {
-    // TODO: Consider implicit or explicit
-
+function collectConversionFunctions(
+    fromType: TypeSymbol | FunctionSymbol,
+    mode: ConversionMode = ConversionMode.Implicit
+) {
     const convFuncList: FunctionSymbol[] = [];
     const fromMembers =
         resolveActiveScope(fromType.scopePath).lookupScope(fromType.identifierText)?.symbolTable.values() ?? [];
@@ -648,29 +661,45 @@ function collectConversionFunctions(fromType: TypeSymbol | FunctionSymbol) {
             continue;
         }
 
-        if (
-            [
-                'opConv',
-                'opImplConv',
-                'opImplCast' // TODO: This opImplCast is incorrect. It needs to be handled with a dedicated handle.
-            ].includes(methodHolder.identifierText)
-        ) {
+        if (methodHolder.identifierText === 'opImplConv') {
             convFuncList.push(...methodHolder.toList());
+        } else if (methodHolder.identifierText === 'opConv') {
+            if (mode === ConversionMode.ExplicitValueCast) {
+                convFuncList.push(...methodHolder.toList());
+            }
+        } else if (methodHolder.identifierText === 'opImplCast') {
+            if (mode === ConversionMode.ExplicitRefCast) {
+                convFuncList.push(...methodHolder.toList());
+            }
         } else if (methodHolder.identifierText === 'opCast') {
-            convFuncList.push(...methodHolder.toList().filter(isOutConversionFunction));
+            if (mode === ConversionMode.ExplicitRefCast) {
+                convFuncList.push(...methodHolder.toList());
+            }
         }
     }
 
     return convFuncList;
 }
 
-// TODO: Distinguish opConv(?&out) for explicit value casts from opCast(?&out) for explicit ref casts.
-// Check if the function is `void opConv(?&out)` or `void opCast(?&out)`.
-function isOutConversionFunction(convFunc: FunctionSymbol): boolean {
-    if (convFunc.identifierText !== 'opConv' && convFunc.identifierText !== 'opCast') {
+// Check whether the function is `void opConv(?&out)` or `void opImplConv(?&out)`.
+function isAnyConvFunction(convFunc: FunctionSymbol): boolean {
+    if (convFunc.identifierText !== 'opConv' && convFunc.identifierText !== 'opImplConv') {
         return false;
     }
 
+    return hasAnyOutParamSignature(convFunc);
+}
+
+// Check whether the function is `void opCast(?&out)` or `void opImplCast(?&out)`.
+function isAnyCastFunction(convFunc: FunctionSymbol): boolean {
+    if (convFunc.identifierText !== 'opCast' && convFunc.identifierText !== 'opImplCast') {
+        return false;
+    }
+
+    return hasAnyOutParamSignature(convFunc);
+}
+
+function hasAnyOutParamSignature(convFunc: FunctionSymbol): boolean {
     if (convFunc.returnType?.identifierText !== 'void') {
         return false;
     }

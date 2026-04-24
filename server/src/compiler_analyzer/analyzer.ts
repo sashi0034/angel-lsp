@@ -91,6 +91,7 @@ import {checkDefaultConstructorCall, assertDefaultSuperConstructorCall, findCons
 import assert = require('node:assert');
 import {checkForEachIterator} from './foreachStatement';
 import {stringifyResolvedType} from './symbolStringifier';
+import {ConversionMode} from './typeConversion';
 
 export type HoistQueue = (() => void)[];
 
@@ -1315,12 +1316,22 @@ function analyzeExprPostOp2(
 function analyzeCast(scope: SymbolScope, cast: Node_Cast): ResolvedType | undefined {
     const castedType = analyzeType(scope, cast.type);
     const sourceType = analyzeAssign(scope, cast.assign);
+    const targetType =
+        sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true
+            ? castedType.cloneWithHandle(sourceType.handle).cloneWithConst(castedType.isConst || sourceType.isConst)
+            : castedType;
 
-    if (sourceType?.handle !== undefined && castedType?.typeOrFunc.isType() === true) {
-        return castedType.cloneWithHandle(sourceType.handle).cloneWithConst(castedType.isConst || sourceType.isConst);
+    const canFallbackToValueCast =
+        targetType?.typeOrFunc.isType() === true && !targetType.typeOrFunc.isPrimitiveOrEnum();
+    if (!checkTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitRefCast)) {
+        if (canFallbackToValueCast) {
+            assertTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitValueCast);
+        } else {
+            assertTypeCast(sourceType, targetType, cast.nodeRange, ConversionMode.ExplicitRefCast);
+        }
     }
 
-    return castedType;
+    return targetType;
 }
 
 // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
