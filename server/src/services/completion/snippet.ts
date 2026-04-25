@@ -87,6 +87,12 @@ export const snippetDefinitions: SnippetDefinition[] = [
         contexts: [SnippetContext.Everywhere]
     },
     {
+        label: 'function',
+        insertText: 'function ($1) {\n\t$0\n}',
+        detail: 'Lambda expression',
+        contexts: [SnippetContext.Everywhere]
+    },
+    {
         label: 'namespace',
         insertText: 'namespace ${1:IDENTIFIER} {\n\t$0\n}',
         detail: 'Namespace definition',
