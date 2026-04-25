@@ -102,19 +102,11 @@ function makeDirectiveCompletionItem(
     const leadingIndent = ' '.repeat(directiveLine.lineHead.location.start.character);
     const insertText = definition.makeInsertText?.(leadingIndent) ?? definition.insertText;
 
-    const editRange =
-        directiveLine.directiveNameToken?.location.start.line === directiveLine.lineHead.location.start.line
-            ? directiveLine.directiveNameToken.location
-            : {
-                  start: directiveLine.lineHead.location.end,
-                  end: directiveLine.lineHead.location.end
-              };
-
     return {
         label: definition.label,
         kind: CompletionItemKind.Snippet,
         detail: definition.detail,
-        textEdit: TextEdit.replace(editRange, insertText),
+        insertText,
         additionalTextEdits: [
             TextEdit.del({
                 start: new TextPosition(directiveLine.lineHead.location.start.line, 0),
