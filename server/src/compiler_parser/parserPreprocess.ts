@@ -3,6 +3,7 @@ import {diagnostic} from '../core/diagnostic';
 import {HighlightForModifier, HighlightForToken} from '../core/highlight';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
+import * as assert from 'node:assert';
 
 /**
  * Output of `preprocessAfterTokenize`.
@@ -105,8 +106,9 @@ function evaluateIfDirectiveCondition(
         case TokenKind.Identifier:
             return context.intermediateOutput.definedSymbols.has(conditionToken.text);
         case TokenKind.Number: {
-            const value = Number(conditionToken.text);
-            return Number.isNaN(value) ? undefined : value !== 0;
+            assert(conditionToken.isNumberToken());
+            const value = conditionToken.getNumberValue();
+            return value === undefined ? undefined : value !== 0;
         }
         default:
             return undefined;

@@ -104,4 +104,51 @@ int oneBranch;
         ok(!tokenTexts.includes('zeroBranch'));
         ok(tokenTexts.includes('oneBranch'));
     });
+
+    it('evaluates prefixed numeric #if conditions', () => {
+        const content = `
+#if 0x0
+int hexZeroBranch;
+#endif
+
+#if 0x2356
+int hexBranch;
+#endif
+
+#if 0b0
+int binaryZeroBranch;
+#endif
+
+#if 0b0101
+int binaryBranch;
+#endif
+
+#if 0o0
+int octalZeroBranch;
+#endif
+
+#if 0o123
+int octalBranch;
+#endif
+
+#if 0d0
+int decimalZeroBranch;
+#endif
+
+#if 0d2356
+int decimalBranch;
+#endif
+`;
+
+        const tokenTexts = getPreprocessedTokenTexts(content);
+
+        ok(!tokenTexts.includes('hexZeroBranch'));
+        ok(tokenTexts.includes('hexBranch'));
+        ok(!tokenTexts.includes('binaryZeroBranch'));
+        ok(tokenTexts.includes('binaryBranch'));
+        ok(!tokenTexts.includes('octalZeroBranch'));
+        ok(tokenTexts.includes('octalBranch'));
+        ok(!tokenTexts.includes('decimalZeroBranch'));
+        ok(tokenTexts.includes('decimalBranch'));
+    });
 });
