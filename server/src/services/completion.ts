@@ -20,6 +20,7 @@ import {getGlobalSettings} from '../core/settings';
 import {isCaretInDeclarationPart} from './completion/declarationPart';
 import {provideFunctionSectionCompletion} from './completion/functionSection';
 import {provideSnippetCompletion} from './completion/snippet';
+import {provideDirectiveCompletion} from './completion/directive';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -30,6 +31,7 @@ export interface CompletionItemWrapper {
  * Returns the completion candidates for the specified position.
  */
 export function provideCompletion(
+    rawTokens: TokenObject[],
     preprocessedTokens: TokenObject[],
     ast: Node_Script,
     globalScope: SymbolGlobalScope,
@@ -37,6 +39,11 @@ export function provideCompletion(
 ): CompletionItemWrapper[] {
     if (isCaretInDeclarationPart(preprocessedTokens, ast, caret)) {
         return [];
+    }
+
+    const directiveCompletion = provideDirectiveCompletion(rawTokens, caret);
+    if (directiveCompletion !== undefined) {
+        return directiveCompletion.map(item => ({item}));
     }
 
     const functionSectionCompletion = provideFunctionSectionCompletion(ast, caret);

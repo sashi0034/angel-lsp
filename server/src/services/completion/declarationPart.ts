@@ -100,6 +100,10 @@ function isCaretInRange(start: TextPosition, end: TextPosition | undefined, care
         return false;
     }
 
+    if (caret.line !== start.line) {
+        return false;
+    }
+
     return !caret.isLessThan(start) && !end.isLessThan(caret);
 }
 

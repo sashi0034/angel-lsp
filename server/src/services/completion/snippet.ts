@@ -158,13 +158,6 @@ export const snippetDefinitions: SnippetDefinition[] = [
         insertText: 'protected $0',
         detail: 'Protected access modifier',
         contexts: [SnippetContext.Class]
-    },
-    {
-        // TODO: Only show when '#' is before the label
-        label: 'include',
-        insertText: 'include "${1:HEADER}"',
-        detail: 'Include other file',
-        contexts: [SnippetContext.Script]
     }
 ];
 

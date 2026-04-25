@@ -415,6 +415,7 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
 
     // Collect completion candidates for symbols.
     const items = provideCompletion(
+        record.rawTokens,
         record.preprocessedOutput.preprocessedTokens,
         record.ast,
         globalScope.globalScope,
