@@ -1,13 +1,19 @@
 import {afterEach, describe, it} from 'mocha';
 import {copyGlobalSettings, resetGlobalSettings} from '../../src/core/settings';
 import {inspectFileContents} from '../inspectorUtils';
-import {ok} from 'node:assert';
+import {equal, ok} from 'node:assert';
+import {DiagnosticTag} from 'vscode-languageserver-types';
 
 const uri = 'file:///path/to/file.as';
 
 function getPreprocessedTokenTexts(content: string): string[] {
     const inspector = inspectFileContents([{uri, content}]);
     return inspector.getRecord(uri).preprocessedOutput.preprocessedTokens.map(token => token.text);
+}
+
+function getPreprocessorDiagnostics(content: string) {
+    const inspector = inspectFileContents([{uri, content}]);
+    return inspector.getRecord(uri).diagnosticsInParser;
 }
 
 describe('compiler/preprocessor', () => {
@@ -86,6 +92,26 @@ int elseBranch;
         ok(!tokenTexts.includes('disabledBranch'));
         ok(!tokenTexts.includes('elifBranch'));
         ok(tokenTexts.includes('elseBranch'));
+    });
+
+    it('marks only the inactive #else branch unnecessary', () => {
+        const content = `
+#if 1
+int ifBranch;
+#else
+int elseBranch;
+#endif
+`;
+
+        const tokenTexts = getPreprocessedTokenTexts(content);
+        const diagnostics = getPreprocessorDiagnostics(content).filter(diagnostic =>
+            diagnostic.tags?.includes(DiagnosticTag.Unnecessary)
+        );
+
+        ok(tokenTexts.includes('ifBranch'));
+        ok(!tokenTexts.includes('elseBranch'));
+        equal(diagnostics.length, 1);
+        equal(diagnostics[0].range.start.line, 4);
     });
 
     it('evaluates numeric #if conditions', () => {

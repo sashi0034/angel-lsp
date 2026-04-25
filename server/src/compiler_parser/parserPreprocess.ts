@@ -98,6 +98,21 @@ function updateInactiveBlockStatus(context: DirectivePreprocessorContext) {
     context.isActiveBlock = true;
 }
 
+function getDirectiveBlockStart(directiveTokens: TokenObject[]): TextLocation {
+    const directiveTail = directiveTokens[directiveTokens.length - 1];
+    return (directiveTail.nextRaw ?? directiveTail).location;
+}
+
+function reportInactiveDirectiveBlockIfNeeded(
+    context: DirectivePreprocessorContext,
+    currentIfDirectiveBlock: IfDirectiveBlock,
+    end: TextPosition
+) {
+    if (!context.isActiveBlock) {
+        diagnostic.unnecessary(currentIfDirectiveBlock.start.withEnd(end), 'Inactive #if branch');
+    }
+}
+
 function evaluateIfDirectiveCondition(
     context: DirectivePreprocessorContext,
     conditionToken: TokenObject
@@ -218,10 +233,9 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
             return;
         }
 
-        const directiveTail = directiveTokens[directiveTokens.length - 1];
         context.ifDirectiveBlockStack.push({
             tag: '#if',
-            start: (directiveTail.nextRaw ?? directiveTail)?.location,
+            start: getDirectiveBlockStart(directiveTokens),
             isActiveBlock: condition,
             hasActiveBranch: condition,
             hasElse: false
@@ -243,7 +257,14 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
             return;
         }
 
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
+
         const condition = getIfDirectiveCondition(context, directiveTokens);
+        currentIfDirectiveBlock.start = getDirectiveBlockStart(directiveTokens);
         if (condition === undefined) {
             currentIfDirectiveBlock.isActiveBlock = false;
             updateInactiveBlockStatus(context);
@@ -270,6 +291,13 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
             return;
         }
 
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
+
+        currentIfDirectiveBlock.start = getDirectiveBlockStart(directiveTokens);
         currentIfDirectiveBlock.isActiveBlock = !currentIfDirectiveBlock.hasActiveBranch;
         currentIfDirectiveBlock.hasActiveBranch =
             currentIfDirectiveBlock.hasActiveBranch || currentIfDirectiveBlock.isActiveBlock;
@@ -286,12 +314,11 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
             return;
         }
 
-        if (!context.isActiveBlock) {
-            diagnostic.unnecessary(
-                currentIfDirectiveBlock.start.withEnd((directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end),
-                '#if ... #endif' // TODO
-            );
-        }
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
 
         context.ifDirectiveBlockStack.pop();
 
