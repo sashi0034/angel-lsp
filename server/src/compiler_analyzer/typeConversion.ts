@@ -11,7 +11,7 @@ export enum ConversionMode {
     FunctionalCast = 'FunctionalCast' // for Type(source) (asIC_EXPLICIT_VAL_CAST)
 }
 
-enum ConversionCost {
+export enum ConversionCost {
     NoConv = 0,
     ConstConv = 1,
     EnumSameSizeConv = 2,
