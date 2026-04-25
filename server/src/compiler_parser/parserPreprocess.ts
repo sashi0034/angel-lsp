@@ -195,6 +195,10 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
         // e.g., #include "filename"
         directiveTokens[1].setHighlight(directiveHighlight);
 
+        if (!context.isActiveBlock) {
+            return;
+        }
+
         // Validate the include directive.
         const fileName = directiveTokens[2];
         if (fileName === undefined) {
@@ -211,6 +215,10 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
     } else if (directiveTokens[1].text === 'define') {
         // e.g., #define SYMBOL_NAME
         directiveTokens[1].setHighlight(directiveHighlight);
+
+        if (!context.isActiveBlock) {
+            return;
+        }
 
         const symbolName = directiveTokens[2];
         if (symbolName === undefined) {

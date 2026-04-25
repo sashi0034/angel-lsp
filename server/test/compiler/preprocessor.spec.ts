@@ -16,6 +16,11 @@ function getPreprocessorDiagnostics(content: string) {
     return inspector.getRecord(uri).diagnosticsInParser;
 }
 
+function getIncludePathTokenTexts(content: string): string[] {
+    const inspector = inspectFileContents([{uri, content}]);
+    return inspector.getRecord(uri).preprocessedOutput.includePathTokens.map(token => token.text);
+}
+
 describe('compiler/preprocessor', () => {
     afterEach(() => {
         resetGlobalSettings(undefined);
@@ -129,6 +134,42 @@ int oneBranch;
 
         ok(!tokenTexts.includes('zeroBranch'));
         ok(tokenTexts.includes('oneBranch'));
+    });
+
+    it('omits includes from inactive #if blocks', () => {
+        const content = `
+#if 0
+#include "disabled.as"
+#endif
+
+#if 1
+#include "enabled.as"
+#endif
+`;
+
+        const includePathTexts = getIncludePathTokenTexts(content);
+
+        ok(!includePathTexts.includes('"disabled.as"'));
+        ok(includePathTexts.includes('"enabled.as"'));
+    });
+
+    it('omits defines from inactive #if blocks', () => {
+        const content = `
+#if 0
+#define DISABLED_SYMBOL
+#endif
+
+#if DISABLED_SYMBOL
+int disabledBranch;
+#else
+int elseBranch;
+#endif
+`;
+
+        const tokenTexts = getPreprocessedTokenTexts(content);
+
+        ok(!tokenTexts.includes('disabledBranch'));
+        ok(tokenTexts.includes('elseBranch'));
     });
 
     it('evaluates prefixed numeric #if conditions', () => {
