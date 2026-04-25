@@ -1,5 +1,5 @@
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
-import {InsertTextFormat} from 'vscode-languageserver';
+import {InsertTextFormat, TextEdit} from 'vscode-languageserver';
 import {TokenObject} from '../../compiler_tokenizer/tokenObject';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {findNearestToken} from '../utils';
@@ -9,6 +9,7 @@ interface DirectiveCompletionDefinition {
     readonly label: string;
     readonly insertText: string;
     readonly detail: string;
+    readonly makeInsertText?: (leadingIndent: string) => string;
 }
 
 export const directiveCompletionDefinitions: DirectiveCompletionDefinition[] = [
@@ -25,17 +26,20 @@ export const directiveCompletionDefinitions: DirectiveCompletionDefinition[] = [
     {
         label: 'if',
         insertText: 'if ${1:SYMBOL}\n#endif',
-        detail: 'Conditional preprocessing block'
+        detail: 'Conditional preprocessing block',
+        makeInsertText: leadingIndent => `if \${1:SYMBOL}\n${leadingIndent}$0\n#endif`
     },
     {
         label: 'elif',
         insertText: 'elif ${1:SYMBOL}',
-        detail: 'Conditional preprocessing branch'
+        detail: 'Conditional preprocessing branch',
+        makeInsertText: leadingIndent => `elif \${1:SYMBOL}\n${leadingIndent}$0`
     },
     {
         label: 'else',
         insertText: 'else',
-        detail: 'Conditional preprocessing fallback branch'
+        detail: 'Conditional preprocessing fallback branch',
+        makeInsertText: leadingIndent => `else\n${leadingIndent}$0`
     },
     {
         label: 'endif',
@@ -48,7 +52,8 @@ export function provideDirectiveCompletion(
     rawTokens: TokenObject[],
     caret: TextPosition
 ): CompletionItem[] | undefined {
-    if (!isCaretInDirectiveLine(rawTokens, caret)) {
+    const directiveLine = getDirectiveLine(rawTokens, caret);
+    if (directiveLine === undefined) {
         return undefined;
     }
 
@@ -56,14 +61,17 @@ export function provideDirectiveCompletion(
         return [];
     }
 
-    return directiveCompletionDefinitions.map(makeDirectiveCompletionItem);
+    return directiveCompletionDefinitions.map(definition => makeDirectiveCompletionItem(definition, directiveLine));
 }
 
-export function isCaretInDirectiveLine(rawTokens: TokenObject[], caret: TextPosition): boolean {
+function getDirectiveLine(
+    rawTokens: TokenObject[],
+    caret: TextPosition
+): {lineHead: TokenObject; directiveNameToken: TokenObject | undefined} | undefined {
     const tokenInfo = findNearestToken(rawTokens, caret);
     const tokenOnLine = tokenInfo.containingToken ?? tokenInfo.precedingToken ?? tokenInfo.followingToken;
     if (tokenOnLine === undefined || tokenOnLine.location.start.line !== caret.line) {
-        return false;
+        return undefined;
     }
 
     let lineHead = tokenOnLine;
@@ -72,23 +80,47 @@ export function isCaretInDirectiveLine(rawTokens: TokenObject[], caret: TextPosi
     }
 
     if (lineHead.text !== '#' || caret.character < lineHead.location.end.character) {
-        return false;
+        return undefined;
     }
 
     const directiveNameToken = lineHead.nextRaw;
-    return (
+    if (
         directiveNameToken === undefined ||
         directiveNameToken.location.start.line !== caret.line ||
         caret.character <= directiveNameToken.location.end.character
-    );
+    ) {
+        return {lineHead, directiveNameToken};
+    }
+
+    return undefined;
 }
 
-function makeDirectiveCompletionItem(definition: DirectiveCompletionDefinition): CompletionItem {
+function makeDirectiveCompletionItem(
+    definition: DirectiveCompletionDefinition,
+    directiveLine: {lineHead: TokenObject; directiveNameToken: TokenObject | undefined}
+): CompletionItem {
+    const leadingIndent = ' '.repeat(directiveLine.lineHead.location.start.character);
+    const insertText = definition.makeInsertText?.(leadingIndent) ?? definition.insertText;
+
+    const editRange =
+        directiveLine.directiveNameToken?.location.start.line === directiveLine.lineHead.location.start.line
+            ? directiveLine.directiveNameToken.location
+            : {
+                  start: directiveLine.lineHead.location.end,
+                  end: directiveLine.lineHead.location.end
+              };
+
     return {
         label: definition.label,
         kind: CompletionItemKind.Snippet,
         detail: definition.detail,
-        insertText: definition.insertText,
+        textEdit: TextEdit.replace(editRange, insertText),
+        additionalTextEdits: [
+            TextEdit.del({
+                start: new TextPosition(directiveLine.lineHead.location.start.line, 0),
+                end: directiveLine.lineHead.location.start
+            })
+        ],
         insertTextFormat: InsertTextFormat.Snippet
     };
 }
