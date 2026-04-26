@@ -35,11 +35,13 @@ export enum BreakOrThrough {
  */
 export type ParseResult<T> = T | ParseFailure;
 
+type SpecialToken = CommentToken; // FIXME?
+
 export class ParserState {
     private _lastTokenAtError: TokenObject | undefined;
 
-    private readonly _sofToken; // start of file
-    private readonly _eofToken; // end of file
+    private readonly _sofToken: SpecialToken; // start of file
+    private readonly _eofToken: SpecialToken; // end of file
 
     /**
      * Whether the current file is an `as.predefined` file.
@@ -56,7 +58,7 @@ export class ParserState {
         this.isPredefinedFile = _tokens.at(0)?.location.path.endsWith('as.predefined') ?? false;
     }
 
-    public backtrack(token: TokenObject) {
+    public rewindTo(token: TokenObject) {
         this._cursorIndex = token.index;
     }
 
@@ -64,7 +66,7 @@ export class ParserState {
         return this._cursorIndex >= this._tokens.length;
     }
 
-    public next(step: number = 0): TokenObject {
+    public peek(step: number = 0): TokenObject {
         if (this._cursorIndex + step >= this._tokens.length) {
             return this._eofToken;
         }
@@ -72,11 +74,11 @@ export class ParserState {
         return this._tokens[this._cursorIndex + step];
     }
 
-    public hasNext(step: number = 0): boolean {
+    public canPeek(step: number = 0): boolean {
         return this._cursorIndex + step < this._tokens.length;
     }
 
-    public prev(): TokenObject {
+    public previous(): TokenObject {
         if (this._cursorIndex <= 0) {
             return this._sofToken;
         }
@@ -84,20 +86,20 @@ export class ParserState {
         return this._tokens[this._cursorIndex - 1];
     }
 
-    public step() {
+    public advance() {
         this._cursorIndex++;
     }
 
     /**
      * Apply highlighting to the current token and advance to the next one.
      */
-    public commit(highlightForToken: HighlightForToken) {
-        const next = this.next();
+    public consume(highlightForToken: HighlightForToken) {
+        const next = this.peek();
         if (next.isVirtual() === false) {
             next.setHighlight(highlightForToken);
         }
 
-        this.step();
+        this.advance();
     }
 
     /**
@@ -109,27 +111,27 @@ export class ParserState {
             return false;
         }
 
-        const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === reservedWord;
+        const isExpectedWord = this.peek().kind === TokenKind.Reserved && this.peek().text === reservedWord;
         if (isExpectedWord === false) {
             this.error(`Expected '${reservedWord}'.`);
             return false;
         }
 
-        this.commit(highlight);
+        this.consume(highlight);
         return true;
     }
 
     public error(message: string) {
-        if (this._lastTokenAtError === this.next()) {
+        if (this._lastTokenAtError === this.peek()) {
             return;
         }
 
-        diagnostic.error(this.next().location, message);
-        this._lastTokenAtError = this.next();
+        diagnostic.error(this.peek().location, message);
+        this._lastTokenAtError = this.peek();
     }
 
-    public hasErrorAtCurrentToken(): boolean {
-        return this._lastTokenAtError === this.next();
+    public hasErrorAhead(): boolean {
+        return this._lastTokenAtError === this.peek();
     }
 }
 
@@ -139,7 +141,6 @@ function makeSofToken(firstToken: TokenObject | undefined) {
     }
 
     const start = new TextPosition(0, 0);
-    // FIXME: Maybe we should create a special token separately
     return new CommentToken('', new TextLocation(firstToken.location.path, start, start));
 }
 
@@ -151,7 +152,7 @@ function makeEofToken(lastToken: TokenObject | undefined) {
     const end0 = MutableTextPosition.create(lastToken.location.end);
     end0.character_ += 1;
     const end = end0.freeze();
-    // FIXME: Maybe we should create a special token separately
+
     const token = new CommentToken('', new TextLocation(lastToken.location.path, end, end));
     token.bindPreprocessedToken(lastToken.index + 1, undefined);
     return token;
