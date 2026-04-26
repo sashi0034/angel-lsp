@@ -1,4 +1,4 @@
-import {HighlightForToken} from '../core/highlight';
+import {TokenHighlight} from '../core/highlight';
 import {diagnostic} from '../core/diagnostic';
 import {CommentToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {MutableTextPosition, TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
@@ -93,10 +93,10 @@ export class ParserState {
     /**
      * Apply highlighting to the current token and advance to the next one.
      */
-    public consume(highlightForToken: HighlightForToken) {
+    public consume(tokenHighlight: TokenHighlight) {
         const next = this.peek();
         if (next.isVirtual() === false) {
-            next.setHighlight(highlightForToken);
+            next.setHighlight(tokenHighlight);
         }
 
         this.advance();
@@ -105,7 +105,7 @@ export class ParserState {
     /**
      * Check whether the next token is the expected reserved word.
      */
-    public expect(reservedWord: string, highlight: HighlightForToken) {
+    public expect(reservedWord: string, highlight: TokenHighlight) {
         if (this.isEnd()) {
             this.error('Unexpected end of file.');
             return false;

@@ -1,6 +1,6 @@
 import {TokenKind, TokenObject, StringToken} from '../compiler_tokenizer/tokenObject';
 import {diagnostic} from '../core/diagnostic';
-import {HighlightForModifier, HighlightForToken} from '../core/highlight';
+import {TokenHighlight} from '../core/highlight';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
 import * as assert from 'node:assert';
@@ -185,7 +185,7 @@ function preprocessDirectives(rawTokens: TokenObject[], externalDefinedSymbols: 
 }
 
 function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveTokens: TokenObject[]) {
-    const directiveHighlight = HighlightForToken.Macro;
+    const directiveHighlight = TokenHighlight.Macro;
     directiveTokens[0].setHighlight(directiveHighlight); // '#'
     if (directiveTokens.length === 1) {
         return;
@@ -333,7 +333,7 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
         updateInactiveBlockStatus(context);
     } else {
         if (directiveTokens[1] != null) {
-            directiveTokens[1].setHighlight(HighlightForToken.Label);
+            directiveTokens[1].setHighlight(TokenHighlight.Label);
         }
     }
 }

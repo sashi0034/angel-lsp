@@ -1,6 +1,6 @@
 // https://code.visualstudio.com/api/language-extensions/semantic-highlight-guide
 
-export enum HighlightForToken {
+export enum TokenHighlight {
     Invalid,
     Namespace, // For identifiers that declare or reference a namespace, module, or package.
     Class, // For identifiers that declare or reference a class type.
@@ -29,7 +29,7 @@ export enum HighlightForToken {
     ControlKeyword // For keywords that affect control(for, while, etc.).
 }
 
-export const highlightForTokenList = [
+export const tokenHighlightList = [
     '',
     'namespace',
     'class',
@@ -57,7 +57,7 @@ export const highlightForTokenList = [
     'controlKeyword'
 ];
 
-export enum HighlightForModifier {
+export enum TokenHighlightModifier {
     Nothing,
     Declaration, // For declarations of symbols.
     Definition, // For definitions of symbols, for example, in header files.
@@ -71,7 +71,7 @@ export enum HighlightForModifier {
     DefaultLibrary // For symbols that are part of the standard library.
 }
 
-export const highlightForModifierList = [
+export const tokenHighlightModifierList = [
     '',
     'declaration',
     'definition',

@@ -1,7 +1,7 @@
 import * as lsp from 'vscode-languageserver/node';
 import * as lsp_textDocument from 'vscode-languageserver-textdocument';
 
-import {highlightForModifierList, highlightForTokenList} from './core/highlight';
+import {tokenHighlightModifierList, tokenHighlightList} from './core/highlight';
 import {provideDefinitionAsToken} from './services/definition';
 import {Inspector} from './inspector/inspector';
 import {CompletionItemWrapper, provideCompletion} from './services/completion';
@@ -90,8 +90,8 @@ s_connection.onInitialize((params: lsp.InitializeParams) => {
             // },
             semanticTokensProvider: {
                 legend: {
-                    tokenTypes: highlightForTokenList,
-                    tokenModifiers: highlightForModifierList
+                    tokenTypes: tokenHighlightList,
+                    tokenModifiers: tokenHighlightModifierList
                 },
                 range: false, // Set to true to support range-based requests.
                 full: true

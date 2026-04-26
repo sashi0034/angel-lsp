@@ -1,4 +1,4 @@
-import {HighlightForModifier, HighlightForToken} from '../core/highlight';
+import {TokenHighlightModifier, TokenHighlight} from '../core/highlight';
 import {findAllReservedWordProperty, ReservedWordProperty} from './reservedWord';
 import {TextLocation} from './textLocation';
 import {TokenRange} from './tokenRange';
@@ -18,8 +18,8 @@ export enum TokenKind {
 }
 
 interface HighlightInfo {
-    token: HighlightForToken;
-    modifier: HighlightForModifier;
+    tokenHighlight: TokenHighlight;
+    modifier: TokenHighlightModifier;
 }
 
 const emptyLocation = TextLocation.createEmpty();
@@ -52,9 +52,9 @@ export abstract class TokenObject {
         // Token location. Virtual tokens may instead provide the covered range.
         location: TextLocation | TokenRange | undefined,
         // Initial highlight information for the token type.
-        highlightToken: HighlightForToken,
+        tokeHighlight: TokenHighlight,
         // Initial highlight information for the token modifier.
-        highlightModifier: HighlightForModifier = HighlightForModifier.Nothing
+        tokeHighlightModifier: TokenHighlightModifier = TokenHighlightModifier.Nothing
     ) {
         if (location instanceof TextLocation) {
             this._location = location;
@@ -62,7 +62,7 @@ export abstract class TokenObject {
             this._coveredRange = location;
         }
 
-        this._highlight = {token: highlightToken, modifier: highlightModifier};
+        this._highlight = {tokenHighlight: tokeHighlight, modifier: tokeHighlightModifier};
     }
 
     public abstract get kind(): TokenKind;
@@ -71,12 +71,12 @@ export abstract class TokenObject {
         return this._location ?? this._coveredRange?.getBoundingLocation() ?? emptyLocation;
     }
 
-    public setHighlight(token: HighlightForToken, modifier?: HighlightForModifier) {
+    public setHighlight(tokenHighlight: TokenHighlight, modifier?: TokenHighlightModifier) {
         assert(this.isVirtual() === false);
         if (modifier === undefined) {
-            this._highlight.token = token;
+            this._highlight.tokenHighlight = tokenHighlight;
         } else {
-            this._highlight = {token: token, modifier: modifier};
+            this._highlight = {tokenHighlight: tokenHighlight, modifier: modifier};
         }
     }
 
@@ -189,7 +189,7 @@ export class ReservedToken extends TokenObject {
     public readonly property: ReservedWordProperty;
 
     public constructor(text: string, location: TextLocation | TokenRange | undefined, property?: ReservedWordProperty) {
-        super(text, location, HighlightForToken.Keyword);
+        super(text, location, TokenHighlight.Keyword);
 
         this.property = property ?? findAllReservedWordProperty(text);
     }
@@ -205,7 +205,7 @@ export class ReservedToken extends TokenObject {
 
 export class IdentifierToken extends TokenObject {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
-        super(text, location, HighlightForToken.Variable);
+        super(text, location, TokenHighlight.Variable);
     }
 
     public static createVirtual(text: string, coveredRange?: TokenRange): IdentifierToken {
@@ -229,7 +229,7 @@ export class NumberToken extends TokenObject {
         location: TextLocation,
         public readonly numberLiteral: NumberLiteral
     ) {
-        super(text, location, HighlightForToken.Number);
+        super(text, location, TokenHighlight.Number);
     }
 
     public get kind(): TokenKind.Number {
@@ -246,7 +246,7 @@ export class NumberToken extends TokenObject {
 
 export class StringToken extends TokenObject {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
-        super(text, location, HighlightForToken.String);
+        super(text, location, TokenHighlight.String);
     }
 
     public static createVirtual(text: string, coveredRange?: TokenRange): StringToken {
@@ -268,7 +268,7 @@ export class StringToken extends TokenObject {
 
 export class CommentToken extends TokenObject {
     public constructor(text: string, location: TextLocation) {
-        super(text, location, HighlightForToken.Comment);
+        super(text, location, TokenHighlight.Comment);
     }
 
     public get kind(): TokenKind.Comment {

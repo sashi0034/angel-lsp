@@ -16,7 +16,7 @@ function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenObject) 
         token.location.start.line,
         token.location.start.character,
         token.text.length,
-        token.highlight.token,
+        token.highlight.tokenHighlight,
         token.highlight.modifier
     );
 
@@ -26,14 +26,14 @@ function pushTokenToBuilder(builder: SemanticTokensBuilder, token: TokenObject) 
 
     // Multi-line tokens have to be split by line.
     for (let i = token.location.start.line + 1; i < token.location.end.line; i++) {
-        builder.push(i, 0, token.text.length, token.highlight.token, token.highlight.modifier);
+        builder.push(i, 0, token.text.length, token.highlight.tokenHighlight, token.highlight.modifier);
     }
 
     builder.push(
         token.location.end.line,
         0,
         token.location.end.character,
-        token.highlight.token,
+        token.highlight.tokenHighlight,
         token.highlight.modifier
     );
 }
