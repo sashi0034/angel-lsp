@@ -256,9 +256,7 @@ function parseUsing(parser: ParserState): ParseResult<Node_Using> {
     const rangeStart = parser.peek();
     parser.consume(TokenHighlight.Keyword);
 
-    if (parser.expect('namespace', TokenHighlight.Keyword) === false) {
-        return ParseFailure.Incomplete;
-    }
+    parser.expect('namespace', TokenHighlight.Keyword);
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
