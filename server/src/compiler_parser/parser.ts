@@ -534,15 +534,13 @@ function expectClassMembers(parser: ParserState) {
 }
 
 // TYPE IDENTIFIER
-function parseVariableInForEach(parser: ParserState): VariableInForEach | undefined {
+function expectVariableInForEach(parser: ParserState): VariableInForEach | undefined {
     const type = expectType(parser);
-
     if (type === undefined) {
         return undefined;
     }
 
     const identifier = expectIdentifier(parser, TokenHighlight.Variable);
-
     if (identifier === undefined) {
         return undefined;
     }
@@ -1391,12 +1389,7 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
 
         const param = parseParameter(parser, isVariadic);
         if (param === undefined) {
-            // If this is not a valid identifier, it can never become a valid constructor call.
-            if (parser.peek().kind === TokenKind.String || parser.peek().kind === TokenKind.Number) {
-                return undefined;
-            }
-
-            // If this is not a type, it is probably a variable followed by a constructor call.
+            parser.error('Expected parameter.');
             parser.advance();
             continue;
         }
@@ -2069,7 +2062,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
             break;
         }
 
-        const variable = parseVariableInForEach(parser);
+        const variable = expectVariableInForEach(parser);
 
         if (variable === undefined) {
             parser.error('Invalid variable declaration.');
