@@ -2,9 +2,18 @@
 
 import {
     AccessModifierToken,
+    ConstModifierToken,
+    EntityAttributeToken,
+    FunctionAttributeToken,
+    GetterOrSetter,
+    HandleAndConstTokenPair,
+    HandleModifierToken,
+    IdentifierAndInitializer,
+    IdentifierAndOptionalExpr,
+    InOutModifierToken,
+    MixinAttributeToken,
     Node_ArgList,
     Node_Assign,
-    NodeBase,
     Node_Break,
     Node_Case,
     Node_Cast,
@@ -25,7 +34,6 @@ import {
     Node_ExprValue,
     Node_For,
     Node_ForEach,
-    VariableInForEach,
     Node_Func,
     Node_FuncCall,
     Node_FuncDef,
@@ -39,7 +47,6 @@ import {
     Node_ListEntry,
     Node_ListPattern,
     Node_Literal,
-    NodeName,
     Node_Namespace,
     Node_Parameter,
     Node_ParamList,
@@ -57,25 +64,18 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
+    NodeBase,
+    NodeName,
     OptionalIdentifierAndAssign,
-    IdentifierAndOptionalExpr,
-    GetterOrSetter,
-    IdentifierAndInitializer,
-    HandleAndConstTokenPair,
-    ConstModifierToken,
-    EntityAttributeToken,
-    FunctionAttributeToken,
-    InOutModifierToken,
     RefModifierToken,
     RepeatModifierToken,
-    HandleModifierToken,
-    VoidParameter,
-    voidParameter,
     ScopeAndIdentifier,
-    MixinAttributeToken
+    VariableInForEach,
+    VoidParameter,
+    voidParameter
 } from './nodeObject';
 import {HighlightForToken} from '../core/highlight';
-import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
+import {ReservedToken, TokenKind, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {BreakOrThrough, ParseFailure, ParseResult, ParserState} from './parserState';
 import {areTokensJoinedBy} from '../compiler_tokenizer/tokenUtils';
 import {Mutable} from '../utils/utilities';
@@ -256,7 +256,9 @@ function parseUsing(parser: ParserState): ParseResult<Node_Using> {
     const rangeStart = parser.peek();
     parser.consume(HighlightForToken.Keyword);
 
-    parser.expect('namespace', HighlightForToken.Keyword);
+    if (parser.expect('namespace', HighlightForToken.Keyword) === false) {
+        return ParseFailure.Pending;
+    }
 
     const namespaceList: TokenObject[] = [];
     while (parser.isEnd() === false) {
