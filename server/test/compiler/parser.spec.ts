@@ -91,6 +91,24 @@ describe('Parser', () => {
         `);
     });
 
+    it('parses virtual properties in interface declarations', () => {
+        expectSuccess(`
+            interface MyInterface
+            {
+                int value { get; set; }
+            }
+        `);
+    });
+
+    it('parses virtual property accessors without bodies', () => {
+        expectSuccess(`
+            class Foo
+            {
+                int value { get; set; }
+            }
+        `);
+    });
+
     it('parses enum declarations with explicit values', () => {
         expectSuccess(`
             enum MyEnum
@@ -193,6 +211,14 @@ describe('Parser', () => {
 
     it('rejects an incomplete funcdef', () => {
         expectFailure(`funcdef`);
+    });
+
+    it('rejects typedef declarations without an identifier', () => {
+        expectFailure(`typedef int ;`);
+    });
+
+    it('rejects funcdef declarations without an identifier', () => {
+        expectFailure(`funcdef void ();`);
     });
 
     it('rejects an incomplete function declaration', () => {

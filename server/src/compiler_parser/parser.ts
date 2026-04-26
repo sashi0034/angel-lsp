@@ -569,8 +569,10 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
         return ParseFailure.Pending;
     }
 
-    const identifier = parser.peek();
-    parser.consume(HighlightForToken.Type);
+    const identifier = expectIdentifier(parser, HighlightForToken.Type);
+    if (identifier === undefined) {
+        return ParseFailure.Pending;
+    }
 
     parser.expect(';', HighlightForToken.Operator);
 
@@ -992,9 +994,9 @@ function expectInterfaceMembers(parser: ParserState): (Node_InterfaceMethod | No
             break;
         }
 
-        const intfMethod = parseInterfaceMethod(parser);
-        if (intfMethod !== undefined) {
-            members.push(intfMethod);
+        const interfaceMethod = parseInterfaceMethod(parser);
+        if (interfaceMethod !== undefined) {
+            members.push(interfaceMethod);
             continue;
         }
 
@@ -1150,8 +1152,10 @@ function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
 
     const refToken = parseRef(parser);
 
-    const identifier = parser.peek();
-    parser.consume(HighlightForToken.Function);
+    const identifier = expectIdentifier(parser, HighlightForToken.Function);
+    if (identifier === undefined) {
+        return ParseFailure.Pending;
+    }
 
     const paramList = expectParamList(parser);
     if (paramList === undefined) {
@@ -1235,7 +1239,12 @@ function expectGetterSetter(parser: ParserState): GetterOrSetter {
 
     const constToken = parseConst(parser);
     const funcAttrTokens = parseFuncAttr(parser);
-    const statBlock = expectStatBlock(parser);
+    let statBlock: Node_StatBlock | undefined = undefined;
+    if (parser.peek().text === ';') {
+        parser.consume(HighlightForToken.Operator);
+    } else {
+        statBlock = expectStatBlock(parser);
+    }
 
     return {
         constToken: constToken,
@@ -1248,8 +1257,9 @@ function expectGetterSetter(parser: ParserState): GetterOrSetter {
 function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undefined {
     const rangeStart = parser.peek();
 
-    const returnType = expectType(parser);
+    const returnType = parseType(parser);
     if (returnType === undefined) {
+        parser.rewindTo(rangeStart);
         return undefined;
     }
 
@@ -1257,11 +1267,13 @@ function parseInterfaceMethod(parser: ParserState): Node_InterfaceMethod | undef
 
     const identifier = parseIdentifier(parser, HighlightForToken.Function);
     if (identifier === undefined) {
+        parser.rewindTo(rangeStart);
         return undefined;
     }
 
     const paramList = parseParamList(parser);
     if (paramList === undefined) {
+        parser.rewindTo(rangeStart);
         return undefined;
     }
 
@@ -1407,8 +1419,8 @@ function expectParamList(parser: ParserState): Node_ParamList | undefined {
     return paramList;
 }
 
-function expectCommaOrParensClose(parser: ParserState, canColon: boolean): BreakOrThrough {
-    return expectSeparatorOrClose(parser, ',', ')', canColon);
+function expectCommaOrParensClose(parser: ParserState, canSeparator: boolean): BreakOrThrough {
+    return expectSeparatorOrClose(parser, ',', ')', canSeparator);
 }
 
 function isCommaOrParensClose(character: string): boolean {
@@ -1783,7 +1795,7 @@ function parsePrimitiveType(parser: ParserState) {
 
 // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefined {
-    let attribute: FunctionAttributeToken[] | undefined = undefined;
+    let attributes: FunctionAttributeToken[] | undefined = undefined;
     while (parser.isEnd() === false) {
         const next = parser.peek().text;
 
@@ -1798,12 +1810,12 @@ function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefine
             break;
         }
 
-        attribute = attribute ?? [];
-        attribute.push(parser.peek() as FunctionAttributeToken);
+        attributes = attributes ?? [];
+        attributes.push(parser.peek() as FunctionAttributeToken);
         parser.consume(HighlightForToken.Keyword);
     }
 
-    return attribute;
+    return attributes;
 }
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
@@ -2735,7 +2747,7 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
 }
 
 // **BNF** LAMBDA ::= 'function' '(' [LAMBDAPARAM {',' LAMBDAPARAM}] ')' STATBLOCK
-const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
+function parseLambda(parser: ParserState): ParseResult<Node_Lambda> {
     // Detect a lambda by checking whether `{` appears after the closing `)` of the parameter list.
     if (canParseLambda(parser) === false) {
         return ParseFailure.Mismatch;
@@ -2763,7 +2775,7 @@ const parseLambda = (parser: ParserState): ParseResult<Node_Lambda> => {
 
     result.statBlock = expectStatBlock(parser);
     return appliedNodeEnd(parser, result);
-};
+}
 
 function canParseLambda(parser: ParserState): boolean {
     if (parser.peek(0).text !== 'function') {
