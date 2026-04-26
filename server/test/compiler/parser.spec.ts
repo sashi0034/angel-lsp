@@ -4,6 +4,7 @@ import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
 import {FileContentUnit} from '../inspectorUtils';
 import {ok} from 'node:assert';
+import {copyGlobalSettings, resetGlobalSettings} from '../../src/core/settings';
 
 function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
     const diagnosticsInParser = getParserDiagnostics(file);
@@ -219,6 +220,28 @@ describe('Parser', () => {
 
     it('rejects funcdef declarations without an identifier', () => {
         expectFailure(`funcdef void ();`);
+    });
+
+    it('rejects function declarations without an identifier', () => {
+        expectFailure(`void 123() {}`);
+    });
+
+    it('rejects assignments without a right-hand side', () => {
+        expectFailure(`void test() { value = ; }`);
+    });
+
+    it('reports a typed enum base type error after the colon', () => {
+        const settings = copyGlobalSettings();
+        settings.supportsTypedEnumerations = true;
+        resetGlobalSettings(settings);
+
+        try {
+            const diagnostics = getParserDiagnostics(`enum Foo : Bar { A }`);
+
+            ok(diagnostics.some(diagnostic => diagnostic.message === 'Expected primitive type.'));
+        } finally {
+            resetGlobalSettings(undefined);
+        }
     });
 
     it('rejects an incomplete function declaration', () => {

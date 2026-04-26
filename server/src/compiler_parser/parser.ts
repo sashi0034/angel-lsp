@@ -344,8 +344,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
         const typeIdentifier = parsePrimitiveType(parser);
 
         if (typeIdentifier === undefined) {
-            parser.rewindTo(rangeStart);
-            return ParseFailure.Mismatch;
+            parser.error('Expected primitive type.');
         }
 
         enumType = typeIdentifier;
@@ -614,8 +613,11 @@ function parseFunc(parser: ParserState): Node_Func | undefined {
         head = {tag: 'function', returnType: returnType, refToken: refToken};
     }
 
-    const identifier = parser.peek();
-    parser.consume(head.tag === 'function' ? TokenHighlight.Function : TokenHighlight.Type);
+    const identifier = parseIdentifier(parser, TokenHighlight.Function);
+    if (identifier === undefined) {
+        parser.rewindTo(rangeStart);
+        return undefined;
+    }
 
     const typeParameters = parseTemplateTypes(parser) ?? [];
 
@@ -2964,7 +2966,7 @@ function parseAssign(parser: ParserState): Node_Assign | undefined {
         return result;
     }
 
-    const assign = parseAssign(parser);
+    const assign = expectAssign(parser);
     if (assign === undefined) {
         return result;
     }
