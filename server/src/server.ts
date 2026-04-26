@@ -17,6 +17,7 @@ import {provideInlayHint} from './services/inlayHint';
 import {provideCodeAction} from './services/codeAction';
 import {provideCompletionOnToken} from './services/completionOnToken';
 import {provideCompletionResolve} from './services/completionResolve';
+import {CaretContext} from './services/completion/caretContext';
 import {logger} from './core/logger';
 import {provideHover} from './services/hover';
 import {provideDocumentSymbol} from './services/documentSymbol';
@@ -397,17 +398,23 @@ const s_lastCompletion: {uri: string; items: CompletionItemWrapper[]} = {uri: ''
 s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.CompletionItem[] => {
     const uri = params.textDocument.uri;
     const caret = TextPosition.create(params.position);
+    const record = s_inspector.getRecord(uri);
+    const caretContext = new CaretContext(
+        record.rawTokens,
+        record.preprocessedOutput.preprocessedTokens,
+        record.ast,
+        caret
+    );
 
     // Determine completion candidates based on the token.
     // If the token is a comment, suppress completion candidates here.
-    const completionsOnToken = provideCompletionOnToken(s_inspector.getRecord(uri).rawTokens, caret);
+    const completionsOnToken = provideCompletionOnToken(caretContext);
     if (completionsOnToken !== undefined) {
         return completionsOnToken;
     }
 
     s_inspector.flushRecord(uri);
 
-    const record = s_inspector.getRecord(uri);
     const globalScope = record.analyzerScope;
     if (globalScope === undefined) {
         return [];

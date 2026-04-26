@@ -21,6 +21,7 @@ import {isCaretInDeclarationPart} from './completion/declarationPart';
 import {provideFunctionSectionCompletion} from './completion/functionSection';
 import {provideSnippetCompletion} from './completion/snippet';
 import {provideDirectiveCompletion} from './completion/directive';
+import {CaretContext} from './completion/caretContext';
 
 export interface CompletionItemWrapper {
     item: CompletionItem;
@@ -38,7 +39,9 @@ export function provideCompletion(
     globalScope: SymbolGlobalScope,
     caret: TextPosition
 ): CompletionItemWrapper[] {
-    if (isCaretInDeclarationPart(preprocessedTokens, ast, caret)) {
+    const caretContext = new CaretContext(rawTokens, preprocessedTokens, ast, caret);
+
+    if (isCaretInDeclarationPart(caretContext)) {
         return [];
     }
 
@@ -47,12 +50,12 @@ export function provideCompletion(
         return directiveCompletion.map(item => ({item}));
     }
 
-    const functionSectionCompletion = provideFunctionSectionCompletion(ast, caret);
+    const functionSectionCompletion = provideFunctionSectionCompletion(caretContext);
     if (functionSectionCompletion !== undefined) {
         return functionSectionCompletion;
     }
 
-    const items = provideCompletion_internal(ast, globalScope, caret);
+    const items = provideCompletion_internal(caretContext, globalScope);
 
     // Assign sort keys to the completion items.
     for (const item of items) {
@@ -62,18 +65,15 @@ export function provideCompletion(
     return items;
 }
 
-function provideCompletion_internal(
-    ast: Node_Script,
-    globalScope: SymbolGlobalScope,
-    caret: TextPosition
-): CompletionItemWrapper[] {
+function provideCompletion_internal(caret: CaretContext, globalScope: SymbolGlobalScope): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
+    const caretPosition = caret.caret;
 
-    const caretScope = findScopeContainingPosition(globalScope, caret).scope;
+    const caretScope = findScopeContainingPosition(globalScope, caretPosition).scope;
 
     // If there is a higher-priority completion target in this scope, return its candidates first.
     // e.g., instance methods on an object.
-    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
+    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caretPosition);
     if (prioritizedCompletion !== undefined) {
         return prioritizedCompletion;
     }
@@ -91,7 +91,7 @@ function provideCompletion_internal(
     items.push(...provideBuiltinKeywordCompletion(items));
 
     // Return snippet completions if the setting is enabled and the context is appropriate.
-    items.push(...provideSnippetCompletion(ast, caret).map(item => ({item})));
+    items.push(...provideSnippetCompletion(caret).map(item => ({item})));
 
     return items;
 }

@@ -1,31 +1,31 @@
-import {findTokenContainingPosition} from './utils';
-import {TokenObject} from '../compiler_tokenizer/tokenObject';
-import {TextPosition} from '../compiler_tokenizer/textLocation';
+import {StringToken, TokenKind} from '../compiler_tokenizer/tokenObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {getIncludeUriList} from '../service/fileUtils';
+import {CaretContext} from './completion/caretContext';
 
 /**
  * Returns the completion candidates in tokens like string literals for the specified position.
  */
-export function provideCompletionOnToken(rawTokens: TokenObject[], caret: TextPosition): CompletionItem[] | undefined {
-    const tokenOnCaret = findTokenContainingPosition(rawTokens, caret);
+export function provideCompletionOnToken(caret: CaretContext): CompletionItem[] | undefined {
+    const tokenOnCaret = caret.getNearestRawToken().containingToken;
     if (tokenOnCaret === undefined) {
         return undefined;
     }
 
-    const uri = tokenOnCaret.token.location.path;
+    const uri = tokenOnCaret.location.path;
 
-    if (tokenOnCaret.token?.isCommentToken()) {
+    if (tokenOnCaret.kind === TokenKind.Comment) {
         // No completion in comments
         return [];
     }
 
-    if (tokenOnCaret.token?.isStringToken()) {
-        if (canAutocompleteFilepath(rawTokens, tokenOnCaret.index)) {
-            return provideFilepathCompletion(tokenOnCaret.token.getStringContent(), uri);
+    if (tokenOnCaret.kind === TokenKind.String) {
+        const stringToken = tokenOnCaret as StringToken;
+        if (canAutocompleteFilepath(stringToken)) {
+            return provideFilepathCompletion(stringToken.getStringContent(), uri);
         }
 
         // No other completion in string literals
@@ -62,21 +62,11 @@ function provideFilepathCompletion(currentInput: string, uri: string): Completio
     return result;
 }
 
-function canAutocompleteFilepath(rawTokens: TokenObject[], caretTokenIndex: number): boolean {
-    const stringToken = rawTokens[caretTokenIndex];
-    if (stringToken.isStringToken() === false) {
-        return false;
-    }
-
-    if (caretTokenIndex >= 2) {
-        // Check if the previous tokens are '#', 'include'.
-        const prev = rawTokens
-            .slice(caretTokenIndex - 2, caretTokenIndex)
-            .map(token => token.text)
-            .join('');
-        if (prev === '#include') {
-            return true;
-        }
+function canAutocompleteFilepath(stringToken: StringToken): boolean {
+    // Check if the previous tokens are '#', 'include'.
+    const prev = [stringToken.prevRaw?.prevRaw, stringToken.prevRaw].map(token => token?.text ?? '').join('');
+    if (prev === '#include') {
+        return true;
     }
 
     // Check if the string token starts with './' or '../'.

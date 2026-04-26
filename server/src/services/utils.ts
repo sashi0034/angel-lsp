@@ -33,14 +33,13 @@ export function findTokenContainingPosition(tokenList: TokenObject[], caret: Tex
  * Returns the token containing the caret if it exists, along with the nearest
  * tokens before and after the caret.
  */
-export function findNearestToken(
-    tokenList: TokenObject[],
-    caret: TextPosition
-): {
+export interface NearestToken {
     precedingToken: TokenObject | undefined;
     containingToken: TokenObject | undefined;
     followingToken: TokenObject | undefined;
-} {
+}
+
+export function findNearestToken(tokenList: TokenObject[], caret: TextPosition): NearestToken {
     if (tokenList.length === 0) {
         return {
             precedingToken: undefined,

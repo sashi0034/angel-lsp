@@ -1,9 +1,8 @@
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {InsertTextFormat} from 'vscode-languageserver';
-import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodeObject';
+import {NodeName, NodeObject} from '../../compiler_parser/nodeObject';
 import {getGlobalSettings} from '../../core/settings';
-import {TextPosition} from '../../compiler_tokenizer/textLocation';
-import {findNearestNode} from '../../compiler_parser/nearestNode';
+import {CaretContext} from './caretContext';
 
 interface SnippetDefinition {
     readonly label: string;
@@ -161,34 +160,35 @@ export const snippetDefinitions: SnippetDefinition[] = [
     }
 ];
 
-export function provideSnippetCompletion(ast: Node_Script, caret: TextPosition): CompletionItem[] {
+export function provideSnippetCompletion(caret: CaretContext): CompletionItem[] {
     if (!getGlobalSettings().completion.snippets) {
         return [];
     }
 
-    const context = getSnippetContext(ast, caret);
-    if (context === undefined) {
+    const snippetContext = getSnippetContext(caret);
+    if (snippetContext === undefined) {
         return snippetDefinitions
             .filter(snippet => isAvailable(snippet, SnippetContext.Everywhere))
             .map(makeSnippetCompletionItem);
     }
 
-    return snippetDefinitions.filter(snippet => isAvailable(snippet, context)).map(makeSnippetCompletionItem);
+    return snippetDefinitions.filter(snippet => isAvailable(snippet, snippetContext)).map(makeSnippetCompletionItem);
 }
 
 function isAvailable(snippet: SnippetDefinition, context: SnippetContext): boolean {
     return snippet.contexts.includes(SnippetContext.Everywhere) || snippet.contexts.includes(context);
 }
 
-function getSnippetContext(ast: Node_Script, caret: TextPosition): SnippetContext | undefined {
-    caret = caret.movedBy(0, -1); // Move caret left by one character to get the correct context when caret is at the end of a token.
-    const containingNodeList = findNearestNode(ast, caret)
+function getSnippetContext(caret: CaretContext): SnippetContext | undefined {
+    const caretPosition = caret.caret.movedBy(0, -1); // Move caret left by one character to get the correct context when caret is at the end of a token.
+    const containingNodeList = caret
+        .getNearestNode()
         .map(nearestNode => nearestNode.containingNode)
         .filter((node): node is NodeObject => node !== undefined);
 
     let containingNode: NodeObject | undefined = containingNodeList.at(-1);
     for (let i = 0; i < containingNodeList.length; i++) {
-        if (containingNodeList[i].nodeRange.start.location.positionInRange(caret)) {
+        if (containingNodeList[i].nodeRange.start.location.positionInRange(caretPosition)) {
             // If the caret is at the beginning of a node like ExprStat,
             // the user probably wants to enter a control statement rather than a value, so we choose the upper-level node.
             // e.g., '{ sw$C$ value; }'
