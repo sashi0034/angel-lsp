@@ -1,4 +1,4 @@
-import {StringToken, TokenKind} from '../compiler_tokenizer/tokenObject';
+import {StringToken, TokenObject} from '../compiler_tokenizer/tokenObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
@@ -10,22 +10,19 @@ import {CaretContext} from './completion/caretContext';
  * Returns the completion candidates in tokens like string literals for the specified position.
  */
 export function provideCompletionOnToken(caret: CaretContext): CompletionItem[] | undefined {
-    const tokenOnCaret = caret.getNearestRawToken().containingToken;
+    const tokenOnCaret: TokenObject | undefined = caret.getNearestRawToken().containingToken;
     if (tokenOnCaret === undefined) {
         return undefined;
     }
 
     const uri = tokenOnCaret.location.path;
 
-    if (tokenOnCaret.kind === TokenKind.Comment) {
+    if (tokenOnCaret.isCommentToken()) {
         // No completion in comments
         return [];
-    }
-
-    if (tokenOnCaret.kind === TokenKind.String) {
-        const stringToken = tokenOnCaret as StringToken;
-        if (canAutocompleteFilepath(stringToken)) {
-            return provideFilepathCompletion(stringToken.getStringContent(), uri);
+    } else if (tokenOnCaret.isStringToken()) {
+        if (canAutocompleteFilepath(tokenOnCaret)) {
+            return provideFilepathCompletion(tokenOnCaret.getStringContent(), uri);
         }
 
         // No other completion in string literals

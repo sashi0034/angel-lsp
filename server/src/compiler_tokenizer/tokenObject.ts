@@ -27,7 +27,7 @@ const emptyLocation = TextLocation.createEmpty();
 /**
  * Base object for all tokens.
  */
-export abstract class TokenBase {
+export abstract class TokenObject {
     // Token location, including the file path and the position within the file.
     private readonly _location: TextLocation | undefined;
 
@@ -176,7 +176,7 @@ export abstract class TokenBase {
         return this.next ?? this;
     }
 
-    public equals(other: TokenBase | undefined): boolean {
+    public equals(other: TokenObject | undefined): boolean {
         if (other === undefined) {
             return false;
         }
@@ -185,7 +185,7 @@ export abstract class TokenBase {
     }
 }
 
-export class ReservedToken extends TokenBase {
+export class ReservedToken extends TokenObject {
     public readonly property: ReservedWordProperty;
 
     public constructor(text: string, location: TextLocation | TokenRange | undefined, property?: ReservedWordProperty) {
@@ -198,12 +198,12 @@ export class ReservedToken extends TokenBase {
         return new ReservedToken(text, coveredRange);
     }
 
-    public get kind(): TokenKind {
+    public get kind(): TokenKind.Reserved {
         return TokenKind.Reserved;
     }
 }
 
-export class IdentifierToken extends TokenBase {
+export class IdentifierToken extends TokenObject {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.Variable);
     }
@@ -212,7 +212,7 @@ export class IdentifierToken extends TokenBase {
         return new IdentifierToken(text, coveredRange);
     }
 
-    public get kind(): TokenKind {
+    public get kind(): TokenKind.Identifier {
         return TokenKind.Identifier;
     }
 }
@@ -223,7 +223,7 @@ export enum NumberLiteral {
     Double = 'Double'
 }
 
-export class NumberToken extends TokenBase {
+export class NumberToken extends TokenObject {
     public constructor(
         text: string,
         location: TextLocation,
@@ -232,20 +232,19 @@ export class NumberToken extends TokenBase {
         super(text, location, HighlightForToken.Number);
     }
 
-    public get kind(): TokenKind {
+    public get kind(): TokenKind.Number {
         return TokenKind.Number;
     }
 
     public getNumberValue(): number | undefined {
-        const suffixPattern =
-            this.numberLiteral === NumberLiteral.Integer ? /[uUlL]+$/ : /[fFdD]+$/;
+        const suffixPattern = this.numberLiteral === NumberLiteral.Integer ? /[uUlL]+$/ : /[fFdD]+$/;
         const normalized = this.text.replace(/'/g, '').replace(suffixPattern, '');
         const value = /^0[dD]/.test(normalized) ? Number(normalized.slice(2)) : Number(normalized);
         return Number.isNaN(value) ? undefined : value;
     }
 }
 
-export class StringToken extends TokenBase {
+export class StringToken extends TokenObject {
     public constructor(text: string, location: TextLocation | TokenRange | undefined) {
         super(text, location, HighlightForToken.String);
     }
@@ -254,7 +253,7 @@ export class StringToken extends TokenBase {
         return new StringToken(text, coveredRange);
     }
 
-    public get kind(): TokenKind {
+    public get kind(): TokenKind.String {
         return TokenKind.String;
     }
 
@@ -267,17 +266,12 @@ export class StringToken extends TokenBase {
     }
 }
 
-export class CommentToken extends TokenBase {
+export class CommentToken extends TokenObject {
     public constructor(text: string, location: TextLocation) {
         super(text, location, HighlightForToken.Comment);
     }
 
-    public get kind(): TokenKind {
+    public get kind(): TokenKind.Comment {
         return TokenKind.Comment;
     }
 }
-
-/**
- * TokenObject is a union type of all token types.
- */
-export type TokenObject = ReservedToken | IdentifierToken | NumberToken | StringToken | CommentToken;
