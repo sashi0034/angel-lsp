@@ -29,6 +29,7 @@ import {
     Node_ExprPostOp1,
     Node_ExprPostOp2,
     Node_ExprStat,
+    Node_ExprTerm,
     Node_ExprTerm1,
     Node_ExprTerm2,
     Node_ExprValue,
@@ -1669,7 +1670,11 @@ function parseInitList(parser: ParserState): Node_InitList | undefined {
         }
 
         const assign = parseAssign(parser);
-        if (assign !== undefined) {
+        if (assign === ParseFailure.Incomplete) {
+            continue;
+        }
+
+        if (assign !== ParseFailure.Mismatch) {
             initList.push(assign);
             continue;
         }
@@ -1905,7 +1910,11 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const exprStat = parseExprStat(parser);
-    if (exprStat !== undefined) {
+    if (exprStat === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
+    }
+
+    if (exprStat !== ParseFailure.Mismatch) {
         return exprStat;
     }
 
@@ -1999,8 +2008,12 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
         return ParseFailure.Incomplete;
     }
 
-    const initial: Node_ExprStat | Node_Var | undefined = parseVar(parser) ?? parseExprStat(parser);
-    if (initial === undefined) {
+    const initial = parseVar(parser) ?? parseExprStat(parser);
+    if (initial === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
+    }
+
+    if (initial === ParseFailure.Mismatch) {
         parser.error('Expected initial expression statement or variable declaration.');
         return ParseFailure.Incomplete;
     }
@@ -2220,7 +2233,7 @@ function parseContinue(parser: ParserState): Node_Continue | undefined {
 }
 
 // **BNF** EXPRSTAT ::= [ASSIGN] ';'
-function parseExprStat(parser: ParserState): Node_ExprStat | undefined {
+function parseExprStat(parser: ParserState): ParseResult<Node_ExprStat> {
     const rangeStart = parser.peek();
     if (parser.peek().text === ';') {
         parser.consume(TokenHighlight.Operator);
@@ -2232,8 +2245,12 @@ function parseExprStat(parser: ParserState): Node_ExprStat | undefined {
     }
 
     const assign = parseAssign(parser);
-    if (assign === undefined) {
-        return undefined;
+    if (assign === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
+    }
+
+    if (assign === ParseFailure.Mismatch) {
+        return ParseFailure.Mismatch;
     }
 
     parser.expect(';', TokenHighlight.Operator);
@@ -2247,8 +2264,13 @@ function parseExprStat(parser: ParserState): Node_ExprStat | undefined {
 
 function expectExprStat(parser: ParserState): Node_ExprStat | undefined {
     const exprStat = parseExprStat(parser);
-    if (exprStat === undefined) {
+    if (exprStat === ParseFailure.Incomplete) {
+        return undefined;
+    }
+
+    if (exprStat === ParseFailure.Mismatch) {
         parser.error('Expected expression statement.');
+        return undefined;
     }
 
     return exprStat;
@@ -2355,12 +2377,12 @@ function parseCase(parser: ParserState): ParseResult<Node_Case> {
 }
 
 // **BNF** EXPR ::= EXPRTERM {EXPROP EXPRTERM}
-function parseExpr(parser: ParserState): Node_Expr | undefined {
+function parseExpr(parser: ParserState): ParseResult<Node_Expr> {
     const rangeStart = parser.peek();
 
     const exprTerm = parseExprTerm(parser);
-    if (exprTerm === undefined) {
-        return undefined;
+    if (exprTerm === ParseFailure.Mismatch || exprTerm === ParseFailure.Incomplete) {
+        return exprTerm;
     }
 
     const exprOp = parseExprOp(parser);
@@ -2396,8 +2418,13 @@ function parseExpr(parser: ParserState): Node_Expr | undefined {
 
 function expectExpr(parser: ParserState): Node_Expr | undefined {
     const expr = parseExpr(parser);
-    if (expr === undefined) {
+    if (expr === ParseFailure.Incomplete) {
+        return undefined;
+    }
+
+    if (expr === ParseFailure.Mismatch) {
         parser.error('Expected expression.');
+        return undefined;
     }
 
     return expr;
@@ -2411,26 +2438,31 @@ function expectExprOrVoid(parser: ParserState): Node_Expr | VoidParameter | unde
     }
 
     const expr = parseExpr(parser);
-    if (expr === undefined) {
+    if (expr === ParseFailure.Incomplete) {
+        return undefined;
+    }
+
+    if (expr === ParseFailure.Mismatch) {
         parser.error('Expected expression.');
+        return undefined;
     }
 
     return expr;
 }
 
 // **BNF** EXPRTERM ::= ([TYPE '='] INITLIST) | ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function parseExprTerm(parser: ParserState) {
+function parseExprTerm(parser: ParserState): ParseResult<Node_ExprTerm> {
     const exprTerm1 = parseExprTerm1(parser);
     if (exprTerm1 !== undefined) {
         return exprTerm1;
     }
 
     const exprTerm2 = parseExprTerm2(parser);
-    if (exprTerm2 !== undefined) {
+    if (exprTerm2 !== ParseFailure.Mismatch) {
         return exprTerm2;
     }
 
-    return undefined;
+    return ParseFailure.Mismatch;
 }
 
 // ([TYPE '='] INITLIST)
@@ -2463,7 +2495,7 @@ function parseExprTerm1(parser: ParserState): Node_ExprTerm1 | undefined {
 }
 
 // ({EXPRPREOP} EXPRVALUE {EXPRPOSTOP})
-function parseExprTerm2(parser: ParserState): Node_ExprTerm2 | undefined {
+function parseExprTerm2(parser: ParserState): ParseResult<Node_ExprTerm2> {
     const rangeStart = parser.peek();
 
     const preOps: TokenObject[] = [];
@@ -2480,10 +2512,11 @@ function parseExprTerm2(parser: ParserState): Node_ExprTerm2 | undefined {
     const exprValue = parseExprValue(parser);
     if (exprValue === ParseFailure.Mismatch) {
         parser.rewindTo(rangeStart);
+        return ParseFailure.Mismatch;
     }
 
-    if (exprValue === ParseFailure.Mismatch || exprValue === ParseFailure.Incomplete) {
-        return undefined;
+    if (exprValue === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     const postOps: Node_ExprPostOp[] = [];
@@ -2936,12 +2969,16 @@ function parseArgList(parser: ParserState): Node_ArgList | undefined {
 }
 
 // **BNF** ASSIGN ::= CONDITION [ ASSIGNOP ASSIGN ]
-function parseAssign(parser: ParserState): Node_Assign | undefined {
+function parseAssign(parser: ParserState): ParseResult<Node_Assign> {
     const rangeStart = parser.peek();
 
     const condition = parseCondition(parser);
-    if (condition === undefined) {
-        return undefined;
+    if (condition === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
+    }
+
+    if (condition === ParseFailure.Mismatch) {
+        return ParseFailure.Mismatch;
     }
 
     const operator = parseAssignOp(parser);
@@ -2970,20 +3007,29 @@ function parseAssign(parser: ParserState): Node_Assign | undefined {
 
 function expectAssign(parser: ParserState): Node_Assign | undefined {
     const assign = parseAssign(parser);
-    if (assign === undefined) {
+    if (assign === ParseFailure.Incomplete) {
+        return undefined;
+    }
+
+    if (assign === ParseFailure.Mismatch) {
         parser.error('Expected assignment.');
+        return undefined;
     }
 
     return assign;
 }
 
 // **BNF** CONDITION ::= EXPR ['?' ASSIGN ':' ASSIGN]
-function parseCondition(parser: ParserState): Node_Condition | undefined {
+function parseCondition(parser: ParserState): ParseResult<Node_Condition> {
     const rangeStart = parser.peek();
 
     const expr = parseExpr(parser);
-    if (expr === undefined) {
-        return undefined;
+    if (expr === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
+    }
+
+    if (expr === ParseFailure.Mismatch) {
+        return ParseFailure.Mismatch;
     }
 
     const result: Mutable<Node_Condition> = {
