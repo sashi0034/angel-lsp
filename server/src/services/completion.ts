@@ -220,10 +220,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         const location = getInstanceAccessMarkerLocation(info);
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
-            const result = autocompleteInstanceMember(globalScope, caretScope, info);
-            if (result !== undefined && result.length > 0) {
-                return result;
-            }
+            return autocompleteInstanceMember(globalScope, caretScope, info);
         }
     }
 
@@ -233,13 +230,11 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         if (location.positionInRange(caret)) {
             // Return the higher-priority completion target.
             const result = getCompletionSymbolsInScope(info.targetScope, false);
-            if (result !== undefined && result.length > 0) {
-                if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
-                    result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
-                }
-
-                return result;
+            if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
+                result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
             }
+
+            return result;
         }
     }
 
