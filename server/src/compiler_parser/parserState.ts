@@ -12,7 +12,7 @@ export enum ParseFailure {
      * The parser entered a parsing function where the input matches the expected grammar,
      * but parsing fails because some required elements are missing.
      */
-    Pending = 'Pending'
+    Incomplete = 'Incomplete'
 }
 
 export enum BreakOrThrough {

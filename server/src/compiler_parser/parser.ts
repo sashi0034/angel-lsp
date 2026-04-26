@@ -96,7 +96,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedImport = parseImport(parser);
-        if (parsedImport === ParseFailure.Pending) {
+        if (parsedImport === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -106,7 +106,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedTypeDef = parseTypeDef(parser);
-        if (parsedTypeDef === ParseFailure.Pending) {
+        if (parsedTypeDef === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -116,7 +116,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedNamespace = parseNamespace(parser);
-        if (parsedNamespace === ParseFailure.Pending) {
+        if (parsedNamespace === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -126,7 +126,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedUsing = parseUsing(parser);
-        if (parsedUsing === ParseFailure.Pending) {
+        if (parsedUsing === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -136,7 +136,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedClass = parseClass(parser);
-        if (parsedClass === ParseFailure.Pending) {
+        if (parsedClass === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -146,7 +146,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedInterface = parseInterface(parser);
-        if (parsedInterface === ParseFailure.Pending) {
+        if (parsedInterface === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -156,7 +156,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedEnum = parseEnum(parser);
-        if (parsedEnum === ParseFailure.Pending) {
+        if (parsedEnum === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -166,7 +166,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
         }
 
         const parsedFuncDef = parseFuncDef(parser);
-        if (parsedFuncDef === ParseFailure.Pending) {
+        if (parsedFuncDef === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -232,7 +232,7 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
     }
 
     if (namespaceList.length === 0) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const script = parseScript(parser, '}');
@@ -257,7 +257,7 @@ function parseUsing(parser: ParserState): ParseResult<Node_Using> {
     parser.consume(TokenHighlight.Keyword);
 
     if (parser.expect('namespace', TokenHighlight.Keyword) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const namespaceList: TokenObject[] = [];
@@ -279,7 +279,7 @@ function parseUsing(parser: ParserState): ParseResult<Node_Using> {
     }
 
     if (namespaceList.length === 0) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     return {
@@ -335,7 +335,7 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
 
     const identifier = expectIdentifier(parser, TokenHighlight.Enum);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     let enumType: ReservedToken | undefined;
@@ -444,7 +444,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
 
     const identifier = expectIdentifier(parser, TokenHighlight.Class);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const typeParameters = parseTemplateTypes(parser);
@@ -501,7 +501,7 @@ function expectClassMembers(parser: ParserState) {
         }
 
         const parsedFuncDef = parseFuncDef(parser);
-        if (parsedFuncDef === ParseFailure.Pending) {
+        if (parsedFuncDef === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -567,12 +567,12 @@ function parseTypeDef(parser: ParserState): ParseResult<Node_TypeDef> {
     const primitiveType = parsePrimitiveType(parser);
     if (primitiveType === undefined) {
         parser.error('Expected primitive type.');
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const identifier = expectIdentifier(parser, TokenHighlight.Type);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     parser.expect(';', TokenHighlight.Operator);
@@ -943,7 +943,7 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
 
     const identifier = expectIdentifier(parser, TokenHighlight.Interface);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_Interface> = {
@@ -1093,31 +1093,31 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
 
     const type = expectType(parser);
     if (type === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const refToken = parseRef(parser);
 
     const identifier = expectIdentifier(parser, TokenHighlight.Variable);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const paramList = expectParamList(parser);
     if (paramList === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const funcAttrTokens = parseFuncAttr(parser);
 
     if (expectContextualKeyword(parser, 'from') === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const path = parser.peek();
     if (path.kind !== TokenKind.String) {
         parser.error('Expected string path.');
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     parser.consume(TokenHighlight.String);
@@ -1151,19 +1151,19 @@ function parseFuncDef(parser: ParserState): ParseResult<Node_FuncDef> {
 
     const returnType = expectType(parser);
     if (returnType === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const refToken = parseRef(parser);
 
     const identifier = expectIdentifier(parser, TokenHighlight.Function);
     if (identifier === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const paramList = expectParamList(parser);
     if (paramList === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     parser.expect(';', TokenHighlight.Operator);
@@ -1321,7 +1321,7 @@ function parseStatBlock(parser: ParserState): Node_StatBlock | undefined {
         }
 
         const using = parseUsing(parser);
-        if (using === ParseFailure.Pending) {
+        if (using === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -1331,7 +1331,7 @@ function parseStatBlock(parser: ParserState): Node_StatBlock | undefined {
         }
 
         const statement = parseStatement(parser);
-        if (statement === ParseFailure.Pending) {
+        if (statement === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -1825,8 +1825,8 @@ function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefine
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     const parsedIf = parseIf(parser);
-    if (parsedIf === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedIf === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedIf !== ParseFailure.Mismatch) {
@@ -1834,8 +1834,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const parsedFor = parseFor(parser);
-    if (parsedFor === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedFor === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedFor !== ParseFailure.Mismatch) {
@@ -1844,8 +1844,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
 
     if (getGlobalSettings().supportsForEach) {
         const parsedForEach = parseForEach(parser);
-        if (parsedForEach === ParseFailure.Pending) {
-            return ParseFailure.Pending;
+        if (parsedForEach === ParseFailure.Incomplete) {
+            return ParseFailure.Incomplete;
         }
 
         if (parsedForEach !== ParseFailure.Mismatch) {
@@ -1854,8 +1854,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const parsedWhile = parseWhile(parser);
-    if (parsedWhile === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedWhile === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedWhile !== ParseFailure.Mismatch) {
@@ -1863,8 +1863,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const parsedReturn = parseReturn(parser);
-    if (parsedReturn === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedReturn === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedReturn !== ParseFailure.Mismatch) {
@@ -1887,8 +1887,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const doWhile = parseDoWhile(parser);
-    if (doWhile === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (doWhile === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (doWhile !== ParseFailure.Mismatch) {
@@ -1896,8 +1896,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const parsedSwitch = parseSwitch(parser);
-    if (parsedSwitch === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedSwitch === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedSwitch !== ParseFailure.Mismatch) {
@@ -1905,8 +1905,8 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
     }
 
     const parsedTry = parseTry(parser);
-    if (parsedTry === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (parsedTry === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (parsedTry !== ParseFailure.Mismatch) {
@@ -1923,7 +1923,7 @@ function parseStatement(parser: ParserState): ParseResult<Node_Statement> {
 
 function expectStatement(parser: ParserState): Node_Statement | undefined {
     const statement = parseStatement(parser);
-    if (statement === ParseFailure.Pending) {
+    if (statement === ParseFailure.Incomplete) {
         return undefined;
     }
 
@@ -1948,7 +1948,7 @@ function parseSwitch(parser: ParserState): ParseResult<Node_Switch> {
 
     const assign = expectAssign(parser);
     if (assign === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     parser.expect(')', TokenHighlight.Operator);
@@ -1967,7 +1967,7 @@ function parseSwitch(parser: ParserState): ParseResult<Node_Switch> {
             continue;
         }
 
-        if (parsedCase === ParseFailure.Pending) {
+        if (parsedCase === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -2005,13 +2005,13 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
     parser.consume(TokenHighlight.ControlKeyword);
 
     if (parser.expect('(', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const initial: Node_ExprStat | Node_Var | undefined = parseVar(parser) ?? parseExprStat(parser);
     if (initial === undefined) {
         parser.error('Expected initial expression statement or variable declaration.');
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_For> = {
@@ -2055,7 +2055,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
     parser.consume(TokenHighlight.ControlKeyword);
 
     if (parser.expect('(', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_ForEach> = {
@@ -2075,7 +2075,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
 
         if (variable === undefined) {
             parser.error('Invalid variable declaration.');
-            return ParseFailure.Pending;
+            return ParseFailure.Incomplete;
         }
 
         result.variables.push(variable);
@@ -2102,12 +2102,12 @@ function parseWhile(parser: ParserState): ParseResult<Node_While> {
     parser.consume(TokenHighlight.ControlKeyword);
 
     if (parser.expect('(', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const assign = expectAssign(parser);
     if (assign === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_While> = {
@@ -2136,7 +2136,7 @@ function parseDoWhile(parser: ParserState): ParseResult<Node_DoWhile> {
 
     const statement = expectStatement(parser);
     if (statement === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_DoWhile> = {
@@ -2177,12 +2177,12 @@ function parseIf(parser: ParserState): ParseResult<Node_If> {
     parser.consume(TokenHighlight.ControlKeyword);
 
     if (parser.expect('(', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const assign = expectAssign(parser);
     if (assign === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_If> = {
@@ -2274,7 +2274,7 @@ function parseTry(parser: ParserState): ParseResult<Node_Try> {
 
     const tryBlock = expectStatBlock(parser);
     if (tryBlock === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const result: Mutable<Node_Try> = {
@@ -2331,7 +2331,7 @@ function parseCase(parser: ParserState): ParseResult<Node_Case> {
 
         expr = expectExpr(parser);
         if (expr === undefined) {
-            return ParseFailure.Pending;
+            return ParseFailure.Incomplete;
         }
     } else if (parser.peek().text === 'default') {
         parser.consume(TokenHighlight.ControlKeyword);
@@ -2348,7 +2348,7 @@ function parseCase(parser: ParserState): ParseResult<Node_Case> {
             break;
         }
 
-        if (statement === ParseFailure.Pending) {
+        if (statement === ParseFailure.Incomplete) {
             continue;
         }
 
@@ -2491,7 +2491,7 @@ function parseExprTerm2(parser: ParserState): Node_ExprTerm2 | undefined {
         parser.rewindTo(rangeStart);
     }
 
-    if (exprValue === ParseFailure.Mismatch || exprValue === ParseFailure.Pending) {
+    if (exprValue === ParseFailure.Mismatch || exprValue === ParseFailure.Incomplete) {
         return undefined;
     }
 
@@ -2518,8 +2518,8 @@ function parseExprTerm2(parser: ParserState): Node_ExprTerm2 | undefined {
 // **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     const cast = parseCast(parser);
-    if (cast === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (cast === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (cast !== ParseFailure.Mismatch) {
@@ -2531,7 +2531,7 @@ function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
 
         const assign = expectAssign(parser);
         if (assign === undefined) {
-            return ParseFailure.Pending;
+            return ParseFailure.Incomplete;
         }
 
         parser.expect(')', TokenHighlight.Operator);
@@ -2544,8 +2544,8 @@ function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     }
 
     const lambda = parseLambda(parser);
-    if (lambda === ParseFailure.Pending) {
-        return ParseFailure.Pending;
+    if (lambda === ParseFailure.Incomplete) {
+        return ParseFailure.Incomplete;
     }
 
     if (lambda !== ParseFailure.Mismatch) {
@@ -2719,25 +2719,25 @@ function parseCast(parser: ParserState): ParseResult<Node_Cast> {
     parser.consume(TokenHighlight.Keyword);
 
     if (parser.expect('<', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const type = expectType(parser);
     if (type === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     if (parser.expect('>', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     if (parser.expect('(', TokenHighlight.Operator) === false) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     const assign = expectAssign(parser);
     if (assign === undefined) {
-        return ParseFailure.Pending;
+        return ParseFailure.Incomplete;
     }
 
     parser.expect(')', TokenHighlight.Operator);
