@@ -216,38 +216,32 @@ function getCompletionMembersInScope(
 function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: CaretContext) {
     const caretPosition = caret.caret;
 
-    for (const info of globalScope.markers.instanceAccess) {
-        // Check whether this higher-priority completion target is at the cursor position.
-        const location = getInstanceAccessMarkerLocation(info);
-        if (location.positionInRange(caretPosition)) {
-            // Return the higher-priority completion target.
-            return autocompleteInstanceMember(globalScope, caretScope, info);
-        }
-    }
-
-    for (const info of globalScope.markers.scopeAccess) {
-        // Check whether this higher-priority completion target is at the cursor position.
-        const location = getScopeAccessMarkerLocation(info);
-        if (location.positionInRange(caretPosition)) {
-            // Return the higher-priority completion target.
-            const result = getCompletionSymbolsInScope(info.targetScope, false);
-            if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
-                result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
-            }
-
-            return result;
-        }
-    }
-
     if (isCaretAtAccessOperator(caret, '.')) {
-        // Even if member resolution failed before this operator, keep completion scoped to `.`.
-        // e.g., object.undefined_member.$C$
+        // e.g., `my_object.member.$C$`
+        for (const info of globalScope.markers.instanceAccess) {
+            const location = getInstanceAccessMarkerLocation(info);
+            if (location.positionInRange(caretPosition)) {
+                return autocompleteInstanceMember(globalScope, caretScope, info);
+            }
+        }
+
         return [];
     }
 
     if (isCaretAtAccessOperator(caret, '::')) {
-        // Even if scope resolution failed before this operator, keep completion scoped to `::`.
-        // e.g., my_scope::undefined_name::$C$
+        // e.g., `my_scope::name::$C$`
+        for (const info of globalScope.markers.scopeAccess) {
+            const location = getScopeAccessMarkerLocation(info);
+            if (location.positionInRange(caretPosition)) {
+                const result = getCompletionSymbolsInScope(info.targetScope, false);
+                if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
+                    result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
+                }
+
+                return result;
+            }
+        }
+
         return [];
     }
 
