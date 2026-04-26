@@ -1,4 +1,3 @@
-import {Position} from 'vscode-languageserver';
 import {isSymbolInstanceMember, ScopePath, SymbolObjectHolder} from '../compiler_analyzer/symbolObject';
 import {CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import {Node_Script, NodeName} from '../compiler_parser/nodeObject';
@@ -73,7 +72,7 @@ function provideCompletion_internal(caret: CaretContext, globalScope: SymbolGlob
 
     // If there is a higher-priority completion target in this scope, return its candidates first.
     // e.g., instance methods on an object.
-    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caretPosition);
+    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
     if (prioritizedCompletion !== undefined) {
         return prioritizedCompletion;
     }
@@ -214,11 +213,13 @@ function getCompletionMembersInScope(
     return items;
 }
 
-function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: Position) {
+function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: CaretContext) {
+    const caretPosition = caret.caret;
+
     for (const info of globalScope.markers.instanceAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
         const location = getInstanceAccessMarkerLocation(info);
-        if (location.positionInRange(caret)) {
+        if (location.positionInRange(caretPosition)) {
             // Return the higher-priority completion target.
             return autocompleteInstanceMember(globalScope, caretScope, info);
         }
@@ -227,7 +228,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
     for (const info of globalScope.markers.scopeAccess) {
         // Check whether this higher-priority completion target is at the cursor position.
         const location = getScopeAccessMarkerLocation(info);
-        if (location.positionInRange(caret)) {
+        if (location.positionInRange(caretPosition)) {
             // Return the higher-priority completion target.
             const result = getCompletionSymbolsInScope(info.targetScope, false);
             if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
@@ -238,7 +239,20 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         }
     }
 
+    if (isCaretAfterScopeAccessOperator(caret)) {
+        // Even if scope resolution failed before this operator, keep completion scoped to `::`.
+        // e.g., my_scope::undefined_name::$C$
+        return [];
+    }
+
     return undefined;
+}
+
+function isCaretAfterScopeAccessOperator(caret: CaretContext): boolean {
+    const nearest = caret.getNearestToken();
+    const token = nearest.containingToken ?? nearest.precedingToken;
+
+    return token?.text === '::';
 }
 
 function autocompleteInstanceMember(

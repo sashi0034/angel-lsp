@@ -42,6 +42,23 @@ describe('completion/namespace', () => {
         );
     });
 
+    it('omits scope completions when the namespace has no members', () => {
+        testCompletion(
+            `// Empty namespace completion should not fall back to global symbols.
+            namespace empty {
+            }
+
+            class Foo { }
+
+            void main() {
+                empty::$C0$;
+                empty::undefined_name::$C1$
+            }`,
+            /* $C0$ */ [],
+            /* $C1$ */ []
+        );
+    });
+
     it('merges members from repeated namespace declarations', () => {
         testCompletion(
             `// Completion is possible even if the namespace is defined in multiple places.
