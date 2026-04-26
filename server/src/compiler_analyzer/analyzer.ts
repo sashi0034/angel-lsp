@@ -97,6 +97,168 @@ export type HoistQueue = (() => void)[];
 
 export type AnalyzeQueue = (() => void)[];
 
+function isValidUtf8StringContent(value: string): boolean {
+    const len = value.length;
+
+    const hexValue = (code: number): number => {
+        if (code >= 0x30 && code <= 0x39) {
+            return code - 0x30;
+        }
+
+        if (code >= 0x41 && code <= 0x46) {
+            return code - 0x41 + 10;
+        }
+
+        if (code >= 0x61 && code <= 0x66) {
+            return code - 0x61 + 10;
+        }
+
+        return -1;
+    };
+
+    for (let i = 0; i < len; i++) {
+        const ch = value.charCodeAt(i);
+
+        if (ch !== 0x5c) {
+            // '\'
+            // Lone UTF-16 surrogates are invalid Unicode scalars.
+            if (ch >= 0xd800 && ch <= 0xdbff) {
+                if (i + 1 >= len) {
+                    return false;
+                }
+
+                const low = value.charCodeAt(i + 1);
+                if (low < 0xdc00 || low > 0xdfff) {
+                    return false;
+                }
+
+                i++;
+            } else if (ch >= 0xdc00 && ch <= 0xdfff) {
+                return false;
+            }
+
+            continue;
+        }
+
+        // Escape sequence
+        i++;
+        if (i >= len) {
+            return false;
+        }
+
+        const esc = value.charCodeAt(i);
+
+        // \xNN : treated as raw byte source in AngelScript (can represent non-unicode byte sequences).
+        // We only require at least one hex digit for sanity here.
+        if (esc === 0x78 || esc === 0x58) {
+            // 'x' | 'X'
+            if (i + 1 >= len) {
+                return false;
+            }
+
+            const h1 = hexValue(value.charCodeAt(i + 1));
+            if (h1 < 0) {
+                return false;
+            }
+
+            if (i + 2 < len && hexValue(value.charCodeAt(i + 2)) >= 0) {
+                i += 2;
+            } else {
+                i += 1;
+            }
+
+            continue;
+        }
+
+        // \uNNNN / \UNNNNNNNN
+        if (esc === 0x75 || esc === 0x55) {
+            // 'u' | 'U'
+            const digits = esc === 0x75 ? 4 : 8;
+            if (i + digits >= len) {
+                return false;
+            }
+
+            let codePoint = 0;
+            for (let d = 1; d <= digits; d++) {
+                const v = hexValue(value.charCodeAt(i + d));
+                if (v < 0) {
+                    return false;
+                }
+
+                codePoint = (codePoint << 4) | v;
+            }
+
+            if (esc === 0x75) {
+                // Support UTF-16 surrogate-pair escapes: \uD83D\uDE04
+                if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
+                    if (i + 6 >= len) {
+                        return false;
+                    }
+
+                    if (value.charCodeAt(i + 5) !== 0x5c) {
+                        return false;
+                    } // '\'
+
+                    if (value.charCodeAt(i + 6) !== 0x75) {
+                        return false;
+                    } // 'u'
+
+                    let low = 0;
+                    for (let d = 7; d <= 10; d++) {
+                        const v = hexValue(value.charCodeAt(i + d));
+                        if (v < 0) {
+                            return false;
+                        }
+
+                        low = (low << 4) | v;
+                    }
+
+                    if (low < 0xdc00 || low > 0xdfff) {
+                        return false;
+                    }
+
+                    i += 10;
+                    continue;
+                }
+
+                // Lone low surrogate is invalid.
+                if (codePoint >= 0xdc00 && codePoint <= 0xdfff) {
+                    return false;
+                }
+            } else {
+                // \U must encode a valid scalar value.
+                if (codePoint > 0x10ffff) {
+                    return false;
+                }
+
+                if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
+                    return false;
+                }
+            }
+
+            i += digits;
+            continue;
+        }
+
+        // Standard escapes supported by AngelScript.
+        if (
+            esc === 0x22 || // "
+            esc === 0x27 || // '
+            esc === 0x6e || // n
+            esc === 0x72 || // r
+            esc === 0x74 || // t
+            esc === 0x30 || // 0
+            esc === 0x5c // \
+        ) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 /** @internal */
 export function pushScopeRegionMarker(targetScope: SymbolScope, tokenRange: TokenRange) {
     getActiveGlobalScope().markers.scopeRegion.push({
@@ -1425,9 +1587,13 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     }
 
     if (literalValue.isStringToken()) {
-        if (literalValue.text[0] === "'" && getGlobalSettings().characterLiterals) {
-            // TODO: verify utf8 validity
-            return resolvedBuiltinInt;
+        const isHeredoc = literalValue.text.startsWith('"""');
+        const isCharLiteral = literalValue.text[0] === "'";
+
+        if ((literalValue.text[0] === '"' && !isHeredoc) || isCharLiteral) {
+            if (isValidUtf8StringContent(literalValue.getStringContent()) === false) {
+                analyzerDiagnostic.error(literalValue.location, `Invalid UTF-8 string.`);
+            }
         }
 
         const stringType = getActiveGlobalScope().getContext().builtinStringType;
