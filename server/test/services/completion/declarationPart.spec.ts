@@ -57,4 +57,16 @@ describe('completion/declarationPart', () => {
             /* $C5$ */ []
         );
     });
+
+    it('does not treat the next line after an expression statement as a declaration part', () => {
+        testCompletion(
+            `
+            void f() {
+                ;
+                $C0$
+            }
+            `,
+            /* $C0$ */ ['f']
+        );
+    });
 });

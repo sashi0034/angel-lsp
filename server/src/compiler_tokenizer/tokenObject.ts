@@ -235,6 +235,14 @@ export class NumberToken extends TokenBase {
     public get kind(): TokenKind {
         return TokenKind.Number;
     }
+
+    public getNumberValue(): number | undefined {
+        const suffixPattern =
+            this.numberLiteral === NumberLiteral.Integer ? /[uUlL]+$/ : /[fFdD]+$/;
+        const normalized = this.text.replace(/'/g, '').replace(suffixPattern, '');
+        const value = /^0[dD]/.test(normalized) ? Number(normalized.slice(2)) : Number(normalized);
+        return Number.isNaN(value) ? undefined : value;
+    }
 }
 
 export class StringToken extends TokenBase {

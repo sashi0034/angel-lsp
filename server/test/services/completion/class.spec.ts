@@ -47,11 +47,21 @@ describe('completion/class', () => {
             }
 
             void main() {
-                Bar bar;
-                bar.$C1$
+                {
+                    Bar bar;
+                    bar.$C1$
+                }
+                
+                {
+                    Bar bar;
+                    bar.w.$C2$; // should show nothing
+                    bar.e().$C3$ // should show nothing
+                }
             }`,
             /* $C0 */ ['Foo', 'Bar', 'x', 'y', 'a', 'c', 'this', 'w', 'v', 'd', 'e', 'main'],
-            /* $C1 */ ['w', 'd', 'x', 'a']
+            /* $C1 */ ['w', 'd', 'x', 'a'],
+            /* $C2 */ [],
+            /* $C3 */ []
         );
     });
 });

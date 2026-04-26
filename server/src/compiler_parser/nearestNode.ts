@@ -2,12 +2,13 @@ import {Node_Script, NodeObject} from './nodeObject';
 import {getNodeChildren} from './nodeChildren';
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 
-type NearestNode = {
+export type NearestNode = {
     precedingNode: NodeObject | undefined;
     containingNode: NodeObject | undefined;
     followingNode: NodeObject | undefined;
 };
 
+// TODO: Rename
 export function findNearestNode(node: NodeObject | Node_Script, caret: TextPosition): NearestNode[] {
     const children = [...getChildren(node)].sort(compareNodePosition);
     let precedingNode: NodeObject | undefined;

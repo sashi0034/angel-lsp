@@ -3,6 +3,7 @@ import {diagnostic} from '../core/diagnostic';
 import {HighlightForModifier, HighlightForToken} from '../core/highlight';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {TextLocation, TextPosition} from '../compiler_tokenizer/textLocation';
+import * as assert from 'node:assert';
 
 /**
  * Output of `preprocessAfterTokenize`.
@@ -68,7 +69,9 @@ type IfDirectiveBlock = {
     tag: '#if';
     start: TextLocation;
     isActiveBlock: boolean;
-}; // TODO: #else
+    hasActiveBranch: boolean;
+    hasElse: boolean;
+};
 
 interface DirectivePreprocessorContext {
     ifDirectiveBlockStack: IfDirectiveBlock[];
@@ -93,6 +96,56 @@ function updateInactiveBlockStatus(context: DirectivePreprocessorContext) {
     }
 
     context.isActiveBlock = true;
+}
+
+function getDirectiveBlockStart(directiveTokens: TokenObject[]): TextLocation {
+    const directiveTail = directiveTokens[directiveTokens.length - 1];
+    return (directiveTail.nextRaw ?? directiveTail).location;
+}
+
+function reportInactiveDirectiveBlockIfNeeded(
+    context: DirectivePreprocessorContext,
+    currentIfDirectiveBlock: IfDirectiveBlock,
+    end: TextPosition
+) {
+    if (!context.isActiveBlock) {
+        diagnostic.unnecessary(currentIfDirectiveBlock.start.withEnd(end), 'Inactive #if branch');
+    }
+}
+
+function evaluateIfDirectiveCondition(
+    context: DirectivePreprocessorContext,
+    conditionToken: TokenObject
+): boolean | undefined {
+    switch (conditionToken.kind) {
+        case TokenKind.Identifier:
+            return context.intermediateOutput.definedSymbols.has(conditionToken.text);
+        case TokenKind.Number: {
+            assert(conditionToken.isNumberToken());
+            const value = conditionToken.getNumberValue();
+            return value === undefined ? undefined : value !== 0;
+        }
+        default:
+            return undefined;
+    }
+}
+
+function getIfDirectiveCondition(
+    context: DirectivePreprocessorContext,
+    directiveTokens: TokenObject[]
+): boolean | undefined {
+    const conditionToken = directiveTokens[2];
+    if (conditionToken === undefined) {
+        diagnostic.error(directiveTokens[1].location, 'Expected a identifier or number token.');
+        return undefined;
+    }
+
+    const condition = evaluateIfDirectiveCondition(context, conditionToken);
+    if (condition === undefined) {
+        diagnostic.error(conditionToken.location, 'Expected a identifier or number token.');
+    }
+
+    return condition;
 }
 
 function preprocessDirectives(rawTokens: TokenObject[], externalDefinedSymbols: string[]): IntermediateOutput {
@@ -142,6 +195,10 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
         // e.g., #include "filename"
         directiveTokens[1].setHighlight(directiveHighlight);
 
+        if (!context.isActiveBlock) {
+            return;
+        }
+
         // Validate the include directive.
         const fileName = directiveTokens[2];
         if (fileName === undefined) {
@@ -159,6 +216,10 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
         // e.g., #define SYMBOL_NAME
         directiveTokens[1].setHighlight(directiveHighlight);
 
+        if (!context.isActiveBlock) {
+            return;
+        }
+
         const symbolName = directiveTokens[2];
         if (symbolName === undefined) {
             diagnostic.error(directiveTokens[1].location, 'Expected a symbol name in the define directive.');
@@ -172,26 +233,83 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
 
         context.intermediateOutput.definedSymbols.add(directiveTokens[2].text);
     } else if (directiveTokens[1].text === 'if') {
-        // e.g., #if SYMBOL_NAME
+        // e.g., #if SYMBOL_NAME, #if 1
         directiveTokens[1].setHighlight(directiveHighlight);
 
-        const symbolName = directiveTokens[2];
-        if (symbolName === undefined) {
-            diagnostic.error(directiveTokens[2].location, 'Expected a identifier token.');
+        const condition = getIfDirectiveCondition(context, directiveTokens);
+        if (condition === undefined) {
             return;
         }
 
-        if (!symbolName.isIdentifierToken()) {
-            diagnostic.error(directiveTokens[2].location, 'Expected a identifier token.');
-            return;
-        }
-
-        const directiveTail = directiveTokens[directiveTokens.length - 1];
         context.ifDirectiveBlockStack.push({
             tag: '#if',
-            start: (directiveTail.nextRaw ?? directiveTail)?.location,
-            isActiveBlock: context.intermediateOutput.definedSymbols.has(directiveTokens[2].text)
+            start: getDirectiveBlockStart(directiveTokens),
+            isActiveBlock: condition,
+            hasActiveBranch: condition,
+            hasElse: false
         });
+
+        updateInactiveBlockStatus(context);
+    } else if (directiveTokens[1].text === 'elif') {
+        // e.g., #elif SYMBOL_NAME, #elif 1
+        directiveTokens[1].setHighlight(directiveHighlight);
+
+        const currentIfDirectiveBlock = getCurrentIfDirectiveBlock(context);
+        if (!currentIfDirectiveBlock) {
+            diagnostic.error(directiveTokens[1].location, 'Missing `#if`');
+            return;
+        }
+
+        if (currentIfDirectiveBlock.hasElse) {
+            diagnostic.error(directiveTokens[1].location, '`#elif` cannot appear after `#else`.');
+            return;
+        }
+
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
+
+        const condition = getIfDirectiveCondition(context, directiveTokens);
+        currentIfDirectiveBlock.start = getDirectiveBlockStart(directiveTokens);
+        if (condition === undefined) {
+            currentIfDirectiveBlock.isActiveBlock = false;
+            updateInactiveBlockStatus(context);
+            return;
+        }
+
+        currentIfDirectiveBlock.isActiveBlock = !currentIfDirectiveBlock.hasActiveBranch && condition;
+        currentIfDirectiveBlock.hasActiveBranch =
+            currentIfDirectiveBlock.hasActiveBranch || currentIfDirectiveBlock.isActiveBlock;
+
+        updateInactiveBlockStatus(context);
+    } else if (directiveTokens[1].text === 'else') {
+        // e.g., #else
+        directiveTokens[1].setHighlight(directiveHighlight);
+
+        const currentIfDirectiveBlock = getCurrentIfDirectiveBlock(context);
+        if (!currentIfDirectiveBlock) {
+            diagnostic.error(directiveTokens[1].location, 'Missing `#if`');
+            return;
+        }
+
+        if (currentIfDirectiveBlock.hasElse) {
+            diagnostic.error(directiveTokens[1].location, 'Duplicate `#else`.');
+            return;
+        }
+
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
+
+        currentIfDirectiveBlock.start = getDirectiveBlockStart(directiveTokens);
+        currentIfDirectiveBlock.isActiveBlock = !currentIfDirectiveBlock.hasActiveBranch;
+        currentIfDirectiveBlock.hasActiveBranch =
+            currentIfDirectiveBlock.hasActiveBranch || currentIfDirectiveBlock.isActiveBlock;
+        currentIfDirectiveBlock.hasElse = true;
 
         updateInactiveBlockStatus(context);
     } else if (directiveTokens[1].text === 'endif') {
@@ -204,12 +322,11 @@ function handleDirectiveTokens(context: DirectivePreprocessorContext, directiveT
             return;
         }
 
-        if (!context.isActiveBlock) {
-            diagnostic.unnecessary(
-                currentIfDirectiveBlock.start.withEnd((directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end),
-                '#if ... #endif' // TODO
-            );
-        }
+        reportInactiveDirectiveBlockIfNeeded(
+            context,
+            currentIfDirectiveBlock,
+            (directiveTokens[0].prevRaw ?? directiveTokens[0]).location.end
+        );
 
         context.ifDirectiveBlockStack.pop();
 

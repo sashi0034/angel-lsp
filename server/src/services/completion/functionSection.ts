@@ -1,8 +1,8 @@
 import {CompletionItemKind} from 'vscode-languageserver/node';
-import {Node_Func, NodeName, Node_Script} from '../../compiler_parser/nodeObject';
-import {findNearestNode} from '../../compiler_parser/nearestNode';
+import {Node_Func, NodeName} from '../../compiler_parser/nodeObject';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import type {CompletionItemWrapper} from '../completion';
+import {CaretContext} from './caretContext';
 
 export const functionAttributeCompletionKeywords = [
     'const',
@@ -14,11 +14,9 @@ export const functionAttributeCompletionKeywords = [
     'nodiscard'
 ];
 
-export function provideFunctionSectionCompletion(
-    ast: Node_Script,
-    caret: TextPosition
-): CompletionItemWrapper[] | undefined {
-    const nearestFunc = findNearestFunction(ast, caret);
+export function provideFunctionSectionCompletion(caret: CaretContext): CompletionItemWrapper[] | undefined {
+    const caretPosition = caret.caret;
+    const nearestFunc = findNearestFunction(caret);
     if (nearestFunc === undefined || nearestFunc.node.listPattern !== undefined) {
         return undefined;
     }
@@ -28,7 +26,7 @@ export function provideFunctionSectionCompletion(
     if (nearestFunc.tag === 'containing') {
         const paramListEnd = funcNode.paramList.nodeRange.end;
         const suffixEnd = funcNode.statBlock?.nodeRange.start ?? funcNode.nodeRange.end;
-        if (caret.isLessThan(paramListEnd.location.end) || suffixEnd.location.start.isLessThan(caret)) {
+        if (caretPosition.isLessThan(paramListEnd.location.end) || suffixEnd.location.start.isLessThan(caretPosition)) {
             return undefined;
         }
     }
@@ -37,12 +35,12 @@ export function provideFunctionSectionCompletion(
     // Now, caret is between the parameter list and the function body, which is where function suffix keywords can be placed.
     // e.g., `void function() $C$ {`
 
-    if (funcNode.postfixConstToken !== undefined && caret.isLessThan(funcNode.postfixConstToken.location.end)) {
+    if (funcNode.postfixConstToken !== undefined && caretPosition.isLessThan(funcNode.postfixConstToken.location.end)) {
         // e.g., `void function() $C$ const {`
         return [];
     }
 
-    const usedKeywords = collectUsedFunctionSuffixKeywords(funcNode, caret);
+    const usedKeywords = collectUsedFunctionSuffixKeywords(funcNode, caretPosition);
     return functionAttributeCompletionKeywords
         .filter(keyword => !usedKeywords.has(keyword))
         .map(keyword => ({
@@ -53,16 +51,13 @@ export function provideFunctionSectionCompletion(
         }));
 }
 
-function findNearestFunction(
-    ast: Node_Script,
-    caret: TextPosition
-):
+function findNearestFunction(caret: CaretContext):
     | {
           tag: 'containing' | 'preceding';
           node: Node_Func;
       }
     | undefined {
-    const nearestNode = findNearestNode(ast, caret);
+    const nearestNode = caret.getNearestNode();
 
     for (let i = nearestNode.length - 1; i >= 0; --i) {
         const containingNode = nearestNode[i].containingNode;

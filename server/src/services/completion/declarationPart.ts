@@ -1,31 +1,27 @@
-import {Node_Script, NodeName, NodeObject} from '../../compiler_parser/nodeObject';
-import {findNearestNode} from '../../compiler_parser/nearestNode';
+import {NodeName, NodeObject} from '../../compiler_parser/nodeObject';
 import {TextPosition} from '../../compiler_tokenizer/textLocation';
 import {TokenObject} from '../../compiler_tokenizer/tokenObject';
-import {findNearestToken} from '../utils';
+import {CaretContext} from './caretContext';
 
-export function isCaretInDeclarationPart(
-    preprocessedTokens: TokenObject[],
-    ast: Node_Script,
-    caret: TextPosition
-): boolean {
-    const nearestNodeList = findNearestNode(ast, caret);
+export function isCaretInDeclarationPart(caret: CaretContext): boolean {
+    const caretPosition = caret.caret;
+    const nearestNodeList = caret.getNearestNode();
     const nearestNode = nearestNodeList.at(-1);
     if (nearestNode?.containingNode !== undefined) {
-        return detectDeclarationPartByNode(nearestNode.containingNode, caret);
+        return detectDeclarationPartByNode(nearestNode.containingNode, caretPosition);
     }
 
     if (nearestNode?.precedingNode !== undefined) {
-        return detectDeclarationPartByNode(nearestNode.precedingNode, caret);
+        return detectDeclarationPartByNode(nearestNode.precedingNode, caretPosition);
     }
 
     // Built-in types may not produce parser nodes, so fall back to token-based detection.
     // e.g., `auto@ $C0$`
-    return detectDeclarationPartByBuiltinTypeToken(preprocessedTokens, caret);
+    return detectDeclarationPartByBuiltinTypeToken(caret);
 }
 
-function detectDeclarationPartByBuiltinTypeToken(preprocessedTokens: TokenObject[], caret: TextPosition): boolean {
-    const precedingToken = findNearestToken(preprocessedTokens, caret).precedingToken;
+function detectDeclarationPartByBuiltinTypeToken(caret: CaretContext): boolean {
+    const precedingToken = caret.getNearestToken().precedingToken;
     const candidateToken = rewindReferenceModifier(precedingToken);
     return (
         candidateToken !== undefined &&
@@ -97,6 +93,10 @@ function detectDeclarationPartByNode(node: NodeObject, caret: TextPosition): boo
 
 function isCaretInRange(start: TextPosition, end: TextPosition | undefined, caret: TextPosition): boolean {
     if (end === undefined) {
+        return false;
+    }
+
+    if (caret.line !== start.line) {
         return false;
     }
 

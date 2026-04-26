@@ -36,6 +36,46 @@ describe('services/hover', () => {
         );
     });
 
+    it('shows const hex numeric literal values', () => {
+        expectHoverContains(
+            `
+            const int CONST_VALUE = 0x2356;
+            int value = $C0$CONST_VALUE;
+            `,
+            'const int CONST_VALUE = 9046;'
+        );
+    });
+
+    it('shows const binary numeric literal values', () => {
+        expectHoverContains(
+            `
+            const int CONST_VALUE = 0b0101;
+            int value = $C0$CONST_VALUE;
+            `,
+            'const int CONST_VALUE = 5;'
+        );
+    });
+
+    it('shows const octal numeric literal values', () => {
+        expectHoverContains(
+            `
+            const int CONST_VALUE = 0o123;
+            int value = $C0$CONST_VALUE;
+            `,
+            'const int CONST_VALUE = 83;'
+        );
+    });
+
+    it('shows const explicit decimal numeric literal values', () => {
+        expectHoverContains(
+            `
+            const int CONST_VALUE = 0d2356;
+            int value = $C0$CONST_VALUE;
+            `,
+            'const int CONST_VALUE = 2356;'
+        );
+    });
+
     it('shows evaluated const numeric expressions', () => {
         expectHoverContains(
             `

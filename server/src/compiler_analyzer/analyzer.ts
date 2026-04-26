@@ -1413,7 +1413,7 @@ function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): Resolv
 function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
-        const value = parseNumberLiteralValue(literalValue.text);
+        const value = literalValue.getNumberValue();
         switch (literalValue.numberLiteral) {
             case NumberLiteral.Integer:
                 return resolvedBuiltinInt.cloneWithEvaluatedRvalue(value);
@@ -1445,12 +1445,6 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
     }
 
     return undefined;
-}
-
-function parseNumberLiteralValue(text: string): number | undefined {
-    const normalized = text.replace(/[fFdDuUlL]+$/, '');
-    const value = Number(normalized);
-    return Number.isNaN(value) ? undefined : value;
 }
 
 // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
