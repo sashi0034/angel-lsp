@@ -54,37 +54,37 @@ export function provideCompletion(
         return functionSectionCompletion;
     }
 
-    const items = provideCompletion_internal(caretContext, globalScope);
+    const items = provideGeneralCompletion(caretContext, globalScope);
 
     // Assign sort keys to the completion items.
     for (const item of items) {
-        attackSortKey(item.item);
+        attachSortKey(item.item);
     }
 
     return items;
 }
 
-function provideCompletion_internal(caret: CaretContext, globalScope: SymbolGlobalScope): CompletionItemWrapper[] {
+function provideGeneralCompletion(caret: CaretContext, globalScope: SymbolGlobalScope): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
     const caretPosition = caret.caret;
 
     const caretScope = findScopeContainingPosition(globalScope, caretPosition).scope;
 
-    // If there is a higher-priority completion target in this scope, return its candidates first.
-    // e.g., instance methods on an object.
-    const prioritizedCompletion = checkMissingCompletionInScope(globalScope, caretScope, caret);
-    if (prioritizedCompletion !== undefined) {
-        return prioritizedCompletion;
+    // If the caret is after an access operator, complete members from that target only.
+    // e.g., members after `object.` or symbols after `namespace::`.
+    const accessCompletion = provideAccessCompletion(globalScope, caretScope, caret);
+    if (accessCompletion !== undefined) {
+        return accessCompletion;
     }
 
     // Return completion candidates from this scope and its parent scopes.
     // e.g., classes or functions defined in the current context.
     for (const scope of collectScopeListWithParentAndUsingNamespace(caretScope)) {
-        items.push(...getCompletionSymbolsInScope(scope, true));
+        items.push(...provideScopeCompletion(scope, true));
     }
 
     // Hoist enum members to the global scope if the setting is enabled.
-    items.push(...hoistEnumParentScope(globalScope, []));
+    items.push(...provideHoistedEnumMemberCompletion(globalScope, []));
 
     // Return built-in keywords and primitive types.
     items.push(...provideBuiltinKeywordCompletion(items));
@@ -133,7 +133,7 @@ function provideBuiltinKeywordCompletion(existingItems: CompletionItemWrapper[])
         }));
 }
 
-function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
+function provideScopeCompletion(scope: SymbolScope, includeInstanceMember: boolean): CompletionItemWrapper[] {
     const items: CompletionItemWrapper[] = [];
 
     // Complete symbols declared in this scope.
@@ -150,7 +150,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
             }
         }
 
-        items.push(makeCompletionItem(symbolName, symbol));
+        items.push(createCompletionItem(symbolName, symbol));
     }
 
     // Complete namespaces.
@@ -170,7 +170,7 @@ function getCompletionSymbolsInScope(scope: SymbolScope, includeInstanceMember: 
     return items;
 }
 
-function hoistEnumParentScope(globalScope: SymbolGlobalScope, filter: ScopePath) {
+function provideHoistedEnumMemberCompletion(globalScope: SymbolGlobalScope, filter: ScopePath) {
     if (getGlobalSettings().hoistEnumParentScope === false) {
         return [];
     }
@@ -183,37 +183,14 @@ function hoistEnumParentScope(globalScope: SymbolGlobalScope, filter: ScopePath)
         }
 
         for (const [key, symbol] of enumScope.symbolTable) {
-            items.push(makeCompletionItem(key, symbol));
+            items.push(createCompletionItem(key, symbol));
         }
     }
 
     return items;
 }
 
-function getCompletionMembersInScope(
-    globalScope: SymbolScope,
-    caretScope: SymbolScope,
-    symbolScope: SymbolScope
-): CompletionItemWrapper[] {
-    const items: CompletionItemWrapper[] = [];
-
-    // Complete symbols declared in this scope.
-    for (const [symbolName, symbol] of symbolScope.symbolTable) {
-        if (isSymbolInstanceMember(symbol) === false) {
-            continue;
-        }
-
-        if (canAccessInstanceMember(caretScope, symbol) === false) {
-            continue;
-        }
-
-        items.push(makeCompletionItem(symbolName, symbol));
-    }
-
-    return items;
-}
-
-function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: CaretContext) {
+function provideAccessCompletion(globalScope: SymbolGlobalScope, caretScope: SymbolScope, caret: CaretContext) {
     const caretPosition = caret.caret;
 
     if (isCaretAtAccessOperator(caret, '.')) {
@@ -221,7 +198,7 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         for (const info of globalScope.markers.instanceAccess) {
             const location = getInstanceAccessMarkerLocation(info);
             if (location.positionInRange(caretPosition)) {
-                return autocompleteInstanceMember(globalScope, caretScope, info);
+                return getInstanceMemberCompletionItems(globalScope, caretScope, info);
             }
         }
 
@@ -233,9 +210,9 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         for (const info of globalScope.markers.scopeAccess) {
             const location = getScopeAccessMarkerLocation(info);
             if (location.positionInRange(caretPosition)) {
-                const result = getCompletionSymbolsInScope(info.targetScope, false);
+                const result = provideScopeCompletion(info.targetScope, false);
                 if (info.targetScope.linkedNode?.nodeName !== NodeName.Enum) {
-                    result.push(...hoistEnumParentScope(globalScope, info.targetScope.scopePath));
+                    result.push(...provideHoistedEnumMemberCompletion(globalScope, info.targetScope.scopePath));
                 }
 
                 return result;
@@ -254,7 +231,7 @@ function isCaretAtAccessOperator(caret: CaretContext, operator: '.' | '::'): boo
     return nearest.containingToken?.text === operator || nearest.precedingToken?.text === operator;
 }
 
-function autocompleteInstanceMember(
+function getInstanceMemberCompletionItems(
     globalScope: SymbolScope,
     caretScope: SymbolScope,
     completion: InstanceAccessMarker
@@ -273,10 +250,32 @@ function autocompleteInstanceMember(
     }
 
     // Return completion candidates from that scope.
-    return getCompletionMembersInScope(globalScope, caretScope, typeScope);
+    return getInstanceMemberCompletionItems_internal(caretScope, typeScope);
 }
 
-function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {
+function getInstanceMemberCompletionItems_internal(
+    caretScope: SymbolScope,
+    symbolScope: SymbolScope
+): CompletionItemWrapper[] {
+    const items: CompletionItemWrapper[] = [];
+
+    // Complete symbols declared in this scope.
+    for (const [symbolName, symbol] of symbolScope.symbolTable) {
+        if (isSymbolInstanceMember(symbol) === false) {
+            continue;
+        }
+
+        if (canAccessInstanceMember(caretScope, symbol) === false) {
+            continue;
+        }
+
+        items.push(createCompletionItem(symbolName, symbol));
+    }
+
+    return items;
+}
+
+function createCompletionItem(symbolName: string, symbol: SymbolObjectHolder): CompletionItemWrapper {
     const item: CompletionItem = {label: symbolName};
 
     // FIXME: We should classify the completion items more precisely.
@@ -302,7 +301,7 @@ function makeCompletionItem(symbolName: string, symbol: SymbolObjectHolder): Com
 }
 
 // Sort symbols with leading underscores toward the end.
-function attackSortKey(item: CompletionItem) {
+function attachSortKey(item: CompletionItem) {
     if (item.sortText !== undefined) {
         return;
     }
