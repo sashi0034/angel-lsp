@@ -47,21 +47,33 @@ describe('completion/class', () => {
             }
 
             void main() {
-                {
-                    Bar bar;
-                    bar.$C1$
-                }
-                
-                {
-                    Bar bar;
-                    bar.w.$C2$; // should show nothing
-                    bar.e().$C3$ // should show nothing
-                }
+                Bar bar;
+                bar.$C1$
             }`,
             /* $C0 */ ['Foo', 'Bar', 'x', 'y', 'a', 'c', 'this', 'w', 'v', 'd', 'e', 'main'],
-            /* $C1 */ ['w', 'd', 'x', 'a'],
-            /* $C2 */ [],
-            /* $C3 */ []
+            /* $C1 */ ['w', 'd', 'x', 'a']
+        );
+    });
+
+    it('does not fall back to global completions after invalid member access', () => {
+        testCompletion(
+            `// Invalid member access should not fall back to normal scope completion.
+            class Foo { }
+
+            class Bar {
+                int w;
+                private void e() { }
+            }
+
+            void main() {
+                Bar bar;
+                bar.w.$C0$;
+                bar.undefined_member.$C1$;
+                bar.e().$C2$;
+            }`,
+            /* $C0 */ [],
+            /* $C1 */ [],
+            /* $C2 */ []
         );
     });
 });

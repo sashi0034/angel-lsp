@@ -239,7 +239,13 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
         }
     }
 
-    if (isCaretAfterScopeAccessOperator(caret)) {
+    if (isCaretAtAccessOperator(caret, '.')) {
+        // Even if member resolution failed before this operator, keep completion scoped to `.`.
+        // e.g., object.undefined_member.$C$
+        return [];
+    }
+
+    if (isCaretAtAccessOperator(caret, '::')) {
         // Even if scope resolution failed before this operator, keep completion scoped to `::`.
         // e.g., my_scope::undefined_name::$C$
         return [];
@@ -248,11 +254,10 @@ function checkMissingCompletionInScope(globalScope: SymbolGlobalScope, caretScop
     return undefined;
 }
 
-function isCaretAfterScopeAccessOperator(caret: CaretContext): boolean {
+function isCaretAtAccessOperator(caret: CaretContext, operator: '.' | '::'): boolean {
     const nearest = caret.getNearestToken();
-    const token = nearest.containingToken ?? nearest.precedingToken;
 
-    return token?.text === '::';
+    return nearest.containingToken?.text === operator || nearest.precedingToken?.text === operator;
 }
 
 function autocompleteInstanceMember(
