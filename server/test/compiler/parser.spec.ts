@@ -3,8 +3,21 @@ import {parseAfterPreprocess} from '../../src/compiler_parser/parser';
 import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
 import {FileContentUnit} from '../inspectorUtils';
+import {ok} from 'node:assert';
 
 function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
+    const diagnosticsInParser = getParserDiagnostics(file);
+    const hasError = diagnosticsInParser.length > 0;
+    if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
+        const diagnostic = diagnosticsInParser[0];
+        const message = diagnostic.message;
+        const line = diagnostic.range.start.line;
+        const character = diagnostic.range.start.character;
+        throw new Error(`${message} (:${line}:${character})`);
+    }
+}
+
+function getParserDiagnostics(file: string | FileContentUnit) {
     diagnostic.beginSession();
 
     let content: string;
@@ -21,15 +34,7 @@ function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
     const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
     parseAfterPreprocess(preprocessedTokens.preprocessedTokens);
 
-    const diagnosticsInParser = diagnostic.endSession();
-    const hasError = diagnosticsInParser.length > 0;
-    if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
-        const diagnostic = diagnosticsInParser[0];
-        const message = diagnostic.message;
-        const line = diagnostic.range.start.line;
-        const character = diagnostic.range.start.character;
-        throw new Error(`${message} (:${line}:${character})`);
-    }
+    return diagnostic.endSession();
 }
 
 function expectSuccess(content: string | FileContentUnit, uri: string = `file:///path/to/file.as`) {
@@ -144,6 +149,16 @@ describe('Parser', () => {
                 int variable;
             }
         `);
+    });
+
+    it('reports one parser error for an unexpected token inside a namespace', () => {
+        const diagnostics = getParserDiagnostics(`
+            namespace ns {
+                123
+            }
+        `);
+
+        ok(diagnostics.length === 1);
     });
 
     it('parses enum casts and enum bitwise expressions', () => {

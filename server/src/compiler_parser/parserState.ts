@@ -105,13 +105,13 @@ export class ParserState {
      */
     public expect(reservedWord: string, highlight: HighlightForToken) {
         if (this.isEnd()) {
-            diagnostic.error(this.next().location, 'Unexpected end of file.');
+            this.error('Unexpected end of file.');
             return false;
         }
 
         const isExpectedWord = this.next().kind === TokenKind.Reserved && this.next().text === reservedWord;
         if (isExpectedWord === false) {
-            diagnostic.error(this.next().location, `Expected '${reservedWord}'.`);
+            this.error(`Expected '${reservedWord}'.`);
             return false;
         }
 
@@ -126,6 +126,10 @@ export class ParserState {
 
         diagnostic.error(this.next().location, message);
         this._lastTokenAtError = this.next();
+    }
+
+    public hasErrorAtCurrentToken(): boolean {
+        return this._lastTokenAtError === this.next();
     }
 }
 

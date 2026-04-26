@@ -83,9 +83,13 @@ import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {getGlobalSettings} from '../core/settings';
 
 // **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
-function parseScript(parser: ParserState): Node_Script {
+function parseScript(parser: ParserState, stopKeyword?: string | undefined): Node_Script {
     const script: Node_Script = [];
     while (parser.isEnd() === false) {
+        if (parser.next().text === stopKeyword) {
+            break;
+        }
+
         if (parser.next().text === ';') {
             parser.commit(HighlightForToken.Operator);
             continue;
@@ -190,7 +194,11 @@ function parseScript(parser: ParserState): Node_Script {
             continue;
         }
 
-        break;
+        if (parser.hasErrorAtCurrentToken() === false) {
+            parser.error('Unexpected token.');
+        }
+
+        parser.step();
     }
 
     return script;
@@ -227,7 +235,7 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
         return ParseFailure.Pending;
     }
 
-    const script = parseScript(parser);
+    const script = parseScript(parser, '}');
 
     parser.expect('}', HighlightForToken.Operator);
 
@@ -3112,16 +3120,5 @@ function handleGreaterThanAndGetNext(parser: ParserState) {
 
 export function parseAfterPreprocess(tokens: TokenObject[]): Node_Script {
     const parser = new ParserState(tokens);
-
-    const script: Node_Script = [];
-    while (parser.isEnd() === false) {
-        script.push(...parseScript(parser));
-
-        if (parser.isEnd() === false) {
-            parser.error('Unexpected token.');
-            parser.step();
-        }
-    }
-
-    return script;
+    return parseScript(parser);
 }
