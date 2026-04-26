@@ -68,12 +68,14 @@ export interface TemplateParameter {
 /**
  * The base interface for all symbols.
  */
-export abstract class SymbolBase {
+export abstract class SymbolObject {
     private _qualifiedIdentifier: QualifiedIdentifier | undefined;
 
     public abstract get kind(): SymbolKind;
 
     public abstract get scopePath(): ScopePath;
+
+    public abstract get identifierToken(): TokenObject;
 
     public abstract get identifierText(): string;
 
@@ -99,7 +101,7 @@ export abstract class SymbolBase {
         return this.kind === SymbolKind.Function;
     }
 
-    public equals(other: SymbolBase): boolean {
+    public equals(other: SymbolObject): boolean {
         return this.qualifiedIdentifier === other.qualifiedIdentifier;
     }
 }
@@ -116,7 +118,7 @@ export interface SymbolHolder {
     toList(): ReadonlyArray<SymbolObject>;
 }
 
-export class TypeSymbol extends SymbolBase implements SymbolHolder {
+export class TypeSymbol extends SymbolObject implements SymbolHolder {
     public get kind(): SymbolKind {
         return SymbolKind.Type;
     }
@@ -249,7 +251,7 @@ export class TypeSymbol extends SymbolBase implements SymbolHolder {
     }
 }
 
-export class VariableSymbol extends SymbolBase implements SymbolHolder {
+export class VariableSymbol extends SymbolObject implements SymbolHolder {
     public get kind(): SymbolKind {
         return SymbolKind.Variable;
     }
@@ -323,7 +325,7 @@ export class VariableSymbol extends SymbolBase implements SymbolHolder {
     }
 }
 
-export class FunctionSymbol extends SymbolBase {
+export class FunctionSymbol extends SymbolObject {
     public get kind(): SymbolKind {
         return SymbolKind.Function;
     }
@@ -486,8 +488,4 @@ export function isSymbolInstanceMember(symbol: SymbolObjectHolder): symbol is Fu
     return symbol.toList()[0].isInstanceMember;
 }
 
-export type SymbolObject = TypeSymbol | VariableSymbol | FunctionSymbol;
-
 export type SymbolObjectHolder = TypeSymbol | VariableSymbol | FunctionSymbolHolder;
-
-// (IF | FOR | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
