@@ -33,6 +33,7 @@ export interface CompletionItemWrapper {
 export function provideCompletion(
     rawTokens: TokenObject[],
     preprocessedTokens: TokenObject[],
+    definedSymbols: ReadonlySet<string>,
     ast: Node_Script,
     globalScope: SymbolGlobalScope,
     caret: TextPosition
@@ -41,7 +42,7 @@ export function provideCompletion(
         return [];
     }
 
-    const directiveCompletion = provideDirectiveCompletion(rawTokens, caret);
+    const directiveCompletion = provideDirectiveCompletion(rawTokens, definedSymbols, caret);
     if (directiveCompletion !== undefined) {
         return directiveCompletion.map(item => ({item}));
     }

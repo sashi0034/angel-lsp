@@ -45,6 +45,7 @@ export function testCompletion(fileContents: FileContents, ...expectedList: stri
         const completions = provideCompletion(
             record.rawTokens,
             record.preprocessedOutput.preprocessedTokens,
+            record.preprocessedOutput.definedSymbols,
             record.ast,
             globalScope,
             target.position

@@ -417,6 +417,7 @@ s_connection.onCompletion((params: lsp.TextDocumentPositionParams): lsp.Completi
     const items = provideCompletion(
         record.rawTokens,
         record.preprocessedOutput.preprocessedTokens,
+        record.preprocessedOutput.definedSymbols,
         record.ast,
         globalScope.globalScope,
         TextPosition.create(params.position)

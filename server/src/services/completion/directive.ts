@@ -50,18 +50,28 @@ export const directiveCompletionDefinitions: DirectiveCompletionDefinition[] = [
 
 export function provideDirectiveCompletion(
     rawTokens: TokenObject[],
+    definedSymbols: ReadonlySet<string>,
     caret: TextPosition
 ): CompletionItem[] | undefined {
+    if (isCaretInIfDirectiveLine(rawTokens, caret)) {
+        // e.g., SYMBOL in `#if SYMBOL`
+        return [...definedSymbols].map(symbol => ({
+            label: symbol,
+            kind: CompletionItemKind.Constant
+        }));
+    }
+
     const directiveLine = getDirectiveLine(rawTokens, caret);
-    if (directiveLine === undefined) {
-        return undefined;
+    if (directiveLine !== undefined) {
+        if (!getGlobalSettings().completion.snippets) {
+            return [];
+        }
+
+        // e.g., directive in `#directive`
+        return directiveCompletionDefinitions.map(definition => makeDirectiveCompletionItem(definition, directiveLine));
     }
 
-    if (!getGlobalSettings().completion.snippets) {
-        return [];
-    }
-
-    return directiveCompletionDefinitions.map(definition => makeDirectiveCompletionItem(definition, directiveLine));
+    return undefined;
 }
 
 function getDirectiveLine(
@@ -115,4 +125,28 @@ function makeDirectiveCompletionItem(
         ],
         insertTextFormat: InsertTextFormat.Snippet
     };
+}
+
+function isCaretInIfDirectiveLine(rawTokens: TokenObject[], caret: TextPosition): boolean {
+    const tokenInfo = findNearestToken(rawTokens, caret);
+    const tokenOnLine = tokenInfo.containingToken ?? tokenInfo.precedingToken ?? tokenInfo.followingToken;
+    if (tokenOnLine === undefined || !caret.isSameLine(tokenOnLine.location.start)) {
+        return false;
+    }
+
+    let lineHead = tokenOnLine;
+    while (lineHead.prevRaw !== undefined && caret.isSameLine(lineHead.prevRaw.location.start)) {
+        lineHead = lineHead.prevRaw;
+    }
+
+    if (lineHead.text !== '#') {
+        return false;
+    }
+
+    const directiveNameToken = lineHead.nextRaw;
+    return (
+        directiveNameToken !== undefined &&
+        caret.isSameLine(directiveNameToken.location.start) &&
+        (directiveNameToken.text === 'if' || directiveNameToken.text === 'elif')
+    );
 }
