@@ -41,8 +41,6 @@ function expectFailure(content: string | FileContentUnit, uri: string = `file://
     testParser(content, false);
 }
 
-// TODO: Separate tests for as.predefined?
-
 describe('Parser', () => {
     it('parses an empty function declaration', () => {
         expectSuccess('void foo() {}');
@@ -172,6 +170,10 @@ describe('Parser', () => {
     it('parses files with a BOM', () => {
         expectSuccess(`\uFEFF // <-- BOM
             void foo() { }`);
+    });
+
+    it('rejects an incomplete mixin', () => {
+        expectFailure(`mixin`);
     });
 
     it('rejects an incomplete funcdef', () => {

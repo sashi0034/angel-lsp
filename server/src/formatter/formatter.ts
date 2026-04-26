@@ -27,7 +27,6 @@ import {
     Node_InterfaceMethod,
     Node_Lambda,
     Node_LambdaParam,
-    Node_Mixin,
     NodeName,
     Node_Namespace,
     Node_Parameter,
@@ -53,7 +52,7 @@ import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, scriptNode: Node_Script) {
     for (const node of scriptNode) {
         const name = node.nodeName;
@@ -66,8 +65,6 @@ function formatScript(format: FormatterState, scriptNode: Node_Script) {
             formatTypeDef(format, node);
         } else if (name === NodeName.Class) {
             formatClass(format, node);
-        } else if (name === NodeName.Mixin) {
-            formatMixin(format, node);
         } else if (name === NodeName.Interface) {
             formatInterface(format, node);
         } else if (name === NodeName.FuncDef) {
@@ -180,10 +177,14 @@ function formatEnum(format: FormatterState, enumNode: Node_Enum) {
     });
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function formatClass(format: FormatterState, classNode: Node_Class) {
     formatMoveUntilNodeStart(format, classNode);
     format.pushWrap();
+
+    if (classNode.mixinToken !== undefined) {
+        formatTargetBy(format, 'mixin', {});
+    }
 
     formatEntityModifier(format);
 
@@ -452,16 +453,6 @@ function formatGetterSetterStatement(format: FormatterState, isConst: boolean, s
     } else {
         formatStatBlock(format, statBlock);
     }
-}
-
-// **BNF** MIXIN ::= 'mixin' CLASS
-function formatMixin(format: FormatterState, mixin: Node_Mixin) {
-    formatMoveUntilNodeStart(format, mixin);
-    format.pushWrap();
-
-    formatTargetBy(format, 'mixin', {});
-
-    formatClass(format, mixin.mixinClass);
 }
 
 // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'

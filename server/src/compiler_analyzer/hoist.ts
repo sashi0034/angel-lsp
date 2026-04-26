@@ -12,7 +12,6 @@ import {
     Node_FuncDef,
     Node_Interface,
     Node_InterfaceMethod,
-    Node_Mixin,
     NodeName,
     Node_Namespace,
     Node_Parameter,
@@ -53,7 +52,7 @@ import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {checkDuplicateFunctionOverload} from './functionOverload';
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -62,9 +61,7 @@ function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: A
         } else if (nodeName === NodeName.TypeDef) {
             hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
-            hoistClass(parentScope, statement, false, analyzeQueue, hoistQueue);
-        } else if (nodeName === NodeName.Mixin) {
-            hoistMixin(parentScope, statement, analyzeQueue, hoistQueue);
+            hoistClass(parentScope, statement, statement.mixinToken !== undefined, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Interface) {
             hoistInterface(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.FuncDef) {
@@ -143,7 +140,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOpt
     }
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(
     parentScope: SymbolScope,
     classNode: Node_Class,
@@ -690,11 +687,6 @@ function hoistVirtualProp(
             analyzeStatBlock(setterScope, statBlock);
         });
     }
-}
-
-// **BNF** MIXIN ::= 'mixin' CLASS
-function hoistMixin(parentScope: SymbolScope, mixin: Node_Mixin, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
-    hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
 }
 
 // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'

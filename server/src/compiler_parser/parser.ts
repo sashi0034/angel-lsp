@@ -39,7 +39,6 @@ import {
     Node_ListEntry,
     Node_ListPattern,
     Node_Literal,
-    Node_Mixin,
     NodeName,
     Node_Namespace,
     Node_Parameter,
@@ -72,7 +71,8 @@ import {
     HandleModifierToken,
     VoidParameter,
     voidParameter,
-    ScopeAndIdentifier
+    ScopeAndIdentifier,
+    MixinAttributeToken
 } from './nodeObject';
 import {HighlightForToken} from '../core/highlight';
 import {TokenKind, TokenObject, ReservedToken} from '../compiler_tokenizer/tokenObject';
@@ -82,7 +82,7 @@ import {Mutable} from '../utils/utilities';
 import {TokenRange} from '../compiler_tokenizer/tokenRange';
 import {getGlobalSettings} from '../core/settings';
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function parseScript(parser: ParserState): Node_Script {
     const script: Node_Script = [];
     while (parser.isEnd() === false) {
@@ -108,16 +108,6 @@ function parseScript(parser: ParserState): Node_Script {
 
         if (parsedTypeDef !== ParseFailure.Mismatch) {
             script.push(parsedTypeDef);
-            continue;
-        }
-
-        const parsedMixin = parseMixin(parser);
-        if (parsedMixin === ParseFailure.Pending) {
-            continue;
-        }
-
-        if (parsedMixin !== ParseFailure.Mismatch) {
-            script.push(parsedMixin);
             continue;
         }
 
@@ -422,11 +412,17 @@ function parseEntityAttributes(parser: ParserState): EntityAttributeToken[] | un
     return attributes;
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function parseClass(parser: ParserState): ParseResult<Node_Class> {
     const rangeStart = parser.next();
 
     const metadata = parseMetadata(parser);
+
+    let mixinToken: MixinAttributeToken | undefined;
+    if (parser.next().text === 'mixin') {
+        parser.commit(HighlightForToken.Keyword);
+        mixinToken = parser.prev() as MixinAttributeToken;
+    }
 
     const entityTokens = parseEntityAttributes(parser);
 
@@ -477,6 +473,7 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         nodeRange: new TokenRange(rangeStart, parser.prev()),
         scopeRange: new TokenRange(scopeStart, scopeEnd),
         metadata: metadata,
+        mixinToken: mixinToken,
         entityTokens: entityTokens,
         identifier: identifier,
         typeParameters: typeParameters,
@@ -1236,32 +1233,6 @@ function expectGetterSetter(parser: ParserState): GetterOrSetter {
         constToken: constToken,
         funcAttrTokens: funcAttrTokens,
         statBlock: statBlock
-    };
-}
-
-// **BNF** MIXIN ::= 'mixin' CLASS
-function parseMixin(parser: ParserState): ParseResult<Node_Mixin> {
-    if (parser.next().text !== 'mixin') {
-        return ParseFailure.Mismatch;
-    }
-
-    const rangeStart = parser.next();
-    parser.commit(HighlightForToken.Keyword);
-
-    const parsedClass = parseClass(parser);
-    if (parsedClass === ParseFailure.Pending) {
-        return ParseFailure.Pending;
-    }
-
-    if (parsedClass === ParseFailure.Mismatch) {
-        parser.error('Expected class definition.');
-        return ParseFailure.Pending;
-    }
-
-    return {
-        nodeName: NodeName.Mixin,
-        nodeRange: new TokenRange(rangeStart, parser.prev()),
-        mixinClass: parsedClass
     };
 }
 

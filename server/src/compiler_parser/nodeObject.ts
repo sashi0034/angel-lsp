@@ -9,6 +9,10 @@ export type ConstModifierToken = TokenObject & {
     readonly text: 'const';
 };
 
+export type MixinAttributeToken = TokenObject & {
+    readonly text: 'mixin';
+};
+
 export type EntityAttributeToken = TokenObject & {
     readonly text: 'shared' | 'external' | 'abstract' | 'final';
 };
@@ -52,7 +56,6 @@ export enum NodeName {
     Import = 'Import',
     FuncDef = 'FuncDef',
     VirtualProp = 'VirtualProp',
-    Mixin = 'Mixin',
     InterfaceMethod = 'InterfaceMethod',
     StatBlock = 'StatBlock',
     ParamList = 'ParamList',
@@ -102,7 +105,6 @@ export type NodeObject =
     | Node_Import
     | Node_FuncDef
     | Node_VirtualProp
-    | Node_Mixin
     | Node_InterfaceMethod
     | Node_StatBlock
     | Node_ParamList
@@ -142,7 +144,7 @@ export interface NodeBase {
     readonly nodeRange: TokenRange;
 }
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 export type Node_Script = ScriptElement[];
 
 export type ScriptElement =
@@ -150,7 +152,6 @@ export type ScriptElement =
     | Node_Enum
     | Node_TypeDef
     | Node_Class
-    | Node_Mixin
     | Node_Interface
     | Node_FuncDef
     | Node_VirtualProp
@@ -188,11 +189,12 @@ export interface IdentifierAndOptionalExpr {
     readonly expr: Node_Expr | undefined;
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface Node_Class extends NodeBase {
     readonly nodeName: NodeName.Class;
     readonly scopeRange: TokenRange;
     readonly metadata: TokenObject[][];
+    readonly mixinToken: MixinAttributeToken | undefined;
     readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly typeParameters: Node_Type[] | undefined;
@@ -314,12 +316,6 @@ export interface GetterOrSetter {
     readonly constToken: ConstModifierToken | undefined;
     readonly funcAttrTokens: FunctionAttributeToken[] | undefined;
     readonly statBlock: Node_StatBlock | undefined;
-}
-
-// **BNF** MIXIN ::= 'mixin' CLASS
-export interface Node_Mixin extends NodeBase {
-    readonly nodeName: NodeName.Mixin;
-    readonly mixinClass: Node_Class;
 }
 
 // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'

@@ -18,7 +18,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.Enum:
             return node.memberList.flatMap(member => children(member.expr));
 
-        // **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+        // **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
         case NodeName.Class:
             return [
                 ...children(...(node.typeParameters ?? [])),
@@ -70,10 +70,6 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         // **BNF** VIRTUALPROP ::= ['private' | 'protected'] TYPE ['&'] IDENTIFIER '{' {('get' | 'set') ['const'] FUNCATTR (STATBLOCK | ';')} '}'
         case NodeName.VirtualProp:
             return children(node.type, node.getter?.statBlock, node.setter?.statBlock);
-
-        // **BNF** MIXIN ::= 'mixin' CLASS
-        case NodeName.Mixin:
-            return [node.mixinClass];
 
         // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
         case NodeName.InterfaceMethod:
