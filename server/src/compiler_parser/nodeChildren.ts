@@ -10,7 +10,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.Namespace:
             return node.script;
 
-        // **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+        // **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
         case NodeName.Using:
             return [];
 

@@ -245,7 +245,7 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
     };
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 function parseUsing(parser: ParserState): ParseResult<Node_Using> {
     if (parser.peek().text !== 'using') {
         return ParseFailure.Mismatch;

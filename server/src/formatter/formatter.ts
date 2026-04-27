@@ -107,7 +107,7 @@ function formatNamespace(format: FormatterState, namespaceNode: Node_Namespace) 
     });
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 function formatUsing(format: FormatterState, usingNode: Node_Using) {
     formatMoveUntilNodeStart(format, usingNode);
     format.pushWrap();

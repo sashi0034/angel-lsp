@@ -167,7 +167,7 @@ export interface Node_Namespace extends NodeBase {
     readonly script: Node_Script;
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 export interface Node_Using extends NodeBase {
     readonly nodeName: NodeName.Using;
     readonly namespaceList: TokenObject[];

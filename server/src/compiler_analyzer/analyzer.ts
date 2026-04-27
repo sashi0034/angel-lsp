@@ -109,7 +109,7 @@ export function pushScopeRegionMarker(targetScope: SymbolScope, tokenRange: Toke
 
 // **BNF** NAMESPACE ::= 'namespace' IDENTIFIER {'::' IDENTIFIER} '{' SCRIPT '}'
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 export function analyzeUsingNamespace(parentScope: SymbolScope, usingNode: Node_Using) {
     parentScope.pushUsingNamespace(usingNode);
 }
