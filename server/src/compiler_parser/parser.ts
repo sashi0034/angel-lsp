@@ -195,10 +195,7 @@ function parseScript(parser: ParserState, stopKeyword?: string | undefined): Nod
             continue;
         }
 
-        if (parser.hasErrorAhead() === false) {
-            parser.error('Unexpected token.');
-        }
-
+        parser.error('Unexpected token.');
         parser.advance();
     }
 

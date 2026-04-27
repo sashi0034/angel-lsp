@@ -129,10 +129,6 @@ export class ParserState {
         diagnostic.error(this.peek().location, message);
         this._lastTokenAtError = this.peek();
     }
-
-    public hasErrorAhead(): boolean {
-        return this._lastTokenAtError === this.peek();
-    }
 }
 
 function makeSofToken(firstToken: TokenObject | undefined) {
