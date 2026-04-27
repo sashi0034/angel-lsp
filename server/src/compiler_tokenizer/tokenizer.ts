@@ -332,37 +332,37 @@ export function tokenize(path: string, content: string): TokenObject[] {
         );
 
         // Tokenize a comment
-        const triedComment = tryComment(tokenizer, location);
-        if (triedComment !== undefined) {
-            tokens.push(triedComment);
+        const commentToken = tryComment(tokenizer, location);
+        if (commentToken !== undefined) {
+            tokens.push(commentToken);
             continue;
         }
 
         // Tokenize a number
-        const triedNumber = tryNumber(tokenizer, location);
-        if (triedNumber !== undefined) {
-            tokens.push(triedNumber);
+        const numberToken = tryNumber(tokenizer, location);
+        if (numberToken !== undefined) {
+            tokens.push(numberToken);
             continue;
         }
 
         // Tokenize a string
-        const triedString = tryString(tokenizer, location);
-        if (triedString !== undefined) {
-            tokens.push(triedString);
+        const stringToken = tryString(tokenizer, location);
+        if (stringToken !== undefined) {
+            tokens.push(stringToken);
             continue;
         }
 
         // Tokenize a non-alphabetic symbol
-        const triedMark = tryMark(tokenizer, location);
-        if (triedMark !== undefined) {
-            tokens.push(triedMark);
+        const markToken = tryMark(tokenizer, location);
+        if (markToken !== undefined) {
+            tokens.push(markToken);
             continue;
         }
 
         // Tokenize an identifier or reserved keyword
-        const triedIdentifier = tryIdentifier(tokenizer, location);
-        if (triedIdentifier !== undefined) {
-            tokens.push(triedIdentifier);
+        const identifierToken = tryIdentifier(tokenizer, location);
+        if (identifierToken !== undefined) {
+            tokens.push(identifierToken);
             continue;
         }
 
