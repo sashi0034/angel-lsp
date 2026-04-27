@@ -100,7 +100,7 @@ function hoistNamespace(
 
     hoistScript(scopeIterator, namespaceNode.script, analyzeQueue, hoistQueue);
 
-    pushScopeRegionMarker(scopeIterator, namespaceNode.nodeRange);
+    pushScopeRegionMarker(scopeIterator, namespaceNode.scopeRange);
 }
 
 // **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
@@ -222,7 +222,7 @@ function hoistClass(
         });
     });
 
-    pushScopeRegionMarker(scope, classNode.nodeRange);
+    pushScopeRegionMarker(scope, classNode.scopeRange);
 }
 
 // e.g.,
@@ -528,7 +528,9 @@ function hoistInterface(
         }
     });
 
-    pushScopeRegionMarker(scope, interfaceNode.nodeRange);
+    if (interfaceNode.scopeRange !== undefined) {
+        pushScopeRegionMarker(scope, interfaceNode.scopeRange);
+    }
 }
 
 function hoistInterfaceMembers(

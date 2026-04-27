@@ -164,6 +164,7 @@ export type ScriptElement =
 export interface Node_Namespace extends NodeBase {
     readonly nodeName: NodeName.Namespace;
     readonly namespaceList: TokenObject[];
+    readonly scopeRange: TokenRange;
     readonly script: Node_Script;
 }
 
@@ -176,11 +177,11 @@ export interface Node_Using extends NodeBase {
 // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 export interface Node_Enum extends NodeBase {
     readonly nodeName: NodeName.Enum;
-    readonly scopeRange: TokenRange;
     readonly metadata: TokenObject[][];
     readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly memberList: IdentifierAndOptionalExpr[];
+    readonly scopeRange: TokenRange;
     readonly enumType: ReservedToken | undefined;
 }
 
@@ -192,13 +193,13 @@ export interface IdentifierAndOptionalExpr {
 // **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 export interface Node_Class extends NodeBase {
     readonly nodeName: NodeName.Class;
-    readonly scopeRange: TokenRange;
     readonly metadata: TokenObject[][];
     readonly mixinToken: MixinAttributeToken | undefined;
     readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly typeParameters: Node_Type[] | undefined;
     readonly baseList: ScopeAndIdentifier[];
+    readonly scopeRange: TokenRange;
     readonly memberList: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[];
 }
 
@@ -263,6 +264,7 @@ export interface Node_Interface extends NodeBase {
     readonly entityTokens: EntityAttributeToken[] | undefined;
     readonly identifier: TokenObject;
     readonly baseList: ScopeAndIdentifier[];
+    readonly scopeRange: TokenRange | undefined;
     readonly memberList: (Node_VirtualProp | Node_InterfaceMethod)[];
 }
 

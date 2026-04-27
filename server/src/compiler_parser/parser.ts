@@ -233,6 +233,8 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
         return ParseFailure.Incomplete;
     }
 
+    const scopeStart = parser.previous(); // '{'
+
     const script = parseScript(parser, '}');
 
     parser.expect('}', TokenHighlight.Operator);
@@ -241,6 +243,7 @@ function parseNamespace(parser: ParserState): ParseResult<Node_Namespace> {
         nodeName: NodeName.Namespace,
         nodeRange: new TokenRange(rangeStart, parser.previous()),
         namespaceList: namespaceList,
+        scopeRange: new TokenRange(scopeStart, parser.previous()),
         script: script
     };
 }
@@ -347,7 +350,8 @@ function parseEnum(parser: ParserState): ParseResult<Node_Enum> {
     }
 
     let memberList: IdentifierAndOptionalExpr[] = [];
-    const scopeStart = parser.peek();
+
+    const scopeStart = parser.peek(); // '{'
 
     if (parser.peek().text === ';') {
         parser.consume(TokenHighlight.Operator);
@@ -469,20 +473,22 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
         parser.expect('{', TokenHighlight.Operator);
     }
 
-    const scopeStart = parser.peek();
+    const scopeStart = parser.previous(); // '{'
+
     const members = expectClassMembers(parser);
+
     const scopeEnd = parser.previous();
 
     return {
         nodeName: NodeName.Class,
         nodeRange: new TokenRange(rangeStart, parser.previous()),
-        scopeRange: new TokenRange(scopeStart, scopeEnd),
         metadata: metadata,
         mixinToken: mixinToken,
         entityTokens: entityTokens,
         identifier: identifier,
         typeParameters: typeParameters,
         baseList: baseList,
+        scopeRange: new TokenRange(scopeStart, scopeEnd),
         memberList: members
     };
 }
@@ -947,6 +953,7 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
         entityTokens: entityTokens,
         identifier: identifier,
         baseList: [],
+        scopeRange: undefined,
         memberList: []
     };
 
@@ -978,7 +985,11 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
         parser.expect('{', TokenHighlight.Operator);
     }
 
+    const scopeStart = parser.previous(); // '{'
+
     result.memberList = expectInterfaceMembers(parser);
+
+    result.scopeRange = new TokenRange(scopeStart, parser.previous());
 
     return result;
 }
