@@ -8,24 +8,24 @@ import {
     StringToken
 } from './tokenObject';
 import {diagnostic} from '../core/diagnostic';
-import {TokenizerState, UnknownWordBuffer} from './tokenizerState';
+import {TokenizerState, UnknownTokenBuffer} from './tokenizerState';
 import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from './reservedWord';
 import {TextLocation} from './textLocation';
 import {getGlobalSettings} from '../core/settings';
 
 // Tokenizer satisfies this interface.
 interface CharReader {
-    next(offset?: number): string;
+    peek(offset?: number): string;
 }
 
 function isDigitOfRadix(regex: RegExp, reader: CharReader, offset = 0): boolean {
-    const next = reader.next(offset);
+    const next = reader.peek(offset);
 
     if (regex.test(next)) {
         return true;
     } else if (getGlobalSettings().supportsDigitSeparators && /^'$/.test(next)) {
-        // separators are OK if the next digit is valid
-        return regex.test(reader.next(offset + 1));
+        // Separators are OK if the next digit is valid
+        return regex.test(reader.peek(offset + 1));
     }
 
     return false;
@@ -49,9 +49,9 @@ function isHexChar(reader: CharReader, offset = 0): boolean {
 
 // Check if the next token is a comment and tokenize it.
 function tryComment(tokenizer: TokenizerState, location: TextLocation): CommentToken | undefined {
-    if (tokenizer.isNext('//')) {
+    if (tokenizer.startsWith('//')) {
         return tokenizeLineComment(tokenizer, location);
-    } else if (tokenizer.isNext('/*')) {
+    } else if (tokenizer.startsWith('/*')) {
         return tokenizeBlockComment(tokenizer, location);
     }
 
@@ -60,35 +60,35 @@ function tryComment(tokenizer: TokenizerState, location: TextLocation): CommentT
 
 function tokenizeLineComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursorOffset();
-    tokenizer.stepFor(2);
+    tokenizer.advanceBy(2);
     for (;;) {
-        if (tokenizer.isEnd() || tokenizer.isNextWrap()) {
+        if (tokenizer.isEnd() || tokenizer.isNextLineBreak()) {
             break;
         }
 
-        tokenizer.stepNext();
+        tokenizer.advance();
     }
 
-    return new CommentToken(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
+    return new CommentToken(tokenizer.sliceFrom(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 function tokenizeBlockComment(tokenizer: TokenizerState, location: TextLocation) {
     const start = tokenizer.getCursorOffset();
-    tokenizer.stepFor(2);
+    tokenizer.advanceBy(2);
     for (;;) {
         if (tokenizer.isEnd()) {
             break;
         }
 
-        if (tokenizer.isNext('*/')) {
-            tokenizer.stepFor(2);
+        if (tokenizer.startsWith('*/')) {
+            tokenizer.advanceBy(2);
             break;
         }
 
-        tokenizer.stepNext();
+        tokenizer.advance();
     }
 
-    return new CommentToken(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
+    return new CommentToken(tokenizer.sliceFrom(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 // Check if the next token is a number and tokenize it.
@@ -101,50 +101,46 @@ function tryNumber(tokenizer: TokenizerState, location: TextLocation): NumberTok
         return undefined;
     }
 
-    return new NumberToken(
-        tokenizer.substrToCursor(start),
-        location.withEnd(tokenizer.getCursorPosition()),
-        numberLiteral
-    );
+    return new NumberToken(tokenizer.sliceFrom(start), location.withEnd(tokenizer.getCursorPosition()), numberLiteral);
 }
 
 function consumeNumber(tokenizer: TokenizerState) {
     // Fails if the next token is not a number or a dot.
-    if (/^[0-9.]/.test(tokenizer.next()) === false) {
+    if (/^[0-9.]/.test(tokenizer.peek()) === false) {
         return NumberLiteral.Integer;
     }
 
     // Fails if a leading dot is not followed by a digit.
-    if (tokenizer.next() === '.' && isDigit(tokenizer, 1) === false) {
+    if (tokenizer.peek() === '.' && isDigit(tokenizer, 1) === false) {
         return NumberLiteral.Integer;
     }
 
-    if (tokenizer.next(0) === '0') {
-        if (/^[bB]$/.test(tokenizer.next(1))) {
-            tokenizer.stepFor(2);
+    if (tokenizer.peek(0) === '0') {
+        if (/^[bB]$/.test(tokenizer.peek(1))) {
+            tokenizer.advanceBy(2);
             while (tokenizer.isEnd() === false && isBinChara(tokenizer)) {
-                tokenizer.stepNext();
+                tokenizer.advance();
             }
 
             return NumberLiteral.Integer;
-        } else if (/^[oO]$/.test(tokenizer.next(1))) {
-            tokenizer.stepFor(2);
+        } else if (/^[oO]$/.test(tokenizer.peek(1))) {
+            tokenizer.advanceBy(2);
             while (tokenizer.isEnd() === false && isOctChara(tokenizer)) {
-                tokenizer.stepNext();
+                tokenizer.advance();
             }
 
             return NumberLiteral.Integer;
-        } else if (/^[dD]$/.test(tokenizer.next(1))) {
-            tokenizer.stepFor(2);
+        } else if (/^[dD]$/.test(tokenizer.peek(1))) {
+            tokenizer.advanceBy(2);
             while (tokenizer.isEnd() === false && isDigit(tokenizer)) {
-                tokenizer.stepNext();
+                tokenizer.advance();
             }
 
             return NumberLiteral.Integer;
-        } else if (/^[xX]$/.test(tokenizer.next(1))) {
-            tokenizer.stepFor(2);
+        } else if (/^[xX]$/.test(tokenizer.peek(1))) {
+            tokenizer.advanceBy(2);
             while (tokenizer.isEnd() === false && isHexChar(tokenizer)) {
-                tokenizer.stepNext();
+                tokenizer.advance();
             }
 
             return NumberLiteral.Integer;
@@ -153,14 +149,14 @@ function consumeNumber(tokenizer: TokenizerState) {
 
     // Read until it is 0-9.
     while (tokenizer.isEnd() === false && isDigit(tokenizer)) {
-        tokenizer.stepNext();
+        tokenizer.advance();
     }
 
     let numberLiteral = NumberLiteral.Integer;
 
     // Check if it is a floating point number
     let f = 0;
-    if (tokenizer.next() === '.') {
+    if (tokenizer.peek() === '.') {
         f++;
         while (isDigit(tokenizer, f)) {
             f++;
@@ -171,9 +167,9 @@ function consumeNumber(tokenizer: TokenizerState) {
 
     // Check if it has an exponent
     // e.g., 1e+3, 1E-3
-    if (/^[eE]$/.test(tokenizer.next(f))) {
+    if (/^[eE]$/.test(tokenizer.peek(f))) {
         const case1 = isDigit(tokenizer, f + 1); // e.g., 1e2
-        const case2 = !case1 && /^[+-]$/.test(tokenizer.next(f + 1)) && isDigit(tokenizer, f + 2); // e.g., 1e+3
+        const case2 = !case1 && /^[+-]$/.test(tokenizer.peek(f + 1)) && isDigit(tokenizer, f + 2); // e.g., 1e+3
         if (case1 || case2) {
             f += case1 ? 2 : 3;
             while (isDigit(tokenizer, f)) {
@@ -185,12 +181,12 @@ function consumeNumber(tokenizer: TokenizerState) {
     }
 
     if (f >= 1) {
-        tokenizer.stepFor(f);
+        tokenizer.advanceBy(f);
 
         // Check half precision floating point
         if (numberLiteral === NumberLiteral.Double) {
-            if (/^[fF]$/.test(tokenizer.next())) {
-                tokenizer.stepNext();
+            if (/^[fF]$/.test(tokenizer.peek())) {
+                tokenizer.advance();
                 return NumberLiteral.Float;
             }
         }
@@ -202,20 +198,20 @@ function consumeNumber(tokenizer: TokenizerState) {
 // Check if the next token is a string and tokenize it.
 function tryString(tokenizer: TokenizerState, location: TextLocation): StringToken | undefined {
     const start = tokenizer.getCursorOffset();
-    if (tokenizer.next() !== "'" && tokenizer.next() !== '"') {
+    if (tokenizer.peek() !== "'" && tokenizer.peek() !== '"') {
         return undefined;
     }
 
     const startQuote: "'" | '"' | '"""' = (() => {
-        if (tokenizer.isNext('"""')) {
+        if (tokenizer.startsWith('"""')) {
             return '"""';
-        } else if (tokenizer.isNext('"')) {
+        } else if (tokenizer.startsWith('"')) {
             return '"';
         }
 
         return "'";
     })();
-    tokenizer.stepFor(startQuote.length);
+    tokenizer.advanceBy(startQuote.length);
 
     let isEscaping = false;
     for (;;) {
@@ -223,7 +219,7 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): StringTok
             break;
         }
 
-        if (startQuote !== '"""' && tokenizer.isNextWrap()) {
+        if (startQuote !== '"""' && tokenizer.isNextLineBreak()) {
             diagnostic.error(
                 {
                     start: tokenizer.getCursorPosition(),
@@ -232,21 +228,21 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): StringTok
                 'Missing closing quote ' + startQuote
             );
             break;
-        } else if (isEscaping === false && tokenizer.isNext(startQuote)) {
-            tokenizer.stepFor(startQuote.length);
+        } else if (isEscaping === false && tokenizer.startsWith(startQuote)) {
+            tokenizer.advanceBy(startQuote.length);
             break;
         } else {
-            if (tokenizer.next() === '\\' && isEscaping === false) {
+            if (tokenizer.peek() === '\\' && isEscaping === false) {
                 isEscaping = true;
             } else {
                 isEscaping = false;
             }
 
-            tokenizer.stepNext();
+            tokenizer.advance();
         }
     }
 
-    return new StringToken(tokenizer.substrToCursor(start), location.withEnd(tokenizer.getCursorPosition()));
+    return new StringToken(tokenizer.sliceFrom(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
 // Check if the next token is a mark and tokenize it.
@@ -256,7 +252,7 @@ function tryMark(tokenizer: TokenizerState, location: TextLocation): ReservedTok
         return undefined;
     }
 
-    tokenizer.stepFor(mark.key.length);
+    tokenizer.advanceBy(mark.key.length);
 
     return createTokenReserved(mark.key, mark.value, location.withEnd(tokenizer.getCursorPosition()));
 }
@@ -266,12 +262,12 @@ function createTokenReserved(text: string, property: ReservedWordProperty, locat
 }
 
 function isAlphanumeric(reader: CharReader, offset = 0): boolean {
-    return /^[A-Za-z0-9_]$/.test(reader.next(offset));
+    return /^[A-Za-z0-9_]$/.test(reader.peek(offset));
 }
 
 function isUnicodeCharacter(reader: CharReader, offset = 0): boolean {
     // AngelScript accept identifiers that contain characters with byte value higher than 127.
-    const code = reader.next(offset).charCodeAt(0);
+    const code = reader.peek(offset).charCodeAt(0);
     return code >= 0x80;
 }
 
@@ -291,10 +287,10 @@ function isIdentifierCharacter(reader: CharReader, offset = 0): boolean {
 function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | IdentifierToken | undefined {
     const start = tokenizer.getCursorOffset();
     while (tokenizer.isEnd() === false && isIdentifierCharacter(tokenizer)) {
-        tokenizer.stepFor(1);
+        tokenizer.advanceBy(1);
     }
 
-    const identifier = tokenizer.substrToCursor(start);
+    const identifier = tokenizer.sliceFrom(start);
     if (identifier === '') {
         return undefined;
     }
@@ -317,15 +313,15 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
 export function tokenize(path: string, content: string): TokenObject[] {
     const tokens: TokenObject[] = [];
     const tokenizer = new TokenizerState(content);
-    const unknownWordBuffer = new UnknownWordBuffer();
+    const unknownTokenBuffer = new UnknownTokenBuffer();
 
     for (;;) {
         if (tokenizer.isEnd()) {
             break;
         }
 
-        if (tokenizer.isNextWrap() || tokenizer.isNextWhitespace()) {
-            tokenizer.stepNext();
+        if (tokenizer.isNextLineBreak() || tokenizer.isNextWhitespace()) {
+            tokenizer.advance();
             continue;
         }
 
@@ -371,13 +367,13 @@ export function tokenize(path: string, content: string): TokenObject[] {
         }
 
         // If the token is unknown, buffer it.
-        unknownWordBuffer.append(location, tokenizer.next());
-        tokenizer.stepNext();
+        unknownTokenBuffer.append(location, tokenizer.peek());
+        tokenizer.advance();
     }
 
     // -----------------------------------------------
 
-    unknownWordBuffer.flush();
+    unknownTokenBuffer.flush();
 
     for (let i = 0; i < tokens.length; i++) {
         tokens[i].bindRawToken(tokens[i + 1]);
