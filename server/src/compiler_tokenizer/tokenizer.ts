@@ -9,7 +9,7 @@ import {
 } from './tokenObject';
 import {diagnostic} from '../core/diagnostic';
 import {TokenizerState, UnknownTokenBuffer} from './tokenizerState';
-import {findReservedKeywordProperty, findReservedAtomicMarkProperty, ReservedWordProperty} from './reservedWord';
+import {findReservedKeywordProperty, findReservedAtomicPunctuatorProperty, ReservedWordProperty} from './reservedWord';
 import {TextLocation} from './textLocation';
 import {getGlobalSettings} from '../core/settings';
 
@@ -245,19 +245,19 @@ function tryString(tokenizer: TokenizerState, location: TextLocation): StringTok
     return new StringToken(tokenizer.sliceFrom(start), location.withEnd(tokenizer.getCursorPosition()));
 }
 
-// Check if the next token is a mark and tokenize it.
-function tryMark(tokenizer: TokenizerState, location: TextLocation): ReservedToken | undefined {
-    const mark = findReservedAtomicMarkProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
-    if (mark === undefined) {
+// Check if the next token is a punctuator and tokenize it.
+function tryPunctuator(tokenizer: TokenizerState, location: TextLocation): ReservedToken | undefined {
+    const punctuator = findReservedAtomicPunctuatorProperty(tokenizer._fileContent, tokenizer.getCursorOffset());
+    if (punctuator === undefined) {
         return undefined;
     }
 
-    tokenizer.advanceBy(mark.key.length);
+    tokenizer.advanceBy(punctuator.key.length);
 
-    return createTokenReserved(mark.key, mark.value, location.withEnd(tokenizer.getCursorPosition()));
+    return createReservedToken(punctuator.key, punctuator.value, location.withEnd(tokenizer.getCursorPosition()));
 }
 
-function createTokenReserved(text: string, property: ReservedWordProperty, location: TextLocation): ReservedToken {
+function createReservedToken(text: string, property: ReservedWordProperty, location: TextLocation): ReservedToken {
     return new ReservedToken(text, location, property);
 }
 
@@ -284,7 +284,10 @@ function isIdentifierCharacter(reader: CharReader, offset = 0): boolean {
 }
 
 // Check if the next token is an identifier and tokenize it.
-function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): TokenObject | IdentifierToken | undefined {
+function tryIdentifierOrKeyword(
+    tokenizer: TokenizerState,
+    location: TextLocation
+): TokenObject | IdentifierToken | undefined {
     const start = tokenizer.getCursorOffset();
     while (tokenizer.isEnd() === false && isIdentifierCharacter(tokenizer)) {
         tokenizer.advanceBy(1);
@@ -299,7 +302,7 @@ function tryIdentifier(tokenizer: TokenizerState, location: TextLocation): Token
 
     const reserved = findReservedKeywordProperty(identifier);
     if (reserved !== undefined) {
-        return createTokenReserved(identifier, reserved, tokenLocation);
+        return createReservedToken(identifier, reserved, tokenLocation);
     }
 
     return new IdentifierToken(identifier, tokenLocation);
@@ -352,17 +355,17 @@ export function tokenize(path: string, content: string): TokenObject[] {
             continue;
         }
 
-        // Tokenize a non-alphabetic symbol
-        const markToken = tryMark(tokenizer, location);
+        // Tokenize a punctuator
+        const markToken = tryPunctuator(tokenizer, location);
         if (markToken !== undefined) {
             tokens.push(markToken);
             continue;
         }
 
         // Tokenize an identifier or reserved keyword
-        const identifierToken = tryIdentifier(tokenizer, location);
-        if (identifierToken !== undefined) {
-            tokens.push(identifierToken);
+        const identifierOrKeyword = tryIdentifierOrKeyword(tokenizer, location);
+        if (identifierOrKeyword !== undefined) {
+            tokens.push(identifierOrKeyword);
             continue;
         }
 

@@ -4,9 +4,9 @@ import assert = require('assert');
 
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_reserved_keywords.html
 
-// Symbols that are non-alphanumeric reserved words are referred to as "Marks" in this context.
-// A list of all Marks
-const reservedMarkArray = [
+// Non-alphanumeric reserved words are called punctuators in this context.
+// A list of all punctuators.
+const reservedPunctuatorArray = [
     '*',
     '**',
     '/',
@@ -60,13 +60,14 @@ const reservedMarkArray = [
     '@',
     '!is',
     '::',
-    '#' // Strictly speaking, '#' is not a Mark, but is included here for use in preprocessing.
+    '#' // Strictly speaking, '#' is not a punctuator, but is included here for use in preprocessing.
 ];
 
-// A list of Marks with context-dependent reserved words removed. We call it Atomic Marks.
-// For example, in "array<array<int>>", '>>' should be recognized as ['>', '>'].
-// This should not include non-alphanumeric characters that are not Marks.
-const reservedAtomicMarkArray = [
+// Punctuators excluding context-dependent reserved words.
+// We call these atomic punctuators.
+// For example, in `array<array<int>>`, `>>` should be recognized as two `>` tokens.
+// This should not include non-alphanumeric characters that are not punctuators.
+const reservedAtomicPunctuatorArray = [
     '*',
     '**',
     '/',
@@ -242,7 +243,7 @@ const unsignedIntegerTypeSet = new Set<string>(['uint', 'uint8', 'uint16', 'uint
 const floatingPointSet = new Set<string>(['float', 'double']);
 
 export interface ReservedWordProperty {
-    readonly isMark: boolean;
+    readonly isPunctuator: boolean;
     readonly isExprPreOp: boolean;
     readonly isExprOp: boolean;
     readonly isBitOp: boolean;
@@ -260,7 +261,7 @@ export interface ReservedWordProperty {
 
 function makeEmptyProperty(): ReservedWordProperty {
     return {
-        isMark: false,
+        isPunctuator: false,
         isExprPreOp: false,
         isExprOp: false,
         isBitOp: false,
@@ -281,12 +282,12 @@ const reservedWordProperties = createProperties();
 
 function createProperties() {
     const properties = new Map<string, Mutable<ReservedWordProperty>>();
-    for (const symbol of [...reservedMarkArray, ...reservedKeywordArray]) {
+    for (const symbol of [...reservedPunctuatorArray, ...reservedKeywordArray]) {
         properties.set(symbol, makeEmptyProperty());
     }
 
-    for (const symbol of reservedMarkArray) {
-        properties.get(symbol)!.isMark = true;
+    for (const symbol of reservedPunctuatorArray) {
+        properties.get(symbol)!.isPunctuator = true;
     }
 
     for (const symbol of exprPreOpSet) {
@@ -344,25 +345,28 @@ function createProperties() {
     return properties;
 }
 
-const reservedAtomicMarkProperties = createAtomicMarkPropertyTrie();
+const reservedAtomicPunctuatorProperties = createAtomicPunctuatorPropertyTrie();
 
-function createAtomicMarkPropertyTrie() {
-    const markMap = new Trie<ReservedWordProperty>();
-    for (const mark of reservedAtomicMarkArray) {
-        markMap.insert(mark, reservedWordProperties.get(mark)!);
+function createAtomicPunctuatorPropertyTrie() {
+    const punctuatorMap = new Trie<ReservedWordProperty>();
+    for (const punctuator of reservedAtomicPunctuatorArray) {
+        punctuatorMap.insert(punctuator, reservedWordProperties.get(punctuator)!);
     }
 
-    return markMap;
+    return punctuatorMap;
 }
 
 /**
- * Searches for a reserved word property in the trie for Marks with context-dependent reserved words removed.
+ * Searches for a reserved word property in the trie for punctuators with context-dependent reserved words removed.
  * @param str - The string to search within.
  * @param start - The starting position in the string to begin the search.
  * @returns A `TriePair<ReservedWordProperty>` if a match is found, or `undefined` if not.
  */
-export function findReservedAtomicMarkProperty(str: string, start: number): TriePair<ReservedWordProperty> | undefined {
-    return reservedAtomicMarkProperties.find(str, start);
+export function findReservedAtomicPunctuatorProperty(
+    str: string,
+    start: number
+): TriePair<ReservedWordProperty> | undefined {
+    return reservedAtomicPunctuatorProperties.find(str, start);
 }
 
 const reservedKeywordProperties = createKeywordPropertyMap();
