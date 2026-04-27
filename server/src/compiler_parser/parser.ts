@@ -490,9 +490,8 @@ function parseClass(parser: ParserState): ParseResult<Node_Class> {
     };
 }
 
-// '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'
+// {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'
 function expectClassMembers(parser: ParserState) {
-    // parser.expect('{', HighlightTokenKind.Operator);
     const members: (Node_VirtualProp | Node_Var | Node_Func | Node_FuncDef)[] = [];
     while (parser.isEnd() === false) {
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) {
@@ -738,12 +737,16 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
             parser.consume(TokenHighlight.Operator);
         } else if (parser.peek().text === ']') {
             level--;
+            if (level > 0) {
+                metadata.at(-1)!.push(parser.peek());
+            }
+
             parser.consume(TokenHighlight.Operator);
 
             if (level === 0) {
                 // AngelScript allows multiple metadata declarations in consecutive `[` `]` pairs,
                 // so continue parsing them here.
-                // e `[Hello][World]` is valid, as are
+                // e.g., `[Hello][World]` is valid, as are:
                 // [Hello]
                 // [World]
                 if (parser.peek().text === '[') {
@@ -752,8 +755,6 @@ function parseMetadata(parser: ParserState): TokenObject[][] {
                 }
 
                 return metadata;
-            } else {
-                metadata.at(-1)!.push(parser.peek());
             }
         } else {
             metadata.at(-1)!.push(parser.peek());
@@ -985,10 +986,8 @@ function parseInterface(parser: ParserState): ParseResult<Node_Interface> {
     return result;
 }
 
-// '{' {VIRTUALPROP | INTERFACEMETHOD} '}'
+// {VIRTUALPROP | INTERFACEMETHOD} '}'
 function expectInterfaceMembers(parser: ParserState): (Node_InterfaceMethod | Node_VirtualProp)[] {
-    // parser.expect('{', HighlightTokenKind.Operator);
-
     const members: (Node_InterfaceMethod | Node_VirtualProp)[] = [];
     while (parser.isEnd() === false) {
         if (parseCloseOperator(parser, '}') === BreakOrThrough.Break) {
@@ -1043,8 +1042,8 @@ function parseVar(parser: ParserState): Node_Var | undefined {
         if (parser.peek().text === '=') {
             parser.consume(TokenHighlight.Operator);
 
-            const initListOrExpr = expectInitListOrExpr(parser);
-            variables.push({identifier: identifier, initializer: initListOrExpr});
+            const initListOrAssign = expectInitListOrAssign(parser);
+            variables.push({identifier: identifier, initializer: initListOrAssign});
         } else {
             const argList = parseArgList(parser);
             variables.push({identifier: identifier, initializer: argList});
@@ -1064,15 +1063,15 @@ function parseVar(parser: ParserState): Node_Var | undefined {
     };
 }
 
-function expectInitListOrExpr(parser: ParserState) {
+function expectInitListOrAssign(parser: ParserState) {
     const initList = parseInitList(parser);
     if (initList !== undefined) {
         return initList;
     }
 
-    const expr = expectAssign(parser);
-    if (expr !== undefined) {
-        return expr;
+    const assign = expectAssign(parser);
+    if (assign !== undefined) {
+        return assign;
     }
 
     parser.error('Expected initializer list or assignment.');
@@ -1113,7 +1112,7 @@ function parseImport(parser: ParserState): ParseResult<Node_Import> {
 
     const path = parser.peek();
     if (path.kind !== TokenKind.String) {
-        parser.error('Expected string path.');
+        parser.error('Expected a string literal.');
         return ParseFailure.Incomplete;
     }
 
@@ -1385,7 +1384,7 @@ function parseParamList(parser: ParserState): Node_ParamList | undefined {
         }
 
         if (isVariadic) {
-            parser.error('Variadic ellipses must be the last parameter.');
+            parser.error('A variadic parameter must be the last in the list.');
         }
 
         const param = parseParameter(parser, isVariadic);
@@ -1599,11 +1598,7 @@ function parseTypeTail(parser: ParserState) {
             }
 
             const constToken = parseConst(parser);
-            if (constToken !== undefined) {
-                handleTokens = {handleToken: handleToken, constToken: constToken};
-            } else {
-                handleTokens = {handleToken: handleToken, constToken: undefined};
-            }
+            handleTokens = {handleToken, constToken};
 
             continue;
         }
@@ -2049,7 +2044,7 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
     return appliedNodeEnd(parser, result);
 }
 
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
     if (parser.peek().text !== 'foreach') {
         return ParseFailure.Mismatch;
@@ -2078,7 +2073,7 @@ function parseForEach(parser: ParserState): ParseResult<Node_ForEach> {
         const variable = expectVariableInForEach(parser);
 
         if (variable === undefined) {
-            parser.error('Invalid variable declaration.');
+            parser.error('Expected variable declaration.');
             return ParseFailure.Incomplete;
         }
 
