@@ -27,7 +27,6 @@ import {
     Node_InterfaceMethod,
     Node_Lambda,
     Node_LambdaParam,
-    Node_Mixin,
     NodeName,
     Node_Namespace,
     Node_Parameter,
@@ -53,7 +52,7 @@ import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
 import {formatMoveToNonComment, formatMoveUntil, formatMoveUntilNodeStart, formatTargetBy} from './formatterDetail';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function formatScript(format: FormatterState, scriptNode: Node_Script) {
     for (const node of scriptNode) {
         const name = node.nodeName;
@@ -66,8 +65,6 @@ function formatScript(format: FormatterState, scriptNode: Node_Script) {
             formatTypeDef(format, node);
         } else if (name === NodeName.Class) {
             formatClass(format, node);
-        } else if (name === NodeName.Mixin) {
-            formatMixin(format, node);
         } else if (name === NodeName.Interface) {
             formatInterface(format, node);
         } else if (name === NodeName.FuncDef) {
@@ -110,7 +107,7 @@ function formatNamespace(format: FormatterState, namespaceNode: Node_Namespace) 
     });
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 function formatUsing(format: FormatterState, usingNode: Node_Using) {
     formatMoveUntilNodeStart(format, usingNode);
     format.pushWrap();
@@ -180,10 +177,14 @@ function formatEnum(format: FormatterState, enumNode: Node_Enum) {
     });
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function formatClass(format: FormatterState, classNode: Node_Class) {
     formatMoveUntilNodeStart(format, classNode);
     format.pushWrap();
+
+    if (classNode.mixinToken !== undefined) {
+        formatTargetBy(format, 'mixin', {});
+    }
 
     formatEntityModifier(format);
 
@@ -452,16 +453,6 @@ function formatGetterSetterStatement(format: FormatterState, isConst: boolean, s
     } else {
         formatStatBlock(format, statBlock);
     }
-}
-
-// **BNF** MIXIN ::= 'mixin' CLASS
-function formatMixin(format: FormatterState, mixin: Node_Mixin) {
-    formatMoveUntilNodeStart(format, mixin);
-    format.pushWrap();
-
-    formatTargetBy(format, 'mixin', {});
-
-    formatClass(format, mixin.mixinClass);
 }
 
 // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
@@ -814,7 +805,7 @@ function formatFor(format: FormatterState, forNode: Node_For) {
         formatStatement(format, forNode.statement, true);
     }
 }
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 // TODO: IMPLEMENT IT!
 
 // **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
@@ -1229,11 +1220,11 @@ function formatCondition(format: FormatterState, condition: Node_Condition) {
 // **BNF** COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 // **BNF** LOGICOP ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 // **BNF** ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
-// **BNF** IDENTIFIER ::= single token:  starts with letter or _, can include any letter and digit, same as in C++
+// **BNF** IDENTIFIER ::= single token:  starts with letter or '_', can include any letter and digit, same as in C++
 // **BNF** NUMBER ::= single token:  includes integers and real numbers, same as C++
-// **BNF** STRING ::= single token:  single quoted ', double quoted ", or heredoc multi-line string """
+// **BNF** STRING ::= single token:  single quoted `'`, double quoted `"`, or heredoc multi-line string `"""`
 // **BNF** BITS ::= single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
-// **BNF** COMMENT ::= single token:  starts with // and ends with new line or starts with /* and ends with */
+// **BNF** COMMENT ::= single token:  starts with '//' and ends with new line or starts with '/*' and ends with '*/'
 // **BNF** WHITESPACE ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
 export function formatFile(content: string, tokens: TokenObject[], ast: Node_Script): TextEdit[] {

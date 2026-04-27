@@ -1,7 +1,7 @@
 import {Node_Script} from '../compiler_parser/nodeObject';
 import {Position} from 'vscode-languageserver';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
-import {TokenBase, TokenObject} from '../compiler_tokenizer/tokenObject';
+import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {getGlobalSettings} from '../core/settings';
 
 interface IndentState {
@@ -76,7 +76,7 @@ export class FormatterState {
         this.cursor.character = pos.character;
     }
 
-    public setCursorToTail(token: TokenBase) {
+    public setCursorToTail(token: TokenObject) {
         this.setCursor(token.location.end);
         // this.stepCursor();
     }

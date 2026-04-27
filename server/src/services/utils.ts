@@ -1,6 +1,7 @@
 import {TextPosition} from '../compiler_tokenizer/textLocation';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
 import {SymbolObject} from '../compiler_analyzer/symbolObject';
+import assert = require('node:assert');
 
 /**
  * Finds the token in the given list that contains the specified caret position.
@@ -104,7 +105,7 @@ export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start); // FIXME: mixin class is OK?
     } else if (symbol.isVariable()) {
         return getDocumentCommentOfToken(symbol.identifierToken);
-    } else {
+    } else if (symbol.isFunction()) {
         // Function
         if (symbol.linkedNode === undefined) {
             return 'unknown function';
@@ -112,6 +113,8 @@ export function getDocumentCommentOfSymbol(symbol: SymbolObject) {
 
         return getDocumentCommentOfToken(symbol.linkedNode.nodeRange.start);
     }
+
+    assert(false);
 }
 
 function getNearCommentToken(token: TokenObject): TokenObject | undefined {

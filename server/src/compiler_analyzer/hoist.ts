@@ -12,7 +12,6 @@ import {
     Node_FuncDef,
     Node_Interface,
     Node_InterfaceMethod,
-    Node_Mixin,
     NodeName,
     Node_Namespace,
     Node_Parameter,
@@ -53,7 +52,7 @@ import {findConstructorOfType} from './constrcutorCall';
 import assert = require('node:assert');
 import {checkDuplicateFunctionOverload} from './functionOverload';
 
-// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
+// **BNF** SCRIPT ::= {IMPORT | ENUM | TYPEDEF | CLASS | INTERFACE | FUNCDEF | VIRTUALPROP | VAR | FUNC | NAMESPACE | USING | ';'}
 function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
     for (const statement of ast) {
         const nodeName = statement.nodeName;
@@ -62,9 +61,7 @@ function hoistScript(parentScope: SymbolScope, ast: Node_Script, analyzeQueue: A
         } else if (nodeName === NodeName.TypeDef) {
             hoistTypeDef(parentScope, statement);
         } else if (nodeName === NodeName.Class) {
-            hoistClass(parentScope, statement, false, analyzeQueue, hoistQueue);
-        } else if (nodeName === NodeName.Mixin) {
-            hoistMixin(parentScope, statement, analyzeQueue, hoistQueue);
+            hoistClass(parentScope, statement, statement.mixinToken !== undefined, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.Interface) {
             hoistInterface(parentScope, statement, analyzeQueue, hoistQueue);
         } else if (nodeName === NodeName.FuncDef) {
@@ -103,10 +100,10 @@ function hoistNamespace(
 
     hoistScript(scopeIterator, namespaceNode.script, analyzeQueue, hoistQueue);
 
-    pushScopeRegionMarker(scopeIterator, namespaceNode.nodeRange);
+    pushScopeRegionMarker(scopeIterator, namespaceNode.scopeRange);
 }
 
-// **BNF** USING ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
+// **BNF** USING ::= 'using' 'namespace' IDENTIFIER {'::' IDENTIFIER} ';'
 
 // **BNF** ENUM ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 function hoistEnum(parentScope: SymbolScope, enumNode: Node_Enum, analyzeQueue: AnalyzeQueue) {
@@ -143,7 +140,7 @@ function hoistEnumMembers(parentScope: SymbolScope, memberList: IdentifierAndOpt
     }
 }
 
-// **BNF** CLASS ::= {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
+// **BNF** CLASS ::= ['mixin'] {'shared' | 'abstract' | 'final' | 'external'} 'class' IDENTIFIER (';' | ([':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}] '{' {VIRTUALPROP | FUNC | VAR | FUNCDEF} '}'))
 function hoistClass(
     parentScope: SymbolScope,
     classNode: Node_Class,
@@ -225,7 +222,7 @@ function hoistClass(
         });
     });
 
-    pushScopeRegionMarker(scope, classNode.nodeRange);
+    pushScopeRegionMarker(scope, classNode.scopeRange);
 }
 
 // e.g.,
@@ -531,7 +528,9 @@ function hoistInterface(
         }
     });
 
-    pushScopeRegionMarker(scope, interfaceNode.nodeRange);
+    if (interfaceNode.scopeRange !== undefined) {
+        pushScopeRegionMarker(scope, interfaceNode.scopeRange);
+    }
 }
 
 function hoistInterfaceMembers(
@@ -692,11 +691,6 @@ function hoistVirtualProp(
     }
 }
 
-// **BNF** MIXIN ::= 'mixin' CLASS
-function hoistMixin(parentScope: SymbolScope, mixin: Node_Mixin, analyzeQueue: AnalyzeQueue, hoistQueue: HoistQueue) {
-    hoistClass(parentScope, mixin.mixinClass, true, analyzeQueue, hoistQueue);
-}
-
 // **BNF** INTERFACEMETHOD ::= TYPE ['&'] IDENTIFIER PARAMLIST ['const'] FUNCATTR ';'
 function hoistInterfaceMethod(parentScope: SymbolScope, intfMethod: Node_InterfaceMethod, hoistQueue: HoistQueue) {
     const symbol: FunctionSymbol = FunctionSymbol.create({
@@ -777,7 +771,7 @@ function hoistParameter(scope: SymbolScope, parameter: Node_Parameter): Resolved
 // **BNF** SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // **BNF** BREAK ::= 'break' ';'
 // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 // **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT
 // **BNF** DOWHILE ::= 'do' STATEMENT 'while' '(' ASSIGN ')' ';'
 // **BNF** IF ::= 'if' '(' ASSIGN ')' STATEMENT ['else' STATEMENT]

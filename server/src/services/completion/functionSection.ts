@@ -32,7 +32,7 @@ export function provideFunctionSectionCompletion(caret: CaretContext): Completio
     }
 
     // -----------------------------------------------
-    // Now, caret is between the parameter list and the function body, which is where function suffix keywords can be placed.
+    // At this point, caret is between the parameter list and the function body, which is where function suffix keywords can be placed.
     // e.g., `void function() $C$ {`
 
     if (funcNode.postfixConstToken !== undefined && caretPosition.isLessThan(funcNode.postfixConstToken.location.end)) {

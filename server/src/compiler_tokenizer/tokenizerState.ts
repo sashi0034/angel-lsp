@@ -25,7 +25,7 @@ export class TokenizerState {
         this._cursorPosition = new MutableTextPosition(0, 0);
     }
 
-    public next(offset: number = 0) {
+    public peek(offset: number = 0) {
         return this._fileContent[this._cursorOffset + offset];
     }
 
@@ -33,12 +33,12 @@ export class TokenizerState {
         return this._cursorOffset >= this._fileContent.length;
     }
 
-    public isNext(expected: string) {
+    public startsWith(expected: string) {
         return this._fileContent.substring(this._cursorOffset, this._cursorOffset + expected.length) === expected;
     }
 
-    public isNextWrap() {
-        const next = this.next();
+    public isNextLineBreak() {
+        const next = this.peek();
         return next === '\r' || next === '\n';
     }
 
@@ -47,15 +47,15 @@ export class TokenizerState {
         return next === ' ' || next === '\t' || next === '\uFEFF';
     }
 
-    public stepNext() {
+    public advance() {
         if (this.isEnd()) {
             return;
         }
 
-        if (this.isNextWrap()) {
+        if (this.isNextLineBreak()) {
             this._cursorPosition.line_++;
             this._cursorPosition.character_ = 0;
-            if (this.isNext('\r\n')) {
+            if (this.startsWith('\r\n')) {
                 this._cursorOffset += 2;
             } else {
                 this._cursorOffset += 1;
@@ -66,7 +66,7 @@ export class TokenizerState {
         }
     }
 
-    public stepFor(count: number) {
+    public advanceBy(count: number) {
         this._cursorPosition.character_ += count;
         this._cursorOffset += count;
     }
@@ -74,7 +74,7 @@ export class TokenizerState {
     /**
      * Return the substring from the specified start position to the current cursor position.
      */
-    public substrToCursor(start: number) {
+    public sliceFrom(start: number) {
         return this._fileContent.substring(start, this._cursorOffset);
     }
 }
@@ -82,7 +82,7 @@ export class TokenizerState {
 /**
  * Buffer for characters that are not letters, numbers, or recognized symbols.
  */
-export class UnknownWordBuffer {
+export class UnknownTokenBuffer {
     private _bufferText: string = '';
     private _bufferLocation: MutableTextRange | null = null;
 

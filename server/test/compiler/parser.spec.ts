@@ -3,8 +3,22 @@ import {parseAfterPreprocess} from '../../src/compiler_parser/parser';
 import {diagnostic} from '../../src/core/diagnostic';
 import {preprocessAfterTokenize} from '../../src/compiler_parser/parserPreprocess';
 import {FileContentUnit} from '../inspectorUtils';
+import {ok} from 'node:assert';
+import {copyGlobalSettings, resetGlobalSettings} from '../../src/core/settings';
 
 function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
+    const diagnosticsInParser = getParserDiagnostics(file);
+    const hasError = diagnosticsInParser.length > 0;
+    if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
+        const diagnostic = diagnosticsInParser[0];
+        const message = diagnostic.message;
+        const line = diagnostic.range.start.line;
+        const character = diagnostic.range.start.character;
+        throw new Error(`${message} (:${line}:${character})`);
+    }
+}
+
+function getParserDiagnostics(file: string | FileContentUnit) {
     diagnostic.beginSession();
 
     let content: string;
@@ -21,15 +35,7 @@ function testParser(file: string | FileContentUnit, expectSuccess: boolean) {
     const preprocessedTokens = preprocessAfterTokenize(rawTokens, []);
     parseAfterPreprocess(preprocessedTokens.preprocessedTokens);
 
-    const diagnosticsInParser = diagnostic.endSession();
-    const hasError = diagnosticsInParser.length > 0;
-    if ((expectSuccess && hasError) || (!expectSuccess && !hasError)) {
-        const diagnostic = diagnosticsInParser[0];
-        const message = diagnostic.message;
-        const line = diagnostic.range.start.line;
-        const character = diagnostic.range.start.character;
-        throw new Error(`${message} (:${line}:${character})`);
-    }
+    return diagnostic.endSession();
 }
 
 function expectSuccess(content: string | FileContentUnit, uri: string = `file:///path/to/file.as`) {
@@ -40,8 +46,6 @@ function expectSuccess(content: string | FileContentUnit, uri: string = `file://
 function expectFailure(content: string | FileContentUnit, uri: string = `file:///path/to/file.as`) {
     testParser(content, false);
 }
-
-// TODO: Separate tests for as.predefined?
 
 describe('Parser', () => {
     it('parses an empty function declaration', () => {
@@ -84,6 +88,24 @@ describe('Parser', () => {
             interface MyInterface
             {
                 void DoSomething();
+            }
+        `);
+    });
+
+    it('parses virtual properties in interface declarations', () => {
+        expectSuccess(`
+            interface MyInterface
+            {
+                int value { get; set; }
+            }
+        `);
+    });
+
+    it('parses virtual property accessors without bodies', () => {
+        expectSuccess(`
+            class Foo
+            {
+                int value { get; set; }
             }
         `);
     });
@@ -148,6 +170,16 @@ describe('Parser', () => {
         `);
     });
 
+    it('reports one parser error for an unexpected token inside a namespace', () => {
+        const diagnostics = getParserDiagnostics(`
+            namespace ns {
+                123
+            }
+        `);
+
+        ok(diagnostics.length === 1);
+    });
+
     it('parses enum casts and enum bitwise expressions', () => {
         expectSuccess(`
             enum Test {
@@ -174,8 +206,42 @@ describe('Parser', () => {
             void foo() { }`);
     });
 
+    it('rejects an incomplete mixin', () => {
+        expectFailure(`mixin`);
+    });
+
     it('rejects an incomplete funcdef', () => {
         expectFailure(`funcdef`);
+    });
+
+    it('rejects typedef declarations without an identifier', () => {
+        expectFailure(`typedef int ;`);
+    });
+
+    it('rejects funcdef declarations without an identifier', () => {
+        expectFailure(`funcdef void ();`);
+    });
+
+    it('rejects function declarations without an identifier', () => {
+        expectFailure(`void 123() {}`);
+    });
+
+    it('rejects assignments without a right-hand side', () => {
+        expectFailure(`void test() { value = ; }`);
+    });
+
+    it('reports a typed enum base type error after the colon', () => {
+        const settings = copyGlobalSettings();
+        settings.supportsTypedEnumerations = true;
+        resetGlobalSettings(settings);
+
+        try {
+            const diagnostics = getParserDiagnostics(`enum Foo : Bar { A }`);
+
+            ok(diagnostics.some(diagnostic => diagnostic.message === 'Expected primitive type.'));
+        } finally {
+            resetGlobalSettings(undefined);
+        }
     });
 
     it('rejects an incomplete function declaration', () => {
