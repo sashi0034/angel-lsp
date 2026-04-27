@@ -2905,6 +2905,7 @@ function parseVarAccess(parser: ParserState): Node_VarAccess | undefined {
     const next = parser.peek();
     if (next.kind !== TokenKind.Identifier) {
         if (scope === undefined) {
+            parser.rewindTo(rangeStart);
             return undefined;
         }
 
