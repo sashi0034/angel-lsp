@@ -805,7 +805,7 @@ function formatFor(format: FormatterState, forNode: Node_For) {
         formatStatement(format, forNode.statement, true);
     }
 }
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 // TODO: IMPLEMENT IT!
 
 // **BNF** WHILE ::= 'while' '(' ASSIGN ')' STATEMENT

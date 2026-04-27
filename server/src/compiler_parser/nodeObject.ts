@@ -430,7 +430,7 @@ export interface Node_For extends NodeBase {
     readonly statement: Node_Statement | undefined;
 }
 
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 export interface Node_ForEach extends NodeBase {
     readonly nodeName: NodeName.ForEach;
     readonly variables: VariableInForEach[];

@@ -697,7 +697,7 @@ function analyzeFor(scope: SymbolScope, forNode: Node_For) {
     }
 }
 
-// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE INDENTIFIER} ':' ASSIGN ')' STATEMENT
+// **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
 function analyzeForEach(scope: SymbolScope, forEachNode: Node_ForEach) {
     const assignNode = forEachNode.assign;
     const iteratorType = assignNode !== undefined ? analyzeAssign(scope, assignNode) : undefined;
