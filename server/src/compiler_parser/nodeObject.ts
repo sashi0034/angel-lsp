@@ -236,6 +236,9 @@ interface FunctionReturnValue {
     readonly refToken: RefModifierToken | undefined;
 }
 
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// n/a
+
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 export interface Node_ListPattern extends NodeBase {
     readonly nodeName: NodeName.ListPattern;
@@ -391,9 +394,6 @@ export interface Node_DataType extends NodeBase {
 }
 
 // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-// n/a
-
-// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 // n/a
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

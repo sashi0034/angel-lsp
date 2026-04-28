@@ -289,6 +289,22 @@ function formatAccessModifier(format: FormatterState) {
     }
 }
 
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+function formatFuncAttr(format: FormatterState) {
+    for (;;) {
+        const next = formatMoveToNonComment(format);
+        if (next === undefined) {
+            return;
+        }
+
+        if (next.text === 'override' || next.text === 'final' || next.text === 'explicit' || next.text === 'property') {
+            formatTargetBy(format, next.text, {});
+        } else {
+            return;
+        }
+    }
+}
+
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 // TODO: IMPLEMENT IT!
 
@@ -680,22 +696,7 @@ function formatDataType(format: FormatterState, dataType: Node_DataType) {
 }
 
 // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-
-// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
-function formatFuncAttr(format: FormatterState) {
-    for (;;) {
-        const next = formatMoveToNonComment(format);
-        if (next === undefined) {
-            return;
-        }
-
-        if (next.text === 'override' || next.text === 'final' || next.text === 'explicit' || next.text === 'property') {
-            formatTargetBy(format, next.text, {});
-        } else {
-            return;
-        }
-    }
-}
+// n/a
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function formatStatement(format: FormatterState, statement: Node_Statement, canIndent: boolean = false) {
@@ -1220,12 +1221,12 @@ function formatCondition(format: FormatterState, condition: Node_Condition) {
 // **BNF** COMPOP ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 // **BNF** LOGICOP ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 // **BNF** ASSIGNOP ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
-// **BNF** IDENTIFIER ::= single token:  starts with letter or '_', can include any letter and digit, same as in C++
-// **BNF** NUMBER ::= single token:  includes integers and real numbers, same as C++
-// **BNF** STRING ::= single token:  single quoted `'`, double quoted `"`, or heredoc multi-line string `"""`
-// **BNF** BITS ::= single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
-// **BNF** COMMENT ::= single token:  starts with '//' and ends with new line or starts with '/*' and ends with '*/'
-// **BNF** WHITESPACE ::= single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
+// **BNF** IDENTIFIER ::= single token: starts with letter or '_', can include any letter and digit, same as in C++
+// **BNF** NUMBER ::= single token: includes integers and real numbers, same as C++
+// **BNF** STRING ::= single token: single quoted `'`, double quoted `"`, or heredoc multi-line string `"""`
+// **BNF** BITS ::= single token: binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
+// **BNF** COMMENT ::= single token: starts with '//' and ends with new line or starts with '/*' and ends with '*/'
+// **BNF** WHITESPACE ::= single token: spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 
 export function formatFile(content: string, tokens: TokenObject[], ast: Node_Script): TextEdit[] {
     const format = new FormatterState(content, tokens, ast);

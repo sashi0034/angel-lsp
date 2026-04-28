@@ -490,6 +490,9 @@ function tryInsertVirtualSetterOrGetter(
     }
 }
 
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// n/a
+
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 // TODO: IMPLEMENT IT!
 
@@ -766,7 +769,6 @@ function hoistParameter(scope: SymbolScope, parameter: Node_Parameter): Resolved
 // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
 // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
 // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 // **BNF** SWITCH ::= 'switch' '(' ASSIGN ')' '{' {CASE} '}'
 // **BNF** BREAK ::= 'break' ';'

@@ -786,6 +786,31 @@ function parseAccessModifier(parser: ParserState): AccessModifierToken | undefin
     return undefined;
 }
 
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefined {
+    let attributes: FunctionAttributeToken[] | undefined = undefined;
+    while (parser.isEnd() === false) {
+        const next = parser.peek().text;
+
+        const isFuncAttrToken =
+            next === 'override' ||
+            next === 'final' ||
+            next === 'explicit' ||
+            next === 'property' ||
+            next === 'delete' ||
+            next === 'nodiscard';
+        if (isFuncAttrToken === false) {
+            break;
+        }
+
+        attributes = attributes ?? [];
+        attributes.push(parser.peek() as FunctionAttributeToken);
+        parser.consume(TokenHighlight.Keyword);
+    }
+
+    return attributes;
+}
+
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 function parseListPattern(parser: ParserState): Node_ListPattern | undefined {
     if (parser.isPredefinedFile === false) {
@@ -1794,31 +1819,6 @@ function parsePrimitiveType(parser: ParserState) {
 
     parser.consume(TokenHighlight.Keyword);
     return next;
-}
-
-// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
-function parseFuncAttr(parser: ParserState): FunctionAttributeToken[] | undefined {
-    let attributes: FunctionAttributeToken[] | undefined = undefined;
-    while (parser.isEnd() === false) {
-        const next = parser.peek().text;
-
-        const isFuncAttrToken =
-            next === 'override' ||
-            next === 'final' ||
-            next === 'explicit' ||
-            next === 'property' ||
-            next === 'delete' ||
-            next === 'nodiscard';
-        if (isFuncAttrToken === false) {
-            break;
-        }
-
-        attributes = attributes ?? [];
-        attributes.push(parser.peek() as FunctionAttributeToken);
-        parser.consume(TokenHighlight.Keyword);
-    }
-
-    return attributes;
 }
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

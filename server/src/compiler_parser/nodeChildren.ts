@@ -39,6 +39,9 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
                 ...children(node.statBlock, node.listPattern)
             ];
 
+        // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+        // n/a
+
         // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
         case NodeName.ListPattern:
             return node.entries;
@@ -107,9 +110,6 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
             return [];
 
         // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-        // n/a
-
-        // **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
         // n/a
 
         // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)

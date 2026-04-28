@@ -153,6 +153,9 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
     }
 }
 
+// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
+// n/a
+
 // **BNF** LISTPATTERN ::= '{' LISTENTRY {',' LISTENTRY} '}'
 // TODO: IMPLEMENT IT!
 
@@ -609,8 +612,6 @@ function evaluateScope(
 // **BNF** DATATYPE ::= (IDENTIFIER | PRIMITIVETYPE | '?' | 'auto')
 
 // **BNF** PRIMITIVETYPE ::= 'void' | 'int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64' | 'float' | 'double' | 'bool'
-
-// **BNF** FUNCATTR ::= {'override' | 'final' | 'explicit' | 'property' | 'delete' | 'nodiscard'}
 
 // **BNF** STATEMENT ::= (IF | FOR | FOREACH | WHILE | RETURN | STATBLOCK | BREAK | CONTINUE | DOWHILE | SWITCH | EXPRSTAT | TRY)
 function analyzeStatement(scope: SymbolScope, statement: Node_Statement) {
