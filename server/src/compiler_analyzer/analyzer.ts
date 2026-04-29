@@ -1493,6 +1493,16 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         return analyzeConstructorCall(scope, constructorType, funcCall.identifier, funcCall.argList);
     }
 
+    // When 'Obj()' is called from inside class Obj, the lookup finds the constructor
+    // FunctionSymbolHolder in the class scope before finding the TypeSymbol in the parent scope.
+    // In that case, resolve the type from the parent scope and treat it as a constructor call.
+    if (calleeSymbol.isFunctionHolder() && calleeSymbol.first.isConstructor) {
+        const typeSymbol = calleeScope.parentScope?.lookupSymbol(funcCall.identifier.text);
+        if (typeSymbol?.isType()) {
+            return analyzeConstructorCall(scope, new ResolvedType(typeSymbol), funcCall.identifier, funcCall.argList);
+        }
+    }
+
     const callTemplateArguments = funcCall.typeArguments ?? [];
 
     if (calleeSymbol.isVariable() && calleeSymbol.type?.typeOrFunc.isFunction()) {
@@ -1511,7 +1521,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         );
     }
 
-    if (calleeSymbol instanceof VariableSymbol) {
+    if (calleeSymbol.isVariable()) {
         return analyzeOpCallCaller(scope, funcCall, calleeSymbol);
     }
 

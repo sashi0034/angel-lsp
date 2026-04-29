@@ -428,6 +428,10 @@ export class FunctionSymbol extends SymbolObject {
     public toHolder(): FunctionSymbolHolder {
         return new FunctionSymbolHolder(this);
     }
+
+    public get isConstructor(): boolean {
+        return this.linkedNode.nodeName === NodeName.Func && this.linkedNode.head.tag === 'constructor';
+    }
 }
 
 export class FunctionSymbolHolder implements SymbolHolder {

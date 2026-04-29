@@ -55,6 +55,26 @@ describe('completion/class', () => {
         );
     });
 
+    it('excludes constructors from member access completions', () => {
+        testCompletion(
+            `class Obj {
+                Obj() { }
+                Obj(int v) { }
+
+                void f() {
+                    Obj obj;
+                    obj.$C0$
+                }
+
+                void g() {
+                    Obj().$C1$
+                }
+            }`,
+            /* $C0$ */ ['f', 'g'],
+            /* $C1$ */ ['f', 'g']
+        );
+    });
+
     it('does not fall back to global completions after invalid member access', () => {
         testCompletion(
             `// Invalid member access should not fall back to normal scope completion.
