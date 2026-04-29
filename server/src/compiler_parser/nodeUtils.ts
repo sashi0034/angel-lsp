@@ -8,12 +8,12 @@ export function stringifyTypeNode(type: Node_Type, separator: string = ', '): st
         str += '<' + type.typeArguments.map(t => stringifyTypeNode(t, separator)).join(separator) + '>';
     }
 
-    if (type.isArray) {
-        str += '[]';
-    }
-
-    if (type.handle !== undefined) {
-        str += type.handle.constToken !== undefined ? '@const' : '@';
+    for (const postfix of type.postfixList) {
+        if (postfix.isArray) {
+            str += '[]';
+        } else if (postfix.handle !== undefined) {
+            str += postfix.handle.constToken !== undefined ? '@const' : '@';
+        }
     }
 
     return str;

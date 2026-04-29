@@ -59,6 +59,7 @@ import {
     Node_Switch,
     Node_Try,
     Node_Type,
+    TypePostfix,
     Node_TypeDef,
     Node_Using,
     Node_Var,
@@ -1598,7 +1599,7 @@ function parseType(parser: ParserState): Node_Type | undefined {
 
     const typeArguments = parseTemplateTypes(parser) ?? [];
 
-    const {isArray, handle} = parseTypeTail(parser);
+    const postfixList = parseTypeTail(parser);
 
     return {
         nodeName: NodeName.Type,
@@ -1607,19 +1608,17 @@ function parseType(parser: ParserState): Node_Type | undefined {
         scope: scope,
         dataType: datatype,
         typeArguments: typeArguments,
-        isArray: isArray,
-        handle: handle
+        postfixList: postfixList,
     };
 }
 
-function parseTypeTail(parser: ParserState) {
-    let isArray = false;
-    let handleTokens: HandleAndConstTokenPair | undefined = undefined;
+function parseTypeTail(parser: ParserState): TypePostfix[] {
+    const list: TypePostfix[] = [];
     while (parser.isEnd() === false) {
         if (parser.peek(0).text === '[' && parser.peek(1).text === ']') {
             parser.consume(TokenHighlight.Operator);
             parser.consume(TokenHighlight.Operator);
-            isArray = true;
+            list.push({isArray: true, handle: undefined});
             continue;
         } else if (parser.peek().text === '@') {
             const handleToken = parser.peek() as HandleModifierToken;
@@ -1631,15 +1630,14 @@ function parseTypeTail(parser: ParserState) {
             }
 
             const constToken = parseConst(parser);
-            handleTokens = {handleToken, constToken};
-
+            list.push({isArray: false, handle: {handleToken, constToken}});
             continue;
         }
 
         break;
     }
 
-    return {isArray, handle: handleTokens};
+    return list;
 }
 
 function expectType(parser: ParserState): Node_Type | undefined {

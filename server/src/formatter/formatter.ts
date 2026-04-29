@@ -610,15 +610,15 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 
     formatTemplateTypes(format, typeNode.typeArguments);
 
-    if (typeNode.isArray) {
-        formatTargetBy(format, '[', {condenseSides: true});
-        formatTargetBy(format, ']', {condenseLeft: true});
-    }
-
-    if (typeNode.handle !== undefined) {
-        formatTargetBy(format, '@', {condenseLeft: true});
-        if (typeNode.handle.constToken !== undefined) {
-            formatTargetBy(format, 'const', {});
+    for (const postfix of typeNode.postfixList) {
+        if (postfix.isArray) {
+            formatTargetBy(format, '[', {condenseSides: true});
+            formatTargetBy(format, ']', {condenseLeft: true});
+        } else if (postfix.handle !== undefined) {
+            formatTargetBy(format, '@', {condenseLeft: true});
+            if (postfix.handle.constToken !== undefined) {
+                formatTargetBy(format, 'const', {});
+            }
         }
     }
 }

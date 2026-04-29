@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    HandleAndConstTokenPair,
     Node_ArgList,
     Node_Assign,
     Node_Case,
@@ -74,7 +75,6 @@ import {
     tryGetBuiltinType
 } from './builtinType';
 import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
-import {Mutable} from '../utils/utilities';
 import {getGlobalSettings} from '../core/settings';
 import {
     applyTemplateMapping,
@@ -310,7 +310,10 @@ function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
 
 // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
-    const reservedType = typeNode.isArray ? undefined : analyzeReservedType(scope, typeNode);
+    const isArray = typeNode.postfixList.some(p => p.isArray);
+    const handle = typeNode.postfixList.find(p => p.handle !== undefined)?.handle;
+
+    const reservedType = isArray ? undefined : analyzeReservedType(scope, typeNode, handle);
     if (reservedType !== undefined) {
         return reservedType;
     }
@@ -322,12 +325,14 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     let givenTemplateArguments = typeNode.typeArguments;
     let givenIdentifier = typeIdentifier.text;
 
-    if (typeNode.isArray) {
+    if (isArray) {
         // If the type is an array, we replace the identifier with array type.
+        // Strip the first array postfix; remaining array postfixes apply to the inner type.
         givenIdentifier = getGlobalSettings().builtinArrayType;
-        const copiedTypeNode: Mutable<Node_Type> = {...typeNode};
-        copiedTypeNode.isArray = false;
-        givenTemplateArguments = [copiedTypeNode];
+        const firstArrayIndex = typeNode.postfixList.findIndex(p => p.isArray);
+        const innerPostfixList = typeNode.postfixList.slice(firstArrayIndex + 1).filter(p => p.isArray);
+        const innerTypeNode: Node_Type = {...typeNode, postfixList: innerPostfixList};
+        givenTemplateArguments = [innerTypeNode];
     }
 
     if (givenTemplateArguments.length > 0) {
@@ -338,7 +343,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
                 typeIdentifier,
                 specializationSymbol.symbol,
                 typeNode.constToken !== undefined,
-                getHandleModifier(typeNode.handle)
+                getHandleModifier(handle)
             );
         }
     }
@@ -368,13 +373,13 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
             typeIdentifier,
             foundSymbol.first,
             typeNode.constToken !== undefined,
-            getHandleModifier(typeNode.handle) ?? HandleModifier.Handle
+            getHandleModifier(handle) ?? HandleModifier.Handle
         );
     } else if (!foundSymbol.isType()) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
     } else if (
-        getHandleModifier(typeNode.handle) !== undefined &&
+        getHandleModifier(handle) !== undefined &&
         foundSymbol.isPrimitiveOrEnum() &&
         foundSymbol.isTemplateParameterType !== true
     ) {
@@ -386,7 +391,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
             typeIdentifier,
             foundSymbol,
             typeNode.constToken !== undefined,
-            getHandleModifier(typeNode.handle),
+            getHandleModifier(handle),
             templateArguments
         );
     }
@@ -426,7 +431,11 @@ function pushReferenceAndResolveType(
 }
 
 // PRIMITIVETYPE | '?' | 'auto'
-function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
+function analyzeReservedType(
+    scope: SymbolScope,
+    typeNode: Node_Type,
+    handle: HandleAndConstTokenPair | undefined
+): ResolvedType | undefined {
     const typeIdentifier = typeNode.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) {
         return;
@@ -442,7 +451,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     const builtinType = tryGetBuiltinType(typeIdentifier);
     if (builtinType !== undefined) {
         if (
-            getHandleModifier(typeNode.handle) !== undefined &&
+            getHandleModifier(handle) !== undefined &&
             builtinType.isPrimitiveOrEnum() &&
             typeIdentifier.text !== 'auto'
         ) {
@@ -453,7 +462,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
         return ResolvedType.create({
             typeOrFunc: builtinType,
             isConst: typeNode.constToken !== undefined,
-            handle: getHandleModifier(typeNode.handle)
+            handle: getHandleModifier(handle)
         });
     }
 

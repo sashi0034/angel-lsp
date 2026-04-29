@@ -369,6 +369,10 @@ export interface Node_Type extends NodeBase {
     readonly scope: Node_Scope | undefined;
     readonly dataType: Node_DataType;
     readonly typeArguments: Node_Type[];
+    readonly postfixList: TypePostfix[];
+}
+
+export interface TypePostfix {
     readonly isArray: boolean;
     readonly handle: HandleAndConstTokenPair | undefined;
 }
