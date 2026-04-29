@@ -209,15 +209,16 @@ const numberSizeInBytes = new Map<string, number>([
 const sizeof_int32 = 4;
 
 function evaluateConvPrimitiveToPrimitive(from: ResolvedType, to: ResolvedType) {
-    // FIXME: Check a primitive is const or not?
     const fromType = from.typeOrFunc;
     const toType = to.typeOrFunc;
 
     assert(fromType.isType() && toType.isType());
     assert(fromType.isPrimitiveOrEnum() || toType.isPrimitiveOrEnum());
 
+    const constConvCost = from.isConst !== to.isConst ? ConversionCost.ConstConv : ConversionCost.NoConv;
+
     if (fromType.equals(toType)) {
-        return {cost: ConversionCost.NoConv};
+        return {cost: constConvCost};
     } else if (fromType.isEnumType() && toType.isEnumType()) {
         // Resolve ambiguous enum members
         for (const candidate of fromType.multipleEnumCandidates ?? []) {
@@ -266,7 +267,7 @@ function evaluateConvPrimitiveToPrimitive(from: ResolvedType, to: ResolvedType) 
         cost = ConversionCost.PrimitiveSizeDownConv;
     }
 
-    return {cost};
+    return {cost: cost + constConvCost};
 }
 
 // -----------------------------------------------

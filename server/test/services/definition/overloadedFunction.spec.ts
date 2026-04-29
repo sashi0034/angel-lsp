@@ -67,4 +67,26 @@ describe('definition/overloadedFunction', () => {
                 bool selected = pick$C1$(value);
             }`);
     });
+
+    it('resolves the const primitive overload for a const primitive argument', () => {
+        testDefinition(`
+            int pick(int value) { return 0; }
+            bool pick$C0$(const int value) { return true; }
+
+            void main() {
+                const int value = 1;
+                bool selected = pick$C1$(value);
+            }`);
+    });
+
+    it('resolves the mutable primitive overload for a mutable primitive argument', () => {
+        testDefinition(`
+            int pick(const int value) { return 0; }
+            bool pick$C0$(int value) { return true; }
+
+            void main() {
+                int value = 1;
+                bool selected = pick$C1$(value);
+            }`);
+    });
 });
