@@ -74,7 +74,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from './builtinType';
-import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
+import {canAccessInstanceMember} from './symbolUtils';
 import {getGlobalSettings} from '../core/settings';
 import {
     applyTemplateMapping,
@@ -130,7 +130,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
         return;
     }
 
-    const declared = findSymbolWithParent(scope, func.identifier.text);
+    const declared = scope.lookupSymbolWithParent(func.identifier.text);
 
     if (declared === undefined) {
         // TODO: required?
@@ -140,7 +140,7 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
 
     analyzeTemplateArguments(
         scope,
-        declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
+        declared.isFunctionHolder() ? declared.first : undefined,
         func.typeParameters
     ); // FIXME?
 
@@ -337,18 +337,18 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
 
     if (givenTemplateArguments.length > 0) {
         const specializationKey = givenIdentifier + buildTemplateSignature(givenTemplateArguments);
-        const specializationSymbol = findSymbolWithParent(searchScope, specializationKey);
-        if (specializationSymbol !== undefined && specializationSymbol.symbol.isType()) {
+        const specializationSymbol = searchScope.lookupSymbolWithParent(specializationKey);
+        if (specializationSymbol !== undefined && specializationSymbol.isType()) {
             return pushReferenceAndResolveType(
                 typeIdentifier,
-                specializationSymbol.symbol,
+                specializationSymbol,
                 typeNode.constToken !== undefined,
                 getHandleModifier(handle)
             );
         }
     }
 
-    let symbolAndScope = findSymbolWithParent(searchScope, givenIdentifier);
+    let symbolAndScope = searchScope.lookupSymbolAndScopeWithParent(givenIdentifier);
     if (
         symbolAndScope !== undefined &&
         isSymbolConstructorOrDestructor(symbolAndScope.symbol) &&
@@ -356,10 +356,9 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     ) {
         // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
         // in which case search further up the hierarchy.
-        symbolAndScope = getSymbolAndScopeIfExist(
-            symbolAndScope.scope.parentScope.lookupSymbol(givenIdentifier),
-            symbolAndScope.scope.parentScope
-        );
+        const parentScope = symbolAndScope.scope.parentScope;
+        const parentSymbol = parentScope.lookupSymbol(givenIdentifier);
+        symbolAndScope = parentSymbol !== undefined ? {symbol: parentSymbol, scope: parentScope} : undefined;
     }
 
     if (symbolAndScope === undefined) {
@@ -1465,7 +1464,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         searchScope = searchScope ?? scope;
     }
 
-    const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
+    const calleeFunc = searchScope.lookupSymbolAndScopeWithParent(funcCall.identifier.text);
     if (calleeFunc?.symbol === undefined) {
         if (funcCall.identifier.text === 'super') {
             assertDefaultSuperConstructorCall(scope, funcCall);
@@ -1622,7 +1621,7 @@ function analyzeVariableAccess(
     accessScope: SymbolScope,
     varIdentifier: TokenObject
 ): ResolvedType | undefined {
-    const found = findSymbolWithParent(accessScope, varIdentifier.text);
+    const found = accessScope.lookupSymbolWithParent(varIdentifier.text);
     if (found === undefined) {
         const enumMemberAccess = analyzeEnumMemberAccess(currentScope, accessScope, varIdentifier);
         if (enumMemberAccess !== undefined) {
@@ -1633,37 +1632,37 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (found.symbol.isType()) {
+    if (found.isType()) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is a type, not a variable.`);
         return undefined;
     }
 
-    if (canAccessInstanceMember(currentScope, found.symbol) === false) {
+    if (canAccessInstanceMember(currentScope, found) === false) {
         analyzerDiagnostic.error(varIdentifier.location, `Member '${varIdentifier.text}' is not accessible here.`);
         return undefined;
     }
 
-    if (found.symbol.isVariable()) {
+    if (found.isVariable()) {
         // NOTE: Delegate variables also go through here.
 
-        const accessedVariable = found.symbol.toList()[0];
+        const accessedVariable = found.toList()[0];
         if (accessedVariable.identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
             // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
             getActiveGlobalScope().pushReference({
-                toSymbol: found.symbol.toList()[0],
+                toSymbol: found.toList()[0],
                 fromToken: varIdentifier
             });
         }
 
-        return found.symbol.type
+        return found.type
             ?.cloneWithAttachedAccessSource(accessedVariable)
             .cloneWithEvaluatedRvalue(accessedVariable.evaluatedValue); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return ResolvedType.create({typeOrFunc: found.symbol.first, attachedAccessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
+        return ResolvedType.create({typeOrFunc: found.first, attachedAccessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
     }
 }
 

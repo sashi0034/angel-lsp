@@ -25,7 +25,6 @@ import {
 } from '../compiler_parser/nodeObject';
 import {AccessRestriction, getAccessRestriction, hasFunctionAttribute} from './nodeHelper';
 import {FunctionSymbol, TemplateParameter, TypeSymbol, VariableSymbol} from './symbolObject';
-import {findSymbolWithParent} from './symbolUtils';
 import {ResolvedType} from './resolvedType';
 import {getGlobalSettings} from '../core/settings';
 import {builtinSetterValueToken, builtinThisToken, tryGetBuiltinType} from './builtinType';
@@ -233,7 +232,7 @@ function isTemplateSpecialization(parentScope: SymbolScope, type: Node_Class): b
         return false;
     }
 
-    return findSymbolWithParent(parentScope, type.identifier.text) !== undefined;
+    return parentScope.lookupSymbolWithParent(type.identifier.text) !== undefined;
 }
 
 function hoistTemplateParameters(scope: SymbolScope, types: Node_Type[] | undefined) {

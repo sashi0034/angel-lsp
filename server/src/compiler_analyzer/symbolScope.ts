@@ -377,6 +377,15 @@ export class SymbolScope {
         return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolWithParent(identifier);
     }
 
+    public lookupSymbolAndScopeWithParent(identifier: string): SymbolAndScope | undefined {
+        const symbol = this.lookupSymbol(identifier);
+        if (symbol !== undefined) {
+            return {symbol, scope: this};
+        }
+
+        return this.parentScope === undefined ? undefined : this.parentScope.lookupSymbolAndScopeWithParent(identifier);
+    }
+
     protected includeExternalScope_internal(externalScope: SymbolScope, externalFilepath: string) {
         // Copy symbols from the external scope.
         for (const [key, symbolHolder] of externalScope._symbolTable) {

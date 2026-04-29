@@ -3,7 +3,6 @@ import {
     isAnonymousIdentifier,
     isScopeChildOrGrandchild,
     resolveActiveScope,
-    SymbolAndScope,
     SymbolScope
 } from './symbolScope';
 import {NodeName} from '../compiler_parser/nodeObject';
@@ -75,32 +74,6 @@ export function printSymbolScope(scope: SymbolScope, indent: string = ''): strin
 }
 
 // -----------------------------------------------
-
-// obsolete
-export function getSymbolAndScopeIfExist(
-    symbol: SymbolObjectHolder | undefined,
-    scope: SymbolScope
-): SymbolAndScope | undefined {
-    if (symbol === undefined) {
-        return undefined;
-    }
-
-    return {symbol: symbol, scope: scope};
-}
-
-// obsolete
-export function findSymbolWithParent(scope: SymbolScope, identifier: string): SymbolAndScope | undefined {
-    const symbol = scope.symbolTable.get(identifier);
-    if (symbol !== undefined) {
-        return {symbol: symbol, scope: scope};
-    }
-
-    if (scope.parentScope === undefined) {
-        return undefined;
-    }
-
-    return findSymbolWithParent(scope.parentScope, identifier);
-}
 
 /**
  * Check if the accessing scope is allowed to access the instance member.
