@@ -89,4 +89,17 @@ describe('definition/overloadedFunction', () => {
                 bool selected = pick$C1$(value);
             }`);
     });
+
+    it('resolves the mutable method overload for a mutable receiver', () => {
+        testDefinition(`
+            class Obj {
+                int pick() const { return 0; }
+                bool pick$C0$() { return true; }
+            }
+
+            void main() {
+                Obj value;
+                bool selected = value.pick$C1$();
+            }`);
+    });
 });

@@ -138,8 +138,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         return delegateCast;
     }
 
-    let bestMatching: BestMatching | undefined = undefined;
-    let hasAmbiguousLambdaOverload = false;
+    let bestMatchings: BestMatching[] = [];
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
     // Find the best-matching overload.
@@ -155,14 +154,18 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             continue;
         }
 
-        if (bestMatching === undefined || evaluated < bestMatching.cost) {
+        if (bestMatchings.length === 0 || evaluated < bestMatchings[0].cost) {
             // Update the current best match.
-            bestMatching = {function: callee, cost: evaluated, sideEffects: sideEffectBuffer};
-            hasAmbiguousLambdaOverload = false;
-        } else if (evaluated === bestMatching.cost && args.callerArgs.some(arg => arg.type?.lambdaInfo !== undefined)) {
-            hasAmbiguousLambdaOverload = true;
+            bestMatchings = [{function: callee, cost: evaluated, sideEffects: sideEffectBuffer}];
+        } else if (evaluated === bestMatchings[0].cost) {
+            bestMatchings.push({function: callee, cost: evaluated, sideEffects: sideEffectBuffer});
         }
     }
+
+    bestMatchings = dropConstOverloadsWhenMutableExists(args, bestMatchings);
+    const hasAmbiguousLambdaOverload =
+        bestMatchings.length > 1 && args.callerArgs.some(arg => arg.type?.lambdaInfo !== undefined);
+    const bestMatching = bestMatchings[0];
 
     if (bestMatching !== undefined && !hasAmbiguousLambdaOverload) {
         // Return the best-matching function's return type.
@@ -204,6 +207,27 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             }
         };
     }
+}
+
+function dropConstOverloadsWhenMutableExists(args: FunctionCallArgs, matchings: BestMatching[]): BestMatching[] {
+    if (args.callerInstanceType === undefined || args.callerInstanceType.isConst) {
+        return matchings;
+    }
+
+    const hasMutableMethod = matchings.some(matching => isMutableMethod(matching.function));
+    if (!hasMutableMethod) {
+        return matchings;
+    }
+
+    return matchings.filter(matching => !isConstMethod(matching.function));
+}
+
+function isConstMethod(symbol: FunctionSymbol): boolean {
+    return symbol.linkedNode.nodeName !== NodeName.FuncDef && symbol.linkedNode.postfixConstToken !== undefined;
+}
+
+function isMutableMethod(symbol: FunctionSymbol): boolean {
+    return symbol.linkedNode.nodeName !== NodeName.FuncDef && symbol.linkedNode.postfixConstToken === undefined;
 }
 
 function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: FunctionSymbol) {
