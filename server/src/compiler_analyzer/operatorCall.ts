@@ -123,7 +123,7 @@ function checkOverloadedOperatorCallInternal(args: OverloadedOperatorCallArgs): 
     });
 
     if (hasMismatchReason(rhsResult)) {
-        handleMismatchError(args, lhsResult, rhsResult); // FIXME: Also consider the rhs reason.
+        handleMismatchError(args, lhsResult, rhsResult);
         return undefined;
     } else {
         return rhsResult;
@@ -135,7 +135,13 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
 
     const operatorLocation = extendTokenLocation(callerOperator, 1, 1);
 
-    // FIXME: Consider the rhs reason.
+    if (rhsReason !== undefined && alias_r !== undefined && Array.isArray(rhs) === false) {
+        analyzerDiagnostic.error(
+            operatorLocation,
+            `Operator call has no matching overload. ${formatMismatchReason(alias, lhs, rhs, lhsReason)} ${formatMismatchReason(alias_r, rhs, lhs, rhsReason)}`
+        );
+        return;
+    }
 
     if (lhsReason.reason === MismatchKind.MissingAliasOperator) {
         if (lhsReason.foundButNotFunction) {
@@ -171,6 +177,29 @@ function handleMismatchError(args: OverloadedOperatorCallArgs, lhsReason: Mismat
             `'${lhs.attachedAccessSourceToken?.text ?? '[ ]'}' expects one integer argument, but got '${rhsText}'.`
         );
         return;
+    }
+
+    assert(false);
+}
+
+function formatMismatchReason(
+    alias: string,
+    lhs: ResolvedType,
+    rhs: ResolvedType | (ResolvedType | undefined)[],
+    reason: MismatchReason
+) {
+    if (reason.reason === MismatchKind.MissingAliasOperator) {
+        if (reason.foundButNotFunction) {
+            return `Operator '${alias}' exists on ${stringifyResolvedType(lhs)}, but it is not a function.`;
+        }
+
+        return `Operator '${alias}' is not defined for ${stringifyResolvedType(lhs)}.`;
+    } else if (reason.reason === MismatchKind.MismatchOverload) {
+        const rhsText = Array.isArray(rhs) ? stringifyResolvedTypes(rhs) : stringifyResolvedType(rhs);
+        return `Operator '${alias}' on ${stringifyResolvedType(lhs)} does not accept argument type(s) ${rhsText}.`;
+    } else if (reason.reason === MismatchKind.MismatchIndexedPropertyAccessor) {
+        const rhsText = Array.isArray(rhs) ? stringifyResolvedTypes(rhs) : stringifyResolvedType(rhs);
+        return `'${lhs.attachedAccessSourceToken?.text ?? '[ ]'}' expects one integer argument, but got '${rhsText}'.`;
     }
 
     assert(false);
