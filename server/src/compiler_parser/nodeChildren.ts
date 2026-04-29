@@ -125,7 +125,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
         case NodeName.For:
-            return children(node.initial, node.condition, ...node.incrementList, node.statement);
+            return children(node.initializer, node.condition, ...node.incrementList, node.statement);
 
         // **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
         case NodeName.ForEach:

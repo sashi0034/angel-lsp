@@ -785,10 +785,10 @@ function formatFor(format: FormatterState, forNode: Node_For) {
     formatParenthesesBlock(
         format,
         () => {
-            if (forNode.initial.nodeName === NodeName.Var) {
-                formatVar(format, forNode.initial);
+            if (forNode.initializer.nodeName === NodeName.Var) {
+                formatVar(format, forNode.initializer);
             } else {
-                formatExprStat(format, forNode.initial);
+                formatExprStat(format, forNode.initializer);
             }
 
             if (forNode.condition !== undefined) {

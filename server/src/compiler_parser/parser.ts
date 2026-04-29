@@ -1608,7 +1608,7 @@ function parseType(parser: ParserState): Node_Type | undefined {
         scope: scope,
         dataType: datatype,
         typeArguments: typeArguments,
-        postfixList: postfixList,
+        postfixList: postfixList
     };
 }
 
@@ -2022,7 +2022,7 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
     const result: Mutable<Node_For> = {
         nodeName: NodeName.For,
         nodeRange: new TokenRange(rangeStart, parser.previous()),
-        initial: initial,
+        initializer: initial,
         condition: undefined,
         incrementList: [],
         statement: undefined

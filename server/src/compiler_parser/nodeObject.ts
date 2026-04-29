@@ -430,7 +430,7 @@ export interface Node_Break extends NodeBase {
 // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 export interface Node_For extends NodeBase {
     readonly nodeName: NodeName.For;
-    readonly initial: Node_Var | Node_ExprStat;
+    readonly initializer: Node_Var | Node_ExprStat;
     readonly condition: Node_ExprStat | undefined;
     readonly incrementList: Node_Assign[];
     readonly statement: Node_Statement | undefined;

@@ -688,10 +688,10 @@ function analyzeSwitch(scope: SymbolScope, ast: Node_Switch) {
 
 // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFor(scope: SymbolScope, forNode: Node_For) {
-    if (forNode.initial.nodeName === NodeName.Var) {
-        analyzeVar(scope, forNode.initial, false);
+    if (forNode.initializer.nodeName === NodeName.Var) {
+        analyzeVar(scope, forNode.initializer, false);
     } else {
-        analyzeExprStat(scope, forNode.initial);
+        analyzeExprStat(scope, forNode.initializer);
     }
 
     if (forNode.condition !== undefined) {
