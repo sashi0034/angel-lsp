@@ -569,7 +569,10 @@ function evaluateConversionByConstructor(
             continue;
         }
 
-        return {cost: ConversionCost.ToObjectConv + cost.cost}; // FIXME?
+        // NOTE: This intentionally accepts the first viable single-argument constructor instead of running the
+        // full engine-style overload resolution. For the language server, this approximation only affects
+        // diagnostics and overload hints in uncommon ambiguous constructor-conversion cases.
+        return {cost: ConversionCost.ToObjectConv + cost.cost};
     }
 
     return undefined;
@@ -735,6 +738,9 @@ function collectConversionFunctions(
         }
     }
 
+    // NOTE: The AngelScript engine filters const/non-const conversion operators before matching, preferring
+    // non-const members when both forms are available. The language server keeps all candidates here as a
+    // lightweight approximation; any mismatch is limited to editor diagnostics and overload selection.
     return convFuncList;
 }
 
