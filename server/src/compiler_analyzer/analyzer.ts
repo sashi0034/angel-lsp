@@ -477,6 +477,14 @@ function analyzeTemplateArguments(
     }
 
     const translation: TemplateMapping = new Map();
+    if (templateArgumentNodes.length < templateParameters.length) {
+        const lastTemplateArgumentNode = templateArgumentNodes.at(-1);
+        analyzerDiagnostic.error(
+            lastTemplateArgumentNode?.nodeRange.getBoundingLocation() ?? templateOwner.identifierToken.location,
+            `Too few template arguments.`
+        );
+    }
+
     for (let i = 0; i < templateArgumentNodes.length; i++) {
         if (i >= templateParameters.length) {
             analyzerDiagnostic.error(
