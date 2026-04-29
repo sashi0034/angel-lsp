@@ -175,7 +175,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
             return children(node.value, ...node.postOps);
 
-        // **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+        // **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
         // n/a
 
         // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
@@ -213,7 +213,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.LambdaParam:
             return children(node.type);
 
-        // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+        // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
         case NodeName.Literal:
             return [];
 

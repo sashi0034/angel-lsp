@@ -2540,7 +2540,7 @@ function parseExprTerm2(parser: ParserState): ParseResult<Node_ExprTerm2> {
     };
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Incomplete) {
@@ -2856,7 +2856,7 @@ function parseLambdaParam(parser: ParserState): Node_LambdaParam {
     };
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 function parseLiteral(parser: ParserState): Node_Literal | undefined {
     const next = parser.peek();
     if (next.kind === TokenKind.Number) {
@@ -2869,7 +2869,7 @@ function parseLiteral(parser: ParserState): Node_Literal | undefined {
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
 
-    if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
+    if (next.text === 'true' || next.text === 'false' || next.text === 'null' || next.text === 'void') {
         parser.consume(TokenHighlight.Keyword);
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }

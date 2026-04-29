@@ -67,6 +67,7 @@ import {checkTypeCast, assertTypeCast} from './typeCast';
 import {
     builtinBoolType,
     builtinAnyType,
+    builtinVoidType,
     resolvedBuiltinNull,
     resolvedBuiltinBool,
     resolvedBuiltinDouble,
@@ -130,19 +131,16 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
         return;
     }
 
-    const declared = scope.lookupSymbolWithParent(func.identifier.text);
-
-    if (declared === undefined) {
-        // TODO: required?
+    // FIXME: Remove this?
+    const found = scope.lookupSymbolWithParent(func.identifier.text);
+    if (found === undefined) {
+        // FIXME: Unreachable code? This function should be hoisted before this point.
         analyzerDiagnostic.error(func.identifier.location, `Function '${func.identifier.text}' is not defined.`);
         return;
     }
 
-    analyzeTemplateArguments(
-        scope,
-        declared.isFunctionHolder() ? declared.first : undefined,
-        func.typeParameters
-    ); // FIXME?
+    // FIXME: Remove this?
+    analyzeTemplateArguments(scope, found.isFunctionHolder() ? found.first : undefined, func.typeParameters);
 
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
@@ -299,7 +297,18 @@ export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) 
 
 // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
 function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
-    if (parameter.defaultExpr === undefined || parameter.defaultExpr === voidParameter) {
+    if (parameter.defaultExpr === undefined) {
+        return;
+    }
+
+    if (parameter.defaultExpr === voidParameter) {
+        if (parameter.inOutToken?.text !== 'out') {
+            analyzerDiagnostic.error(
+                parameter.nodeRange.getBoundingLocation(),
+                "'void' can only be used as a default argument for output reference parameters."
+            );
+        }
+
         return;
     }
 
@@ -1043,7 +1052,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: Node_ExprTerm2) {
     return exprValue;
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
         case NodeName.ConstructorCall: {
@@ -1416,7 +1425,7 @@ function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): Resolv
     return param.type !== undefined ? analyzeType(scope, param.type) : undefined;
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
@@ -1449,6 +1458,10 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
 
     if (literalValue.text === 'null') {
         return resolvedBuiltinNull;
+    }
+
+    if (literalValue.text === 'void') {
+        return new ResolvedType(builtinVoidType);
     }
 
     return undefined;

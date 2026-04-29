@@ -535,7 +535,7 @@ export interface Node_ExprTerm2 extends NodeBase {
     readonly postOps: Node_ExprPostOp[];
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type Node_ExprValue =
     | Node_ConstructorCall
     | Node_FuncCall
@@ -613,7 +613,7 @@ export interface Node_LambdaParam extends NodeBase {
     readonly identifier: TokenObject | undefined;
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 export interface Node_Literal extends NodeBase {
     readonly nodeName: NodeName.Literal;
     readonly value: TokenObject;

@@ -366,7 +366,13 @@ function evaluatePassingNamedArgument(
                 // Found a matching parameter name in the callee.
 
                 // Check the type of the passed argument.
-                const cost = evaluatePassingArgument(args, argId, callee.parameterTypes[paramId], sideEffectBuffer);
+                const cost = evaluatePassingArgument(
+                    args,
+                    argId,
+                    callee.parameterTypes[paramId],
+                    callee.linkedNode.paramList.params[paramId].inOutToken?.text,
+                    sideEffectBuffer
+                );
                 if (hasMismatchReason(cost)) {
                     return cost;
                 }
@@ -414,7 +420,13 @@ function evaluatePassingPositionalArgument(
         }
 
         // Check the type of the passed argument.
-        const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes[paramId], sideEffectBuffer);
+        const cost = evaluatePassingArgument(
+            args,
+            paramId,
+            callee.parameterTypes[paramId],
+            callee.linkedNode.paramList.params[paramId].inOutToken?.text,
+            sideEffectBuffer
+        );
         if (hasMismatchReason(cost)) {
             return cost;
         }
@@ -426,7 +438,13 @@ function evaluatePassingPositionalArgument(
         // Check the rest of the caller's variadic arguments.
         // e.g. 'arg1', 'arg2' in 'format(fmt, arg0, arg1, arg2)' (arg0 has already been checked above);
         for (let paramId = callee.parameterTypes.length; paramId < callerArgs.length; paramId++) {
-            const cost = evaluatePassingArgument(args, paramId, callee.parameterTypes.at(-1), sideEffectBuffer);
+            const cost = evaluatePassingArgument(
+                args,
+                paramId,
+                callee.parameterTypes.at(-1),
+                callee.linkedNode.paramList.params.at(-1)?.inOutToken?.text,
+                sideEffectBuffer
+            );
             if (hasMismatchReason(cost)) {
                 return cost;
             }
@@ -442,12 +460,26 @@ function evaluatePassingArgument(
     args: FunctionCallArgs,
     callerArgId: number,
     calleeParam: ResolvedType | undefined,
+    calleeInOut: 'in' | 'out' | 'inout' | undefined,
     sideEffectBuffer: TypeConversionSideEffect[]
 ): number | MismatchReason {
     const {callerArgs, calleeTemplateMapping} = args;
     const expectedType = applyTemplateMapping(calleeParam, calleeTemplateMapping);
 
     const actualType = callerArgs[callerArgId].type;
+
+    if (actualType?.typeOrFunc.identifierText === 'void') {
+        if (calleeInOut === 'out') {
+            return 0;
+        }
+
+        return {
+            reason: MismatchKind.ParameterMismatch,
+            mismatchIndex: callerArgId,
+            expectedType: expectedType,
+            actualType: actualType
+        };
+    }
 
     const evaluation = evaluateTypeConversion(actualType, expectedType);
     if (evaluation === undefined) {
