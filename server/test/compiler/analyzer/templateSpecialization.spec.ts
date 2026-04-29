@@ -448,4 +448,14 @@ describe('analyzer/templateSpecialization', () => {
             }
         `);
     });
+
+    it('rejects missing template arguments', () => {
+        expectError(`
+            class Obj<T, U, V> { }
+
+            void main() {
+                Obj<int> obj;
+            }
+        `);
+    });
 });

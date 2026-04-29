@@ -1,6 +1,7 @@
 // https://www.angelcode.com/angelscript/sdk/docs/manual/doc_expressions.html
 
 import {
+    HandleAndConstTokenPair,
     Node_ArgList,
     Node_Assign,
     Node_Case,
@@ -66,6 +67,7 @@ import {checkTypeCast, assertTypeCast} from './typeCast';
 import {
     builtinBoolType,
     builtinAnyType,
+    builtinVoidType,
     resolvedBuiltinNull,
     resolvedBuiltinBool,
     resolvedBuiltinDouble,
@@ -73,8 +75,7 @@ import {
     resolvedBuiltinInt,
     tryGetBuiltinType
 } from './builtinType';
-import {canAccessInstanceMember, findSymbolWithParent, getSymbolAndScopeIfExist} from './symbolUtils';
-import {Mutable} from '../utils/utilities';
+import {canAccessInstanceMember} from './symbolUtils';
 import {getGlobalSettings} from '../core/settings';
 import {
     applyTemplateMapping,
@@ -130,24 +131,10 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
         return;
     }
 
-    const declared = findSymbolWithParent(scope, func.identifier.text);
-
-    if (declared === undefined) {
-        // TODO: required?
-        analyzerDiagnostic.error(func.identifier.location, `Function '${func.identifier.text}' is not defined.`);
-        return;
-    }
-
-    analyzeTemplateArguments(
-        scope,
-        declared.symbol.isFunctionHolder() ? declared.symbol.first : undefined,
-        func.typeParameters
-    ); // FIXME?
-
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
 
-    // Analyze the scope
+    // Analyze the statement block
     if (func.statBlock !== undefined) {
         analyzeStatBlock(scope, func.statBlock);
     }
@@ -299,7 +286,18 @@ export function analyzeParamList(scope: SymbolScope, paramList: Node_ParamList) 
 
 // **BNF** PARAMETER ::= TYPE TYPEMODIFIER [IDENTIFIER] ['...' | ('=' (EXPR | 'void'))]
 function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
-    if (parameter.defaultExpr === undefined || parameter.defaultExpr === voidParameter) {
+    if (parameter.defaultExpr === undefined) {
+        return;
+    }
+
+    if (parameter.defaultExpr === voidParameter) {
+        if (parameter.inOutToken?.text !== 'out') {
+            analyzerDiagnostic.error(
+                parameter.nodeRange.getBoundingLocation(),
+                "'void' can only be used as a default argument for output reference parameters."
+            );
+        }
+
         return;
     }
 
@@ -310,7 +308,10 @@ function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
 
 // **BNF** TYPE ::= ['const'] SCOPE DATATYPE ['<' TYPE {',' TYPE} '>'] { ('[' ']') | ('@' ['const']) }
 export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
-    const reservedType = typeNode.isArray ? undefined : analyzeReservedType(scope, typeNode);
+    const isArray = typeNode.postfixList.some(p => p.isArray);
+    const handle = typeNode.postfixList.find(p => p.handle !== undefined)?.handle;
+
+    const reservedType = isArray ? undefined : analyzeReservedType(scope, typeNode, handle);
     if (reservedType !== undefined) {
         return reservedType;
     }
@@ -322,28 +323,30 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     let givenTemplateArguments = typeNode.typeArguments;
     let givenIdentifier = typeIdentifier.text;
 
-    if (typeNode.isArray) {
+    if (isArray) {
         // If the type is an array, we replace the identifier with array type.
+        // Strip the first array postfix; remaining array postfixes apply to the inner type.
         givenIdentifier = getGlobalSettings().builtinArrayType;
-        const copiedTypeNode: Mutable<Node_Type> = {...typeNode};
-        copiedTypeNode.isArray = false;
-        givenTemplateArguments = [copiedTypeNode];
+        const firstArrayIndex = typeNode.postfixList.findIndex(p => p.isArray);
+        const innerPostfixList = typeNode.postfixList.slice(firstArrayIndex + 1).filter(p => p.isArray);
+        const innerTypeNode: Node_Type = {...typeNode, postfixList: innerPostfixList};
+        givenTemplateArguments = [innerTypeNode];
     }
 
     if (givenTemplateArguments.length > 0) {
         const specializationKey = givenIdentifier + buildTemplateSignature(givenTemplateArguments);
-        const specializationSymbol = findSymbolWithParent(searchScope, specializationKey);
-        if (specializationSymbol !== undefined && specializationSymbol.symbol.isType()) {
+        const specializationSymbol = searchScope.lookupSymbolWithParent(specializationKey);
+        if (specializationSymbol !== undefined && specializationSymbol.isType()) {
             return pushReferenceAndResolveType(
                 typeIdentifier,
-                specializationSymbol.symbol,
+                specializationSymbol,
                 typeNode.constToken !== undefined,
-                getHandleModifier(typeNode.handle)
+                getHandleModifier(handle)
             );
         }
     }
 
-    let symbolAndScope = findSymbolWithParent(searchScope, givenIdentifier);
+    let symbolAndScope = searchScope.lookupSymbolAndScopeWithParent(givenIdentifier);
     if (
         symbolAndScope !== undefined &&
         isSymbolConstructorOrDestructor(symbolAndScope.symbol) &&
@@ -351,10 +354,9 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
     ) {
         // When traversing the parent hierarchy, the constructor is sometimes found before the class type,
         // in which case search further up the hierarchy.
-        symbolAndScope = getSymbolAndScopeIfExist(
-            symbolAndScope.scope.parentScope.lookupSymbol(givenIdentifier),
-            symbolAndScope.scope.parentScope
-        );
+        const parentScope = symbolAndScope.scope.parentScope;
+        const parentSymbol = parentScope.lookupSymbol(givenIdentifier);
+        symbolAndScope = parentSymbol !== undefined ? {symbol: parentSymbol, scope: parentScope} : undefined;
     }
 
     if (symbolAndScope === undefined) {
@@ -368,13 +370,13 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
             typeIdentifier,
             foundSymbol.first,
             typeNode.constToken !== undefined,
-            getHandleModifier(typeNode.handle) ?? HandleModifier.Handle
+            getHandleModifier(handle) ?? HandleModifier.Handle
         );
     } else if (!foundSymbol.isType()) {
         analyzerDiagnostic.error(typeIdentifier.location, `'${givenIdentifier}' is not a type.`);
         return undefined;
     } else if (
-        getHandleModifier(typeNode.handle) !== undefined &&
+        getHandleModifier(handle) !== undefined &&
         foundSymbol.isPrimitiveOrEnum() &&
         foundSymbol.isTemplateParameterType !== true
     ) {
@@ -386,7 +388,7 @@ export function analyzeType(scope: SymbolScope, typeNode: Node_Type): ResolvedTy
             typeIdentifier,
             foundSymbol,
             typeNode.constToken !== undefined,
-            getHandleModifier(typeNode.handle),
+            getHandleModifier(handle),
             templateArguments
         );
     }
@@ -426,7 +428,11 @@ function pushReferenceAndResolveType(
 }
 
 // PRIMITIVETYPE | '?' | 'auto'
-function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedType | undefined {
+function analyzeReservedType(
+    scope: SymbolScope,
+    typeNode: Node_Type,
+    handle: HandleAndConstTokenPair | undefined
+): ResolvedType | undefined {
     const typeIdentifier = typeNode.dataType.identifier;
     if (typeIdentifier.kind !== TokenKind.Reserved) {
         return;
@@ -442,7 +448,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
     const builtinType = tryGetBuiltinType(typeIdentifier);
     if (builtinType !== undefined) {
         if (
-            getHandleModifier(typeNode.handle) !== undefined &&
+            getHandleModifier(handle) !== undefined &&
             builtinType.isPrimitiveOrEnum() &&
             typeIdentifier.text !== 'auto'
         ) {
@@ -453,7 +459,7 @@ function analyzeReservedType(scope: SymbolScope, typeNode: Node_Type): ResolvedT
         return ResolvedType.create({
             typeOrFunc: builtinType,
             isConst: typeNode.constToken !== undefined,
-            handle: getHandleModifier(typeNode.handle)
+            handle: getHandleModifier(handle)
         });
     }
 
@@ -471,6 +477,14 @@ function analyzeTemplateArguments(
     }
 
     const translation: TemplateMapping = new Map();
+    if (templateArgumentNodes.length < templateParameters.length) {
+        const lastTemplateArgumentNode = templateArgumentNodes.at(-1);
+        analyzerDiagnostic.error(
+            lastTemplateArgumentNode?.nodeRange.getBoundingLocation() ?? templateOwner.identifierToken.location,
+            `Too few template arguments.`
+        );
+    }
+
     for (let i = 0; i < templateArgumentNodes.length; i++) {
         if (i >= templateParameters.length) {
             analyzerDiagnostic.error(
@@ -679,10 +693,10 @@ function analyzeSwitch(scope: SymbolScope, ast: Node_Switch) {
 
 // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 function analyzeFor(scope: SymbolScope, forNode: Node_For) {
-    if (forNode.initial.nodeName === NodeName.Var) {
-        analyzeVar(scope, forNode.initial, false);
+    if (forNode.initializer.nodeName === NodeName.Var) {
+        analyzeVar(scope, forNode.initializer, false);
     } else {
-        analyzeExprStat(scope, forNode.initial);
+        analyzeExprStat(scope, forNode.initializer);
     }
 
     if (forNode.condition !== undefined) {
@@ -1035,7 +1049,7 @@ function analyzeExprTerm2(scope: SymbolScope, exprTerm: Node_ExprTerm2) {
     return exprValue;
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function analyzeExprValue(scope: SymbolScope, exprValue: Node_ExprValue): ResolvedType | undefined {
     switch (exprValue.nodeName) {
         case NodeName.ConstructorCall: {
@@ -1408,7 +1422,7 @@ function analyzeLambdaParam(scope: SymbolScope, param: Node_LambdaParam): Resolv
     return param.type !== undefined ? analyzeType(scope, param.type) : undefined;
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType | undefined {
     const literalValue = literal.value;
     if (literalValue.isNumberToken()) {
@@ -1443,6 +1457,10 @@ function analyzeLiteral(scope: SymbolScope, literal: Node_Literal): ResolvedType
         return resolvedBuiltinNull;
     }
 
+    if (literalValue.text === 'void') {
+        return new ResolvedType(builtinVoidType);
+    }
+
     return undefined;
 }
 
@@ -1456,7 +1474,7 @@ function analyzeFuncCall(scope: SymbolScope, funcCall: Node_FuncCall): ResolvedT
         searchScope = searchScope ?? scope;
     }
 
-    const calleeFunc = findSymbolWithParent(searchScope, funcCall.identifier.text);
+    const calleeFunc = searchScope.lookupSymbolAndScopeWithParent(funcCall.identifier.text);
     if (calleeFunc?.symbol === undefined) {
         if (funcCall.identifier.text === 'super') {
             assertDefaultSuperConstructorCall(scope, funcCall);
@@ -1613,7 +1631,7 @@ function analyzeVariableAccess(
     accessScope: SymbolScope,
     varIdentifier: TokenObject
 ): ResolvedType | undefined {
-    const found = findSymbolWithParent(accessScope, varIdentifier.text);
+    const found = accessScope.lookupSymbolWithParent(varIdentifier.text);
     if (found === undefined) {
         const enumMemberAccess = analyzeEnumMemberAccess(currentScope, accessScope, varIdentifier);
         if (enumMemberAccess !== undefined) {
@@ -1624,37 +1642,37 @@ function analyzeVariableAccess(
         return undefined;
     }
 
-    if (found.symbol.isType()) {
+    if (found.isType()) {
         analyzerDiagnostic.error(varIdentifier.location, `'${varIdentifier.text}' is a type, not a variable.`);
         return undefined;
     }
 
-    if (canAccessInstanceMember(currentScope, found.symbol) === false) {
+    if (canAccessInstanceMember(currentScope, found) === false) {
         analyzerDiagnostic.error(varIdentifier.location, `Member '${varIdentifier.text}' is not accessible here.`);
         return undefined;
     }
 
-    if (found.symbol.isVariable()) {
+    if (found.isVariable()) {
         // NOTE: Delegate variables also go through here.
 
-        const accessedVariable = found.symbol.toList()[0];
+        const accessedVariable = found.toList()[0];
         if (accessedVariable.identifierToken.location.path !== '') {
             // Only add to the reference list if the identifier has a valid path.
             // (Keywords like 'this' have an empty identifierToken, so they are excluded.)
             getActiveGlobalScope().pushReference({
-                toSymbol: found.symbol.toList()[0],
+                toSymbol: found.toList()[0],
                 fromToken: varIdentifier
             });
         }
 
-        return found.symbol.type
+        return found.type
             ?.cloneWithAttachedAccessSource(accessedVariable)
             .cloneWithEvaluatedRvalue(accessedVariable.evaluatedValue); // <-- Variable
     } else {
         // Unlike variables, function access is not added to the reference here.
         // It will be added once overload resolution is completed.
 
-        return ResolvedType.create({typeOrFunc: found.symbol.first, attachedAccessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
+        return ResolvedType.create({typeOrFunc: found.first, attachedAccessSource: varIdentifier}); // <-- Function (tentatively using the first overload)
     }
 }
 

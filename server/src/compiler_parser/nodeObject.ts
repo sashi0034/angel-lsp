@@ -369,6 +369,10 @@ export interface Node_Type extends NodeBase {
     readonly scope: Node_Scope | undefined;
     readonly dataType: Node_DataType;
     readonly typeArguments: Node_Type[];
+    readonly postfixList: TypePostfix[];
+}
+
+export interface TypePostfix {
     readonly isArray: boolean;
     readonly handle: HandleAndConstTokenPair | undefined;
 }
@@ -426,7 +430,7 @@ export interface Node_Break extends NodeBase {
 // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
 export interface Node_For extends NodeBase {
     readonly nodeName: NodeName.For;
-    readonly initial: Node_Var | Node_ExprStat;
+    readonly initializer: Node_Var | Node_ExprStat;
     readonly condition: Node_ExprStat | undefined;
     readonly incrementList: Node_Assign[];
     readonly statement: Node_Statement | undefined;
@@ -531,7 +535,7 @@ export interface Node_ExprTerm2 extends NodeBase {
     readonly postOps: Node_ExprPostOp[];
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 export type Node_ExprValue =
     | Node_ConstructorCall
     | Node_FuncCall
@@ -609,7 +613,7 @@ export interface Node_LambdaParam extends NodeBase {
     readonly identifier: TokenObject | undefined;
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 export interface Node_Literal extends NodeBase {
     readonly nodeName: NodeName.Literal;
     readonly value: TokenObject;

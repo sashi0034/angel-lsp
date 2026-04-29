@@ -610,15 +610,15 @@ function formatType(format: FormatterState, typeNode: Node_Type) {
 
     formatTemplateTypes(format, typeNode.typeArguments);
 
-    if (typeNode.isArray) {
-        formatTargetBy(format, '[', {condenseSides: true});
-        formatTargetBy(format, ']', {condenseLeft: true});
-    }
-
-    if (typeNode.handle !== undefined) {
-        formatTargetBy(format, '@', {condenseLeft: true});
-        if (typeNode.handle.constToken !== undefined) {
-            formatTargetBy(format, 'const', {});
+    for (const postfix of typeNode.postfixList) {
+        if (postfix.isArray) {
+            formatTargetBy(format, '[', {condenseSides: true});
+            formatTargetBy(format, ']', {condenseLeft: true});
+        } else if (postfix.handle !== undefined) {
+            formatTargetBy(format, '@', {condenseLeft: true});
+            if (postfix.handle.constToken !== undefined) {
+                formatTargetBy(format, 'const', {});
+            }
         }
     }
 }
@@ -785,10 +785,10 @@ function formatFor(format: FormatterState, forNode: Node_For) {
     formatParenthesesBlock(
         format,
         () => {
-            if (forNode.initial.nodeName === NodeName.Var) {
-                formatVar(format, forNode.initial);
+            if (forNode.initializer.nodeName === NodeName.Var) {
+                formatVar(format, forNode.initializer);
             } else {
-                formatExprStat(format, forNode.initial);
+                formatExprStat(format, forNode.initializer);
             }
 
             if (forNode.condition !== undefined) {
@@ -990,7 +990,7 @@ function formatExprTerm(format: FormatterState, exprTerm: Node_ExprTerm) {
     }
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function formatExprValue(format: FormatterState, exprValue: Node_ExprValue) {
     // formatMoveUntilNodeStart(formatter, exprValue);
 
@@ -1130,7 +1130,8 @@ function formatLambdaParam(format: FormatterState, param: Node_LambdaParam) {
     }
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
+// n/a
 
 // **BNF** FUNCCALL ::= SCOPE IDENTIFIER ['<' TYPE {',' TYPE} '>'] ARGLIST
 function formatFuncCall(format: FormatterState, funcCall: Node_FuncCall) {

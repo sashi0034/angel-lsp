@@ -59,6 +59,7 @@ import {
     Node_Switch,
     Node_Try,
     Node_Type,
+    TypePostfix,
     Node_TypeDef,
     Node_Using,
     Node_Var,
@@ -1598,7 +1599,7 @@ function parseType(parser: ParserState): Node_Type | undefined {
 
     const typeArguments = parseTemplateTypes(parser) ?? [];
 
-    const {isArray, handle} = parseTypeTail(parser);
+    const postfixList = parseTypeTail(parser);
 
     return {
         nodeName: NodeName.Type,
@@ -1607,19 +1608,17 @@ function parseType(parser: ParserState): Node_Type | undefined {
         scope: scope,
         dataType: datatype,
         typeArguments: typeArguments,
-        isArray: isArray,
-        handle: handle
+        postfixList: postfixList
     };
 }
 
-function parseTypeTail(parser: ParserState) {
-    let isArray = false;
-    let handleTokens: HandleAndConstTokenPair | undefined = undefined;
+function parseTypeTail(parser: ParserState): TypePostfix[] {
+    const list: TypePostfix[] = [];
     while (parser.isEnd() === false) {
         if (parser.peek(0).text === '[' && parser.peek(1).text === ']') {
             parser.consume(TokenHighlight.Operator);
             parser.consume(TokenHighlight.Operator);
-            isArray = true;
+            list.push({isArray: true, handle: undefined});
             continue;
         } else if (parser.peek().text === '@') {
             const handleToken = parser.peek() as HandleModifierToken;
@@ -1631,15 +1630,14 @@ function parseTypeTail(parser: ParserState) {
             }
 
             const constToken = parseConst(parser);
-            handleTokens = {handleToken, constToken};
-
+            list.push({isArray: false, handle: {handleToken, constToken}});
             continue;
         }
 
         break;
     }
 
-    return {isArray, handle: handleTokens};
+    return list;
 }
 
 function expectType(parser: ParserState): Node_Type | undefined {
@@ -2024,7 +2022,7 @@ function parseFor(parser: ParserState): ParseResult<Node_For> {
     const result: Mutable<Node_For> = {
         nodeName: NodeName.For,
         nodeRange: new TokenRange(rangeStart, parser.previous()),
-        initial: initial,
+        initializer: initial,
         condition: undefined,
         incrementList: [],
         statement: undefined
@@ -2542,7 +2540,7 @@ function parseExprTerm2(parser: ParserState): ParseResult<Node_ExprTerm2> {
     };
 }
 
-// **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+// **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 function parseExprValue(parser: ParserState): ParseResult<Node_ExprValue> {
     const cast = parseCast(parser);
     if (cast === ParseFailure.Incomplete) {
@@ -2858,7 +2856,7 @@ function parseLambdaParam(parser: ParserState): Node_LambdaParam {
     };
 }
 
-// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+// **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
 function parseLiteral(parser: ParserState): Node_Literal | undefined {
     const next = parser.peek();
     if (next.kind === TokenKind.Number) {
@@ -2871,7 +2869,7 @@ function parseLiteral(parser: ParserState): Node_Literal | undefined {
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }
 
-    if (next.text === 'true' || next.text === 'false' || next.text === 'null') {
+    if (next.text === 'true' || next.text === 'false' || next.text === 'null' || next.text === 'void') {
         parser.consume(TokenHighlight.Keyword);
         return {nodeName: NodeName.Literal, nodeRange: new TokenRange(next, next), value: next};
     }

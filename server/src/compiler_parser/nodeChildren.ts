@@ -125,7 +125,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
         // **BNF** FOR ::= 'for' '(' (VAR | EXPRSTAT) EXPRSTAT [ASSIGN {',' ASSIGN}] ')' STATEMENT
         case NodeName.For:
-            return children(node.initial, node.condition, ...node.incrementList, node.statement);
+            return children(node.initializer, node.condition, ...node.incrementList, node.statement);
 
         // **BNF** FOREACH ::= 'foreach' '(' TYPE IDENTIFIER {',' TYPE IDENTIFIER} ':' ASSIGN ')' STATEMENT
         case NodeName.ForEach:
@@ -175,7 +175,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
 
             return children(node.value, ...node.postOps);
 
-        // **BNF** EXPRVALUE ::= 'void' | CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
+        // **BNF** EXPRVALUE ::= CONSTRUCTORCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
         // n/a
 
         // **BNF** CONSTRUCTORCALL ::= TYPE ARGLIST
@@ -213,7 +213,7 @@ export function getNodeChildren(node: NodeObject): NodeObject[] {
         case NodeName.LambdaParam:
             return children(node.type);
 
-        // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
+        // **BNF** LITERAL ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null' | 'void'
         case NodeName.Literal:
             return [];
 
