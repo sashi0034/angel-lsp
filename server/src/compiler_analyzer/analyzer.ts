@@ -131,21 +131,10 @@ export function analyzeFunc(scope: SymbolScope, func: Node_Func) {
         return;
     }
 
-    // FIXME: Remove this?
-    const found = scope.lookupSymbolWithParent(func.identifier.text);
-    if (found === undefined) {
-        // FIXME: Unreachable code? This function should be hoisted before this point.
-        analyzerDiagnostic.error(func.identifier.location, `Function '${func.identifier.text}' is not defined.`);
-        return;
-    }
-
-    // FIXME: Remove this?
-    analyzeTemplateArguments(scope, found.isFunctionHolder() ? found.first : undefined, func.typeParameters);
-
     // Add arguments to the scope
     analyzeParamList(scope, func.paramList);
 
-    // Analyze the scope
+    // Analyze the statement block
     if (func.statBlock !== undefined) {
         analyzeStatBlock(scope, func.statBlock);
     }
