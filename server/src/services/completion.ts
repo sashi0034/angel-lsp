@@ -269,6 +269,11 @@ function getInstanceMemberCompletionItems_internal(
             continue;
         }
 
+        // Constructors are not accessible via member access (e.g., obj.Obj() is invalid).
+        if (symbol.isFunctionHolder() && symbol.first.isConstructor) {
+            continue;
+        }
+
         items.push(createCompletionItem(symbolName, symbol));
     }
 
