@@ -65,4 +65,40 @@ describe('analyzer/functionArguments', () => {
             void TakeIn(int&in value = void) { }
         `);
     });
+
+    it('rejects: default argument expression with incompatible type.', () => {
+        expectError(`// default argument expression with incompatible type.
+            class A { }
+            void Foo(int value = A()) { }
+        `);
+    });
+
+    it('rejects: default argument expression with incompatible class type.', () => {
+        expectError(`// default argument expression with incompatible class type.
+            class A { }
+            class B { }
+            void Foo(A a = B()) { }
+        `);
+    });
+
+    it('accepts: default argument expression with implicitly convertible type.', () => {
+        expectSuccess(`// default argument expression with implicitly convertible type.
+            void Foo(double value = 1) { }
+
+            void main() {
+                Foo();
+            }
+        `);
+    });
+
+    it('accepts: default argument expression matching the parameter type.', () => {
+        expectSuccess(`// default argument expression matching the parameter type.
+            void Foo(int value = 42) { }
+
+            void main() {
+                Foo();
+                Foo(7);
+            }
+        `);
+    });
 });
