@@ -138,8 +138,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
         return delegateCast;
     }
 
-    let bestMatching: BestMatching | undefined = undefined;
-    let hasAmbiguousLambdaOverload = false;
+    let bestMatchings: BestMatching[] = [];
     let mismatchReason: MismatchReason = {reason: MismatchKind.TooManyArguments};
 
     // Find the best-matching overload.
@@ -155,16 +154,19 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             continue;
         }
 
-        if (bestMatching === undefined || evaluated < bestMatching.cost) {
+        if (bestMatchings.length === 0 || evaluated < bestMatchings[0].cost) {
             // Update the current best match.
-            bestMatching = {function: callee, cost: evaluated, sideEffects: sideEffectBuffer};
-            hasAmbiguousLambdaOverload = false;
-        } else if (evaluated === bestMatching.cost && args.callerArgs.some(arg => arg.type?.lambdaInfo !== undefined)) {
-            hasAmbiguousLambdaOverload = true;
+            bestMatchings = [{function: callee, cost: evaluated, sideEffects: sideEffectBuffer}];
+        } else if (evaluated === bestMatchings[0].cost) {
+            bestMatchings.push({function: callee, cost: evaluated, sideEffects: sideEffectBuffer});
         }
     }
 
-    if (bestMatching !== undefined && !hasAmbiguousLambdaOverload) {
+    bestMatchings = dropConstOverloadsWhenMutableExists(args, bestMatchings);
+    const hasAmbiguousOverload = bestMatchings.length > 1;
+    const bestMatching = bestMatchings[0];
+
+    if (bestMatching !== undefined && !hasAmbiguousOverload) {
         // Return the best-matching function's return type.
         return {
             bestMatching: bestMatching.function,
@@ -182,7 +184,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             }
         };
     } else {
-        if (hasAmbiguousLambdaOverload) {
+        if (hasAmbiguousOverload) {
             mismatchReason = {reason: MismatchKind.AmbiguousOverload};
         }
 
@@ -204,6 +206,27 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             }
         };
     }
+}
+
+function dropConstOverloadsWhenMutableExists(args: FunctionCallArgs, matchings: BestMatching[]): BestMatching[] {
+    if (args.callerInstanceType === undefined || args.callerInstanceType.isConst) {
+        return matchings;
+    }
+
+    const hasMutableMethod = matchings.some(matching => isMutableMethod(matching.function));
+    if (!hasMutableMethod) {
+        return matchings;
+    }
+
+    return matchings.filter(matching => !isConstMethod(matching.function));
+}
+
+function isConstMethod(symbol: FunctionSymbol): boolean {
+    return symbol.linkedNode.nodeName !== NodeName.FuncDef && symbol.linkedNode.postfixConstToken !== undefined;
+}
+
+function isMutableMethod(symbol: FunctionSymbol): boolean {
+    return symbol.linkedNode.nodeName !== NodeName.FuncDef && symbol.linkedNode.postfixConstToken === undefined;
 }
 
 function pushReferenceToNamedArguments(callerArgs: CallerArgument[], callee: FunctionSymbol) {
@@ -325,6 +348,13 @@ function evaluateFunctionMatch(
     }
 
     totalCost += positionalArgumentCost;
+
+    // -----------------------------------------------
+    // Ensure every required parameter is satisfied by a positional argument,
+    // named argument, or default value.
+    if (!areRequiredParametersSatisfied(args, callee)) {
+        return {reason: MismatchKind.FewerArguments};
+    }
 
     return totalCost;
 }
@@ -498,6 +528,31 @@ function evaluatePassingArgument(
     return evaluation.cost;
 }
 
+function areRequiredParametersSatisfied(args: FunctionCallArgs, callee: FunctionSymbol): boolean {
+    const {callerArgs} = args;
+    const params = callee.linkedNode.paramList.params;
+
+    // Caller arguments are ordered as positional first, then named.
+    const firstNamedIdx = callerArgs.findIndex(a => a.name !== undefined);
+    const positionalCount = firstNamedIdx === -1 ? callerArgs.length : firstNamedIdx;
+    const namedSet = new Set(callerArgs.slice(positionalCount).map(a => a.name!.text));
+
+    for (let paramId = positionalCount; paramId < params.length; paramId++) {
+        const param = params[paramId];
+        if (param.defaultExpr !== undefined || param.isVariadic) {
+            continue;
+        }
+
+        if (namedSet.has(param.identifier?.text ?? '')) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 // -----------------------------------------------
 
 function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchReason) {
@@ -525,7 +580,15 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         );
         return;
     } else if (mismatchReason.reason === MismatchKind.AmbiguousOverload) {
-        analyzerDiagnostic.error(callerRange.getBoundingLocation(), 'Ambiguous overload for lambda argument.');
+        let message = `Multiple matching signatures to '${calleeFuncHolder.identifierText}'.\n`;
+        message += `Argument types: (${stringifyResolvedTypes(callerArgs.map(arg => arg.type))})\n`;
+        message += 'Candidate overloads:';
+        for (const overload of calleeFuncHolder.overloadList) {
+            const resolvedTypes = overload.parameterTypes.map(t => applyTemplateMapping(t, calleeTemplateMapping));
+            message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
+        }
+
+        analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         return;
     }
 

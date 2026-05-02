@@ -301,7 +301,17 @@ function analyzeParameter(scope: SymbolScope, parameter: Node_Parameter) {
         return;
     }
 
-    analyzeExpr(scope, parameter.defaultExpr);
+    const exprType = analyzeExpr(scope, parameter.defaultExpr);
+
+    if (parameter.identifier !== undefined) {
+        // Verify that the default expression is convertible to the parameter's declared type.
+        // The parameter's variable symbol was inserted into the scope during hoisting, so we
+        // look it up to retrieve the resolved parameter type.
+        const paramSymbol = scope.lookupSymbol(parameter.identifier.text);
+        if (paramSymbol !== undefined && paramSymbol.isVariable()) {
+            assertTypeCast(exprType, paramSymbol.type, parameter.defaultExpr.nodeRange);
+        }
+    }
 }
 
 // **BNF** TYPEMODIFIER ::= ['&' ['in' | 'out' | 'inout'] ['+'] ['if_handle_then_const']]

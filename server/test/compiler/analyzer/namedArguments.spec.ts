@@ -26,4 +26,14 @@ describe('analyzer/namedArguments', () => {
             }
         `);
     });
+
+    it('rejects: required parameters before named arguments must be provided', () => {
+        expectError(`
+            void foo(int a, int b) { }
+
+            void main() {
+                foo(b: 1);
+            }
+        `);
+    });
 });

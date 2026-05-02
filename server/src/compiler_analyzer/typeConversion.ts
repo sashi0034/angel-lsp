@@ -209,15 +209,16 @@ const numberSizeInBytes = new Map<string, number>([
 const sizeof_int32 = 4;
 
 function evaluateConvPrimitiveToPrimitive(from: ResolvedType, to: ResolvedType) {
-    // FIXME: Check a primitive is const or not?
     const fromType = from.typeOrFunc;
     const toType = to.typeOrFunc;
 
     assert(fromType.isType() && toType.isType());
     assert(fromType.isPrimitiveOrEnum() || toType.isPrimitiveOrEnum());
 
+    const constConvCost = from.isConst !== to.isConst ? ConversionCost.ConstConv : ConversionCost.NoConv;
+
     if (fromType.equals(toType)) {
-        return {cost: ConversionCost.NoConv};
+        return {cost: constConvCost};
     } else if (fromType.isEnumType() && toType.isEnumType()) {
         // Resolve ambiguous enum members
         for (const candidate of fromType.multipleEnumCandidates ?? []) {
@@ -266,7 +267,7 @@ function evaluateConvPrimitiveToPrimitive(from: ResolvedType, to: ResolvedType) 
         cost = ConversionCost.PrimitiveSizeDownConv;
     }
 
-    return {cost};
+    return {cost: cost + constConvCost};
 }
 
 // -----------------------------------------------
@@ -382,29 +383,29 @@ function evaluateConvObjectToObject(
 
     // Check if these are identical
     if (fromType.equals(toType)) {
-        return {cost: ConversionCost.NoConv};
+        return addObjectConstConversionCost({cost: ConversionCost.NoConv}, from, to);
     }
 
     if (mode === ConversionMode.ExplicitCast && from.handle !== undefined && to.handle !== undefined) {
-        return {cost: ConversionCost.RefConv};
+        return addObjectConstConversionCost({cost: ConversionCost.RefConv}, from, to);
     }
 
-    // FIXME?
     if (canDownCast(fromType, toType)) {
-        return {cost: ConversionCost.ToObjectConv};
+        return addObjectConstConversionCost({cost: ConversionCost.RefConv}, from, to);
     }
 
     // Check the conversion using a construct with a single parameter.
     const constByConstructor = evaluateConversionByConstructor(state, from, to);
     if (constByConstructor !== undefined) {
-        return constByConstructor;
+        return addObjectConstConversionCost(constByConstructor, to.cloneWithConst(false), to);
     }
 
     // Check the conversion using the opConv and opImpl function.
     const convFuncList = collectConversionFunctions(fromType, mode);
     for (const convFunc of convFuncList) {
-        if (doesReturnTypeMatchObjectConversion(convFunc.returnType, to)) {
-            return {cost: ConversionCost.ToObjectConv};
+        const cost = evaluateConversionFunctionReturnCost(convFunc.returnType, to);
+        if (cost !== undefined) {
+            return {cost: ConversionCost.ToObjectConv + cost};
         }
     }
 
@@ -425,25 +426,53 @@ function evaluateConvObjectToObject(
     return undefined;
 }
 
-function doesReturnTypeMatchObjectConversion(returnType: ResolvedType | undefined, to: ResolvedType): boolean {
-    const normalizedReturnType = normalizeType(returnType);
-    if (normalizedReturnType === undefined) {
-        return false;
+function addObjectConstConversionCost(
+    evaluation: ConversionEvaluation,
+    from: ResolvedType,
+    to: ResolvedType
+): ConversionEvaluation | undefined {
+    const constCost = evaluateObjectConstConversionCost(from, to);
+    if (constCost === undefined) {
+        return evaluation; // FIXME: Should this return undefined?
     }
 
-    if (
-        normalizedReturnType.isConst &&
-        !to.isConst &&
-        (normalizedReturnType.handle !== undefined || to.handle !== undefined)
-    ) {
-        return false;
+    return {...evaluation, cost: evaluation.cost + constCost};
+}
+
+function evaluateObjectConstConversionCost(from: ResolvedType, to: ResolvedType): ConversionCost | undefined {
+    if (!from.isConst && to.isConst) {
+        return ConversionCost.ConstConv;
+    }
+
+    if (from.isConst && !to.isConst) {
+        if (from.handle !== undefined || to.handle !== undefined) {
+            return undefined;
+        }
+
+        return ConversionCost.ToObjectConv;
+    }
+
+    return ConversionCost.NoConv;
+}
+
+function evaluateConversionFunctionReturnCost(
+    returnType: ResolvedType | undefined,
+    to: ResolvedType
+): ConversionCost | undefined {
+    const normalizedReturnType = normalizeType(returnType);
+    if (normalizedReturnType === undefined) {
+        return undefined;
     }
 
     if (!normalizedReturnType.typeOrFunc.equals(to.typeOrFunc)) {
-        return false;
+        return undefined;
     }
 
-    return areTemplateArgumentsEqual(normalizedReturnType, to);
+    if (areTemplateArgumentsEqual(normalizedReturnType, to) === false) {
+        return undefined;
+    }
+
+    return evaluateObjectConstConversionCost(normalizedReturnType, to);
 }
 
 // -----------------------------------------------
@@ -540,7 +569,10 @@ function evaluateConversionByConstructor(
             continue;
         }
 
-        return {cost: ConversionCost.ToObjectConv + cost.cost}; // FIXME?
+        // NOTE: This intentionally accepts the first viable single-argument constructor instead of running the
+        // full engine-style overload resolution. For the language server, this approximation only affects
+        // diagnostics and overload hints in uncommon ambiguous constructor-conversion cases.
+        return {cost: ConversionCost.ToObjectConv + cost.cost};
     }
 
     return undefined;
@@ -706,6 +738,9 @@ function collectConversionFunctions(
         }
     }
 
+    // NOTE: The AngelScript engine filters const/non-const conversion operators before matching, preferring
+    // non-const members when both forms are available. The language server keeps all candidates here as a
+    // lightweight approximation; any mismatch is limited to editor diagnostics and overload selection.
     return convFuncList;
 }
 

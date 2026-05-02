@@ -261,4 +261,50 @@ describe('analyzer/const', () => {
             }
         `);
     });
+
+    it('accepts: Non-const object handles prefer mutable overloads over const overloads.', () => {
+        expectSuccess(`
+            class Base {}
+            class Derived : Base {}
+
+            int pick(const Base@ value) { return 0; }
+            bool pick(Base@ value) { return true; }
+
+            void main() {
+                Derived@ value = Derived();
+                bool selected = pick(value);
+            }
+        `);
+    });
+
+    it('accepts: Const object values prefer const overloads over mutable copy overloads.', () => {
+        expectSuccess(`
+            class Obj {}
+
+            int pick(Obj &in value) { return 0; }
+            bool pick(const Obj &in value) { return true; }
+
+            void main() {
+                const Obj value;
+                bool selected = pick(value);
+            }
+        `);
+    });
+
+    it('accepts: Object conversions prefer mutable overloads over const overloads.', () => {
+        expectSuccess(`
+            class Target {}
+            class Source {
+                Target opImplConv() { return Target(); }
+            }
+
+            int pick(const Target &in value) { return 0; }
+            bool pick(Target &in value) { return true; }
+
+            void main() {
+                Source value;
+                bool selected = pick(value);
+            }
+        `);
+    });
 });
