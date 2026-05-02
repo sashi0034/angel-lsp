@@ -350,6 +350,13 @@ function evaluateFunctionMatch(
 
     totalCost += positionalArgumentCost;
 
+    // -----------------------------------------------
+    // Ensure every required parameter is satisfied by a positional argument,
+    // named argument, or default value.
+    if (!areRequiredParametersSatisfied(args, callee)) {
+        return {reason: MismatchKind.FewerArguments};
+    }
+
     return totalCost;
 }
 
@@ -520,6 +527,31 @@ function evaluatePassingArgument(
     });
 
     return evaluation.cost;
+}
+
+function areRequiredParametersSatisfied(args: FunctionCallArgs, callee: FunctionSymbol): boolean {
+    const {callerArgs} = args;
+    const params = callee.linkedNode.paramList.params;
+
+    // Caller arguments are ordered as positional first, then named.
+    const firstNamedIdx = callerArgs.findIndex(a => a.name !== undefined);
+    const positionalCount = firstNamedIdx === -1 ? callerArgs.length : firstNamedIdx;
+    const namedSet = new Set(callerArgs.slice(positionalCount).map(a => a.name!.text));
+
+    for (let paramId = positionalCount; paramId < params.length; paramId++) {
+        const param = params[paramId];
+        if (param.defaultExpr !== undefined || param.isVariadic) {
+            continue;
+        }
+
+        if (namedSet.has(param.identifier?.text ?? '')) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
 }
 
 // -----------------------------------------------
