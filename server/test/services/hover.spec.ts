@@ -111,7 +111,7 @@ describe('services/hover', () => {
         expectHoverContains(
             `
             class string {
-                string opAdd(const string &in other) { return string(); }
+                string opAdd(const string &in other) const { return string(); }
             }
 
             const auto HELLO = "hello";

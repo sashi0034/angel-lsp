@@ -4,6 +4,7 @@ const predefined = {
     uri: 'file:///path/to/as.predefined',
     content: `class array<T> {
         T& opIndex(uint index);
+        T& opIndex(uint index) const;
         uint length() const;
     }`
 };

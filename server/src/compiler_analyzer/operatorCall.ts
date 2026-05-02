@@ -281,6 +281,7 @@ function checkLhsOverloadedOperatorCall(args: LhsOperatorCallArgs): ResolvedType
         callerIdentifier: callerOperator,
         callerRange: new TokenRange(callerOperator, callerOperator),
         callerArgs: callerArgs,
+        callerInstanceType: lhs,
         calleeFuncHolder: aliasFunction,
         calleeTemplateMapping: lhs.templateMapping // FIXME?
     });
