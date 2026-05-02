@@ -163,11 +163,10 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
     }
 
     bestMatchings = dropConstOverloadsWhenMutableExists(args, bestMatchings);
-    const hasAmbiguousLambdaOverload =
-        bestMatchings.length > 1 && args.callerArgs.some(arg => arg.type?.lambdaInfo !== undefined);
+    const hasAmbiguousOverload = bestMatchings.length > 1;
     const bestMatching = bestMatchings[0];
 
-    if (bestMatching !== undefined && !hasAmbiguousLambdaOverload) {
+    if (bestMatching !== undefined && !hasAmbiguousOverload) {
         // Return the best-matching function's return type.
         return {
             bestMatching: bestMatching.function,
@@ -185,7 +184,7 @@ function checkFunctionCallInternal(args: FunctionCallArgs): FunctionCallResult {
             }
         };
     } else {
-        if (hasAmbiguousLambdaOverload) {
+        if (hasAmbiguousOverload) {
             mismatchReason = {reason: MismatchKind.AmbiguousOverload};
         }
 
@@ -581,7 +580,15 @@ function handleMismatchError(args: FunctionCallArgs, mismatchReason: MismatchRea
         );
         return;
     } else if (mismatchReason.reason === MismatchKind.AmbiguousOverload) {
-        analyzerDiagnostic.error(callerRange.getBoundingLocation(), 'Ambiguous overload for lambda argument.');
+        let message = `Multiple matching signatures to '${calleeFuncHolder.identifierText}'.\n`;
+        message += `Argument types: (${stringifyResolvedTypes(callerArgs.map(arg => arg.type))})\n`;
+        message += 'Candidate overloads:';
+        for (const overload of calleeFuncHolder.overloadList) {
+            const resolvedTypes = overload.parameterTypes.map(t => applyTemplateMapping(t, calleeTemplateMapping));
+            message += `\n(${stringifyResolvedTypes(resolvedTypes)})`;
+        }
+
+        analyzerDiagnostic.error(callerRange.getBoundingLocation(), message);
         return;
     }
 
