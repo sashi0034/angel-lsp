@@ -75,6 +75,40 @@ describe('definition/funcdef', () => {
         `);
     });
 
+    it('resolves a function passed to a parameter of a funcdef type', () => {
+        testDefinition(`
+            funcdef void callback_t(int);
+
+            void registerCallback(callback_t c) {
+            }
+
+            class Main {
+                void main() {
+                    registerCallback(callback$C1$);
+                }
+            }
+
+            void callback$C0$(int v) { }
+        `);
+    });
+
+    it('resolves a function passed to a parameter whose type is unresolved', () => {
+        testDefinition(`
+            funcdef void callback_t(int);
+
+            void registerCallback(undefined_type c) {
+            }
+
+            class Main {
+                void main() {
+                    registerCallback(callback$C1$);
+                }
+            }
+
+            void callback$C0$(int v) { }
+        `);
+    });
+
     it('resolves an auto funcdef handle variable after it is used as an argument', () => {
         testDefinition(`
             funcdef void callback_f();
