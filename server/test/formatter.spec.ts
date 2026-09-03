@@ -80,4 +80,18 @@ void main() {
 }
 `
     );
+    testFormatter(
+        /* before */ `
+void foo(){
+if( not  value or not( ~ bar>1 and ++ bar<10) ){
+return;}}
+`,
+        /* after */ `
+void foo() {
+    if (not value or not (~bar > 1 and ++bar < 10)) {
+        return;
+    }
+}
+`
+    );
 });

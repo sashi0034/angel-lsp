@@ -979,7 +979,8 @@ function formatExprTerm(format: FormatterState, exprTerm: Node_ExprTerm) {
         formatInitList(format, exprTerm.initList);
     } else if (exprTerm.exprTerm === 2) {
         for (let i = 0; i < exprTerm.preOps.length; i++) {
-            formatTargetBy(format, exprTerm.preOps[i].text, {condenseRight: true});
+            const condenseRight = exprTerm.preOps[i].text !== 'not';
+            formatTargetBy(format, exprTerm.preOps[i].text, {condenseRight});
         }
 
         formatExprValue(format, exprTerm.value);
