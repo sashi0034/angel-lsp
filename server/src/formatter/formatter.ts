@@ -225,7 +225,7 @@ function formatBaseList(format: FormatterState, baseList: ScopeAndIdentifier[]) 
 
         const {scope, identifier} = baseList[i];
         if (scope !== undefined) {
-            formatScope(format, scope);
+            formatScope(format, scope, {preserveGlobalLeftSpace: true});
         }
 
         if (identifier !== undefined) {
@@ -699,11 +699,14 @@ function formatInitList(format: FormatterState, initList: Node_InitList) {
 }
 
 // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function formatScope(format: FormatterState, scope: Node_Scope) {
+function formatScope(format: FormatterState, scope: Node_Scope, option: {preserveGlobalLeftSpace?: boolean} = {}) {
     formatMoveUntilNodeStart(format, scope);
 
     if (scope.isGlobal) {
-        formatTargetBy(format, '::', {condenseSides: true});
+        formatTargetBy(format, '::', {
+            condenseLeft: option.preserveGlobalLeftSpace !== true,
+            condenseRight: true
+        });
     }
 
     for (let i = 0; i < scope.scopeList.length; i++) {

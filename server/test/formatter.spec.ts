@@ -89,4 +89,40 @@ class script:callback_base,something_else{}
 class script : callback_base, something_else { }
 `
     );
+
+    testFormatter(
+        /* before */ `
+interface IChild:IBase{}
+`,
+        /* after */ `
+interface IChild : IBase { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child:NS::Base{}
+`,
+        /* after */ `
+class Child : NS::Base { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child : ::Base {}
+`,
+        /* after */ `
+class Child : ::Base { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child{}
+`,
+        /* after */ `
+class Child { }
+`
+    );
 });
