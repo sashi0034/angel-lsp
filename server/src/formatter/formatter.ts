@@ -45,7 +45,8 @@ import {
     Node_VarAccess,
     Node_VirtualProp,
     Node_While,
-    voidParameter
+    voidParameter,
+    ScopeAndIdentifier
 } from '../compiler_parser/nodeObject';
 import {FormatterState, isEditedWrapAt} from './formatterState';
 import {TextEdit} from 'vscode-languageserver-types/lib/esm/main';
@@ -195,6 +196,8 @@ function formatClass(format: FormatterState, classNode: Node_Class) {
     if (formatMoveToNonComment(format)?.text === ';') {
         formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
     } else {
+        formatBaseList(format, classNode.baseList);
+
         formatBraceBlock(format, () => {
             for (const node of classNode.memberList) {
                 if (node.nodeName === NodeName.VirtualProp) {
@@ -208,6 +211,26 @@ function formatClass(format: FormatterState, classNode: Node_Class) {
                 }
             }
         });
+    }
+}
+
+// [':' SCOPE IDENTIFIER {',' SCOPE IDENTIFIER}]
+function formatBaseList(format: FormatterState, baseList: ScopeAndIdentifier[]) {
+    for (let i = 0; i < baseList.length; i++) {
+        if (i === 0) {
+            formatTargetBy(format, ':', {});
+        } else {
+            formatTargetBy(format, ',', {condenseLeft: true});
+        }
+
+        const {scope, identifier} = baseList[i];
+        if (scope !== undefined) {
+            formatScope(format, scope, {preserveGlobalLeftSpace: true});
+        }
+
+        if (identifier !== undefined) {
+            formatTargetBy(format, identifier.text, {});
+        }
     }
 }
 
@@ -325,6 +348,8 @@ function formatInterface(format: FormatterState, interfaceNode: Node_Interface) 
     if (formatMoveToNonComment(format)?.text === ';') {
         formatTargetBy(format, ';', {condenseLeft: true, connectTail: true});
     } else {
+        formatBaseList(format, interfaceNode.baseList);
+
         formatBraceBlock(format, () => {
             for (const node of interfaceNode.memberList) {
                 if (node.nodeName === NodeName.VirtualProp) {
@@ -674,11 +699,14 @@ function formatInitList(format: FormatterState, initList: Node_InitList) {
 }
 
 // **BNF** SCOPE ::= ['::'] {IDENTIFIER '::'} [IDENTIFIER ['<' TYPE {',' TYPE} '>'] '::']
-function formatScope(format: FormatterState, scope: Node_Scope) {
+function formatScope(format: FormatterState, scope: Node_Scope, option: {preserveGlobalLeftSpace?: boolean} = {}) {
     formatMoveUntilNodeStart(format, scope);
 
     if (scope.isGlobal) {
-        formatTargetBy(format, '::', {condenseSides: true});
+        formatTargetBy(format, '::', {
+            condenseLeft: option.preserveGlobalLeftSpace !== true,
+            condenseRight: true
+        });
     }
 
     for (let i = 0; i < scope.scopeList.length; i++) {
