@@ -50,7 +50,7 @@ function testFormatter(content: string, expectedContent: string) {
             const difference = `difference: ${getDiffLineNumber(expected, actual)}`;
             const hr = '-----------------------------------------------';
             throw new Error(
-                `${hr} expected\n${makeVisible(actual)}\n${hr} actual\n${makeVisible(expected)}\n${hr}\n${difference}`
+                `${hr} expected\n${makeVisible(expected)}\n${hr} actual\n${makeVisible(actual)}\n${hr}\n${difference}`
             );
         }
     });
@@ -92,6 +92,51 @@ void foo() {
         return;
     }
 }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class script:callback_base,something_else{}
+`,
+        /* after */ `
+class script : callback_base, something_else { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+interface IChild:IBase{}
+`,
+        /* after */ `
+interface IChild : IBase { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child:NS::Base{}
+`,
+        /* after */ `
+class Child : NS::Base { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child : ::Base {}
+`,
+        /* after */ `
+class Child : ::Base { }
+`
+    );
+
+    testFormatter(
+        /* before */ `
+class Child{}
+`,
+        /* after */ `
+class Child { }
 `
     );
 });
