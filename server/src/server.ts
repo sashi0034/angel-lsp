@@ -258,6 +258,7 @@ function profileInspect(document: lsp_textDocument.TextDocument) {
 // -----------------------------------------------
 // Semantic Tokens Provider
 s_connection.languages.semanticTokens.on(params => {
+    s_inspector.flushRecord(params.textDocument.uri);
     return provideSemanticTokens(s_inspector.getRecord(params.textDocument.uri).rawTokens);
 });
 
