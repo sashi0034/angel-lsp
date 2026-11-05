@@ -35,6 +35,7 @@ import {
 import {getGlobalSettings} from '../core/settings';
 import {analyzerDiagnostic} from './analyzerDiagnostic';
 import {TokenObject} from '../compiler_tokenizer/tokenObject';
+import {TokenHighlight} from '../core/highlight';
 import assert = require('node:assert');
 
 export type ScopeTable = Map<string, SymbolScope>;
@@ -333,6 +334,8 @@ export class SymbolScope {
      * @return undefined if the symbol is successfully inserted, or the symbol that already exists.
      */
     public insertSymbol(symbol: SymbolObject): SymbolObjectHolder | undefined {
+        highlightTokenBySymbol(symbol.identifierToken, symbol);
+
         const identifier = symbol.identifierToken.text;
         const alreadyExists = this._symbolTable.get(identifier);
         if (alreadyExists === undefined) {
@@ -481,6 +484,7 @@ export class SymbolGlobalScope extends SymbolScope {
     }
 
     public pushReference(info: ReferenceMarker) {
+        highlightTokenBySymbol(info.fromToken, info.toSymbol);
         this._context.markers.reference.push(info);
     }
 
@@ -524,6 +528,57 @@ function registerBuiltinTypeIfNeeded(symbol: SymbolObject) {
     ) {
         getActiveGlobalScope().registerBuiltinStringType(symbol);
     }
+}
+
+function highlightTokenBySymbol(token: TokenObject, symbol: SymbolObject) {
+    if (token.isVirtual() || token.isReservedToken()) {
+        return;
+    }
+
+    const highlight = getSymbolHighlight(symbol);
+    if (highlight !== undefined) {
+        token.setHighlight(highlight);
+    }
+}
+
+function getSymbolHighlight(symbol: SymbolObject): TokenHighlight | undefined {
+    if (symbol.isType()) {
+        if (symbol.isTemplateParameterType) {
+            return TokenHighlight.TypeParameter;
+        }
+
+        switch (symbol.linkedNode?.nodeName) {
+            case NodeName.Class:
+                return TokenHighlight.Class;
+            case NodeName.Interface:
+                return TokenHighlight.Interface;
+            case NodeName.Enum:
+                return TokenHighlight.Enum;
+            default:
+                // Primitive types keep the keyword highlight.
+                return undefined;
+        }
+    } else if (symbol.isFunction()) {
+        if (symbol.isConstructor) {
+            return TokenHighlight.Class;
+        }
+
+        return symbol.isInstanceMember ? TokenHighlight.Method : TokenHighlight.Function;
+    } else if (symbol.isVariable()) {
+        if (symbol.isInstanceMember) {
+            return TokenHighlight.Property;
+        }
+
+        // Parameters and enum members are told apart by the highlight of their declaration.
+        const declaredHighlight = symbol.identifierToken.highlight.tokenHighlight;
+        if (declaredHighlight === TokenHighlight.Parameter || declaredHighlight === TokenHighlight.EnumMember) {
+            return declaredHighlight;
+        }
+
+        return TokenHighlight.Variable;
+    }
+
+    return undefined;
 }
 
 // Checks whether the class is a built-in string type.

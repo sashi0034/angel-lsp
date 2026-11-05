@@ -1525,7 +1525,7 @@ function parseParameter(parser: ParserState, isPreviousParameterVariadic: boolea
     let identifier: TokenObject | undefined = undefined;
     if (parser.peek().kind === TokenKind.Identifier) {
         identifier = parser.peek();
-        parser.consume(TokenHighlight.Variable);
+        parser.consume(TokenHighlight.Parameter);
     }
 
     let isVariadic = false;
